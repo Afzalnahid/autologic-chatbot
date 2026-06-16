@@ -1,13 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+let _supabase = null;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY");
+export function getSupabaseClient() {
+  if (!_supabase) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_KEY;
+    if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY");
+    _supabase = createClient(url, key);
+  }
+  return _supabase;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = new Proxy({}, {
+  get(_, prop) { return getSupabaseClient()[prop]; }
+});
 
 export async function getProducts(limit = 100) {
   const { data, error } = await supabase

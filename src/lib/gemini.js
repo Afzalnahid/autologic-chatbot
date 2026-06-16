@@ -1,13 +1,17 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+let _genAI = null;
+function getGenAI() {
+  if (!_genAI) _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  return _genAI;
+}
 
 const PRIMARY_MODEL = "gemini-2.5-flash";
 const LITE_MODEL = "gemini-2.0-flash";
 
 export async function chatWithGemini(systemPrompt, messages, model = PRIMARY_MODEL) {
   try {
-    const m = genAI.getGenerativeModel({ model, systemInstruction: systemPrompt });
+    const m = getGenAI().getGenerativeModel({ model, systemInstruction: systemPrompt });
     const history = messages.slice(0, -1).map(msg => ({
       role: msg.role === "assistant" ? "model" : "user",
       parts: [{ text: msg.content }],
@@ -26,7 +30,7 @@ export async function chatWithGemini(systemPrompt, messages, model = PRIMARY_MOD
 }
 
 export async function analyzeImage(imageUrl, prompt = "Describe this jewelry product in detail for product matching.") {
-  const model = genAI.getGenerativeModel({ model: LITE_MODEL });
+  const model = getGenAI().getGenerativeModel({ model: LITE_MODEL });
   const response = await fetch(imageUrl);
   const buffer = await response.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
@@ -44,13 +48,13 @@ export async function analyzeImageFromTelegram(fileUrl, prompt) {
 }
 
 export async function generateEmbedding(text) {
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  const model = getGenAI().getGenerativeModel({ model: "text-embedding-004" });
   const result = await model.embedContent(text);
   return result.embedding.values;
 }
 
 export async function extractProductsFromUrl(htmlContent, url) {
-  const model = genAI.getGenerativeModel({ model: PRIMARY_MODEL });
+  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL });
   const prompt = `Extract ALL product data from this webpage HTML. The URL is: ${url}
 
 Return a JSON array of products. Each product must have:
