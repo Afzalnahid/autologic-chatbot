@@ -26,7 +26,7 @@ export async function GET() {
       await supabase.from("contacts").upsert({ sender_id: sid, client_id: ch?.client_id, name, bot_enabled: map[sid]?.bot_enabled ?? true }, { onConflict: "sender_id" });
       map[sid] = { sender_id: sid, name, bot_enabled: map[sid]?.bot_enabled ?? true };
     }
-    return NextResponse.json({ contacts: Object.values(map), global_bot_enabled: ch?.bot_enabled ?? true, _dbg: { e1: e1?.message || null, e2: e2?.message || null, e3: e3?.message || null, senders: uniq.length, host: (process.env.SUPABASE_URL || "").slice(8, 28) } });
+    return NextResponse.json({ contacts: Object.values(map), global_bot_enabled: ch?.bot_enabled ?? true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
