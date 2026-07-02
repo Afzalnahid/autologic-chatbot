@@ -254,8 +254,8 @@ export default function Dashboard() {
     setAuthChecked(true);
   },[]);
 
-  const load=async()=>{
-    setLoading(true);
+  const load=async(silent)=>{
+    if(!silent)setLoading(true);
     try {
       const [pr,cv,or,st]=await Promise.all([
         fetch("/api/products").then(r=>r.json()).catch(()=>[]),
@@ -272,6 +272,11 @@ export default function Dashboard() {
   };
 
   useEffect(()=>{if(authed)load();},[authed]);
+  useEffect(()=>{
+    if(!authed) return;
+    const t=setInterval(()=>load(true),10000);
+    return ()=>clearInterval(t);
+  },[authed]);
 
   if(!authChecked) return null;
   if(!authed) return <Login onOk={()=>setAuthed(true)}/>;
