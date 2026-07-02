@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getProducts, deleteProduct } from "@/lib/supabase.js";
 import { ingestProduct } from "@/lib/vector-pipeline.js";

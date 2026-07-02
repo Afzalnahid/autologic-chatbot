@@ -7,9 +7,9 @@ const T = {
   text: "#e8e8ec", textMuted: "#7a8db0", textDim: "#4a5a7a",
   border: "#1a2744", danger: "#ef4444", success: "#22c55e", info: "#3b82f6", warn: "#f59e0b", purple: "#8b5cf6",
 };
-const PAGES = ["analytics","conversations","inventory","orders","settings","demo"];
-const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-settings","ti-robot"];
-const LABELS = ["Analytics","Conversations","Inventory","Orders","Settings","Demo"];
+const PAGES = ["analytics","conversations","inventory","orders","channels","settings","demo"];
+const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-plug","ti-settings","ti-robot"];
+const LABELS = ["Analytics","Conversations","Inventory","Orders","Channels","Settings","Demo"];
 
 const Btn = ({children,gold,danger,small,style,...p}) => <button {...p} style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:"rgba(240,192,64,0.12)",color:danger?"#fff":gold?"#0a0a0a":T.gold,...style}}>{children}</button>;
 const Badge = ({children,color=T.gold}) => <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>;
@@ -65,13 +65,37 @@ function Conversations({convos}) {
 
 function Inventory({products,refresh}) {
   const [search,setSearch]=useState("");
+  const [showAdd,setShowAdd]=useState(false);
+  const [np,setNp]=useState({product_id:"",product_name:"",category:"",sale_price:"",regular_price:"",image_url:"",description:""});
+  const [adding,setAdding]=useState(false);
   const filtered = products.filter(p=>(p.product_name||p.name||"").toLowerCase().includes(search.toLowerCase())||(p.category||"").toLowerCase().includes(search.toLowerCase()));
   const del = async(id)=>{ await fetch("/api/products",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}); refresh(); };
+  const add = async()=>{
+    if(!np.product_id||!np.product_name) return;
+    setAdding(true);
+    await fetch("/api/products",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(np)});
+    setAdding(false); setShowAdd(false);
+    setNp({product_id:"",product_name:"",category:"",sale_price:"",regular_price:"",image_url:"",description:""});
+    refresh();
+  };
   return <div style={{display:"flex",flexDirection:"column",gap:16,height:"calc(100vh - 130px)"}}>
     <div style={{display:"flex",gap:12}}>
       <div style={{position:"relative",flex:1}}><input placeholder="Search products..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:"100%",background:T.card,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px 8px 36px",color:T.text,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
+      <Btn gold onClick={()=>setShowAdd(!showAdd)}><i className="ti ti-plus" style={{marginRight:6}}/>Add</Btn>
       <Btn onClick={refresh}><i className="ti ti-refresh" style={{marginRight:6}}/>Sync</Btn>
     </div>
+    {showAdd&&<Card>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+        <Inp label="Product code" value={np.product_id} onChange={e=>setNp({...np,product_id:e.target.value})}/>
+        <Inp label="Name" value={np.product_name} onChange={e=>setNp({...np,product_name:e.target.value})}/>
+        <Inp label="Category" value={np.category} onChange={e=>setNp({...np,category:e.target.value})}/>
+        <Inp label="Sale price" value={np.sale_price} onChange={e=>setNp({...np,sale_price:e.target.value})}/>
+        <Inp label="Regular price" value={np.regular_price} onChange={e=>setNp({...np,regular_price:e.target.value})}/>
+        <Inp label="Image URL" value={np.image_url} onChange={e=>setNp({...np,image_url:e.target.value})}/>
+      </div>
+      <Inp label="Description" textarea value={np.description} onChange={e=>setNp({...np,description:e.target.value})}/>
+      <Btn gold onClick={add} disabled={adding}>{adding?"Saving + embedding...":"Save product"}</Btn>
+    </Card>}
     <Card style={{flex:1,overflow:"auto",padding:0}}>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
         <thead><tr style={{borderBottom:`0.5px solid ${T.border}`}}>
@@ -173,6 +197,47 @@ function Demo({settings}) {
   </div>;
 }
 
+function Channels() {
+  const [channels,setChannels]=useState([]);
+  const load=()=>fetch("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{});
+  useEffect(()=>{load();},[]);
+  const icons={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp",website:"ti-world"};
+  return <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:700}}>
+    {channels.map(ch=><Card key={ch.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={{width:40,height:40,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icons[ch.platform]||"ti-plug"}`} style={{fontSize:20,color:T.gold}}/></div>
+        <div><div style={{fontSize:14,fontWeight:500,textTransform:"capitalize"}}>{ch.platform}</div><div style={{fontSize:12,color:T.textMuted,fontFamily:"monospace"}}>{ch.page_id||"-"}</div></div>
+      </div>
+      <Badge color={ch.status==="connected"?T.success:T.textDim}>{ch.status}</Badge>
+    </Card>)}
+    {channels.length===0&&<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No channels configured</Card>}
+  </div>;
+}
+
+function Login({onOk}) {
+  const [pw,setPw]=useState("");
+  const [err,setErr]=useState("");
+  const [busy,setBusy]=useState(false);
+  const go=async()=>{
+    if(!pw||busy) return;
+    setBusy(true); setErr("");
+    const r=await fetch("/api/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw})}).catch(()=>null);
+    setBusy(false);
+    if(r&&r.ok){sessionStorage.setItem("auth","1");onOk();}
+    else setErr("Wrong password");
+  };
+  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <Card style={{width:320,textAlign:"center",padding:"2.5rem 2rem"}}>
+      <div style={{width:56,height:56,borderRadius:16,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:`1px solid ${T.gold}30`}}><i className="ti ti-lock" style={{fontSize:26,color:T.gold}}/></div>
+      <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Chatbot Dashboard</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:24}}>Enter password to continue</div>
+      <Inp type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Password"/>
+      <Btn gold onClick={go} style={{width:"100%"}}>{busy?"Checking...":"Login"}</Btn>
+      {err&&<div style={{fontSize:12,color:T.danger,marginTop:10}}>{err}</div>}
+    </Card>
+  </div>;
+}
+
 export default function Dashboard() {
   const [page,setPage]=useState("analytics");
   const [products,setProducts]=useState([]);
@@ -181,6 +246,13 @@ export default function Dashboard() {
   const [settings,setSettings]=useState({botName:"Autologic Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
   const [collapsed,setCollapsed]=useState(false);
   const [loading,setLoading]=useState(true);
+  const [authed,setAuthed]=useState(false);
+  const [authChecked,setAuthChecked]=useState(false);
+
+  useEffect(()=>{
+    setAuthed(sessionStorage.getItem("auth")==="1");
+    setAuthChecked(true);
+  },[]);
 
   const load=async()=>{
     setLoading(true);
@@ -199,7 +271,10 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{if(authed)load();},[authed]);
+
+  if(!authChecked) return null;
+  if(!authed) return <Login onOk={()=>setAuthed(true)}/>;
 
   return <div style={{display:"flex",height:"100vh",overflow:"hidden"}}>
     <div style={{width:collapsed?64:220,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,overflow:"hidden"}}>
@@ -237,6 +312,7 @@ export default function Dashboard() {
             {page==="conversations"&&<Conversations convos={convos}/>}
             {page==="inventory"&&<Inventory products={products} refresh={load}/>}
             {page==="orders"&&<Orders orders={orders} refresh={load}/>}
+            {page==="channels"&&<Channels/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}
             {page==="demo"&&<Demo settings={settings}/>}
           </>
