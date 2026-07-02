@@ -17,7 +17,8 @@ export async function GET() {
       }
       const raw = m.message_content || "";
       const text = m.role !== "bot" && raw.startsWith("IDENTIFIED PRODUCTS") ? "📷 Photo" : raw;
-      grouped[sid].messages.push({ role: m.role || "customer", text, time: m.created_at, status: m.status });
+      const attachments = (m.attachments || "").split(",").map(s => s.trim()).filter(Boolean);
+      grouped[sid].messages.push({ role: m.role || "customer", text, attachments, time: m.created_at, status: m.status });
     });
     const result = Object.values(grouped);
     result.forEach(c => c.messages.sort((a, b) => new Date(a.time) - new Date(b.time)));

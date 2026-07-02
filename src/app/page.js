@@ -130,7 +130,10 @@ function Conversations({convos,refresh}) {
       <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,display:"flex",flexDirection:"column",gap:12}}>
         {(c.messages||[]).map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="customer"?"flex-start":"flex-end"}}>
           <div style={{maxWidth:"70%"}}>
-            <div style={{padding:"10px 14px",borderRadius:12,fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",background:m.role==="customer"?T.bgAlt:m.role==="agent"?`${T.info}25`:`${T.gold}20`}}>{m.text}</div>
+            {(m.attachments||[]).length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4}}>
+              {m.attachments.map((u,j)=><img key={j} src={u} alt="" style={{maxWidth:220,borderRadius:12,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
+            </div>}
+            {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"10px 14px",borderRadius:12,fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",background:m.role==="customer"?T.bgAlt:m.role==="agent"?`${T.info}25`:`${T.gold}20`}}>{m.text}</div>}
             <div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:m.role==="customer"?"left":"right"}}>{m.role==="agent"?"You":m.role==="bot"?"Bot":cname}</div>
           </div>
         </div>)}
