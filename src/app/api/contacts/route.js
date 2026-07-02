@@ -4,10 +4,12 @@ import { supabase } from "@/lib/supabase.js";
 
 export async function GET() {
   try {
-    const { data: contacts, error: e1 } = await supabase.from("contacts").select("sender_id, name, bot_enabled");
-    const { data: ch, error: e2 } = await supabase.from("channels").select("access_token, client_id, bot_enabled").eq("status", "connected").limit(1).single();
+    const { data: contactRows, error: e1 } = await supabase.from("contacts").select("*");
+    const contacts = contactRows || [];
+    const { data: ch, error: e2 } = await supabase.from("channels").select("*").eq("status", "connected").limit(1).single();
 
-    const { data: senders, error: e3 } = await supabase.from("message_buffer").select("sender_id").eq("role", "customer");
+    const { data: allMsgs, error: e3 } = await supabase.from("message_buffer").select("sender_id,role");
+    const senders = (allMsgs || []).filter(m => (m.role || "customer") === "customer");
     const uniq = [...new Set((senders || []).map(s => s.sender_id).filter(Boolean))];
     const map = Object.fromEntries((contacts || []).map(c => [c.sender_id, c]));
 
