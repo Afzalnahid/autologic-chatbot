@@ -13,3 +13,8 @@ body { background: #05080f; color: #e8e8ec; font-family: -apple-system, BlinkMac
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #1a2744; border-radius: 4px; }
 ::selection { background: rgba(240,192,64,0.3); }
+
+html { -webkit-text-size-adjust: 100%; }
+input, textarea, select { font-size: 16px !important; }
+@media (min-width: 768px) { input, textarea, select { font-size: 13px !important; } }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

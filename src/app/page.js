@@ -11,6 +11,17 @@ const PAGES = ["analytics","conversations","inventory","orders","channels","sett
 const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-plug","ti-settings","ti-robot"];
 const LABELS = ["Analytics","Conversations","Inventory","Orders","Channels","Settings","Demo"];
 
+const useIsMobile = () => {
+  const [m,setM]=useState(false);
+  useEffect(()=>{
+    const check=()=>setM(window.innerWidth<768);
+    check();
+    window.addEventListener("resize",check);
+    return ()=>window.removeEventListener("resize",check);
+  },[]);
+  return m;
+};
+
 const Btn = ({children,gold,danger,small,style,...p}) => <button {...p} style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:"rgba(240,192,64,0.12)",color:danger?"#fff":gold?"#0a0a0a":T.gold,...style}}>{children}</button>;
 const Badge = ({children,color=T.gold}) => <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>;
 const Card = ({children,style,...p}) => <div {...p} style={{background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`,padding:"1.25rem",...style}}>{children}</div>;
@@ -42,7 +53,8 @@ function Analytics({products,convos,orders,msgCount}) {
 }
 
 function Conversations({convos,refresh}) {
-  const [sel,setSel]=useState(0);
+  const isMobile=useIsMobile();
+  const [sel,setSel]=useState(-1);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
   const [contacts,setContacts]=useState({});
@@ -66,9 +78,12 @@ function Conversations({convos,refresh}) {
   };
 
   if(!convos.length) return <Card style={{textAlign:"center",color:T.textDim,padding:60}}>No conversations yet</Card>;
-  const c=convos[sel]||convos[0];
+  const idx=sel<0?0:sel;
+  const c=convos[idx]||convos[0];
   const ct=contacts[c.id]||{};
   const cname=ct.name||c.sender;
+  const showList=!isMobile||sel<0;
+  const showChat=!isMobile||sel>=0;
 
   const send=async()=>{
     const text=input.trim();
@@ -87,8 +102,8 @@ function Conversations({convos,refresh}) {
     <span style={{fontSize:11,color:T.textMuted}}>{label}</span>
   </div>;
 
-  return <div style={{display:"grid",gridTemplateColumns:"320px 1fr",gap:16,height:"calc(100vh - 130px)"}}>
-    <Card style={{overflow:"auto",padding:0}}>
+  return <div style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px 1fr",gap:16,height:isMobile?"calc(100dvh - 190px)":"calc(100vh - 130px)"}}>
+    {showList&&<Card style={{overflow:"auto",padding:0,height:"100%"}}>
       <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
         <Toggle on={globalBot} onClick={()=>toggle(null,!globalBot,true)} label={globalBot?"Bot ON":"Bot OFF"}/>
@@ -103,10 +118,13 @@ function Conversations({convos,refresh}) {
           <span style={{fontSize:12,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{cv.lastMsg}</span>
         </div>;
       })}
-    </Card>
-    <Card style={{display:"flex",flexDirection:"column",padding:0,overflow:"hidden"}}>
-      <div style={{padding:"14px 20px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontSize:15,fontWeight:500}}>{cname}</div><div style={{fontSize:12,color:T.textMuted}}>{c.platform}</div></div>
+    </Card>}
+    {showChat&&<Card style={{display:"flex",flexDirection:"column",padding:0,overflow:"hidden",height:"100%"}}>
+      <div style={{padding:"14px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+          {isMobile&&<button onClick={()=>setSel(-1)} style={{background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:20,padding:0,flexShrink:0}}><i className="ti ti-chevron-left"/></button>}
+          <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted}}>{c.platform}</div></div>
+        </div>
         <Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>
       </div>
       <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,display:"flex",flexDirection:"column",gap:12}}>
@@ -119,9 +137,9 @@ function Conversations({convos,refresh}) {
       </div>
       <div style={{padding:"12px 16px",borderTop:`0.5px solid ${T.border}`,display:"flex",gap:8}}>
         <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Type a message to customer..." style={{flex:1,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,outline:"none"}}/>
-        <button onClick={send} disabled={sending} style={{width:40,height:40,borderRadius:10,border:"none",cursor:"pointer",background:T.gold,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1}}><i className="ti ti-send" style={{fontSize:18,color:"#0a0a0a"}}/></button>
+        <button onClick={send} disabled={sending} style={{width:40,height:40,borderRadius:10,border:"none",cursor:"pointer",background:T.gold,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:18,color:"#0a0a0a"}}/></button>
       </div>
-    </Card>
+    </Card>}
   </div>;
 }
 
@@ -147,7 +165,7 @@ function Inventory({products,refresh}) {
       <Btn onClick={refresh}><i className="ti ti-refresh" style={{marginRight:6}}/>Sync</Btn>
     </div>
     {showAdd&&<Card>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
         <Inp label="Product code" value={np.product_id} onChange={e=>setNp({...np,product_id:e.target.value})}/>
         <Inp label="Name" value={np.product_name} onChange={e=>setNp({...np,product_name:e.target.value})}/>
         <Inp label="Category" value={np.category} onChange={e=>setNp({...np,category:e.target.value})}/>
@@ -159,7 +177,7 @@ function Inventory({products,refresh}) {
       <Btn gold onClick={add} disabled={adding}>{adding?"Saving + embedding...":"Save product"}</Btn>
     </Card>}
     <Card style={{flex:1,overflow:"auto",padding:0}}>
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%",minWidth:560,borderCollapse:"collapse",fontSize:13}}>
         <thead><tr style={{borderBottom:`0.5px solid ${T.border}`}}>
           {["ID","Product","Category","Price","Stock",""].map(h=><th key={h} style={{padding:"12px 16px",textAlign:"left",color:T.textMuted,fontWeight:500,fontSize:11,textTransform:"uppercase",letterSpacing:.8}}>{h}</th>)}
         </tr></thead>
@@ -171,7 +189,7 @@ function Inventory({products,refresh}) {
           <td style={{padding:"12px 16px"}}><Badge color={p.stock_status==="instock"?T.success:T.danger}>{p.stock_status||"?"}</Badge></td>
           <td style={{padding:"12px 16px"}}><button onClick={()=>del(p.id)} style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:16}}><i className="ti ti-trash"/></button></td>
         </tr>)}</tbody>
-      </table>
+      </table></div>
       {filtered.length===0&&<div style={{padding:40,textAlign:"center",color:T.textDim}}>No products</div>}
     </Card>
   </div>;
@@ -205,7 +223,7 @@ function Settings({settings,setSettings}) {
   useEffect(()=>{setS(settings);},[settings]);
   return <div style={{maxWidth:700}}>
     <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>General</div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
         <Inp label="Bot name" value={s.botName||""} onChange={e=>setS({...s,botName:e.target.value})}/>
         <Inp label="Business name" value={s.businessName||""} onChange={e=>setS({...s,businessName:e.target.value})}/>
       </div>
@@ -301,6 +319,7 @@ function Login({onOk}) {
 }
 
 export default function Dashboard() {
+  const isMobile=useIsMobile();
   const [page,setPage]=useState("analytics");
   const [products,setProducts]=useState([]);
   const [convos,setConvos]=useState([]);
@@ -343,8 +362,8 @@ export default function Dashboard() {
   if(!authChecked) return null;
   if(!authed) return <Login onOk={()=>setAuthed(true)}/>;
 
-  return <div style={{display:"flex",height:"100vh",overflow:"hidden"}}>
-    <div style={{width:collapsed?64:220,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,overflow:"hidden"}}>
+  return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden",flexDirection:isMobile?"column":"row"}}>
+    {!isMobile&&<div style={{width:collapsed?64:220,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,overflow:"hidden"}}>
       <div style={{padding:collapsed?"20px 12px":"20px 20px",display:"flex",alignItems:"center",gap:12,borderBottom:`0.5px solid ${T.border}`}}>
         <div style={{width:36,height:36,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${T.gold}30`}}><i className="ti ti-bolt" style={{fontSize:18,color:T.gold}}/></div>
         {!collapsed&&<div><div style={{fontSize:15,fontWeight:600}}>Autologic</div><div style={{fontSize:10,color:T.textDim,textTransform:"uppercase",letterSpacing:1.5}}>chatbot</div></div>}
@@ -362,17 +381,17 @@ export default function Dashboard() {
           {!collapsed&&<span style={{fontSize:12}}>Collapse</span>}
         </div>
       </div>
-    </div>
+    </div>}
 
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      <div style={{padding:"16px 28px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontSize:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div><div style={{fontSize:12,color:T.textDim}}>{settings.businessName} - {products.length} products synced</div></div>
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
+      <div style={{padding:isMobile?"12px 16px":"16px 28px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim}}>{settings.businessName} - {products.length} products synced</div>}</div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:4}}/>Sync</Btn>
           <div style={{width:34,height:34,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${T.gold}30`}}><i className="ti ti-user" style={{fontSize:16,color:T.gold}}/></div>
         </div>
       </div>
-      <div style={{flex:1,overflow:"auto",padding:24}}>
+      <div style={{flex:1,overflow:"auto",padding:isMobile?12:24,minHeight:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <>
             {page==="analytics"&&<Analytics products={products} convos={convos} orders={orders} msgCount={convos.reduce((a,c)=>a+c.messages.length,0)}/>}
@@ -385,6 +404,12 @@ export default function Dashboard() {
           </>
         )}
       </div>
+      {isMobile&&<div className="safe-bottom" style={{display:"flex",background:T.card,borderTop:`0.5px solid ${T.border}`,flexShrink:0}}>
+        {PAGES.map((p,i)=><div key={p} onClick={()=>setPage(p)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"10px 0 8px",cursor:"pointer",color:page===p?T.gold:T.textDim}}>
+          <i className={`ti ${ICONS[i]}`} style={{fontSize:20}}/>
+          <span style={{fontSize:9}}>{LABELS[i]}</span>
+        </div>)}
+      </div>}
     </div>
   </div>;
 }
