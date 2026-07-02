@@ -15,7 +15,7 @@ export async function GET() {
           lastMsg: (m.message_content || "").slice(0, 60), time: m.created_at, messages: [],
         };
       }
-      grouped[sid].messages.push({ role: m.role === "bot" ? "bot" : "customer", text: m.message_content || "", time: m.created_at, status: m.status });
+      grouped[sid].messages.push({ role: m.role || "customer", text: m.message_content || "", time: m.created_at, status: m.status });
     });
     const result = Object.values(grouped);
     result.forEach(c => c.messages.sort((a, b) => new Date(a.time) - new Date(b.time)));

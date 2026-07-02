@@ -41,23 +41,85 @@ function Analytics({products,convos,orders,msgCount}) {
   </div>;
 }
 
-function Conversations({convos}) {
+function Conversations({convos,refresh}) {
   const [sel,setSel]=useState(0);
+  const [input,setInput]=useState("");
+  const [sending,setSending]=useState(false);
+  const [contacts,setContacts]=useState({});
+  const [globalBot,setGlobalBot]=useState(true);
+  const chatRef=useRef(null);
+
+  const loadContacts=async()=>{
+    try{
+      const d=await fetch("/api/contacts").then(r=>r.json());
+      if(d.contacts) setContacts(Object.fromEntries(d.contacts.map(c=>[c.sender_id,c])));
+      if(typeof d.global_bot_enabled==="boolean") setGlobalBot(d.global_bot_enabled);
+    }catch{}
+  };
+  useEffect(()=>{loadContacts();},[]);
+  useEffect(()=>{chatRef.current?.scrollTo(0,chatRef.current.scrollHeight);},[convos,sel]);
+
+  const toggle=async(sender_id,val,isGlobal)=>{
+    if(isGlobal) setGlobalBot(val);
+    else setContacts(p=>({...p,[sender_id]:{...p[sender_id],sender_id,bot_enabled:val}}));
+    await fetch("/api/contacts",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isGlobal?{global:true,bot_enabled:val}:{sender_id,bot_enabled:val})});
+  };
+
   if(!convos.length) return <Card style={{textAlign:"center",color:T.textDim,padding:60}}>No conversations yet</Card>;
   const c=convos[sel]||convos[0];
+  const ct=contacts[c.id]||{};
+  const cname=ct.name||c.sender;
+
+  const send=async()=>{
+    const text=input.trim();
+    if(!text||sending) return;
+    setSending(true); setInput("");
+    const r=await fetch("/api/send-message",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,text})}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setSending(false);
+    if(r.error) alert("Send failed: "+r.error);
+    else refresh&&refresh(true);
+  };
+
+  const Toggle=({on,onClick,label})=><div onClick={onClick} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}} title={label}>
+    <div style={{width:32,height:18,borderRadius:10,background:on?T.success:T.textDim,position:"relative",transition:"background .2s"}}>
+      <div style={{width:14,height:14,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:on?16:2,transition:"left .2s"}}/>
+    </div>
+    <span style={{fontSize:11,color:T.textMuted}}>{label}</span>
+  </div>;
+
   return <div style={{display:"grid",gridTemplateColumns:"320px 1fr",gap:16,height:"calc(100vh - 130px)"}}>
     <Card style={{overflow:"auto",padding:0}}>
-      {convos.map((cv,i)=><div key={cv.id} onClick={()=>setSel(i)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:sel===i?T.goldBg:"transparent",borderLeft:sel===i?`3px solid ${T.gold}`:"3px solid transparent"}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:13,fontWeight:500}}>{cv.sender}</span><Badge color={cv.status==="active"?T.success:T.textDim}>{cv.status}</Badge></div>
-        <span style={{fontSize:12,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{cv.lastMsg}</span>
-      </div>)}
+      <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
+        <Toggle on={globalBot} onClick={()=>toggle(null,!globalBot,true)} label={globalBot?"Bot ON":"Bot OFF"}/>
+      </div>
+      {convos.map((cv,i)=>{
+        const cvt=contacts[cv.id]||{};
+        return <div key={cv.id} onClick={()=>setSel(i)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:sel===i?T.goldBg:"transparent",borderLeft:sel===i?`3px solid ${T.gold}`:"3px solid transparent"}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+            <span style={{fontSize:13,fontWeight:500}}>{cvt.name||cv.sender}</span>
+            <Badge color={cvt.bot_enabled===false?T.warn:T.success}>{cvt.bot_enabled===false?"manual":"bot"}</Badge>
+          </div>
+          <span style={{fontSize:12,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{cv.lastMsg}</span>
+        </div>;
+      })}
     </Card>
     <Card style={{display:"flex",flexDirection:"column",padding:0,overflow:"hidden"}}>
-      <div style={{padding:"16px 20px",borderBottom:`0.5px solid ${T.border}`}}><div style={{fontSize:15,fontWeight:500}}>{c.sender}</div><div style={{fontSize:12,color:T.textMuted}}>{c.platform} - {c.status}</div></div>
-      <div style={{flex:1,overflow:"auto",padding:20,display:"flex",flexDirection:"column",gap:12}}>
-        {(c.messages||[]).map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="bot"?"flex-start":"flex-end"}}>
-          <div style={{maxWidth:"70%",padding:"10px 14px",borderRadius:12,fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",background:m.role==="bot"?T.bgAlt:`${T.gold}20`}}>{m.text}</div>
+      <div style={{padding:"14px 20px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontSize:15,fontWeight:500}}>{cname}</div><div style={{fontSize:12,color:T.textMuted}}>{c.platform}</div></div>
+        <Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>
+      </div>
+      <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,display:"flex",flexDirection:"column",gap:12}}>
+        {(c.messages||[]).map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="customer"?"flex-start":"flex-end"}}>
+          <div style={{maxWidth:"70%"}}>
+            <div style={{padding:"10px 14px",borderRadius:12,fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",background:m.role==="customer"?T.bgAlt:m.role==="agent"?`${T.info}25`:`${T.gold}20`}}>{m.text}</div>
+            <div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:m.role==="customer"?"left":"right"}}>{m.role==="agent"?"You":m.role==="bot"?"Bot":cname}</div>
+          </div>
         </div>)}
+      </div>
+      <div style={{padding:"12px 16px",borderTop:`0.5px solid ${T.border}`,display:"flex",gap:8}}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Type a message to customer..." style={{flex:1,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,outline:"none"}}/>
+        <button onClick={send} disabled={sending} style={{width:40,height:40,borderRadius:10,border:"none",cursor:"pointer",background:T.gold,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1}}><i className="ti ti-send" style={{fontSize:18,color:"#0a0a0a"}}/></button>
       </div>
     </Card>
   </div>;
@@ -314,7 +376,7 @@ export default function Dashboard() {
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <>
             {page==="analytics"&&<Analytics products={products} convos={convos} orders={orders} msgCount={convos.reduce((a,c)=>a+c.messages.length,0)}/>}
-            {page==="conversations"&&<Conversations convos={convos}/>}
+            {page==="conversations"&&<Conversations convos={convos} refresh={load}/>}
             {page==="inventory"&&<Inventory products={products} refresh={load}/>}
             {page==="orders"&&<Orders orders={orders} refresh={load}/>}
             {page==="channels"&&<Channels/>}
