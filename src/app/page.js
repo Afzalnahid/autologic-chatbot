@@ -60,6 +60,52 @@ function Conversations({convos,refresh}) {
   const [contacts,setContacts]=useState({});
   const [globalBot,setGlobalBot]=useState(true);
   const chatRef=useRef(null);
+  const galleryRef=useRef(null);
+  const cameraRef=useRef(null);
+  const [showEmoji,setShowEmoji]=useState(false);
+  const [recording,setRecording]=useState(false);
+  const recRef=useRef(null);
+  const EMOJIS=["😀","😂","❤️","👍","🙏","😍","🔥","🎉","😢","😮","💯","✅"];
+
+  const sendMedia=async(file,kind)=>{
+    if(!file) return;
+    setSending(true);
+    const fd=new FormData();
+    fd.append("sender_id",c.id);
+    fd.append("kind",kind);
+    fd.append("file",file);
+    const r=await fetch("/api/send-media",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setSending(false);
+    if(r.error) alert("Send failed: "+r.error);
+    else refresh&&refresh(true);
+  };
+
+  const toggleRec=async()=>{
+    if(recording){recRef.current?.stop();return;}
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const mime=MediaRecorder.isTypeSupported("audio/mp4")?"audio/mp4":"audio/webm";
+      const rec=new MediaRecorder(stream,{mimeType:mime});
+      const chunks=[];
+      rec.ondataavailable=e=>chunks.push(e.data);
+      rec.onstop=()=>{
+        stream.getTracks().forEach(t=>t.stop());
+        setRecording(false);
+        const ext=mime.includes("mp4")?"mp4":"webm";
+        sendMedia(new File(chunks,`voice.${ext}`,{type:mime}),"audio");
+      };
+      recRef.current=rec;
+      rec.start();
+      setRecording(true);
+    }catch{alert("Microphone access denied");}
+  };
+
+  const deleteChat=async()=>{
+    if(!confirm(`Delete chat with ${cname}?`)) return;
+    await fetch("/api/conversations",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id})});
+    setSel(-1);
+    refresh&&refresh(true);
+  };
 
   const loadContacts=async()=>{
     try{
@@ -129,7 +175,10 @@ function Conversations({convos,refresh}) {
           {isMobile&&<button onClick={()=>setSel(-1)} style={{background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:20,padding:0,flexShrink:0}}><i className="ti ti-chevron-left"/></button>}
           <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted}}>{c.platform}</div></div>
         </div>
-        <Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>
+          <button onClick={deleteChat} title="Delete chat" style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:18,padding:4}}><i className="ti ti-trash"/></button>
+        </div>
       </div>
       <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,display:"flex",flexDirection:"column",gap:12}}>
         {(c.messages||[]).map((m,i)=>{
@@ -144,9 +193,22 @@ function Conversations({convos,refresh}) {
           </div>
         </div>;})}
       </div>
-      <div style={{padding:"12px 16px",borderTop:`0.5px solid ${T.border}`,display:"flex",gap:8}}>
-        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Type a message to customer..." style={{flex:1,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,outline:"none"}}/>
-        <button onClick={send} disabled={sending} style={{width:40,height:40,borderRadius:10,border:"none",cursor:"pointer",background:T.gold,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:18,color:"#0a0a0a"}}/></button>
+      <div style={{borderTop:`0.5px solid ${T.border}`,position:"relative"}}>
+        {showEmoji&&<div style={{position:"absolute",bottom:"100%",right:12,background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,padding:8,display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:4,zIndex:5}}>
+          {EMOJIS.map(e=><span key={e} onClick={()=>{setInput(p=>p+e);setShowEmoji(false);}} style={{fontSize:20,cursor:"pointer",padding:4}}>{e}</span>)}
+        </div>}
+        <div style={{padding:"10px 12px",display:"flex",gap:6,alignItems:"center"}}>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e=>{sendMedia(e.target.files[0],"image");e.target.value="";}}/>
+          <input ref={galleryRef} type="file" accept="image/*" hidden onChange={e=>{sendMedia(e.target.files[0],"image");e.target.value="";}}/>
+          <button onClick={()=>cameraRef.current?.click()} title="Camera" style={{background:"none",border:"none",cursor:"pointer",color:"#0084ff",fontSize:20,padding:4,flexShrink:0}}><i className="ti ti-camera"/></button>
+          <button onClick={()=>galleryRef.current?.click()} title="Photo" style={{background:"none",border:"none",cursor:"pointer",color:"#0084ff",fontSize:20,padding:4,flexShrink:0}}><i className="ti ti-photo"/></button>
+          <button onClick={toggleRec} title="Voice" style={{background:"none",border:"none",cursor:"pointer",color:recording?T.danger:"#0084ff",fontSize:20,padding:4,flexShrink:0,animation:recording?"pulse 1s infinite":"none"}}><i className={`ti ${recording?"ti-player-stop-filled":"ti-microphone"}`}/></button>
+          <div style={{flex:1,display:"flex",alignItems:"center",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:20,padding:"0 6px 0 14px"}}>
+            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Message" style={{flex:1,background:"none",border:"none",padding:"10px 0",color:T.text,fontSize:13,outline:"none",minWidth:0}}/>
+            <button onClick={()=>setShowEmoji(s=>!s)} title="Emoji" style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:4}}>😊</button>
+          </div>
+          <button onClick={send} disabled={sending} style={{width:38,height:38,borderRadius:"50%",border:"none",cursor:"pointer",background:"#0084ff",display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:17,color:"#fff"}}/></button>
+        </div>
       </div>
     </Card>}
   </div>;
@@ -249,7 +311,10 @@ function Demo({settings}) {
   const [msgs,setMsgs]=useState([]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
+  const [showEmoji,setShowEmoji]=useState(false);
   const ref=useRef(null);
+  const EMOJIS=["😀","😂","❤️","👍","🙏","😍","🔥","🎉","😢","😮","💯","✅"];
+  const clearChat=()=>setMsgs(settings.greeting?[{role:"bot",text:settings.greeting}]:[]);
   useEffect(()=>{if(settings.greeting) setMsgs([{role:"bot",text:settings.greeting}]);},[]);
 
   const send=async()=>{
@@ -278,9 +343,18 @@ function Demo({settings}) {
         </div>)}
         {loading&&<div style={{display:"flex",gap:4,padding:"10px 14px",background:T.bgAlt,borderRadius:14,width:"fit-content",borderBottomLeftRadius:2}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:T.textDim,animation:`dotPulse 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}</div>}
       </div>
-      <div style={{padding:"12px 16px",borderTop:`0.5px solid ${T.border}`,display:"flex",gap:8}}>
-        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Type your message..." style={{flex:1,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,outline:"none"}}/>
-        <button onClick={send} disabled={loading} style={{width:40,height:40,borderRadius:10,border:"none",cursor:"pointer",background:T.gold,display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-send" style={{fontSize:18,color:"#0a0a0a"}}/></button>
+      <div style={{borderTop:`0.5px solid ${T.border}`,position:"relative"}}>
+        {showEmoji&&<div style={{position:"absolute",bottom:"100%",right:12,background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,padding:8,display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:4,zIndex:5}}>
+          {EMOJIS.map(e=><span key={e} onClick={()=>{setInput(p=>p+e);setShowEmoji(false);}} style={{fontSize:20,cursor:"pointer",padding:4}}>{e}</span>)}
+        </div>}
+        <div style={{padding:"10px 12px",display:"flex",gap:6,alignItems:"center"}}>
+          <button onClick={clearChat} title="Clear chat" style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:18,padding:4,flexShrink:0}}><i className="ti ti-trash"/></button>
+          <div style={{flex:1,display:"flex",alignItems:"center",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:20,padding:"0 6px 0 14px"}}>
+            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Message" style={{flex:1,background:"none",border:"none",padding:"10px 0",color:T.text,fontSize:13,outline:"none",minWidth:0}}/>
+            <button onClick={()=>setShowEmoji(s=>!s)} title="Emoji" style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:4}}>😊</button>
+          </div>
+          <button onClick={send} disabled={loading} style={{width:38,height:38,borderRadius:"50%",border:"none",cursor:"pointer",background:T.gold,display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-send" style={{fontSize:17,color:"#0a0a0a"}}/></button>
+        </div>
       </div>
     </Card>
   </div>;

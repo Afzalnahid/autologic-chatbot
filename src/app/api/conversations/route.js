@@ -1,6 +1,18 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { getConversations } from "@/lib/supabase.js";
+import { getConversations, supabase } from "@/lib/supabase.js";
+
+export async function DELETE(request) {
+  try {
+    const { sender_id } = await request.json();
+    if (!sender_id) return NextResponse.json({ error: "missing sender_id" }, { status: 400 });
+    await supabase.from("message_buffer").delete().eq("sender_id", sender_id);
+    await supabase.from("chat_memory").delete().eq("session_id", sender_id);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
 
 export async function GET() {
   try {
