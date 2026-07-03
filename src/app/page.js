@@ -379,7 +379,8 @@ function Channels() {
   </div>;
 }
 
-const sb=typeof window!=="undefined"?createSb():null;
+let _sbi=null;
+const getSb=()=>{ if(!_sbi) _sbi=createSb(); return _sbi; };
 let AUTH_TOKEN="";
 const api=(url,opts={})=>fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
 
@@ -395,8 +396,8 @@ function AuthGate({onReady}) {
     setBusy(true); setErr("");
     try{
       let res;
-      if(mode==="signup") res=await sb.auth.signUp({email,password:pw});
-      else res=await sb.auth.signInWithPassword({email,password:pw});
+      if(mode==="signup") res=await getSb().auth.signUp({email,password:pw});
+      else res=await getSb().auth.signInWithPassword({email,password:pw});
       if(res.error) throw res.error;
       const session=res.data.session;
       if(!session){setErr("Check your email to confirm, then sign in.");setBusy(false);return;}
@@ -524,7 +525,7 @@ export default function Dashboard() {
 
   useEffect(()=>{
     (async()=>{
-      const { data:{ session } }=await sb.auth.getSession();
+      const { data:{ session } }=await getSb().auth.getSession();
       if(session){AUTH_TOKEN=session.access_token;setAuthed(true);await loadMe();}
       else setStage("auth");
       setAuthChecked(true);
