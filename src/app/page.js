@@ -52,9 +52,10 @@ function Analytics({products,convos,orders,msgCount}) {
   </div>;
 }
 
-function Conversations({convos,refresh}) {
+function Conversations({convos,refresh,onChatOpen}) {
   const isMobile=useIsMobile();
   const [sel,setSel]=useState(-1);
+  useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&sel>=0);},[sel,isMobile]);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
   const [contacts,setContacts]=useState({});
@@ -152,7 +153,7 @@ function Conversations({convos,refresh}) {
     <span style={{fontSize:11,color:T.textMuted}}>{label}</span>
   </div>;
 
-  return <div style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px 1fr",gap:16,height:isMobile?"calc(100dvh - 190px)":"calc(100vh - 130px)"}}>
+  return <div style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px 1fr",gap:16,height:isMobile?(sel>=0?"100dvh":"calc(100dvh - 190px)"):"calc(100vh - 130px)"}}>
     {showList&&<Card style={{overflow:"auto",padding:0,height:"100%"}}>
       <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
@@ -403,6 +404,7 @@ function Login({onOk}) {
 
 export default function Dashboard() {
   const isMobile=useIsMobile();
+  const [chatOpen,setChatOpen]=useState(false);
   const [page,setPage]=useState("analytics");
   const [products,setProducts]=useState([]);
   const [convos,setConvos]=useState([]);
@@ -467,18 +469,18 @@ export default function Dashboard() {
     </div>}
 
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
-      <div style={{padding:isMobile?"12px 16px":"16px 28px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"16px 28px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim}}>{settings.businessName} - {products.length} products synced</div>}</div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:4}}/>Sync</Btn>
           <div style={{width:34,height:34,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${T.gold}30`}}><i className="ti ti-user" style={{fontSize:16,color:T.gold}}/></div>
         </div>
       </div>
-      <div style={{flex:1,overflow:"auto",padding:isMobile?12:24,minHeight:0}}>
+      }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <>
             {page==="analytics"&&<Analytics products={products} convos={convos} orders={orders} msgCount={convos.reduce((a,c)=>a+c.messages.length,0)}/>}
-            {page==="conversations"&&<Conversations convos={convos} refresh={load}/>}
+            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen}/>}
             {page==="inventory"&&<Inventory products={products} refresh={load}/>}
             {page==="orders"&&<Orders orders={orders} refresh={load}/>}
             {page==="channels"&&<Channels/>}
@@ -487,7 +489,7 @@ export default function Dashboard() {
           </>
         )}
       </div>
-      {isMobile&&<div className="safe-bottom" style={{display:"flex",background:T.card,borderTop:`0.5px solid ${T.border}`,flexShrink:0}}>
+      {isMobile&&!chatOpen&&<div className="safe-bottom" style={{display:"flex",background:T.card,borderTop:`0.5px solid ${T.border}`,flexShrink:0}}>
         {PAGES.map((p,i)=><div key={p} onClick={()=>setPage(p)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"10px 0 8px",cursor:"pointer",color:page===p?T.gold:T.textDim}}>
           <i className={`ti ${ICONS[i]}`} style={{fontSize:20}}/>
           <span style={{fontSize:9}}>{LABELS[i]}</span>
