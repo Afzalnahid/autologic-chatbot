@@ -1,25 +1,33 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { requireClient } from "@/lib/auth.js";
 
 const N8N_DEMO_URL = process.env.N8N_DEMO_WEBHOOK_URL || "https://stylish-lobster.pikapod.net/webhook/demo-chat";
 
 export async function POST(request) {
   try {
+    const { client } = await requireClient(request);
     const { messages, sessionId } = await request.json();
     const lastMsg = messages?.[messages.length - 1]?.content || "";
     const r = await fetch(N8N_DEMO_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: lastMsg, sessionId: sessionId || "dashboard" }),
+      body: JSON.stringify({ message: lastMsg, sessionId: sessionId || client?.id || "dashboard", clientId: client?.id ? String(client.id) : "none" }),
     });
-    const d = await r.json();
-    let reply = d.reply || "";
+    const text = await r.text();
+    let reply = "";
+    try {
+      const d = JSON.parse(text);
+      reply = d.reply || "";
+    } catch {
+      reply = text;
+    }
     try {
       const parsed = JSON.parse(reply.replace(/```json|```/g, "").trim());
       if (Array.isArray(parsed)) reply = parsed.filter(p => p.type === "text_msg").map(p => p.text).join("\n");
     } catch {}
-    return NextResponse.json({ reply: reply || "No response" });
+    return NextResponse.json({ reply: reply || "No response from AI" });
   } catch (e) {
-    return NextResponse.json({ reply: "Demo service unavailable: " + e.message }, { status: 500 });
+    return NextResponse.json({ reply: "Demo error: " + e.message }, { status: 500 });
   }
 }

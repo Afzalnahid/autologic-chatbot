@@ -324,7 +324,7 @@ function Demo({settings}) {
     const text=input.trim(); setInput(""); setMsgs(p=>[...p,{role:"user",text}]); setLoading(true);
     try {
       const history = msgs.filter((_,i)=>i>0).map(m=>({role:m.role==="bot"?"assistant":"user",content:m.text}));
-      const res = await fetch("/api/demo-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:text}],systemPrompt:settings.systemPrompt})});
+      const res = await api("/api/demo-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:text}],systemPrompt:settings.systemPrompt})});
       const data = await res.json();
       setMsgs(p=>[...p,{role:"bot",text:data.reply||"Error"}]);
     } catch { setMsgs(p=>[...p,{role:"bot",text:"Connection error."}]); }
