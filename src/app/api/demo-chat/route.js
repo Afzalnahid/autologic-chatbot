@@ -22,11 +22,15 @@ export async function POST(request) {
     } catch {
       reply = text;
     }
+    let images = [];
     try {
       const parsed = JSON.parse(reply.replace(/```json|```/g, "").trim());
-      if (Array.isArray(parsed)) reply = parsed.filter(p => p.type === "text_msg").map(p => p.text).join("\n");
+      if (Array.isArray(parsed)) {
+        images = parsed.filter(p => p.type === "image_msg" && p.url).map(p => p.url);
+        reply = parsed.filter(p => p.type === "text_msg").map(p => p.text).join("\n");
+      }
     } catch {}
-    return NextResponse.json({ reply: reply || "No response from AI" });
+    return NextResponse.json({ reply: reply || "", images });
   } catch (e) {
     return NextResponse.json({ reply: "Demo error: " + e.message }, { status: 500 });
   }
