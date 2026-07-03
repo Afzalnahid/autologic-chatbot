@@ -1,4 +1,5 @@
 "use client";
+import { createClient as createSb } from "@/utils/supabase/client";
 import { useState, useEffect, useRef } from "react";
 
 const T = {
@@ -75,7 +76,7 @@ function Conversations({convos,refresh,onChatOpen}) {
     fd.append("sender_id",c.id);
     fd.append("kind",kind);
     fd.append("file",file);
-    const r=await fetch("/api/send-media",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const r=await api("/api/send-media",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
     setSending(false);
     if(r.error) alert("Send failed: "+r.error);
     else refresh&&refresh(true);
@@ -103,14 +104,14 @@ function Conversations({convos,refresh,onChatOpen}) {
 
   const deleteChat=async()=>{
     if(!confirm(`Delete chat with ${cname}?`)) return;
-    await fetch("/api/conversations",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id})});
+    await api("/api/conversations",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id})});
     setSel(-1);
     refresh&&refresh(true);
   };
 
   const loadContacts=async()=>{
     try{
-      const d=await fetch("/api/contacts").then(r=>r.json());
+      const d=await api("/api/contacts").then(r=>r.json());
       if(d.contacts) setContacts(Object.fromEntries(d.contacts.map(c=>[c.sender_id,c])));
       if(typeof d.global_bot_enabled==="boolean") setGlobalBot(d.global_bot_enabled);
     }catch{}
@@ -125,7 +126,7 @@ function Conversations({convos,refresh,onChatOpen}) {
   const toggle=async(sender_id,val,isGlobal)=>{
     if(isGlobal) setGlobalBot(val);
     else setContacts(p=>({...p,[sender_id]:{...p[sender_id],sender_id,bot_enabled:val}}));
-    await fetch("/api/contacts",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isGlobal?{global:true,bot_enabled:val}:{sender_id,bot_enabled:val})});
+    await api("/api/contacts",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isGlobal?{global:true,bot_enabled:val}:{sender_id,bot_enabled:val})});
   };
 
   if(!convos.length) return <Card style={{textAlign:"center",color:T.textDim,padding:60}}>No conversations yet</Card>;
@@ -140,7 +141,7 @@ function Conversations({convos,refresh,onChatOpen}) {
     const text=input.trim();
     if(!text||sending) return;
     setSending(true); setInput("");
-    const r=await fetch("/api/send-message",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,text})}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const r=await api("/api/send-message",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,text})}).then(r=>r.json()).catch(()=>({error:"network"}));
     setSending(false);
     if(r.error) alert("Send failed: "+r.error);
     else refresh&&refresh(true);
@@ -221,11 +222,11 @@ function Inventory({products,refresh}) {
   const [np,setNp]=useState({product_id:"",product_name:"",category:"",sale_price:"",regular_price:"",image_url:"",description:""});
   const [adding,setAdding]=useState(false);
   const filtered = products.filter(p=>(p.product_name||p.name||"").toLowerCase().includes(search.toLowerCase())||(p.category||"").toLowerCase().includes(search.toLowerCase()));
-  const del = async(id)=>{ await fetch("/api/products",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}); refresh(); };
+  const del = async(id)=>{ await api("/api/products",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}); refresh(); };
   const add = async()=>{
     if(!np.product_id||!np.product_name) return;
     setAdding(true);
-    await fetch("/api/products",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(np)});
+    await api("/api/products",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(np)});
     setAdding(false); setShowAdd(false);
     setNp({product_id:"",product_name:"",category:"",sale_price:"",regular_price:"",image_url:"",description:""});
     refresh();
@@ -271,7 +272,7 @@ function Orders({orders,refresh}) {
   const [filter,setFilter]=useState("All");
   const sts=["All","Pending","Shipped","Delivered","Cancelled"];
   const filtered = filter==="All"?orders:orders.filter(o=>o.status===filter);
-  const update=async(id,status)=>{await fetch("/api/orders",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})}); refresh();};
+  const update=async(id,status)=>{await api("/api/orders",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})}); refresh();};
   return <div>
     <div style={{display:"flex",gap:8,marginBottom:20}}>{sts.map(s=><button key={s} onClick={()=>setFilter(s)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===s?T.gold:"rgba(240,192,64,0.08)",color:filter===s?"#0a0a0a":T.textMuted}}>{s}</button>)}</div>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -291,7 +292,7 @@ function Orders({orders,refresh}) {
 function Settings({settings,setSettings}) {
   const [s,setS]=useState(settings);
   const [saved,setSaved]=useState(false);
-  const save=async()=>{setSettings(s); await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(s)}); setSaved(true); setTimeout(()=>setSaved(false),2000);};
+  const save=async()=>{setSettings(s); await api("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(s)}); setSaved(true); setTimeout(()=>setSaved(false),2000);};
   useEffect(()=>{setS(settings);},[settings]);
   return <div style={{maxWidth:700}}>
     <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>General</div>
@@ -363,7 +364,7 @@ function Demo({settings}) {
 
 function Channels() {
   const [channels,setChannels]=useState([]);
-  const load=()=>fetch("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{});
+  const load=()=>api("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{});
   useEffect(()=>{load();},[]);
   const icons={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp",website:"ti-world"};
   return <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:700}}>
@@ -378,27 +379,122 @@ function Channels() {
   </div>;
 }
 
-function Login({onOk}) {
+const sb=typeof window!=="undefined"?createSb():null;
+let AUTH_TOKEN="";
+const api=(url,opts={})=>fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+
+function AuthGate({onReady}) {
+  const [mode,setMode]=useState("signin");
+  const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
+  const [biz,setBiz]=useState("");
   const [err,setErr]=useState("");
   const [busy,setBusy]=useState(false);
   const go=async()=>{
-    if(!pw||busy) return;
+    if(!email||!pw||busy) return;
     setBusy(true); setErr("");
-    const r=await fetch("/api/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw})}).catch(()=>null);
+    try{
+      let res;
+      if(mode==="signup") res=await sb.auth.signUp({email,password:pw});
+      else res=await sb.auth.signInWithPassword({email,password:pw});
+      if(res.error) throw res.error;
+      const session=res.data.session;
+      if(!session){setErr("Check your email to confirm, then sign in.");setBusy(false);return;}
+      AUTH_TOKEN=session.access_token;
+      if(mode==="signup") await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:biz||email.split("@")[0]})});
+      onReady();
+    }catch(e){setErr(e.message||"Failed");}
     setBusy(false);
-    if(r&&r.ok){sessionStorage.setItem("auth","1");onOk();}
-    else setErr("Wrong password");
   };
-  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
-    <Card style={{width:320,textAlign:"center",padding:"2.5rem 2rem"}}>
-      <div style={{width:56,height:56,borderRadius:16,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:`1px solid ${T.gold}30`}}><i className="ti ti-lock" style={{fontSize:26,color:T.gold}}/></div>
-      <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Chatbot Dashboard</div>
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:24}}>Enter password to continue</div>
+  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <Card style={{width:340,textAlign:"center",padding:"2.5rem 2rem"}}>
+      <div style={{width:56,height:56,borderRadius:16,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:`1px solid ${T.gold}30`}}><i className="ti ti-robot" style={{fontSize:26,color:T.gold}}/></div>
+      <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Chatbot Platform</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>{mode==="signin"?"Sign in to your dashboard":"Create your account"}</div>
+      {mode==="signup"&&<Inp value={biz} onChange={e=>setBiz(e.target.value)} placeholder="Business name"/>}
+      <Inp type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email"/>
       <Inp type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Password"/>
-      <Btn gold onClick={go} style={{width:"100%"}}>{busy?"Checking...":"Login"}</Btn>
+      <Btn gold onClick={go} style={{width:"100%"}}>{busy?"Please wait...":(mode==="signin"?"Sign In":"Sign Up")}</Btn>
       {err&&<div style={{fontSize:12,color:T.danger,marginTop:10}}>{err}</div>}
+      <div style={{fontSize:12,color:T.textMuted,marginTop:16,cursor:"pointer"}} onClick={()=>{setMode(m=>m==="signin"?"signup":"signin");setErr("");}}>
+        {mode==="signin"?"New here? Create account":"Already have an account? Sign in"}
+      </div>
     </Card>
+  </div>;
+}
+
+function Onboarding({me,onTrial,onDemo}) {
+  const [busy,setBusy]=useState(false);
+  const startTrial=async()=>{
+    setBusy(true);
+    await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"start_trial"})});
+    setBusy(false);
+    onTrial();
+  };
+  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{maxWidth:640,width:"100%"}}>
+      <div style={{textAlign:"center",marginBottom:24}}>
+        <div style={{fontSize:20,fontWeight:600}}>Welcome, {me?.client?.business_name}</div>
+        <div style={{fontSize:13,color:T.textMuted}}>Choose how you want to start</div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16}}>
+        <Card style={{textAlign:"center",padding:"2rem 1.5rem",cursor:"pointer"}} onClick={onDemo}>
+          <i className="ti ti-message-chatbot" style={{fontSize:34,color:T.gold}}/>
+          <div style={{fontSize:16,fontWeight:600,margin:"12px 0 6px"}}>Try Demo</div>
+          <div style={{fontSize:12.5,color:T.textMuted}}>Chat with the AI assistant instantly. No setup needed.</div>
+        </Card>
+        <Card style={{textAlign:"center",padding:"2rem 1.5rem",cursor:"pointer",border:`1px solid ${T.gold}50`}} onClick={startTrial}>
+          <i className="ti ti-rocket" style={{fontSize:34,color:T.gold}}/>
+          <div style={{fontSize:16,fontWeight:600,margin:"12px 0 6px"}}>{busy?"Starting...":"Start 3-Day Free Trial"}</div>
+          <div style={{fontSize:12.5,color:T.textMuted}}>All features unlocked. 30 messages/day. Connect Facebook, Instagram or WhatsApp.</div>
+        </Card>
+      </div>
+    </div>
+  </div>;
+}
+
+function ConnectChannel({onDone}) {
+  const [platform,setPlatform]=useState(null);
+  const [pageId,setPageId]=useState("");
+  const [token,setToken]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [err,setErr]=useState("");
+  const opts=[
+    {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"Page ID + Page Access Token (Meta Developer > Messenger settings)"},
+    {id:"instagram",icon:"ti-brand-instagram",label:"Instagram Business",hint:"IG Business Account ID + Access Token (linked FB Page)"},
+    {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"Phone Number ID + WhatsApp Cloud API Token"},
+  ];
+  const connect=async()=>{
+    if(!pageId||!token||busy) return;
+    setBusy(true); setErr("");
+    const r=await api("/api/channels",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({platform,page_id:pageId,access_token:token})}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setBusy(false);
+    if(r.error) setErr(r.error);
+    else onDone();
+  };
+  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{maxWidth:560,width:"100%"}}>
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{fontSize:18,fontWeight:600}}>Connect a channel</div>
+        <div style={{fontSize:12.5,color:T.textMuted}}>Your bot will reply to customers on this channel</div>
+      </div>
+      {!platform?<div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {opts.map(o=><Card key={o.id} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer",padding:"1rem 1.2rem"}} onClick={()=>setPlatform(o.id)}>
+          <i className={`ti ${o.icon}`} style={{fontSize:26,color:T.gold}}/>
+          <div><div style={{fontSize:14,fontWeight:500}}>{o.label}</div><div style={{fontSize:11.5,color:T.textMuted}}>{o.hint}</div></div>
+        </Card>)}
+        <div style={{textAlign:"center",fontSize:12,color:T.textMuted,cursor:"pointer",marginTop:8}} onClick={onDone}>Skip for now</div>
+      </div>:<Card>
+        <div style={{fontSize:14,fontWeight:500,marginBottom:12,textTransform:"capitalize"}}>{platform} connection</div>
+        <Inp value={pageId} onChange={e=>setPageId(e.target.value)} placeholder={platform==="whatsapp"?"Phone Number ID":"Page / Account ID"}/>
+        <Inp value={token} onChange={e=>setToken(e.target.value)} placeholder="Access Token"/>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={()=>setPlatform(null)}>Back</Btn>
+          <Btn gold onClick={connect} style={{flex:1}}>{busy?"Connecting...":"Connect"}</Btn>
+        </div>
+        {err&&<div style={{fontSize:12,color:T.danger,marginTop:10}}>{err}</div>}
+      </Card>}
+    </div>
   </div>;
 }
 
@@ -414,20 +510,35 @@ export default function Dashboard() {
   const [loading,setLoading]=useState(true);
   const [authed,setAuthed]=useState(false);
   const [authChecked,setAuthChecked]=useState(false);
+  const [me,setMe]=useState(null);
+  const [stage,setStage]=useState("loading");
+
+  const loadMe=async()=>{
+    const d=await api("/api/me").then(r=>r.json()).catch(()=>null);
+    setMe(d);
+    if(!d||d.error){setStage("auth");return;}
+    if(!d.client){setStage("auth");return;}
+    if(d.client.plan==="none") setStage("onboarding");
+    else setStage("app");
+  };
 
   useEffect(()=>{
-    setAuthed(sessionStorage.getItem("auth")==="1");
-    setAuthChecked(true);
+    (async()=>{
+      const { data:{ session } }=await sb.auth.getSession();
+      if(session){AUTH_TOKEN=session.access_token;setAuthed(true);await loadMe();}
+      else setStage("auth");
+      setAuthChecked(true);
+    })();
   },[]);
 
   const load=async(silent)=>{
     if(!silent)setLoading(true);
     try {
       const [pr,cv,or,st]=await Promise.all([
-        fetch("/api/products").then(r=>r.json()).catch(()=>[]),
-        fetch("/api/conversations").then(r=>r.json()).catch(()=>[]),
-        fetch("/api/orders").then(r=>r.json()).catch(()=>[]),
-        fetch("/api/settings").then(r=>r.json()).catch(()=>({})),
+        api("/api/products").then(r=>r.json()).catch(()=>[]),
+        api("/api/conversations").then(r=>r.json()).catch(()=>[]),
+        api("/api/orders").then(r=>r.json()).catch(()=>[]),
+        api("/api/settings").then(r=>r.json()).catch(()=>({})),
       ]);
       if(Array.isArray(pr)) setProducts(pr);
       if(Array.isArray(cv)) setConvos(cv);
@@ -437,15 +548,17 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  useEffect(()=>{if(authed)load();},[authed]);
+  useEffect(()=>{if(authed&&stage==="app")load();},[authed,stage]);
   useEffect(()=>{
-    if(!authed) return;
+    if(!authed||stage!=="app") return;
     const t=setInterval(()=>load(true),10000);
     return ()=>clearInterval(t);
-  },[authed]);
+  },[authed,stage]);
 
-  if(!authChecked) return null;
-  if(!authed) return <Login onOk={()=>setAuthed(true)}/>;
+  if(!authChecked||stage==="loading") return null;
+  if(stage==="auth") return <AuthGate onReady={async()=>{setAuthed(true);await loadMe();}}/>;
+  if(stage==="onboarding") return <Onboarding me={me} onDemo={()=>{setStage("app");setPage("demo");}} onTrial={async()=>{await loadMe();setStage("connect");}}/>;
+  if(stage==="connect") return <ConnectChannel onDone={async()=>{await loadMe();setStage("app");}}/>;
 
   return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden",flexDirection:isMobile?"column":"row"}}>
     {!isMobile&&<div style={{width:collapsed?64:220,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,overflow:"hidden"}}>
@@ -470,7 +583,7 @@ export default function Dashboard() {
 
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
       {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"16px 28px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim}}>{settings.businessName} - {products.length} products synced</div>}</div>
+        <div><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today, ends ${me?.client?.trial_end?new Date(me.client.trial_end).toLocaleDateString():''}`:`${products.length} products synced`}</div>}</div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:4}}/>Sync</Btn>
           <div style={{width:34,height:34,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${T.gold}30`}}><i className="ti ti-user" style={{fontSize:16,color:T.gold}}/></div>

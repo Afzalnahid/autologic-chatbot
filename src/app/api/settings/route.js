@@ -1,17 +1,25 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { getSettings, saveSettings } from "@/lib/supabase.js";
+import { supabase } from "@/lib/supabase.js";
+import { requireClient } from "@/lib/auth.js";
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const settings = await getSettings();
-    return NextResponse.json(settings || {});
+    const { client } = await requireClient(request);
+    if (!client) return NextResponse.json({});
+    const { data: rows } = await supabase.from("app_settings").select("*");
+    const row = (rows || []).find(r => r.id === String(client.id));
+    return NextResponse.json(row?.settings || {});
   } catch { return NextResponse.json({}); }
 }
 
 export async function POST(request) {
   try {
+    const { client } = await requireClient(request);
+    if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const settings = await request.json();
-    await saveSettings(settings);
+    const { error } = await supabase.from("app_settings").upsert({ id: String(client.id), settings }, { onConflict: "id" });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ status: "saved" });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

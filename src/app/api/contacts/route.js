@@ -1,15 +1,18 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
+import { requireClient } from "@/lib/auth.js";
 
-export async function GET() {
+export async function GET(request) {
   try {
+    const { client } = await requireClient(request);
+    if (!client) return NextResponse.json({ contacts: [], global_bot_enabled: true });
     const { data: contactRows, error: e1 } = await supabase.from("contacts").select("*");
-    const contacts = contactRows || [];
-    const { data: ch, error: e2 } = await supabase.from("channels").select("*").eq("status", "connected").limit(1).single();
+    const contacts = (contactRows || []).filter(c => c.client_id === client.id);
+    const { data: ch, error: e2 } = await supabase.from("channels").select("*").eq("status", "connected").eq("client_id", client.id).limit(1).single();
 
-    const { data: allMsgs, error: e3 } = await supabase.from("message_buffer").select("sender_id,role");
-    const senders = (allMsgs || []).filter(m => (m.role || "customer") === "customer");
+    const { data: allMsgs, error: e3 } = await supabase.from("message_buffer").select("sender_id,role,client_id");
+    const senders = (allMsgs || []).filter(m => m.client_id === client.id && (m.role || "customer") === "customer");
     const uniq = [...new Set((senders || []).map(s => s.sender_id).filter(Boolean))];
     const map = Object.fromEntries((contacts || []).map(c => [c.sender_id, c]));
 
@@ -34,6 +37,8 @@ export async function GET() {
 
 export async function PUT(request) {
   try {
+    const { client } = await requireClient(request);
+    if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { sender_id, bot_enabled, global: isGlobal } = await request.json();
     if (isGlobal) {
       await supabase.from("channels").update({ bot_enabled }).eq("status", "connected");

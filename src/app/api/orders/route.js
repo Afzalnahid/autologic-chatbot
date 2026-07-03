@@ -1,10 +1,14 @@
 export const dynamic = "force-dynamic";
+import { requireClient } from "@/lib/auth.js";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 
-export async function GET() {
+export async function GET(request) {
+  const { client, error: authErr } = await requireClient(request);
+  if (authErr || !client) return NextResponse.json([], { status: authErr ? 401 : 200 });
   try {
-    const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(50);
+    const { data: rows } = await supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(300);
+    const data = (rows || []).filter(o => o.client_id === client.id);
     return NextResponse.json(data || []);
   } catch {
     return NextResponse.json([]);

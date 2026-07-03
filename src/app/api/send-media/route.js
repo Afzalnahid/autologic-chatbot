@@ -1,16 +1,19 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
+import { requireClient } from "@/lib/auth.js";
 
 export async function POST(request) {
   try {
+    const { client } = await requireClient(request);
+    if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const form = await request.formData();
     const sender_id = form.get("sender_id");
     const file = form.get("file");
     const kind = form.get("kind") || "image";
     if (!sender_id || !file) return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
-    const { data: ch } = await supabase.from("channels").select("*").eq("status", "connected").limit(1).single();
+    const { data: ch } = await supabase.from("channels").select("*").eq("status", "connected").eq("client_id", client.id).limit(1).single();
     if (!ch) return NextResponse.json({ error: "no channel" }, { status: 400 });
 
     const fb = new FormData();

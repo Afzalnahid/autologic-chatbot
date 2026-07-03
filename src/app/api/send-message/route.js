@@ -1,13 +1,16 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
+import { requireClient } from "@/lib/auth.js";
 
 export async function POST(request) {
   try {
+    const { client } = await requireClient(request);
+    if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { sender_id, text } = await request.json();
     if (!sender_id || !text) return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
-    const { data: ch } = await supabase.from("channels").select("access_token, client_id").eq("status", "connected").limit(1).single();
+    const { data: ch } = await supabase.from("channels").select("access_token, client_id").eq("status", "connected").eq("client_id", client.id).limit(1).single();
     if (!ch) return NextResponse.json({ error: "no connected channel" }, { status: 400 });
 
     const fbRes = await fetch(`https://graph.facebook.com/v24.0/me/messages?access_token=${ch.access_token}`, {
