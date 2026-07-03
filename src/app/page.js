@@ -69,6 +69,10 @@ function Conversations({convos,refresh}) {
     }catch{}
   };
   useEffect(()=>{loadContacts();},[]);
+  useEffect(()=>{
+    const t=setInterval(()=>refresh&&refresh(true),4000);
+    return ()=>clearInterval(t);
+  },[refresh]);
   useEffect(()=>{chatRef.current?.scrollTo(0,chatRef.current.scrollHeight);},[convos,sel]);
 
   const toggle=async(sender_id,val,isGlobal)=>{
@@ -128,15 +132,17 @@ function Conversations({convos,refresh}) {
         <Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>
       </div>
       <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,display:"flex",flexDirection:"column",gap:12}}>
-        {(c.messages||[]).map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="customer"?"flex-start":"flex-end"}}>
+        {(c.messages||[]).map((m,i)=>{
+          const mine=m.role!=="customer";
+          return <div key={i} style={{display:"flex",justifyContent:mine?"flex-end":"flex-start"}}>
           <div style={{maxWidth:"70%"}}>
-            {(m.attachments||[]).length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4}}>
-              {m.attachments.map((u,j)=><img key={j} src={u} alt="" style={{maxWidth:220,borderRadius:12,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
+            {(m.attachments||[]).length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4,alignItems:mine?"flex-end":"flex-start"}}>
+              {m.attachments.map((u,j)=><img key={j} src={u} alt="" style={{maxWidth:220,borderRadius:16,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
             </div>}
-            {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"10px 14px",borderRadius:12,fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap",background:m.role==="customer"?T.bgAlt:m.role==="agent"?`${T.info}25`:`${T.gold}20`}}>{m.text}</div>}
-            <div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:m.role==="customer"?"left":"right"}}>{m.role==="agent"?"You":m.role==="bot"?"Bot":cname}</div>
+            {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?"#fff":T.text,background:mine?"#0084ff":T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{m.text}</div>}
+            {mine&&m.role==="agent"&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>You</div>}
           </div>
-        </div>)}
+        </div>;})}
       </div>
       <div style={{padding:"12px 16px",borderTop:`0.5px solid ${T.border}`,display:"flex",gap:8}}>
         <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Type a message to customer..." style={{flex:1,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"10px 14px",color:T.text,fontSize:13,outline:"none"}}/>
