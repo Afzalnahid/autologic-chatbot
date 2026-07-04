@@ -220,6 +220,18 @@ function Conversations({convos,refresh,onChatOpen}) {
 function Inventory({products,refresh}) {
   const [search,setSearch]=useState("");
   const [showAdd,setShowAdd]=useState(false);
+  const [showImport,setShowImport]=useState(false);
+  const [imp,setImp]=useState({siteUrl:"",ck:"",cs:""});
+  const [importing,setImporting]=useState(false);
+  const [impMsg,setImpMsg]=useState("");
+  const runImport=async()=>{
+    if(!imp.siteUrl||!imp.ck||!imp.cs||importing) return;
+    setImporting(true); setImpMsg("Importing products, please wait...");
+    const r=await api("/api/import-products",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(imp)}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setImporting(false);
+    if(r.error) setImpMsg("Failed: "+r.error);
+    else { setImpMsg(`Imported ${r.imported} products`); refresh(); }
+  };
   const [np,setNp]=useState({product_id:"",product_name:"",category:"",sale_price:"",regular_price:"",image_url:"",description:""});
   const [adding,setAdding]=useState(false);
   const filtered = products.filter(p=>(p.product_name||p.name||"").toLowerCase().includes(search.toLowerCase())||(p.category||"").toLowerCase().includes(search.toLowerCase()));
@@ -235,9 +247,21 @@ function Inventory({products,refresh}) {
   return <div style={{display:"flex",flexDirection:"column",gap:16,height:"calc(100vh - 130px)"}}>
     <div style={{display:"flex",gap:12}}>
       <div style={{position:"relative",flex:1}}><input placeholder="Search products..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:"100%",background:T.card,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px 8px 36px",color:T.text,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
-      <Btn gold onClick={()=>setShowAdd(!showAdd)}><i className="ti ti-plus" style={{marginRight:6}}/>Add</Btn>
+      <Btn gold onClick={()=>{setShowAdd(!showAdd);setShowImport(false);}}><i className="ti ti-plus" style={{marginRight:6}}/>Add</Btn>
+      <Btn onClick={()=>{setShowImport(!showImport);setShowAdd(false);}}><i className="ti ti-world-download" style={{marginRight:6}}/>Website</Btn>
       <Btn onClick={refresh}><i className="ti ti-refresh" style={{marginRight:6}}/>Sync</Btn>
     </div>
+    {showImport&&<Card>
+      <div style={{fontSize:13,fontWeight:500,marginBottom:4}}>Import from your website (WooCommerce)</div>
+      <div style={{fontSize:11.5,color:T.textMuted,marginBottom:12}}>WooCommerce &gt; Settings &gt; Advanced &gt; REST API &gt; Add key (Read) to get Consumer key and secret. All published products will be imported into your inventory.</div>
+      <Inp label="Website URL" value={imp.siteUrl} onChange={e=>setImp({...imp,siteUrl:e.target.value})} placeholder="https://yourshop.com"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
+        <Inp label="Consumer key" value={imp.ck} onChange={e=>setImp({...imp,ck:e.target.value})} placeholder="ck_..."/>
+        <Inp label="Consumer secret" value={imp.cs} onChange={e=>setImp({...imp,cs:e.target.value})} placeholder="cs_..."/>
+      </div>
+      <Btn gold onClick={runImport} disabled={importing}>{importing?"Importing...":"Import products"}</Btn>
+      {impMsg&&<div style={{fontSize:12,color:T.textMuted,marginTop:10}}>{impMsg}</div>}
+    </Card>}
     {showAdd&&<Card>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
         <Inp label="Product code" value={np.product_id} onChange={e=>setNp({...np,product_id:e.target.value})}/>
