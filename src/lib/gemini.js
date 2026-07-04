@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 let _genAI = null;
 function getGenAI() {
-  if (!_genAI) _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  if (!_genAI) _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyCk7XCrBzWR2AtZrrqxmPbYzndh8ZKUAEs");
   return _genAI;
 }
 
