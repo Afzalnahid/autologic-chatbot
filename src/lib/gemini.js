@@ -30,18 +30,6 @@ export async function chatWithGemini(systemPrompt, messages, model = PRIMARY_MOD
 }
 
 
-async function withRetry(fn, tries = 3) {
-  let last;
-  for (let i = 0; i < tries; i++) {
-    try { return await fn(); } catch (e) {
-      last = e;
-      const msg = String(e.message || "");
-      if (!/429|503|quota|overload|fetch failed|timeout/i.test(msg)) throw e;
-      await new Promise(r => setTimeout(r, 1500 * (i + 1)));
-    }
-  }
-  throw last;
-}
 
 export async function analyzeImage(imageUrl, prompt = "Describe this jewelry product in detail for product matching.") {
   const model = getGenAI().getGenerativeModel({ model: LITE_MODEL });
