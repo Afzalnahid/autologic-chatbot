@@ -226,11 +226,19 @@ function Inventory({products,refresh}) {
   const [impMsg,setImpMsg]=useState("");
   const runImport=async()=>{
     if(!imp.siteUrl||!imp.ck||!imp.cs||importing) return;
-    setImporting(true); setImpMsg("Importing products, please wait...");
+    setImporting(true); setImpMsg("Fetching product list...");
     const r=await api("/api/import-products",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(imp)}).then(r=>r.json()).catch(()=>({error:"network"}));
+    if(r.error){setImpMsg("Failed: "+r.error);setImporting(false);return;}
+    const list=r.products||[];
+    let done=0,fail=0;
+    for(const prod of list){
+      setImpMsg(`Importing ${done+fail+1}/${list.length}: ${prod.product_name}`);
+      const one=await api("/api/import-one",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(prod)}).then(r=>r.json()).catch(()=>({error:1}));
+      if(one.error) fail++; else done++;
+    }
     setImporting(false);
-    if(r.error) setImpMsg("Failed: "+r.error);
-    else { setImpMsg(`Imported ${r.imported} products`); refresh(); }
+    setImpMsg(`Done: ${done} imported${fail?`, ${fail} failed`:""}`);
+    refresh();
   };
   const [np,setNp]=useState({product_id:"",product_name:"",category:"",sale_price:"",regular_price:"",image_url:"",description:""});
   const [adding,setAdding]=useState(false);
