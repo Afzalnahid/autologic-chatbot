@@ -536,7 +536,14 @@ export default function Dashboard() {
     const d=await api("/api/me").then(r=>r.json()).catch(()=>null);
     setMe(d);
     if(!d||d.error){setStage("auth");return;}
-    if(!d.client){setStage("auth");return;}
+    if(!d.client){
+      await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:(d.email||"My Business").split("@")[0]})});
+      const d2=await api("/api/me").then(r=>r.json()).catch(()=>null);
+      if(!d2||!d2.client){setStage("auth");return;}
+      setMe(d2);
+      setStage(d2.client.plan==="none"?"onboarding":"app");
+      return;
+    }
     if(d.client.plan==="none") setStage("onboarding");
     else setStage("app");
   };
