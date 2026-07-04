@@ -362,12 +362,13 @@ function Demo({settings}) {
   </div>;
 }
 
-function Channels() {
+function Channels({onConnect}) {
   const [channels,setChannels]=useState([]);
   const load=()=>api("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{});
   useEffect(()=>{load();},[]);
   const icons={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp",website:"ti-world"};
   return <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:700}}>
+    <Btn gold onClick={onConnect} style={{alignSelf:"flex-start"}}><i className="ti ti-plus" style={{marginRight:6}}/>Connect new channel</Btn>
     {channels.map(ch=><Card key={ch.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <div style={{display:"flex",alignItems:"center",gap:14}}>
         <div style={{width:40,height:40,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icons[ch.platform]||"ti-plug"}`} style={{fontSize:20,color:T.gold}}/></div>
@@ -597,7 +598,7 @@ export default function Dashboard() {
         <div><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today, ends ${me?.client?.trial_end?new Date(me.client.trial_end).toLocaleDateString():''}`:`${products.length} products synced`}</div>}</div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:4}}/>Sync</Btn>
-          <div style={{width:34,height:34,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${T.gold}30`}}><i className="ti ti-user" style={{fontSize:16,color:T.gold}}/></div>
+          <div onClick={async()=>{await getSb().auth.signOut();AUTH_TOKEN="";location.reload();}} title="Logout" style={{width:34,height:34,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${T.gold}30`,cursor:"pointer"}}><i className="ti ti-logout" style={{fontSize:16,color:T.gold}}/></div>
         </div>
       </div>
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
@@ -607,7 +608,7 @@ export default function Dashboard() {
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen}/>}
             {page==="inventory"&&<Inventory products={products} refresh={load}/>}
             {page==="orders"&&<Orders orders={orders} refresh={load}/>}
-            {page==="channels"&&<Channels/>}
+            {page==="channels"&&<Channels onConnect={()=>setStage("connect")}/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}
             {page==="demo"&&<Demo settings={settings}/>}
           </>
