@@ -384,7 +384,13 @@ function Channels({onConnect}) {
 let _sbi=null;
 const getSb=()=>{ if(!_sbi) _sbi=createSb(); return _sbi; };
 let AUTH_TOKEN="";
-const api=(url,opts={})=>fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+const api=async(url,opts={})=>{
+  try{
+    const {data:{session}}=await getSb().auth.getSession();
+    if(session) AUTH_TOKEN=session.access_token;
+  }catch{}
+  return fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+};
 
 function AuthGate({onReady}) {
   const [mode,setMode]=useState("signin");
