@@ -31,6 +31,8 @@ export async function POST(request) {
       .insert({ business_name: body.business_name || "My Business", owner_email: email, plan: "none" })
       .select().single();
     if (e) return NextResponse.json({ error: e.message }, { status: 500 });
+    const { data: def } = await supabase.from("app_settings").select("settings").eq("id", "default").single();
+    if (def?.settings) await supabase.from("app_settings").upsert({ id: String(data.id), settings: def.settings }, { onConflict: "id" });
     return NextResponse.json({ ok: true, client_id: data.id });
   }
 
