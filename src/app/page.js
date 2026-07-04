@@ -118,8 +118,9 @@ function Conversations({convos,refresh,onChatOpen}) {
   };
   useEffect(()=>{loadContacts();},[]);
   useEffect(()=>{
-    const t=setInterval(()=>refresh&&refresh(true),4000);
-    return ()=>clearInterval(t);
+    const ch=getSb().channel("mb").on("broadcast",{event:"insert"},()=>refresh&&refresh(true)).subscribe();
+    const t=setInterval(()=>refresh&&refresh(true),15000);
+    return ()=>{getSb().removeChannel(ch);clearInterval(t);};
   },[refresh]);
   useEffect(()=>{chatRef.current?.scrollTo(0,chatRef.current.scrollHeight);},[convos,sel]);
 
