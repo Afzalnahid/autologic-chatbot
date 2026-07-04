@@ -21,7 +21,8 @@ export async function GET(request) {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json([], { status: authErr ? 401 : 200 });
   try {
-    const messages = await getConversations();
+    const { data: all } = await supabase.from("message_buffer").select("*").order("created_at", { ascending: false }).limit(500);
+    const messages = (all || []).filter(m => m.client_id === client.id);
     const grouped = {};
     messages.forEach(m => {
       const sid = m.sender_id;
