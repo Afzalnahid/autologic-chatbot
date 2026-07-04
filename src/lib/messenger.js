@@ -1,72 +1,48 @@
-const PAGE_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
-const API_URL = "https://graph.facebook.com/v18.0/me/messages";
+const API = "https://graph.facebook.com/v24.0/me/messages";
 
-async function callSendAPI(body) {
-  const res = await fetch(`${API_URL}?access_token=${PAGE_TOKEN}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    console.error("Messenger API error:", err);
+async function send(token, body) {
+  try {
+    const r = await fetch(`${API}?access_token=${token}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (d.error) console.error("FB send error:", d.error.message);
+    return d;
+  } catch (e) {
+    console.error("FB send failed:", e.message);
+    return { error: e.message };
   }
 }
 
-export async function sendTypingOn(recipientId) {
-  await callSendAPI({
-    recipient: { id: recipientId },
-    sender_action: "typing_on",
-  });
-}
+export const sendTypingOn = (token, id) =>
+  send(token, { recipient: { id }, sender_action: "typing_on" });
 
-export async function sendTextMessage(recipientId, text) {
-  await callSendAPI({
-    recipient: { id: recipientId },
-    message: { text },
-  });
-}
+export const sendTextMessage = (token, id, text) =>
+  send(token, { recipient: { id }, messaging_type: "RESPONSE", message: { text } });
 
-export async function sendImageMessage(recipientId, imageUrl) {
-  await callSendAPI({
-    recipient: { id: recipientId },
-    message: {
-      attachment: {
-        type: "image",
-        payload: { url: imageUrl, is_reusable: true },
-      },
-    },
-  });
-}
+export const sendImageMessage = (token, id, url) =>
+  send(token, { recipient: { id }, message: { attachment: { type: "image", payload: { url, is_reusable: true } } } });
 
-export async function sendResponses(recipientId, jsonArray) {
-  for (const item of jsonArray) {
-    await sendTypingOn(recipientId);
-    if (item.type === "image_msg" && item.url) {
-      await sendImageMessage(recipientId, item.url);
-    } else if (item.type === "text_msg" && item.text) {
-      await sendTextMessage(recipientId, item.text);
-    }
+export async function sendResponses(token, id, items) {
+  for (const it of items) {
+    if (it.type === "image_msg" && it.url) await sendImageMessage(token, id, it.url);
+    else if (it.type === "text_msg" && it.text) await sendTextMessage(token, id, it.text);
   }
 }
 
 export function parseMessengerEvent(body) {
-  const entry = body?.entry?.[0];
-  const messaging = entry?.messaging?.[0];
-  if (!messaging) return null;
-
-  const senderId = messaging.sender?.id;
-  const message = messaging.message;
-  if (!senderId || !message) return null;
-
-  const text = message.text || "";
-  const attachments = message.attachments || [];
-
-  const images = attachments
-    .filter(a => a.type === "image" && a.payload?.url)
-    .map(a => a.payload.url);
-
-  const audio = attachments.find(a => a.type === "audio")?.payload?.url || null;
-
-  return { senderId, text, images, audio, raw: messaging };
+  const m = body?.entry?.[0]?.messaging?.[0];
+  if (!m?.sender?.id || !m.message) return null;
+  if (m.message.is_echo) return null;
+  const atts = m.message.attachments || [];
+  return {
+    senderId: m.sender.id,
+    pageId: m.recipient?.id,
+    text: m.message.text || "",
+    images: atts.filter(a => a.type === "image" && a.payload?.url).map(a => a.payload.url),
+    audio: atts.find(a => a.type === "audio")?.payload?.url || null,
+    video: atts.some(a => a.type === "video"),
+  };
 }

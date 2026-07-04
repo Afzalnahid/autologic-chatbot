@@ -93,3 +93,15 @@ Return ONLY the JSON array, no markdown or explanation.`;
   const text = result.response.text().replace(/```json|```/g, "").trim();
   return JSON.parse(text);
 }
+
+export async function transcribeAudio(audioUrl) {
+  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL });
+  const res = await fetch(audioUrl);
+  const buf = Buffer.from(await res.arrayBuffer()).toString("base64");
+  const mime = res.headers.get("content-type") || "audio/mp4";
+  const result = await withRetry(() => model.generateContent([
+    "Transcribe this audio exactly. If Bangla, write in Bangla script. Output only the transcription.",
+    { inlineData: { data: buf, mimeType: mime } },
+  ]));
+  return result.response.text().trim();
+}
