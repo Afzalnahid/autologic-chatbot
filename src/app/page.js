@@ -454,14 +454,24 @@ function Onboarding({me,onTrial,onDemo}) {
   </div>;
 }
 
-function ConnectChannel({onDone}) {
+function ConnectChannel({onDone,clientId}) {
+  useEffect(()=>{
+    const h=e=>{if(e.data==="fb_connected")onDone();};
+    window.addEventListener("message",h);
+    return ()=>window.removeEventListener("message",h);
+  },[]);
+  const fbConnect=()=>{
+    const w=520,ht=650;
+    const left=(window.screen.width-w)/2,top=(window.screen.height-ht)/2;
+    window.open(`/api/fb/login?client_id=${clientId}`,"fbconnect",`width=${w},height=${ht},left=${left},top=${top}`);
+  };
   const [platform,setPlatform]=useState(null);
   const [pageId,setPageId]=useState("");
   const [token,setToken]=useState("");
   const [busy,setBusy]=useState(false);
   const [err,setErr]=useState("");
   const opts=[
-    {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"Page ID + Page Access Token (Meta Developer > Messenger settings)"},
+    {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"One click connect with Facebook login"},
     {id:"instagram",icon:"ti-brand-instagram",label:"Instagram Business",hint:"IG Business Account ID + Access Token (linked FB Page)"},
     {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"Phone Number ID + WhatsApp Cloud API Token"},
   ];
@@ -480,7 +490,7 @@ function ConnectChannel({onDone}) {
         <div style={{fontSize:12.5,color:T.textMuted}}>Your bot will reply to customers on this channel</div>
       </div>
       {!platform?<div style={{display:"flex",flexDirection:"column",gap:12}}>
-        {opts.map(o=><Card key={o.id} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer",padding:"1rem 1.2rem"}} onClick={()=>setPlatform(o.id)}>
+        {opts.map(o=><Card key={o.id} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer",padding:"1rem 1.2rem"}} onClick={()=>o.id==="facebook"?fbConnect():setPlatform(o.id)}>
           <i className={`ti ${o.icon}`} style={{fontSize:26,color:T.gold}}/>
           <div><div style={{fontSize:14,fontWeight:500}}>{o.label}</div><div style={{fontSize:11.5,color:T.textMuted}}>{o.hint}</div></div>
         </Card>)}
@@ -559,7 +569,7 @@ export default function Dashboard() {
   if(!authChecked||stage==="loading") return null;
   if(stage==="auth") return <AuthGate onReady={async()=>{setAuthed(true);await loadMe();}}/>;
   if(stage==="onboarding") return <Onboarding me={me} onDemo={()=>{setStage("app");setPage("demo");}} onTrial={async()=>{await loadMe();setStage("connect");}}/>;
-  if(stage==="connect") return <ConnectChannel onDone={async()=>{await loadMe();setStage("app");}}/>;
+  if(stage==="connect") return <ConnectChannel clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;
 
   return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden",flexDirection:isMobile?"column":"row"}}>
     {!isMobile&&<div style={{width:collapsed?64:220,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,overflow:"hidden"}}>
