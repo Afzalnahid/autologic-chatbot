@@ -29,6 +29,20 @@ export async function chatWithGemini(systemPrompt, messages, model = PRIMARY_MOD
   }
 }
 
+
+async function withRetry(fn, tries = 3) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(); } catch (e) {
+      last = e;
+      const msg = String(e.message || "");
+      if (!/429|503|quota|overload|fetch failed|timeout/i.test(msg)) throw e;
+      await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
 export async function analyzeImage(imageUrl, prompt = "Describe this jewelry product in detail for product matching.") {
   const model = getGenAI().getGenerativeModel({ model: LITE_MODEL });
   const response = await fetch(imageUrl);
@@ -36,11 +50,25 @@ export async function analyzeImage(imageUrl, prompt = "Describe this jewelry pro
   const base64 = Buffer.from(buffer).toString("base64");
   const mimeType = response.headers.get("content-type") || "image/jpeg";
 
-  const result = await model.generateContent([
+  const result = await withRetry(() => model.generateContent([
     prompt,
     { inlineData: { data: base64, mimeType } },
-  ]);
+  ]));
   return result.response.text();
+}
+
+
+async function withRetry(fn, tries = 3) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(); } catch (e) {
+      last = e;
+      const msg = String(e.message || "");
+      if (!/429|503|quota|overload|fetch failed|timeout/i.test(msg)) throw e;
+      await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+    }
+  }
+  throw last;
 }
 
 export async function analyzeImageFromTelegram(fileUrl, prompt) {
@@ -49,7 +77,7 @@ export async function analyzeImageFromTelegram(fileUrl, prompt) {
 
 export async function generateEmbedding(text) {
   const model = getGenAI().getGenerativeModel({ model: "text-embedding-004" });
-  const result = await model.embedContent(text);
+  const result = await withRetry(() => model.embedContent(text));
   return result.embedding.values;
 }
 

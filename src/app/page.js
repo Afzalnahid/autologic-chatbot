@@ -235,6 +235,7 @@ function Inventory({products,refresh}) {
       setImpMsg(`Importing ${done+fail+1}/${list.length}: ${prod.product_name}`);
       const one=await api("/api/import-one",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(prod)}).then(r=>r.json()).catch(()=>({error:1}));
       if(one.error) fail++; else done++;
+      await new Promise(r=>setTimeout(r,300));
     }
     setImporting(false);
     setImpMsg(`Done: ${done} imported${fail?`, ${fail} failed`:""}`);

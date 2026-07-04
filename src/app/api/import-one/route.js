@@ -48,6 +48,9 @@ export async function POST(request) {
       description: p.description || "",
     };
 
+    const { data: existing } = await supabase.from("products").select("id,metadata,client_id").limit(1000);
+    const dupIds = (existing || []).filter(r => r.client_id === client.id && r.metadata?.product_code === p.product_code).map(r => r.id);
+    for (const id of dupIds) await supabase.from("products").delete().eq("id", id);
     const { error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, analyzed: !!visual });
