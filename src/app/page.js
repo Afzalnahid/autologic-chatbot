@@ -8,9 +8,9 @@ const T = {
   text: "#e8e8ec", textMuted: "#7a8db0", textDim: "#4a5a7a",
   border: "#1a2744", danger: "#ef4444", success: "#22c55e", info: "#3b82f6", warn: "#f59e0b", purple: "#8b5cf6",
 };
-const PAGES = ["analytics","conversations","inventory","orders","channels","settings","demo"];
-const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-plug","ti-settings","ti-robot"];
-const LABELS = ["Analytics","Conversations","Inventory","Orders","Channels","Settings","Demo"];
+const PAGES = ["analytics","conversations","inventory","orders","channels","settings","profile","demo"];
+const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-plug","ti-settings","ti-user","ti-robot"];
+const LABELS = ["Analytics","Conversations","Inventory","Orders","Channels","Settings","Profile","Demo"];
 
 const useIsMobile = () => {
   const [m,setM]=useState(false);
@@ -359,6 +359,58 @@ function Orders({orders,refresh}) {
   </div>;
 }
 
+function Profile() {
+  const [p,setP]=useState(null);
+  const [form,setForm]=useState({business_name:"",phone:"",address:"",website:""});
+  const [saving,setSaving]=useState(false);
+  const [msg,setMsg]=useState("");
+  useEffect(()=>{
+    api("/api/profile").then(r=>r.json()).then(d=>{
+      if(d.error) return;
+      setP(d);
+      setForm({business_name:d.business_name||"",phone:d.phone||"",address:d.address||"",website:d.website||""});
+    }).catch(()=>{});
+  },[]);
+  const save=async()=>{
+    setSaving(true); setMsg("");
+    const r=await api("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setSaving(false);
+    setMsg(r.error?"Failed: "+r.error:"Saved");
+  };
+  if(!p) return <Card style={{color:T.textDim}}>Loading...</Card>;
+  const planColor=p.plan==="pro"?T.success:p.plan==="trial"?T.gold:T.textDim;
+  return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,alignItems:"start"}}>
+    <Card>
+      <div style={{fontSize:14,fontWeight:600,marginBottom:16}}>Business information</div>
+      <Inp label="Business name" value={form.business_name} onChange={e=>setForm({...form,business_name:e.target.value})}/>
+      <Inp label="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
+      <Inp label="Address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/>
+      <Inp label="Website" value={form.website} onChange={e=>setForm({...form,website:e.target.value})}/>
+      <Btn gold onClick={save} disabled={saving}>{saving?"Saving...":"Save changes"}</Btn>
+      {msg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{msg}</span>}
+    </Card>
+    <Card>
+      <div style={{fontSize:14,fontWeight:600,marginBottom:16}}>Account</div>
+      <Row k="Email" v={p.email}/>
+      <Row k="Plan" v={<Badge color={planColor}>{p.plan}</Badge>}/>
+      {p.plan==="trial"&&p.trial_end&&<Row k="Trial ends" v={new Date(p.trial_end).toLocaleDateString()}/>}
+      {p.plan==="trial"&&<Row k="Today usage" v={`${p.usage?.today??0} / 30 msgs`}/>}
+      <Row k="Joined" v={p.created_at?new Date(p.created_at).toLocaleDateString():"-"}/>
+      <div style={{height:12}}/>
+      <div style={{fontSize:14,fontWeight:600,margin:"8px 0 12px"}}>Resources</div>
+      <Row k="Products" v={p.usage?.products??0}/>
+      <Row k="Orders" v={p.usage?.orders??0}/>
+      <Row k="Channels" v={p.usage?.channels??0}/>
+    </Card>
+  </div>;
+}
+
+function Row({k,v}) {
+  return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`0.5px solid ${T.border}`,fontSize:13}}>
+    <span style={{color:T.textMuted}}>{k}</span><span>{v}</span>
+  </div>;
+}
+
 function Settings({settings,setSettings}) {
   const [s,setS]=useState(settings);
   const [saved,setSaved]=useState(false);
@@ -704,6 +756,7 @@ export default function Dashboard() {
             {page==="inventory"&&<Inventory products={products} refresh={load}/>}
             {page==="orders"&&<Orders orders={orders} refresh={load}/>}
             {page==="channels"&&<Channels onConnect={()=>setStage("connect")}/>}
+            {page==="profile"&&<Profile/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}
             {page==="demo"&&<Demo settings={settings}/>}
           </>

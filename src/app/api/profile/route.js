@@ -1,0 +1,42 @@
+export const dynamic = "force-dynamic";
+import { NextResponse } from "next/server";
+import { requireClient } from "@/lib/auth.js";
+import { supabase } from "@/lib/supabase.js";
+
+export async function GET(request) {
+  const { client, email } = await requireClient(request);
+  if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const usage = await getUsage(client);
+  return NextResponse.json({
+    email,
+    business_name: client.business_name,
+    phone: client.phone || "",
+    address: client.address || "",
+    website: client.website || "",
+    plan: client.plan,
+    trial_end: client.trial_end,
+    created_at: client.created_at,
+    usage,
+  });
+}
+
+export async function PUT(request) {
+  const { client } = await requireClient(request);
+  if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const b = await request.json();
+  const patch = {};
+  for (const k of ["business_name", "phone", "address", "website"]) {
+    if (typeof b[k] === "string") patch[k] = b[k];
+  }
+  const { error } = await supabase.from("clients").update(patch).eq("id", client.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+async function getUsage(client) {
+  const { count: products } = await supabase.from("products").select("id", { count: "exact", head: true }).eq("client_id", client.id);
+  const { count: orders } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("client_id", client.id);
+  const { data: chans } = await supabase.from("channels").select("id,client_id").limit(500);
+  const channels = (chans || []).filter(c => c.client_id === client.id).length;
+  return { products: products || 0, orders: orders || 0, channels };
+}
