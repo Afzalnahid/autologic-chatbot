@@ -589,7 +589,19 @@ function ConnectChannel({onDone,clientId}) {
 export default function Dashboard() {
   const isMobile=useIsMobile();
   const [chatOpen,setChatOpen]=useState(false);
-  const [page,setPage]=useState("analytics");
+  const [page,setPageRaw]=useState("analytics");
+  const setPage=(p)=>{
+    setPageRaw(p);
+    if(typeof window!=="undefined") window.history.pushState({page:p},"","#"+p);
+  };
+  useEffect(()=>{
+    const onPop=(e)=>{ if(e.state?.page) setPageRaw(e.state.page); };
+    window.addEventListener("popstate",onPop);
+    const h=window.location.hash.replace("#","");
+    if(h) setPageRaw(h);
+    window.history.replaceState({page:window.location.hash.replace("#","")||"analytics"},"","");
+    return ()=>window.removeEventListener("popstate",onPop);
+  },[]);
   const [products,setProducts]=useState([]);
   const [convos,setConvos]=useState([]);
   const [orders,setOrders]=useState([]);
