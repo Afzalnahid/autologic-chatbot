@@ -220,6 +220,28 @@ function Conversations({convos,refresh,onChatOpen}) {
 function Inventory({products,refresh}) {
   const [search,setSearch]=useState("");
   const [showAdd,setShowAdd]=useState(false);
+  const [imgFile,setImgFile]=useState(null);
+  const addFileRef=useRef(null);
+  const add=async()=>{
+    if(!np.product_name||adding) return;
+    setAdding(true);
+    const fd=new FormData();
+    fd.append("product_code",np.product_id||"");
+    fd.append("product_name",np.product_name);
+    fd.append("category",np.category||"");
+    fd.append("regular_price",np.regular_price||"");
+    fd.append("sale_price",np.sale_price||"");
+    fd.append("description",np.description||"");
+    if(imgFile) fd.append("image",imgFile);
+    else if(np.image_url) fd.append("image_url",np.image_url);
+    const r=await api("/api/add-product",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setAdding(false);
+    if(r.error){setUrlMsg("Failed: "+r.error);return;}
+    setNp({product_id:"",product_name:"",category:"",regular_price:"",sale_price:"",image_url:"",description:""});
+    setImgFile(null); if(addFileRef.current) addFileRef.current.value="";
+    setUrlMsg("Product added");
+    refresh();
+  };
   const [urlInput,setUrlInput]=useState("");
   const [urlBusy,setUrlBusy]=useState(false);
   const [urlMsg,setUrlMsg]=useState("");
@@ -296,7 +318,11 @@ function Inventory({products,refresh}) {
         <Inp label="Category" value={np.category} onChange={e=>setNp({...np,category:e.target.value})}/>
         <Inp label="Sale price" value={np.sale_price} onChange={e=>setNp({...np,sale_price:e.target.value})}/>
         <Inp label="Regular price" value={np.regular_price} onChange={e=>setNp({...np,regular_price:e.target.value})}/>
-        <Inp label="Image URL" value={np.image_url} onChange={e=>setNp({...np,image_url:e.target.value})}/>
+      </div>
+      <div style={{marginBottom:16}}>
+        <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Product image</label>
+        <input ref={addFileRef} type="file" accept="image/*" onChange={e=>setImgFile(e.target.files[0]||null)} style={{fontSize:13,color:T.text}}/>
+        {imgFile&&<div style={{fontSize:11,color:T.textMuted,marginTop:4}}>{imgFile.name}</div>}
       </div>
       <Inp label="Description" textarea value={np.description} onChange={e=>setNp({...np,description:e.target.value})}/>
       <Btn gold onClick={add} disabled={adding}>{adding?"Saving + embedding...":"Save product"}</Btn>
