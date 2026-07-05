@@ -64,8 +64,11 @@ export async function analyzeImageFromTelegram(fileUrl, prompt) {
 }
 
 export async function generateEmbedding(text) {
-  const model = getGenAI().getGenerativeModel({ model: "text-embedding-004" });
-  const result = await withRetry(() => model.embedContent(text));
+  const model = getGenAI().getGenerativeModel({ model: "gemini-embedding-001" });
+  const result = await withRetry(() => model.embedContent({
+    content: { parts: [{ text }] },
+    outputDimensionality: 768,
+  }));
   return result.embedding.values;
 }
 
