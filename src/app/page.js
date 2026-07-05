@@ -401,6 +401,8 @@ function Profile() {
       <Row k="Products" v={p.usage?.products??0}/>
       <Row k="Orders" v={p.usage?.orders??0}/>
       <Row k="Channels" v={p.usage?.channels??0}/>
+      <div style={{height:16}}/>
+      <Btn danger onClick={async()=>{await getSb().auth.signOut();AUTH_TOKEN="";location.reload();}} style={{width:"100%"}}><i className="ti ti-logout" style={{marginRight:6}}/>Logout</Btn>
     </Card>
   </div>;
 }
@@ -745,7 +747,6 @@ export default function Dashboard() {
         <div><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today, ends ${me?.client?.trial_end?new Date(me.client.trial_end).toLocaleDateString():''}`:`${products.length} products synced`}</div>}</div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:4}}/>Sync</Btn>
-          <div onClick={async()=>{await getSb().auth.signOut();AUTH_TOKEN="";location.reload();}} title="Logout" style={{width:34,height:34,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${T.gold}30`,cursor:"pointer"}}><i className="ti ti-logout" style={{fontSize:16,color:T.gold}}/></div>
         </div>
       </div>
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
