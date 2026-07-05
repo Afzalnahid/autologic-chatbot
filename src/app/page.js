@@ -278,14 +278,6 @@ function Inventory({products,refresh}) {
   const [adding,setAdding]=useState(false);
   const filtered = products.filter(p=>(p.product_name||p.name||"").toLowerCase().includes(search.toLowerCase())||(p.category||"").toLowerCase().includes(search.toLowerCase()));
   const del = async(id)=>{ await api("/api/products",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})}); refresh(); };
-  const add = async()=>{
-    if(!np.product_id||!np.product_name) return;
-    setAdding(true);
-    await api("/api/products",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(np)});
-    setAdding(false); setShowAdd(false);
-    setNp({product_id:"",product_name:"",category:"",sale_price:"",regular_price:"",image_url:"",description:""});
-    refresh();
-  };
   return <div style={{display:"flex",flexDirection:"column",gap:16,height:"calc(100vh - 130px)"}}>
     <div style={{display:"flex",gap:12}}>
       <div style={{position:"relative",flex:1}}><input placeholder="Search products..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:"100%",background:T.card,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"8px 12px 8px 36px",color:T.text,fontSize:13,outline:"none",boxSizing:"border-box"}}/></div>
