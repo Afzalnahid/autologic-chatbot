@@ -224,3 +224,21 @@ export async function handleIncoming(event) {
 
   await processConversation(channel, event.senderId, row?.id || null);
 }
+
+export async function runDemo(clientId, userText, history = []) {
+  const [systemPrompt, products] = await Promise.all([
+    getSystemPrompt(clientId),
+    searchProducts(clientId, userText, 3),
+  ]);
+  const context = products.length
+    ? "\n\nPRODUCT SEARCH RESULTS (source of truth, pick from these only):\n" +
+      products.map(p => JSON.stringify(p.metadata || {})).join("\n")
+    : "\n\nPRODUCT SEARCH RESULTS: none found.";
+  let raw;
+  try {
+    raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText }]);
+  } catch (e) {
+    return { error: e.message, items: [] };
+  }
+  return { items: parseReply(raw) };
+}

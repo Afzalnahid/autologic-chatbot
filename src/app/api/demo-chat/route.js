@@ -1,37 +1,28 @@
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
-
-const N8N_DEMO_URL = process.env.N8N_DEMO_WEBHOOK_URL || "https://stylish-lobster.pikapod.net/webhook/demo-chat";
+import { runDemo } from "@/lib/bot.js";
 
 export async function POST(request) {
   try {
     const { client } = await requireClient(request);
-    const { messages, sessionId } = await request.json();
-    const lastMsg = messages?.[messages.length - 1]?.content || "";
-    const r = await fetch(N8N_DEMO_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: lastMsg, sessionId: sessionId || client?.id || "dashboard", clientId: client?.id ? String(client.id) : "none" }),
-    });
-    const text = await r.text();
-    let reply = "";
-    try {
-      const d = JSON.parse(text);
-      reply = d.reply || "";
-    } catch {
-      reply = text;
-    }
-    let images = [];
-    try {
-      const parsed = JSON.parse(reply.replace(/```json|```/g, "").trim());
-      if (Array.isArray(parsed)) {
-        images = parsed.filter(p => p.type === "image_msg" && p.url).map(p => p.url);
-        reply = parsed.filter(p => p.type === "text_msg").map(p => p.text).join("\n");
-      }
-    } catch {}
-    return NextResponse.json({ reply: reply || "", images });
+    if (!client) return NextResponse.json({ reply: "Unauthorized" }, { status: 401 });
+    const { messages } = await request.json();
+    const history = (messages || []).slice(0, -1).map(m => ({
+      role: m.role === "bot" ? "assistant" : "user",
+      content: m.text || m.content || "",
+    })).filter(m => m.content);
+    const lastMsg = messages?.[messages.length - 1]?.content || messages?.[messages.length - 1]?.text || "";
+    if (!lastMsg) return NextResponse.json({ reply: "", images: [] });
+
+    const { items, error } = await runDemo(client.id, lastMsg, history);
+    if (error) return NextResponse.json({ reply: "Error: " + error, images: [] }, { status: 502 });
+
+    const images = items.filter(i => i.type === "image_msg" && i.url).map(i => i.url);
+    const reply = items.filter(i => i.type === "text_msg" && i.text).map(i => i.text).join("\n");
+    return NextResponse.json({ reply, images });
   } catch (e) {
-    return NextResponse.json({ reply: "Demo error: " + e.message }, { status: 500 });
+    return NextResponse.json({ reply: "Error: " + e.message, images: [] }, { status: 500 });
   }
 }
