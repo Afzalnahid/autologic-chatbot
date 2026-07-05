@@ -220,6 +220,17 @@ function Conversations({convos,refresh,onChatOpen}) {
 function Inventory({products,refresh}) {
   const [search,setSearch]=useState("");
   const [showAdd,setShowAdd]=useState(false);
+  const [urlInput,setUrlInput]=useState("");
+  const [urlBusy,setUrlBusy]=useState(false);
+  const [urlMsg,setUrlMsg]=useState("");
+  const scrapeUrl=async()=>{
+    if(!urlInput||urlBusy) return;
+    setUrlBusy(true); setUrlMsg("Scraping product, please wait...");
+    const r=await api("/api/import-url",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:urlInput})}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setUrlBusy(false);
+    if(r.error){setUrlMsg("Failed: "+r.error);return;}
+    setUrlMsg(`Added: ${r.name}`); setUrlInput(""); refresh();
+  };
   const [showImport,setShowImport]=useState(false);
   const [imp,setImp]=useState({siteUrl:"",ck:"",cs:""});
   const [importing,setImporting]=useState(false);
@@ -272,6 +283,13 @@ function Inventory({products,refresh}) {
       {impMsg&&<div style={{fontSize:12,color:T.textMuted,marginTop:10}}>{impMsg}</div>}
     </Card>}
     {showAdd&&<Card>
+      <div style={{display:"flex",gap:8,marginBottom:14,paddingBottom:14,borderBottom:`0.5px solid ${T.border}`}}>
+        <Inp label="Product URL (auto scrape)" value={urlInput} onChange={e=>setUrlInput(e.target.value)} placeholder="https://yourshop.com/product/..." style={{flex:1}}/>
+        <div style={{display:"flex",alignItems:"flex-end"}}>
+          <Btn gold onClick={scrapeUrl} disabled={urlBusy}>{urlBusy?"Scraping...":"Fetch"}</Btn>
+        </div>
+      </div>
+      {urlMsg&&<div style={{fontSize:12,color:T.textMuted,marginBottom:10}}>{urlMsg}</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
         <Inp label="Product code" value={np.product_id} onChange={e=>setNp({...np,product_id:e.target.value})}/>
         <Inp label="Name" value={np.product_name} onChange={e=>setNp({...np,product_name:e.target.value})}/>
