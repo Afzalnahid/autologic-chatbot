@@ -416,8 +416,19 @@ function Row({k,v}) {
 function Settings({settings,setSettings}) {
   const [s,setS]=useState(settings);
   const [saved,setSaved]=useState(false);
+  const [bizDesc,setBizDesc]=useState("");
+  const [gen,setGen]=useState(false);
+  const [genMsg,setGenMsg]=useState("");
   const save=async()=>{setSettings(s); await api("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(s)}); setSaved(true); setTimeout(()=>setSaved(false),2000);};
   useEffect(()=>{setS(settings);},[settings]);
+  const generate=async()=>{
+    if(!bizDesc.trim()||gen) return;
+    setGen(true); setGenMsg("Generating prompt...");
+    const r=await api("/api/generate-prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({description:bizDesc})}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setGen(false);
+    if(r.error){setGenMsg("Failed: "+r.error);return;}
+    setS(v=>({...v,systemPrompt:r.prompt})); setGenMsg("Prompt generated. Review below and Save.");
+  };
   return <div style={{maxWidth:700}}>
     <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>General</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
@@ -425,6 +436,13 @@ function Settings({settings,setSettings}) {
         <Inp label="Business name" value={s.businessName||""} onChange={e=>setS({...s,businessName:e.target.value})}/>
       </div>
       <Inp label="Greeting" value={s.greeting||""} onChange={e=>setS({...s,greeting:e.target.value})}/>
+    </Card>
+    <Card style={{marginBottom:16}}>
+      <div style={{fontSize:15,fontWeight:500,marginBottom:6}}>AI prompt generator</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>Describe your business, products, prices, delivery and policies. AI will write a complete system prompt for you.</div>
+      <Inp textarea value={bizDesc} onChange={e=>setBizDesc(e.target.value)} placeholder="e.g. We sell handmade leather bags for men and women. Prices 1500 to 5000 tk. Delivery 80 tk in Dhaka, 130 outside. Cash on delivery. 7 day return." style={{marginBottom:10}}/>
+      <Btn gold onClick={generate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?"Generating...":"Generate prompt"}</Btn>
+      {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
     </Card>
     <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>AI system prompt</div>
       <Inp textarea value={s.systemPrompt||""} onChange={e=>setS({...s,systemPrompt:e.target.value})} style={{marginBottom:0}}/>
