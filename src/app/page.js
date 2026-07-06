@@ -241,7 +241,7 @@ function Inventory({products,refresh}) {
     if(r.error){setUrlMsg("Failed: "+r.error);return;}
     setNp({product_id:"",product_name:"",category:"",regular_price:"",sale_price:"",image_url:"",description:""});
     setImgFile(null); if(addFileRef.current) addFileRef.current.value="";
-    setUrlMsg("Product added");
+    setUrlMsg(r.analyzed?"Product added and image analyzed":r.image_url?("Product added but image analysis failed"+(r.analyzeError?": "+r.analyzeError:"")):"Product added");
     refresh();
   };
   const [urlInput,setUrlInput]=useState("");

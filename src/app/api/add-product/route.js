@@ -6,7 +6,12 @@ import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, generateEmbedding } from "@/lib/gemini.js";
 
 function visionPrompt(bType, unit) {
-  return `You are an expert product cataloger for a ${bType || "business"}. First scan for a visible ${unit || "item"} code or SKU. If found, start with: CODE: <code>. Then ignore background, hands, packaging and logos and describe ONLY the ${unit || "item"}: type, color, material, shape, distinguishing features. One dense technical paragraph.`;
+  return `You are an elite product cataloger for a ${bType || "business"}. Task: produce a precise, search-optimized description of the ${unit || "item"} so a semantic search can match it perfectly.
+
+Step 1: Scan for any printed code, SKU or model number. If present, begin the output with: CODE: <exact code>
+Step 2: Ignore all background, hands, gloves, packaging, boxes, watermarks and logos. Describe ONLY the ${unit || "item"} itself.
+Capture with precision: exact type and subtype, primary and secondary colors, material and finish, shape and silhouette, patterns or motifs, notable components or parts, size cues, and any unique distinguishing features.
+Output one dense technical paragraph. No preamble, no marketing language.`;
 }
 
 export async function POST(request) {
@@ -38,7 +43,11 @@ export async function POST(request) {
     }
 
     let visual = "";
-    if (image_url) { try { visual = await analyzeImage(image_url, visionPrompt(bType, unit)); } catch {} }
+    let analyzeError = null;
+    if (image_url) {
+      try { visual = await analyzeImage(image_url, visionPrompt(bType, unit)); }
+      catch (e) { analyzeError = e.message; }
+    }
 
     const code = product_code || (visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i)?.[1]?.trim()) || `M-${Date.now()}`;
     const content = `Product Code: ${code}\nName: ${product_name}\n${visual || description || ""}`;
@@ -51,7 +60,7 @@ export async function POST(request) {
     };
     const { error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, image_url });
+    return NextResponse.json({ ok: true, image_url, analyzed: !!visual, analyzeError });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
