@@ -762,7 +762,7 @@ export default function Dashboard() {
           <i onClick={()=>setSidebarOpen(true)} className="ti ti-menu-2" style={{fontSize:22,color:T.text,cursor:"pointer",flexShrink:0}}/>
           <div style={{minWidth:0}}><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today`:`${products.length} products`}</div>}</div>
         </div>
-        <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:4}}/>Sync</Btn>
+        <Btn small onClick={()=>load(false)} disabled={loading}><i className="ti ti-refresh" style={{marginRight:4,display:"inline-block",animation:loading?"spin 0.8s linear infinite":"none"}}/>{loading?"Syncing":"Sync"}</Btn>
       </div>
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
