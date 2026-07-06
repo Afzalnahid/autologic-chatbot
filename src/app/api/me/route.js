@@ -13,7 +13,7 @@ export async function GET(request) {
   const used = (msgs || []).filter(m => m.client_id === client.id && (m.role || "customer") === "customer" && new Date(m.created_at) >= today).length;
 
   return NextResponse.json({
-    client: { id: client.id, business_name: client.business_name, plan: client.plan, trial_end: client.trial_end },
+    client: { id: client.id, business_name: client.business_name, plan: client.plan, trial_end: client.trial_end, business_type: client.business_type || "ecommerce", item_label: client.item_label || "" },
     email,
     active: trialActive(client),
     usage: { today: used, limit: client.plan === "trial" ? 30 : null },

@@ -11,6 +11,8 @@ const T = {
 const PAGES = ["analytics","conversations","inventory","orders","channels","settings","profile","demo"];
 const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-plug","ti-settings","ti-user","ti-robot"];
 const LABELS = ["Analytics","Conversations","Inventory","Orders","Channels","Settings","Profile","Demo"];
+const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, restaurant:{item:"Menu item",inv:"Menu",order:"Orders"}, education:{item:"Course",inv:"Courses",order:"Enrollments"}, realestate:{item:"Listing",inv:"Listings",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
+const words = (bt) => ITEM_WORDS[bt] || ITEM_WORDS.other;
 
 const useIsMobile = () => {
   const [m,setM]=useState(false);
@@ -689,6 +691,13 @@ export default function Dashboard() {
   const [orders,setOrders]=useState([]);
   const [settings,setSettings]=useState({botName:"Autologic Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
   const [sidebarOpen,setSidebarOpen]=useState(false);
+  const bt=me?.client?.business_type||"ecommerce";
+  const navLabel=(i)=>{
+    const p=PAGES[i];
+    if(p==="inventory") return words(bt).inv;
+    if(p==="orders") return words(bt).order;
+    return LABELS[i];
+  };
   const [loading,setLoading]=useState(true);
   const [authed,setAuthed]=useState(false);
   const [authChecked,setAuthChecked]=useState(false);
@@ -760,7 +769,7 @@ export default function Dashboard() {
       <nav style={{flex:1,padding:"12px 8px",overflowY:"auto"}}>
         {PAGES.map((p,i)=><div key={p} onClick={()=>{setPage(p);if(isMobile)setSidebarOpen(false);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:8,cursor:"pointer",marginBottom:2,background:page===p?T.goldBg:"transparent",borderLeft:page===p?`3px solid ${T.gold}`:"3px solid transparent",color:page===p?T.gold:T.textMuted}}>
           <i className={`ti ${ICONS[i]}`} style={{fontSize:18,flexShrink:0}}/>
-          <span style={{fontSize:13.5,fontWeight:page===p?500:400}}>{LABELS[i]}</span>
+          <span style={{fontSize:13.5,fontWeight:page===p?500:400}}>{navLabel(i)}</span>
           {p==="conversations"&&convos.some(c=>c.status==="active")&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.success,animation:"pulse 2s infinite"}}/>}
         </div>)}
       </nav>
@@ -770,7 +779,7 @@ export default function Dashboard() {
       {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"14px 24px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:14,minWidth:0}}>
           <i onClick={()=>setSidebarOpen(true)} className="ti ti-menu-2" style={{fontSize:22,color:T.text,cursor:"pointer",flexShrink:0}}/>
-          <div style={{minWidth:0}}><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today`:`${products.length} products`}</div>}</div>
+          <div style={{minWidth:0}}><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{navLabel(PAGES.indexOf(page))}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today`:`${products.length} ${words(bt).item.toLowerCase()}s`}</div>}</div>
         </div>
         <Btn small onClick={()=>load(false)} disabled={loading}><i className="ti ti-refresh" style={{marginRight:4,display:"inline-block",animation:loading?"spin 0.8s linear infinite":"none"}}/>{loading?"Syncing":"Sync"}</Btn>
       </div>
