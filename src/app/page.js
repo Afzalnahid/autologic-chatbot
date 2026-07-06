@@ -678,7 +678,7 @@ export default function Dashboard() {
   const [convos,setConvos]=useState([]);
   const [orders,setOrders]=useState([]);
   const [settings,setSettings]=useState({botName:"Autologic Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
-  const [collapsed,setCollapsed]=useState(false);
+  const [sidebarOpen,setSidebarOpen]=useState(false);
   const [loading,setLoading]=useState(true);
   const [authed,setAuthed]=useState(false);
   const [authChecked,setAuthChecked]=useState(false);
@@ -739,33 +739,30 @@ export default function Dashboard() {
   if(stage==="onboarding") return <Onboarding me={me} onDemo={()=>{setStage("app");setPage("demo");}} onTrial={async()=>{await loadMe();setStage("connect");}}/>;
   if(stage==="connect") return <ConnectChannel clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;
 
-  return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden",flexDirection:isMobile?"column":"row"}}>
-    {!isMobile&&<div style={{width:collapsed?64:220,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",transition:"width 0.2s",flexShrink:0,overflow:"hidden"}}>
-      <div style={{padding:collapsed?"20px 12px":"20px 20px",display:"flex",alignItems:"center",gap:12,borderBottom:`0.5px solid ${T.border}`}}>
+  return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden"}}>
+    {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:40}}/>}
+    <div style={{position:isMobile?"fixed":"relative",zIndex:50,height:"100%",width:240,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,transform:sidebarOpen?"translateX(0)":"translateX(-100%)",transition:"transform 0.25s ease",left:0,top:0}}>
+      <div style={{padding:"20px",display:"flex",alignItems:"center",gap:12,borderBottom:`0.5px solid ${T.border}`}}>
         <div style={{width:36,height:36,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${T.gold}30`}}><i className="ti ti-bolt" style={{fontSize:18,color:T.gold}}/></div>
-        {!collapsed&&<div><div style={{fontSize:15,fontWeight:600}}>Autologic</div><div style={{fontSize:10,color:T.textDim,textTransform:"uppercase",letterSpacing:1.5}}>chatbot</div></div>}
+        <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600}}>Autologic</div><div style={{fontSize:10,color:T.textDim,textTransform:"uppercase",letterSpacing:1.5}}>chatbot</div></div>
+        <i onClick={()=>setSidebarOpen(false)} className="ti ti-x" style={{fontSize:18,color:T.textDim,cursor:"pointer"}}/>
       </div>
-      <nav style={{flex:1,padding:"12px 8px"}}>
-        {PAGES.map((p,i)=><div key={p} onClick={()=>setPage(p)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:8,cursor:"pointer",marginBottom:2,background:page===p?T.goldBg:"transparent",borderLeft:page===p?`3px solid ${T.gold}`:"3px solid transparent",color:page===p?T.gold:T.textMuted}}>
+      <nav style={{flex:1,padding:"12px 8px",overflowY:"auto"}}>
+        {PAGES.map((p,i)=><div key={p} onClick={()=>{setPage(p);if(isMobile)setSidebarOpen(false);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:8,cursor:"pointer",marginBottom:2,background:page===p?T.goldBg:"transparent",borderLeft:page===p?`3px solid ${T.gold}`:"3px solid transparent",color:page===p?T.gold:T.textMuted}}>
           <i className={`ti ${ICONS[i]}`} style={{fontSize:18,flexShrink:0}}/>
-          {!collapsed&&<span style={{fontSize:13,fontWeight:page===p?500:400}}>{LABELS[i]}</span>}
-          {!collapsed&&p==="conversations"&&convos.some(c=>c.status==="active")&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.success,animation:"pulse 2s infinite"}}/>}
+          <span style={{fontSize:13.5,fontWeight:page===p?500:400}}>{LABELS[i]}</span>
+          {p==="conversations"&&convos.some(c=>c.status==="active")&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.success,animation:"pulse 2s infinite"}}/>}
         </div>)}
       </nav>
-      <div style={{padding:"12px 8px",borderTop:`0.5px solid ${T.border}`}}>
-        <div onClick={()=>setCollapsed(!collapsed)} style={{display:"flex",alignItems:"center",justifyContent:collapsed?"center":"flex-start",gap:12,padding:"10px 14px",borderRadius:8,cursor:"pointer",color:T.textDim}}>
-          <i className={`ti ${collapsed?"ti-chevron-right":"ti-chevron-left"}`} style={{fontSize:16}}/>
-          {!collapsed&&<span style={{fontSize:12}}>Collapse</span>}
-        </div>
-      </div>
-    </div>}
+    </div>
 
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
-      {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"16px 28px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today, ends ${me?.client?.trial_end?new Date(me.client.trial_end).toLocaleDateString():''}`:`${products.length} products synced`}</div>}</div>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:4}}/>Sync</Btn>
+      {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"14px 24px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:14,minWidth:0}}>
+          <i onClick={()=>setSidebarOpen(true)} className="ti ti-menu-2" style={{fontSize:22,color:T.text,cursor:"pointer",flexShrink:0}}/>
+          <div style={{minWidth:0}}><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{LABELS[PAGES.indexOf(page)]}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today`:`${products.length} products`}</div>}</div>
         </div>
+        <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:4}}/>Sync</Btn>
       </div>
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
@@ -781,12 +778,6 @@ export default function Dashboard() {
           </>
         )}
       </div>
-      {isMobile&&!chatOpen&&<div className="safe-bottom" style={{display:"flex",background:T.card,borderTop:`0.5px solid ${T.border}`,flexShrink:0}}>
-        {PAGES.map((p,i)=><div key={p} onClick={()=>setPage(p)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"10px 0 8px",cursor:"pointer",color:page===p?T.gold:T.textDim}}>
-          <i className={`ti ${ICONS[i]}`} style={{fontSize:20}}/>
-          <span style={{fontSize:9}}>{LABELS[i]}</span>
-        </div>)}
-      </div>}
     </div>
   </div>;
 }
