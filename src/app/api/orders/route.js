@@ -18,7 +18,9 @@ export async function GET(request) {
 export async function PUT(request) {
   try {
     const { id, status } = await request.json();
-    await supabase.from("orders").update({ status }).eq("id", id);
+    const { client: oc } = await requireClient(request);
+    if (!oc) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    await supabase.from("orders").update({ status }).eq("id", id).eq("client_id", oc.id);
     return NextResponse.json({ status: "updated" });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

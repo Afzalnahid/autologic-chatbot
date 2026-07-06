@@ -41,9 +41,9 @@ export async function PUT(request) {
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { sender_id, bot_enabled, global: isGlobal } = await request.json();
     if (isGlobal) {
-      await supabase.from("channels").update({ bot_enabled }).eq("status", "connected");
+      await supabase.from("channels").update({ bot_enabled }).eq("client_id", client.id);
     } else {
-      await supabase.from("contacts").upsert({ sender_id, bot_enabled }, { onConflict: "sender_id" });
+      await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "sender_id" });
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
