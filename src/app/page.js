@@ -373,11 +373,15 @@ function Profile() {
       setForm({business_name:d.business_name||"",phone:d.phone||"",address:d.address||"",website:d.website||"",business_type:d.business_type||"ecommerce",item_label:d.item_label||""});
     }).catch(()=>{});
   },[]);
+  const AUTO_ITEM={ecommerce:"product",agency:"service",restaurant:"menu item",education:"course",realestate:"listing",other:"item"};
   const save=async()=>{
     setSaving(true); setMsg("");
-    const r=await api("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const payload={...form,item_label:AUTO_ITEM[form.business_type]||"item"};
+    const r=await api("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json()).catch(()=>({error:"network"}));
     setSaving(false);
-    setMsg(r.error?"Failed: "+r.error:"Saved");
+    if(r.error){setMsg("Failed: "+r.error);return;}
+    setMsg("Saved");
+    setTimeout(()=>window.location.reload(),600);
   };
   if(!p) return <Card style={{color:T.textDim}}>Loading...</Card>;
   const planColor=p.plan==="pro"?T.success:p.plan==="trial"?T.gold:T.textDim;
@@ -397,7 +401,6 @@ function Profile() {
         <option value="realestate">Real estate</option>
         <option value="other">Other</option>
       </select>
-      <Inp label="Catalog word (product / service / menu)" value={form.item_label} onChange={e=>setForm({...form,item_label:e.target.value})}/>
       <Btn gold onClick={save} disabled={saving}>{saving?"Saving...":"Save changes"}</Btn>
       {msg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{msg}</span>}
     </Card>
