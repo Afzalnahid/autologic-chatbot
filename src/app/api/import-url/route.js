@@ -5,12 +5,16 @@ import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, generateEmbedding, extractProductsFromUrl } from "@/lib/gemini.js";
 
-const VISION_PROMPT = `You are a Master Jeweler cataloger. First scan for a visible product code (like EV 101). If found, start with: CODE: <code>. Then ignore background, hands, gloves, boxes, logos and describe ONLY the jewelry: category, metal color and finish, motif, gemstone cuts and setting, band details. One dense technical paragraph.`;
+function visionPrompt(bType, unit) {
+  return `You are an expert product cataloger for a ${bType || "business"}. First scan for a visible ${unit || "item"} code or SKU. If found, start with: CODE: <code>. Then ignore background, hands, packaging and logos and describe ONLY the ${unit || "item"}: type, color, material, shape, distinguishing features. One dense technical paragraph.`;
+}
 
 export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const bType = client.business_type || "ecommerce";
+    const unit = client.item_label || "product";
     const { url } = await request.json();
     if (!url) return NextResponse.json({ error: "missing url" }, { status: 400 });
 
@@ -25,7 +29,7 @@ export async function POST(request) {
 
     const image_url = p.images?.[0]?.src || "";
     let visual = "";
-    if (image_url) { try { visual = await analyzeImage(image_url, VISION_PROMPT); } catch {} }
+    if (image_url) { try { visual = await analyzeImage(image_url, visionPrompt(bType, unit)); } catch {} }
 
     const codeMatch = visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i);
     const product_code = (codeMatch ? codeMatch[1].trim() : "") || `URL-${Date.now()}`;

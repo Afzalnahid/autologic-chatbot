@@ -5,26 +5,16 @@ import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, generateEmbedding } from "@/lib/gemini.js";
 
-const VISION_PROMPT = `You are an elite Master Jeweler and a Senior Product Cataloger. Your ONLY objective is to extract the microscopic physical characteristics of the jewelry item in the image to ensure a 100% perfect database match.
-
-STRICT RULES:
-1. BLIND SPOT: COMPLETELY IGNORE the background, the hand, the glove, the ring box (any color), logos on the box, background plants, and any text or watermarks.
-2. SOLE FOCUS: Analyze ONLY the physical jewelry piece itself, as if under a jeweler's loupe.
-3. NO GUESSWORK: Do not guess price, inventory status, or target audience. Technical descriptions only.
-
-EXTRACT WITH 100% PRECISION:
-* Category: exact item type (e.g., Women's Single Ring, Couple Ring Set, Men's Band).
-* Metal Color & Finish.
-* Primary Motif/Architecture (e.g., Criss-cross bypass, Butterfly, Floral Cluster, Geometric, Minimalist Solitaire).
-* Gemstone Anatomy: exact cuts, arrangement and setting.
-* Band/Shank details: width, plain or stone-set, twists or splits.
-
-Output a single dense technical paragraph.`;
+function visionPrompt(bType, unit) {
+  return `You are an expert product cataloger for a ${bType || "business"}. First scan for a visible ${unit || "item"} code or SKU. If found, start with: CODE: <code>. Then ignore background, hands, packaging and logos and describe ONLY the ${unit || "item"}: type, color, material, shape, distinguishing features. One dense technical paragraph.`;
+}
 
 export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const bType = client.business_type || "ecommerce";
+    const unit = client.item_label || "product";
     const p = await request.json();
     if (!p?.product_name) return NextResponse.json({ error: "missing product" }, { status: 400 });
 

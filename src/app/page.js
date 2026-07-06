@@ -368,7 +368,7 @@ function Profile() {
     api("/api/profile").then(r=>r.json()).then(d=>{
       if(d.error) return;
       setP(d);
-      setForm({business_name:d.business_name||"",phone:d.phone||"",address:d.address||"",website:d.website||""});
+      setForm({business_name:d.business_name||"",phone:d.phone||"",address:d.address||"",website:d.website||"",business_type:d.business_type||"ecommerce",item_label:d.item_label||""});
     }).catch(()=>{});
   },[]);
   const save=async()=>{
@@ -386,6 +386,16 @@ function Profile() {
       <Inp label="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
       <Inp label="Address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/>
       <Inp label="Website" value={form.website} onChange={e=>setForm({...form,website:e.target.value})}/>
+      <label style={{display:"block",fontSize:12,color:T.textMuted,margin:"4px 0 6px",textTransform:"uppercase",letterSpacing:1}}>Business type</label>
+      <select value={form.business_type} onChange={e=>setForm({...form,business_type:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13,marginBottom:12}}>
+        <option value="ecommerce">E-commerce / Online shop</option>
+        <option value="agency">Agency / Service provider</option>
+        <option value="restaurant">Restaurant / Food</option>
+        <option value="education">Education / Coaching</option>
+        <option value="realestate">Real estate</option>
+        <option value="other">Other</option>
+      </select>
+      <Inp label="Catalog word (product / service / menu)" value={form.item_label} onChange={e=>setForm({...form,item_label:e.target.value})}/>
       <Btn gold onClick={save} disabled={saving}>{saving?"Saving...":"Save changes"}</Btn>
       {msg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{msg}</span>}
     </Card>

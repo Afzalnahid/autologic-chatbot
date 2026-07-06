@@ -13,6 +13,8 @@ export async function GET(request) {
     phone: client.phone || "",
     address: client.address || "",
     website: client.website || "",
+    business_type: client.business_type || "ecommerce",
+    item_label: client.item_label || "",
     plan: client.plan,
     trial_end: client.trial_end,
     created_at: client.created_at,
@@ -25,7 +27,7 @@ export async function PUT(request) {
   if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const b = await request.json();
   const patch = {};
-  for (const k of ["business_name", "phone", "address", "website"]) {
+  for (const k of ["business_name", "phone", "address", "website", "business_type", "item_label"]) {
     if (typeof b[k] === "string") patch[k] = b[k];
   }
   const { error } = await supabase.from("clients").update(patch).eq("id", client.id);

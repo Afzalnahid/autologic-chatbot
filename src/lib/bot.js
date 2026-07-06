@@ -2,7 +2,10 @@ import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
 import { sendTypingOn, sendResponses } from "@/lib/messenger.js";
 
-const VISION_PROMPT = `You are a Master Jeweler cataloger. First, scan the image for any visible product code (like EV 101). If found, output only: CODE: <code>. Otherwise ignore background, hands, gloves, boxes, logos and describe ONLY the jewelry piece: category, metal color and finish, motif, gemstone cuts and setting, band details. One dense technical paragraph.`;
+function visionPrompt(businessType, itemLabel) {
+  const unit = itemLabel || "item";
+  return `You are an expert product cataloger for a ${businessType || "business"}. First scan the image for any visible ${unit} code or SKU. If found, output only: CODE: <code>. Otherwise ignore background, hands, packaging and logos, and describe ONLY the ${unit} itself with precise physical and visual attributes: type, color, material, shape, distinguishing features. One dense technical paragraph.`;
+}
 
 const DEFAULT_PROMPT = "You are a helpful sales assistant. Reply ONLY with a JSON array of objects like {\"type\":\"text_msg\",\"text\":\"...\"}.";
 
@@ -13,7 +16,7 @@ export async function getChannelByPage(pageId) {
   return (data || []).find(c => c.page_id === pageId) || null;
 }
 
-async function getClient(clientId) {
+export async function getClient(clientId) {
   const { data } = await sb().from("clients").select("*").limit(200);
   return (data || []).find(c => c.id === clientId) || null;
 }
@@ -113,6 +116,8 @@ async function maybeSaveOrder(items, clientId) {
 
 export async function processConversation(channel, senderId, myRowId) {
   const clientId = channel.client_id;
+  const client = await getClient(clientId);
+  const bType = client?.business_type || "ecommerce";
   await new Promise(r => setTimeout(r, 3000));
 
   let rows = await pendingFor(senderId, clientId);
@@ -138,15 +143,16 @@ export async function processConversation(channel, senderId, myRowId) {
   ]);
 
   const context = products.length
-    ? "\n\nPRODUCT SEARCH RESULTS (source of truth, pick from these only):\n" +
+    ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
       products.map(p => JSON.stringify(p.metadata || {})).join("\n")
-    : "\n\nPRODUCT SEARCH RESULTS: none found.";
+    : "\n\nSEARCH RESULTS: none found.";
 
   const orderRule = "\n\nORDER SAVING: When the customer finally confirms an order with name, phone and address, ALSO append one object to the JSON array: {\"type\":\"order\",\"order_code\":\"<unique alphanumeric>\",\"customer_name\":\"..\",\"phone_number\":\"..\",\"address\":\"..\",\"product_ids\":\"codes comma separated\",\"product_names\":\"..\",\"quantity\":\"..\",\"total_price\":\"..\",\"image_urls\":\"..\"}. Never mention this object in text.";
 
   let raw;
   try {
-    raw = await chatWithGemini(systemPrompt + context + orderRule, [...history, { role: "user", content: combined }]);
+    const rules = bType === "ecommerce" ? orderRule : "";
+    raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
     raw = "";
@@ -179,6 +185,9 @@ export async function handleIncoming(event) {
   const channel = await getChannelByPage(event.pageId);
   if (!channel) return;
   const clientId = channel.client_id;
+  const client = await getClient(clientId);
+  const bType = client?.business_type || "ecommerce";
+  const iLabel = client?.item_label || "product";
 
   if (event.video) {
     const { sendTextMessage } = await import("@/lib/messenger.js");
@@ -204,11 +213,11 @@ export async function handleIncoming(event) {
     const parts = [];
     for (let i = 0; i < event.images.length; i++) {
       try {
-        const desc = await analyzeImage(event.images[i], VISION_PROMPT);
-        parts.push(`--- PRODUCT ${i + 1} ---\n${desc}`);
+        const desc = await analyzeImage(event.images[i], visionPrompt(bType, iLabel));
+        parts.push(`--- ITEM ${i + 1} ---\n${desc}`);
       } catch (e) { console.error("vision:", e.message); }
     }
-    const idBlock = parts.length ? `IDENTIFIED PRODUCTS:\n${parts.join("\n")}` : "📷 Photo";
+    const idBlock = parts.length ? `IDENTIFIED ITEMS:\n${parts.join("\n")}` : "📷 Photo";
     content = content ? `${content}\n${idBlock}` : idBlock;
   }
 
@@ -231,9 +240,9 @@ export async function runDemo(clientId, userText, history = []) {
     searchProducts(clientId, userText, 3),
   ]);
   const context = products.length
-    ? "\n\nPRODUCT SEARCH RESULTS (source of truth, pick from these only):\n" +
+    ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
       products.map(p => JSON.stringify(p.metadata || {})).join("\n")
-    : "\n\nPRODUCT SEARCH RESULTS: none found.";
+    : "\n\nSEARCH RESULTS: none found.";
   let raw;
   try {
     raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText }]);
