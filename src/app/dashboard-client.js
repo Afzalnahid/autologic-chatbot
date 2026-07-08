@@ -3,15 +3,15 @@ import { createClient as createSb } from "@/utils/supabase/client";
 import { useState, useEffect, useRef } from "react";
 
 let _sbi=null;
-const getSb=()=>{ if(!_sbi) _sbi=createSb(); return _sbi; };
 let AUTH_TOKEN="";
-const api=async(url,opts={})=>{
+function getSb(){ if(!_sbi) _sbi=createSb(); return _sbi; }
+async function api(url,opts={}){
   try{
     const {data:{session}}=await getSb().auth.getSession();
     if(session) AUTH_TOKEN=session.access_token;
   }catch{}
   return fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
-};
+}
 
 const T = {
   bg: "#05080f", bgAlt: "#080e1a", card: "#0d1529",
@@ -23,9 +23,9 @@ const PAGES = ["analytics","conversations","inventory","orders","channels","sett
 const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-plug","ti-settings","ti-user","ti-robot"];
 const LABELS = ["Analytics","Conversations","Inventory","Orders","Channels","Settings","Profile","Demo"];
 const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, restaurant:{item:"Menu item",inv:"Menu",order:"Orders"}, education:{item:"Course",inv:"Courses",order:"Enrollments"}, realestate:{item:"Listing",inv:"Listings",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
-const words = (bt) => ITEM_WORDS[bt] || ITEM_WORDS.other;
+function words(bt){ return ITEM_WORDS[bt] || ITEM_WORDS.other; }
 
-const useIsMobile = () => {
+function useIsMobile(){
   const [m,setM]=useState(false);
   useEffect(()=>{
     const check=()=>setM(window.innerWidth<768);
@@ -34,13 +34,13 @@ const useIsMobile = () => {
     return ()=>window.removeEventListener("resize",check);
   },[]);
   return m;
-};
+}
 
-const Btn = ({children,gold,danger,small,style,...p}) => <button {...p} style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:"rgba(240,192,64,0.12)",color:danger?"#fff":gold?"#0a0a0a":T.gold,...style}}>{children}</button>;
-const Badge = ({children,color=T.gold}) => <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>;
-const Card = ({children,style,...p}) => <div {...p} style={{background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`,padding:"1.25rem",...style}}>{children}</div>;
-const Inp = ({label,textarea,style,...p}) => <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>}</div>;
-const StatCard = ({icon,label,value,sub,color=T.gold}) => <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>;
+function Btn({children,gold,danger,small,style,...p}){ return <button {...p} style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:"rgba(240,192,64,0.12)",color:danger?"#fff":gold?"#0a0a0a":T.gold,...style}}>{children}</button>; }
+function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>; }
+function Card({children,style,...p}){ return <div {...p} style={{background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`,padding:"1.25rem",...style}}>{children}</div>; }
+function Inp({label,textarea,style,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>}</div>; }
+function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
 
 function Analytics({products,convos,orders,msgCount}) {
   const active = convos.filter(c=>c.status==="active").length;
