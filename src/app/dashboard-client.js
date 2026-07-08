@@ -695,6 +695,11 @@ export default function Dashboard() {
   const [orders,setOrders]=useState([]);
   const [settings,setSettings]=useState({botName:"Autologic Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
   const [sidebarOpen,setSidebarOpen]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [authed,setAuthed]=useState(false);
+  const [authChecked,setAuthChecked]=useState(false);
+  const [me,setMe]=useState(null);
+  const [stage,setStage]=useState("loading");
   const bt=me?.client?.business_type||"ecommerce";
   const navLabel=(i)=>{
     const p=PAGES[i];
@@ -702,11 +707,6 @@ export default function Dashboard() {
     if(p==="orders") return words(bt).order;
     return LABELS[i];
   };
-  const [loading,setLoading]=useState(true);
-  const [authed,setAuthed]=useState(false);
-  const [authChecked,setAuthChecked]=useState(false);
-  const [me,setMe]=useState(null);
-  const [stage,setStage]=useState("loading");
 
   const loadMe=async()=>{
     const d=await api("/api/me").then(r=>r.json()).catch(()=>null);
