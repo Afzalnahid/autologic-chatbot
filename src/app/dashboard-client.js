@@ -2,6 +2,17 @@
 import { createClient as createSb } from "@/utils/supabase/client";
 import { useState, useEffect, useRef } from "react";
 
+let _sbi=null;
+const getSb=()=>{ if(!_sbi) _sbi=createSb(); return _sbi; };
+let AUTH_TOKEN="";
+const api=async(url,opts={})=>{
+  try{
+    const {data:{session}}=await getSb().auth.getSession();
+    if(session) AUTH_TOKEN=session.access_token;
+  }catch{}
+  return fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+};
+
 const T = {
   bg: "#05080f", bgAlt: "#080e1a", card: "#0d1529",
   gold: "#f0c040", goldDim: "#c4982e", goldBg: "rgba(240,192,64,0.08)",
@@ -537,16 +548,6 @@ function Channels({onConnect}) {
   </div>;
 }
 
-let _sbi=null;
-const getSb=()=>{ if(!_sbi) _sbi=createSb(); return _sbi; };
-let AUTH_TOKEN="";
-const api=async(url,opts={})=>{
-  try{
-    const {data:{session}}=await getSb().auth.getSession();
-    if(session) AUTH_TOKEN=session.access_token;
-  }catch{}
-  return fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
-};
 
 function AuthGate({onReady}) {
   const [mode,setMode]=useState("signin");
