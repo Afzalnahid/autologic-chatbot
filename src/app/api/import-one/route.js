@@ -20,7 +20,7 @@ export async function POST(request) {
 
     let visual = "";
     if (p.image_url) {
-      try { visual = await analyzeImage(p.image_url, VISION_PROMPT); } catch {}
+      try { visual = await analyzeImage(p.image_url, visionPrompt(bType, unit)); } catch {}
     }
     const content = `Product Code: ${p.product_code}\nName: ${p.product_name}\n${visual || p.description || ""}`;
     const embedding = await generateEmbedding(content);

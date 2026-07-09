@@ -16,8 +16,10 @@ export async function GET(request) {
 
 export async function PUT(request) {
   try {
+    const { client } = await requireClient(request);
+    if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { id, status } = await request.json();
-    await supabase.from("channels").update({ status }).eq("id", id);
+    await supabase.from("channels").update({ status }).eq("id", id).eq("client_id", client.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

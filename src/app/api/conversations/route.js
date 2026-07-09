@@ -34,7 +34,7 @@ export async function GET(request) {
         };
       }
       const raw = m.message_content || "";
-      const text = m.role !== "bot" && raw.startsWith("IDENTIFIED PRODUCTS") ? "📷 Photo" : raw;
+      const text = m.role !== "bot" && raw.startsWith("IDENTIFIED ITEMS") ? "📷 Photo" : raw;
       const attachments = (m.attachments || "").split(",").map(s => s.trim()).filter(Boolean);
       grouped[sid].messages.push({ role: m.role || "customer", text, attachments, time: m.created_at, status: m.status });
     });
