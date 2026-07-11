@@ -28,7 +28,7 @@ export async function GET(request) {
       const sid = m.sender_id;
       if (!grouped[sid]) {
         grouped[sid] = {
-          id: sid, sender: "User " + (sid || "").slice(-4), platform: "messenger",
+          id: sid, sender: "User " + (sid || "").slice(-4), platform: m.platform || "facebook",
           status: m.status === "Pending" ? "active" : "resolved",
           lastMsg: (m.message_content || "").slice(0, 60), time: m.created_at, messages: [],
         };

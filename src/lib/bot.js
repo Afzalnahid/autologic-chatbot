@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
-import { sendTypingOn, sendResponses } from "@/lib/messenger.js";
+import { sendTypingOn, sendResponses, waSendResponses, waSendText } from "@/lib/messenger.js";
+import { analyzeImageBase64 } from "@/lib/gemini.js";
 
 function visionPrompt(businessType, itemLabel) {
   const unit = itemLabel || "item";
@@ -133,7 +134,7 @@ export async function processConversation(channel, senderId, myRowId) {
   rows = rows.filter(r => r.message_content);
   if (!rows.length) return;
 
-  await sendTypingOn(channel.access_token, senderId);
+  if (channel.platform !== "whatsapp") await sendTypingOn(channel.access_token, senderId);
 
   const combined = rows.map(r => r.message_content).join("\n");
   const [systemPrompt, history, products] = await Promise.all([
@@ -162,7 +163,8 @@ export async function processConversation(channel, senderId, myRowId) {
   items = await maybeSaveOrder(items, clientId);
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
 
-  await sendResponses(channel.access_token, senderId, items);
+  if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
+  else await sendResponses(channel.access_token, senderId, items);
 
   const ids = rows.map(r => r.id);
   for (const id of ids) await sb().from("message_buffer").update({ status: "Replied" }).eq("id", id);
@@ -172,6 +174,7 @@ export async function processConversation(channel, senderId, myRowId) {
       sender_id: senderId, client_id: clientId, role: "bot", status: "Replied",
       message_content: it.type === "image_msg" ? "📷 Photo" : it.text,
       attachments: it.type === "image_msg" ? it.url : null,
+      platform: channel.platform || "facebook",
     });
   }
 
@@ -192,9 +195,11 @@ export async function handleIncoming(event) {
   if (event.video) {
     const { sendTextMessage } = await import("@/lib/messenger.js");
     const msg = "দুঃখিত, আমরা ভিডিও মেসেজ প্রসেস করতে পারি না। পণ্যের ছবি বা কোড পাঠান।";
-    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎥 Video" });
-    await sendTextMessage(channel.access_token, event.senderId, msg);
-    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg });
+    const isWa = (event.platform || channel.platform) === "whatsapp";
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎥 Video", platform: event.platform || channel.platform || "facebook" });
+    if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
+    else await sendTextMessage(channel.access_token, event.senderId, msg);
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook" });
     return;
   }
 
@@ -206,6 +211,21 @@ export async function handleIncoming(event) {
       console.error("transcribe:", e.message);
       content = event.text || "(voice message)";
     }
+  }
+
+  if (event.mediaId && channel.platform === "whatsapp") {
+    try {
+      const meta = await fetch(`https://graph.facebook.com/v24.0/${event.mediaId}`, { headers: { Authorization: `Bearer ${channel.access_token}` } }).then(r => r.json());
+      if (meta.url) {
+        const bin = await fetch(meta.url, { headers: { Authorization: `Bearer ${channel.access_token}` } });
+        const b64 = Buffer.from(await bin.arrayBuffer()).toString("base64");
+        const mime = bin.headers.get("content-type") || "image/jpeg";
+        const desc = await analyzeImageBase64(b64, mime, visionPrompt(bType, iLabel));
+        const idBlock = `IDENTIFIED ITEMS:\n--- ITEM 1 ---\n${desc}`;
+        content = content ? `${content}\n${idBlock}` : idBlock;
+        attachments = "whatsapp-media";
+      }
+    } catch (e) { console.error("wa media:", e.message); }
   }
 
   if (event.images.length) {
@@ -225,7 +245,7 @@ export async function handleIncoming(event) {
 
   const row = await bufferInsert({
     sender_id: event.senderId, client_id: clientId, role: "customer", status: "Pending",
-    message_content: content, attachments,
+    message_content: content, attachments, platform: event.platform || channel.platform || "facebook",
   });
 
   const allowed = await botAllowed(channel, event.senderId);

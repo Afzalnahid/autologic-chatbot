@@ -66,7 +66,11 @@ function Analytics({products,convos,orders,msgCount}) {
   </div>;
 }
 
-function Conversations({convos,refresh,onChatOpen}) {
+function Conversations({convos:allConvos,refresh,onChatOpen}) {
+  const [chFilter,setChFilter]=useState("all");
+  const convos=chFilter==="all"?allConvos:allConvos.filter(c=>(c.platform||"facebook")===chFilter);
+  const PICON={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp"};
+  const avail=[...new Set(allConvos.map(c=>c.platform||"facebook"))];
   const isMobile=useIsMobile();
   const [sel,setSel]=useState(-1);
   useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&sel>=0);},[sel,isMobile]);
@@ -174,6 +178,9 @@ function Conversations({convos,refresh,onChatOpen}) {
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
         <Toggle on={globalBot} onClick={()=>toggle(null,!globalBot,true)} label={globalBot?"Bot ON":"Bot OFF"}/>
       </div>
+      {avail.length>1&&<div style={{display:"flex",gap:6,padding:"0 4px 10px"}}>
+        {["all",...avail].map(f=><div key={f} onClick={()=>{setChFilter(f);}} style={{padding:"5px 12px",borderRadius:14,fontSize:11.5,cursor:"pointer",textTransform:"capitalize",background:chFilter===f?T.goldBg:T.bgAlt,color:chFilter===f?T.gold:T.textMuted,border:`0.5px solid ${chFilter===f?T.gold+"50":T.border}`}}>{f}</div>)}
+      </div>}
       {convos.map((cv,i)=>{
         const cvt=contacts[cv.id]||{};
         return <div key={cv.id} onClick={()=>setSel(i)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:sel===i?T.goldBg:"transparent",borderLeft:sel===i?`3px solid ${T.gold}`:"3px solid transparent"}}>
@@ -189,7 +196,7 @@ function Conversations({convos,refresh,onChatOpen}) {
       <div style={{padding:"14px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
           {isMobile&&<button onClick={()=>setSel(-1)} style={{background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:20,padding:0,flexShrink:0}}><i className="ti ti-chevron-left"/></button>}
-          <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted}}>{c.platform}</div></div>
+          <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}><i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:13}}/>{c.platform}</div></div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>

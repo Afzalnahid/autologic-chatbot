@@ -31,6 +31,15 @@ export async function chatWithGemini(systemPrompt, messages, model = PRIMARY_MOD
 
 
 
+export async function analyzeImageBase64(base64, mimeType, prompt) {
+  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL });
+  const result = await withRetry(() => model.generateContent([
+    prompt,
+    { inlineData: { data: base64, mimeType } },
+  ]));
+  return result.response.text();
+}
+
 export async function analyzeImage(imageUrl, prompt = "Describe this jewelry product in detail for product matching.") {
   const model = getGenAI().getGenerativeModel({ model: LITE_MODEL });
   const response = await fetch(imageUrl);
