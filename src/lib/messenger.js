@@ -86,6 +86,7 @@ export function parseWhatsAppEvent(body) {
   if (!m?.from) return null;
   return {
     platform: "whatsapp",
+    msgId: m.id,
     senderId: m.from,
     pageId: value?.metadata?.phone_number_id,
     text: m.text?.body || m.button?.text || "",

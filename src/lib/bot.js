@@ -119,7 +119,7 @@ export async function processConversation(channel, senderId, myRowId) {
   const clientId = channel.client_id;
   const client = await getClient(clientId);
   const bType = client?.business_type || "ecommerce";
-  await new Promise(r => setTimeout(r, 3000));
+  if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
 
   let rows = await pendingFor(senderId, clientId);
   if (!rows.length) return;
@@ -187,6 +187,10 @@ export async function processConversation(channel, senderId, myRowId) {
 export async function handleIncoming(event) {
   const channel = await getChannelByPage(event.pageId);
   if (!channel) return;
+  if (event.platform === "whatsapp" && event.msgId) {
+    const { data: dup } = await sb().from("message_buffer").select("id").eq("wa_msg_id", event.msgId).limit(1);
+    if (dup && dup.length) return;
+  }
   const clientId = channel.client_id;
   const client = await getClient(clientId);
   const bType = client?.business_type || "ecommerce";
@@ -246,6 +250,7 @@ export async function handleIncoming(event) {
   const row = await bufferInsert({
     sender_id: event.senderId, client_id: clientId, role: "customer", status: "Pending",
     message_content: content, attachments, platform: event.platform || channel.platform || "facebook",
+    wa_msg_id: event.msgId || null,
   });
 
   const allowed = await botAllowed(channel, event.senderId);
