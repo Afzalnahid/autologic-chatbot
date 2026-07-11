@@ -126,10 +126,12 @@ export async function processConversation(channel, senderId, myRowId) {
   const newest = rows[rows.length - 1];
   if (myRowId && newest.id !== myRowId) return;
 
-  for (let i = 0; i < 5; i++) {
-    if (rows.every(r => r.message_content)) break;
-    await new Promise(r => setTimeout(r, 2000));
-    rows = await pendingFor(senderId, clientId);
+  if (channel.platform !== "whatsapp") {
+    for (let i = 0; i < 5; i++) {
+      if (rows.every(r => r.message_content)) break;
+      await new Promise(r => setTimeout(r, 2000));
+      rows = await pendingFor(senderId, clientId);
+    }
   }
   rows = rows.filter(r => r.message_content);
   if (!rows.length) return;
