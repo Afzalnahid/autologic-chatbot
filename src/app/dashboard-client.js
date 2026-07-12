@@ -4,13 +4,32 @@ import { useState, useEffect, useRef } from "react";
 
 let _sbi=null;
 let AUTH_TOKEN="";
+let _sessionPromise=null;
 function getSb(){ if(!_sbi) _sbi=createSb(); return _sbi; }
+
+function getSessionOnce(){
+  if(!_sessionPromise){
+    _sessionPromise=getSb().auth.getSession().finally(()=>{ _sessionPromise=null; });
+  }
+  return _sessionPromise;
+}
+
 async function api(url,opts={}){
   try{
-    const {data:{session}}=await getSb().auth.getSession();
+    const {data:{session}}=await getSessionOnce();
     if(session) AUTH_TOKEN=session.access_token;
   }catch{}
-  return fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+  let res=await fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+  if(res.status===401){
+    try{
+      const {data:{session}}=await getSb().auth.refreshSession();
+      if(session){
+        AUTH_TOKEN=session.access_token;
+        res=await fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+      }
+    }catch{}
+  }
+  return res;
 }
 
 const T = {

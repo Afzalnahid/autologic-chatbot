@@ -4,8 +4,9 @@ import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
 
 export async function GET(request) {
-  const { client, email } = await requireClient(request);
-  if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const { client, email, error: authErr } = await requireClient(request);
+  if (authErr) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!client) return NextResponse.json({ error: "client_not_found" }, { status: 404 });
   const usage = await getUsage(client);
   return NextResponse.json({
     email,
@@ -23,8 +24,9 @@ export async function GET(request) {
 }
 
 export async function PUT(request) {
-  const { client } = await requireClient(request);
-  if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const { client, error: authErr } = await requireClient(request);
+  if (authErr) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!client) return NextResponse.json({ error: "client_not_found" }, { status: 404 });
   const b = await request.json();
   const patch = {};
   for (const k of ["business_name", "phone", "address", "website", "business_type", "item_label"]) {
