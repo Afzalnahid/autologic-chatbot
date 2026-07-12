@@ -19,7 +19,7 @@ export async function GET(request) {
     trial_end: client.trial_end,
     created_at: client.created_at,
     usage,
-  });
+  }, { headers: { "Cache-Control": "no-store, max-age=0" } });
 }
 
 export async function PUT(request) {

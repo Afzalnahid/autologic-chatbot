@@ -10,7 +10,7 @@ async function api(url,opts={}){
     const {data:{session}}=await getSb().auth.getSession();
     if(session) AUTH_TOKEN=session.access_token;
   }catch{}
-  return fetch(url,{...opts,headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+  return fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
 }
 
 const T = {
