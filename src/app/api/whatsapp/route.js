@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-import { after } from "next/server";
 import { NextResponse } from "next/server";
 import { parseWhatsAppEvent } from "@/lib/messenger.js";
 import { handleIncoming } from "@/lib/bot.js";
@@ -20,10 +19,7 @@ export async function POST(request) {
     const body = await request.json();
     const event = parseWhatsAppEvent(body);
     if (!event) return NextResponse.json({ status: "ignored" });
-    after(async () => {
-      try { await handleIncoming(event); }
-      catch (e) { console.error("wa handleIncoming bg:", e.message); }
-    });
+    await handleIncoming(event);
     return NextResponse.json({ status: "ok" });
   } catch (e) {
     console.error("whatsapp route:", e.message);
