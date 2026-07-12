@@ -388,9 +388,16 @@ function Profile() {
   const BIZ_LABEL={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider",restaurant:"Restaurant / Food",education:"Education / Coaching",realestate:"Real estate",other:"Other"};
   const AUTO_ITEM={ecommerce:"product",agency:"service",restaurant:"menu item",education:"course",realestate:"listing",other:"item"};
 
-  const load=async()=>{
+  const [loadErr,setLoadErr]=useState(false);
+
+  const load=async(attempt=0)=>{
+    setLoadErr(false);
     const d=await api("/api/profile?t="+Date.now()).then(r=>r.json()).catch(()=>null);
-    if(!d||d.error) return;
+    if(!d||d.error){
+      if(attempt<3){ setTimeout(()=>load(attempt+1),1000*(attempt+1)); return; }
+      setLoadErr(true);
+      return;
+    }
     setP(d);
     setForm({business_name:d.business_name||"",phone:d.phone||"",address:d.address||"",website:d.website||"",business_type:d.business_type||"ecommerce",item_label:d.item_label||""});
   };
@@ -407,6 +414,7 @@ function Profile() {
     setMsg("");
   };
 
+  if(loadErr) return <Card style={{color:T.textDim}}>Could not load profile.<Btn gold onClick={()=>load(0)} style={{marginLeft:10}}>Retry</Btn></Card>;
   if(!p) return <Card style={{color:T.textDim}}>Loading...</Card>;
   const planColor=p.plan==="pro"?T.success:p.plan==="trial"?T.gold:T.textDim;
 
