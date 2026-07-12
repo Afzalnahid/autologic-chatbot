@@ -139,11 +139,17 @@ export async function processConversation(channel, senderId, myRowId) {
   if (channel.platform !== "whatsapp") await sendTypingOn(channel.access_token, senderId);
 
   const combined = rows.map(r => r.message_content).join("\n");
-  const [systemPrompt, history, products] = await Promise.all([
-    getSystemPrompt(clientId),
-    getMemory(senderId, clientId),
-    searchProducts(clientId, combined, combined.includes("--- PRODUCT") ? 4 : 3),
-  ]);
+  let systemPrompt, history, products;
+  try {
+    [systemPrompt, history, products] = await Promise.all([
+      getSystemPrompt(clientId),
+      getMemory(senderId, clientId),
+      searchProducts(clientId, combined, combined.includes("--- PRODUCT") ? 4 : 3),
+    ]);
+  } catch (e) {
+    console.error("PROC context error:", e.message);
+    systemPrompt = DEFAULT_PROMPT; history = []; products = [];
+  }
 
   const context = products.length
     ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
