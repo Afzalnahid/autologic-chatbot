@@ -381,46 +381,63 @@ function Orders({orders,refresh}) {
 
 function Profile() {
   const [p,setP]=useState(null);
-  const [form,setForm]=useState({business_name:"",phone:"",address:"",website:""});
+  const [editing,setEditing]=useState(false);
+  const [form,setForm]=useState({business_name:"",phone:"",address:"",website:"",business_type:"ecommerce",item_label:""});
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState("");
-  useEffect(()=>{
-    api("/api/profile").then(r=>r.json()).then(d=>{
-      if(d.error) return;
-      setP(d);
-      setForm({business_name:d.business_name||"",phone:d.phone||"",address:d.address||"",website:d.website||"",business_type:d.business_type||"ecommerce",item_label:d.item_label||""});
-    }).catch(()=>{});
-  },[]);
+  const BIZ_LABEL={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider",restaurant:"Restaurant / Food",education:"Education / Coaching",realestate:"Real estate",other:"Other"};
   const AUTO_ITEM={ecommerce:"product",agency:"service",restaurant:"menu item",education:"course",realestate:"listing",other:"item"};
+
+  const load=async()=>{
+    const d=await api("/api/profile?t="+Date.now()).then(r=>r.json()).catch(()=>null);
+    if(!d||d.error) return;
+    setP(d);
+    setForm({business_name:d.business_name||"",phone:d.phone||"",address:d.address||"",website:d.website||"",business_type:d.business_type||"ecommerce",item_label:d.item_label||""});
+  };
+  useEffect(()=>{load();},[]);
+
   const save=async()=>{
     setSaving(true); setMsg("");
     const payload={...form,item_label:AUTO_ITEM[form.business_type]||"item"};
     const r=await api("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json()).catch(()=>({error:"network"}));
     setSaving(false);
     if(r.error){setMsg("Failed: "+r.error);return;}
-    setMsg("Saved");
-    setTimeout(()=>window.location.reload(),600);
+    await load();
+    setEditing(false);
+    setMsg("");
   };
+
   if(!p) return <Card style={{color:T.textDim}}>Loading...</Card>;
   const planColor=p.plan==="pro"?T.success:p.plan==="trial"?T.gold:T.textDim;
+
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,alignItems:"start"}}>
     <Card>
-      <div style={{fontSize:14,fontWeight:600,marginBottom:16}}>Business information</div>
-      <Inp label="Business name" value={form.business_name} onChange={e=>setForm({...form,business_name:e.target.value})}/>
-      <Inp label="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
-      <Inp label="Address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/>
-      <Inp label="Website" value={form.website} onChange={e=>setForm({...form,website:e.target.value})}/>
-      <label style={{display:"block",fontSize:12,color:T.textMuted,margin:"4px 0 6px",textTransform:"uppercase",letterSpacing:1}}>Business type</label>
-      <select value={form.business_type} onChange={e=>setForm({...form,business_type:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13,marginBottom:12}}>
-        <option value="ecommerce">E-commerce / Online shop</option>
-        <option value="agency">Agency / Service provider</option>
-        <option value="restaurant">Restaurant / Food</option>
-        <option value="education">Education / Coaching</option>
-        <option value="realestate">Real estate</option>
-        <option value="other">Other</option>
-      </select>
-      <Btn gold onClick={save} disabled={saving}>{saving?"Saving...":"Save changes"}</Btn>
-      {msg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{msg}</span>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div style={{fontSize:14,fontWeight:600}}>Business information</div>
+        {!editing&&<i onClick={()=>setEditing(true)} className="ti ti-pencil" title="Edit" style={{fontSize:17,color:T.gold,cursor:"pointer"}}/>}
+      </div>
+
+      {!editing?<>
+        <Row k="Business name" v={p.business_name||"-"}/>
+        <Row k="Phone" v={p.phone||"-"}/>
+        <Row k="Address" v={p.address||"-"}/>
+        <Row k="Website" v={p.website||"-"}/>
+        <Row k="Business type" v={BIZ_LABEL[p.business_type]||p.business_type||"-"}/>
+      </>:<>
+        <Inp label="Business name" value={form.business_name} onChange={e=>setForm({...form,business_name:e.target.value})}/>
+        <Inp label="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
+        <Inp label="Address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/>
+        <Inp label="Website" value={form.website} onChange={e=>setForm({...form,website:e.target.value})}/>
+        <label style={{display:"block",fontSize:12,color:T.textMuted,margin:"4px 0 6px",textTransform:"uppercase",letterSpacing:1}}>Business type</label>
+        <select value={form.business_type} onChange={e=>setForm({...form,business_type:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13,marginBottom:12}}>
+          {Object.entries(BIZ_LABEL).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+        </select>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <Btn gold onClick={save} disabled={saving}>{saving?"Saving...":"Save changes"}</Btn>
+          <Btn onClick={()=>{setEditing(false);load();}}>Cancel</Btn>
+          {msg&&<span style={{fontSize:12,color:T.textMuted}}>{msg}</span>}
+        </div>
+      </>}
     </Card>
     <Card>
       <div style={{fontSize:14,fontWeight:600,marginBottom:16}}>Account</div>
