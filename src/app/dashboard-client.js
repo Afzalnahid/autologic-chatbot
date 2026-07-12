@@ -19,13 +19,13 @@ async function api(url,opts={}){
     const {data:{session}}=await getSessionOnce();
     if(session) AUTH_TOKEN=session.access_token;
   }catch{}
-  let res=await fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+  let res=await fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),"Cache-Control":"no-cache","Authorization":"Bearer "+AUTH_TOKEN}});
   if(res.status===401){
     try{
       const {data:{session}}=await getSb().auth.refreshSession();
       if(session){
         AUTH_TOKEN=session.access_token;
-        res=await fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),Authorization:"Bearer "+AUTH_TOKEN}});
+        res=await fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),"Cache-Control":"no-cache","Authorization":"Bearer "+AUTH_TOKEN}});
       }
     }catch{}
   }

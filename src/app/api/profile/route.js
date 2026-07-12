@@ -1,4 +1,6 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
@@ -20,7 +22,7 @@ export async function GET(request) {
     trial_end: client.trial_end,
     created_at: client.created_at,
     usage,
-  }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+  }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache", "Expires": "0" } });
 }
 
 export async function PUT(request) {
