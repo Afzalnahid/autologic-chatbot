@@ -116,15 +116,17 @@ async function maybeSaveOrder(items, clientId) {
 }
 
 export async function processConversation(channel, senderId, myRowId) {
+  console.log("PROC start", senderId, myRowId);
   const clientId = channel.client_id;
   const client = await getClient(clientId);
   const bType = client?.business_type || "ecommerce";
   if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
 
   let rows = await pendingFor(senderId, clientId);
+  console.log("PROC pending", rows.length);
   if (!rows.length) return;
   const newest = rows[rows.length - 1];
-  if (myRowId && newest.id !== myRowId) return;
+  if (myRowId && newest.id !== myRowId) { console.log("PROC not newest, skip"); return; }
 
   if (channel.platform !== "whatsapp") {
     for (let i = 0; i < 5; i++) {
@@ -165,6 +167,7 @@ export async function processConversation(channel, senderId, myRowId) {
   items = await maybeSaveOrder(items, clientId);
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
 
+  console.log("PROC sending", items.length, "items");
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
   else await sendResponses(channel.access_token, senderId, items);
 
@@ -256,6 +259,7 @@ export async function handleIncoming(event) {
   });
 
   const allowed = await botAllowed(channel, event.senderId);
+  console.log("BOT allowed", allowed, "client", clientId);
   if (!allowed) return;
 
   await processConversation(channel, event.senderId, row?.id || null);
