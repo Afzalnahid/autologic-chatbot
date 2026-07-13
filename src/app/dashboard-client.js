@@ -408,6 +408,26 @@ function Profile() {
   const AUTO_ITEM={ecommerce:"product",agency:"service",restaurant:"menu item",education:"course",realestate:"listing",other:"item"};
 
   const [loadErr,setLoadErr]=useState(false);
+  const [logoBusy,setLogoBusy]=useState(false);
+  const logoRef=useRef(null);
+
+  const uploadLogo=async(file)=>{
+    if(!file) return;
+    setLogoBusy(true);
+    const fd=new FormData(); fd.append("logo",file);
+    const r=await api("/api/profile-logo",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setLogoBusy(false);
+    if(r.error){setMsg("Logo failed: "+r.error);return;}
+    await load();
+    if(typeof window!=="undefined") window.dispatchEvent(new Event("logo-updated"));
+  };
+  const removeLogo=async()=>{
+    setLogoBusy(true);
+    await api("/api/profile-logo",{method:"DELETE"}).catch(()=>{});
+    setLogoBusy(false);
+    await load();
+    if(typeof window!=="undefined") window.dispatchEvent(new Event("logo-updated"));
+  };
 
   const load=async(attempt=0)=>{
     setLoadErr(false);
@@ -439,6 +459,19 @@ function Profile() {
 
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,alignItems:"start"}}>
     <Card>
+      <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20,paddingBottom:16,borderBottom:`0.5px solid ${T.border}`}}>
+        <div style={{width:64,height:64,borderRadius:14,overflow:"hidden",flexShrink:0,background:T.bgAlt,border:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {p.logo_url?<img src={p.logo_url} alt="logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<i className="ti ti-building-store" style={{fontSize:26,color:T.textDim}}/>}
+        </div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:13,fontWeight:500,marginBottom:6}}>Business logo <span style={{color:T.textDim,fontWeight:400}}>(optional)</span></div>
+          <input ref={logoRef} type="file" accept="image/*" hidden onChange={e=>{uploadLogo(e.target.files[0]);e.target.value="";}}/>
+          <div style={{display:"flex",gap:8}}>
+            <Btn small gold onClick={()=>logoRef.current?.click()} disabled={logoBusy}>{logoBusy?"Uploading...":(p.logo_url?"Change":"Upload")}</Btn>
+            {p.logo_url&&<Btn small onClick={removeLogo} disabled={logoBusy}>Remove</Btn>}
+          </div>
+        </div>
+      </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div style={{fontSize:14,fontWeight:600}}>Business information</div>
         {!editing&&<i onClick={()=>setEditing(true)} className="ti ti-pencil" title="Edit" style={{fontSize:17,color:T.gold,cursor:"pointer"}}/>}
@@ -784,6 +817,12 @@ export default function Dashboard() {
     })();
   },[]);
 
+  useEffect(()=>{
+    const h=()=>loadMe();
+    window.addEventListener("logo-updated",h);
+    return ()=>window.removeEventListener("logo-updated",h);
+  },[]);
+
   const load=async(silent)=>{
     if(!silent)setLoading(true);
     try {
@@ -817,8 +856,8 @@ export default function Dashboard() {
     {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:40}}/>}
     <div style={{position:isMobile?"fixed":"relative",zIndex:50,height:"100%",width:240,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,transform:sidebarOpen?"translateX(0)":"translateX(-100%)",transition:"transform 0.25s ease",left:0,top:0}}>
       <div style={{padding:"20px",display:"flex",alignItems:"center",gap:12,borderBottom:`0.5px solid ${T.border}`}}>
-        <div style={{width:36,height:36,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${T.gold}30`}}><i className="ti ti-bolt" style={{fontSize:18,color:T.gold}}/></div>
-        <div style={{flex:1}}><div style={{fontSize:15,fontWeight:600}}>Autologic</div><div style={{fontSize:10,color:T.textDim,textTransform:"uppercase",letterSpacing:1.5}}>chatbot</div></div>
+        <div style={{width:36,height:36,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${T.gold}30`,overflow:"hidden"}}>{me?.client?.logo_url?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<i className="ti ti-bolt" style={{fontSize:18,color:T.gold}}/>}</div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name||"Autologic"}</div><div style={{fontSize:10,color:T.textDim,textTransform:"uppercase",letterSpacing:1.5}}>chatbot</div></div>
         <i onClick={()=>setSidebarOpen(false)} className="ti ti-x" style={{fontSize:18,color:T.textDim,cursor:"pointer"}}/>
       </div>
       <nav style={{flex:1,padding:"12px 8px",overflowY:"auto"}}>

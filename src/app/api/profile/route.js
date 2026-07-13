@@ -18,6 +18,7 @@ export async function GET(request) {
     website: client.website || "",
     business_type: client.business_type || "ecommerce",
     item_label: client.item_label || "",
+    logo_url: client.logo_url || "",
     plan: client.plan,
     trial_end: client.trial_end,
     created_at: client.created_at,
