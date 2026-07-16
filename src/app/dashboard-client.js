@@ -705,15 +705,16 @@ function Onboarding({me,onTrial,onDemo}) {
 
 function ConnectChannel({onDone,clientId}) {
   useEffect(()=>{
-    const h=e=>{if(e.data==="fb_connected")onDone();};
+    const h=e=>{if(e.data==="fb_connected"||e.data==="ig_connected")onDone();};
     window.addEventListener("message",h);
     return ()=>window.removeEventListener("message",h);
   },[]);
-  const fbConnect=()=>{
-    const w=520,ht=650;
-    const left=(window.screen.width-w)/2,top=(window.screen.height-ht)/2;
-    window.open(`/api/fb/login?client_id=${clientId}`,"fbconnect",`width=${w},height=${ht},left=${left},top=${top}`);
+  const openPopup=(url,name)=>{
+    const w=520,ht=650,left=(window.screen.width-w)/2,top=(window.screen.height-ht)/2;
+    window.open(url,name,`width=${w},height=${ht},left=${left},top=${top}`);
   };
+  const fbConnect=()=>openPopup(`/api/fb/login?client_id=${clientId}`,"fbconnect");
+  const igConnect=()=>openPopup(`/api/ig/login?client_id=${clientId}`,"igconnect");
   const [platform,setPlatform]=useState(null);
   const [pageId,setPageId]=useState("");
   const [token,setToken]=useState("");
@@ -721,9 +722,14 @@ function ConnectChannel({onDone,clientId}) {
   const [err,setErr]=useState("");
   const opts=[
     {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"One click connect with Facebook login"},
-    {id:"instagram",icon:"ti-brand-instagram",label:"Instagram Business",hint:"IG Business Account ID + Access Token (linked FB Page)"},
+    {id:"instagram",icon:"ti-brand-instagram",label:"Instagram Business",hint:"One click connect with Instagram login"},
     {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"Phone Number ID + WhatsApp Cloud API Token"},
   ];
+  const handleClick=(id)=>{
+    if(id==="facebook") fbConnect();
+    else if(id==="instagram") igConnect();
+    else setPlatform(id);
+  };
   const connect=async()=>{
     if(!pageId||!token||busy) return;
     setBusy(true); setErr("");
@@ -739,7 +745,7 @@ function ConnectChannel({onDone,clientId}) {
         <div style={{fontSize:12.5,color:T.textMuted}}>Your bot will reply to customers on this channel</div>
       </div>
       {!platform?<div style={{display:"flex",flexDirection:"column",gap:12}}>
-        {opts.map(o=><Card key={o.id} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer",padding:"1rem 1.2rem"}} onClick={()=>o.id==="facebook"?fbConnect():setPlatform(o.id)}>
+        {opts.map(o=><Card key={o.id} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer",padding:"1rem 1.2rem"}} onClick={()=>handleClick(o.id)}>
           <i className={`ti ${o.icon}`} style={{fontSize:26,color:T.gold}}/>
           <div><div style={{fontSize:14,fontWeight:500}}>{o.label}</div><div style={{fontSize:11.5,color:T.textMuted}}>{o.hint}</div></div>
         </Card>)}
