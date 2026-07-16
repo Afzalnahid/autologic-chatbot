@@ -85,11 +85,11 @@ function Analytics({products,convos,orders,msgCount}) {
   </div>;
 }
 
-function Conversations({convos:allConvos,refresh,onChatOpen}) {
+function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
   const [chFilter,setChFilter]=useState("all");
   const convos=chFilter==="all"?allConvos:allConvos.filter(c=>(c.platform||"facebook")===chFilter);
   const PICON={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp"};
-  const avail=[...new Set(allConvos.map(c=>c.platform||"facebook"))];
+  const avail=[...new Set([...channels.map(c=>c.platform),...allConvos.map(c=>c.platform||"facebook")].filter(Boolean))];
   const isMobile=useIsMobile();
   const [sel,setSel]=useState(-1);
   useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&sel>=0);},[sel,isMobile]);
@@ -781,6 +781,7 @@ export default function Dashboard() {
   },[]);
   const [products,setProducts]=useState([]);
   const [convos,setConvos]=useState([]);
+  const [dashChannels,setDashChannels]=useState([]);
   const [orders,setOrders]=useState([]);
   const [settings,setSettings]=useState({botName:"Autologic Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
   const [sidebarOpen,setSidebarOpen]=useState(false);
@@ -831,16 +832,18 @@ export default function Dashboard() {
   const load=async(silent)=>{
     if(!silent)setLoading(true);
     try {
-      const [pr,cv,or,st]=await Promise.all([
+      const [pr,cv,or,st,ch]=await Promise.all([
         api("/api/products").then(r=>r.json()).catch(()=>[]),
         api("/api/conversations").then(r=>r.json()).catch(()=>[]),
         api("/api/orders").then(r=>r.json()).catch(()=>[]),
         api("/api/settings").then(r=>r.json()).catch(()=>({})),
+        api("/api/channels").then(r=>r.json()).catch(()=>[]),
       ]);
       if(Array.isArray(pr)) setProducts(pr);
       if(Array.isArray(cv)) setConvos(cv);
       if(Array.isArray(or)) setOrders(or);
       if(st&&Object.keys(st).length) setSettings(s=>({...s,...st}));
+      if(Array.isArray(ch)) setDashChannels(ch);
     } catch {}
     setLoading(false);
   };
@@ -886,7 +889,7 @@ export default function Dashboard() {
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <>
             {page==="analytics"&&<Analytics products={products} convos={convos} orders={orders} msgCount={convos.reduce((a,c)=>a+c.messages.length,0)}/>}
-            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen}/>}
+            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
             {page==="inventory"&&<Inventory products={products} refresh={load}/>}
             {page==="orders"&&<Orders orders={orders} refresh={load}/>}
             {page==="channels"&&<Channels onConnect={()=>setStage("connect")}/>}

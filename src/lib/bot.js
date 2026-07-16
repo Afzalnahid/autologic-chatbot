@@ -204,6 +204,15 @@ export async function handleIncoming(event) {
   const bType = client?.business_type || "ecommerce";
   const iLabel = client?.item_label || "product";
 
+  if (event.platform === "whatsapp" && event.profileName) {
+    try {
+      await sb().from("contacts").upsert(
+        { sender_id: event.senderId, client_id: clientId, name: event.profileName },
+        { onConflict: "sender_id" }
+      );
+    } catch (e) { console.error("wa contact name:", e.message); }
+  }
+
   if (event.video) {
     const { sendTextMessage } = await import("@/lib/messenger.js");
     const msg = "দুঃখিত, আমরা ভিডিও মেসেজ প্রসেস করতে পারি না। পণ্যের ছবি বা কোড পাঠান।";
