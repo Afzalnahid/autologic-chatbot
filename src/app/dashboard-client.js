@@ -859,7 +859,7 @@ export default function Dashboard() {
   if(stage==="connect") return <ConnectChannel clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;
 
   return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden"}}>
-    {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:40}}/>}
+    {sidebarOpen&&isMobile&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:40}}/>}
     <div style={{position:"fixed",zIndex:50,height:"100%",width:240,background:T.card,borderRight:`0.5px solid ${T.border}`,display:"flex",flexDirection:"column",flexShrink:0,transform:sidebarOpen?"translateX(0)":"translateX(-100%)",transition:"transform 0.25s ease",left:0,top:0}}>
       <div style={{padding:"20px",display:"flex",alignItems:"center",gap:12,borderBottom:`0.5px solid ${T.border}`}}>
         <div style={{width:36,height:36,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${T.gold}30`,overflow:"hidden"}}>{me?.client?.logo_url?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<i className="ti ti-bolt" style={{fontSize:18,color:T.gold}}/>}</div>
@@ -867,7 +867,7 @@ export default function Dashboard() {
         <i onClick={()=>setSidebarOpen(false)} className="ti ti-x" style={{fontSize:18,color:T.textDim,cursor:"pointer"}}/>
       </div>
       <nav style={{flex:1,padding:"12px 8px",overflowY:"auto"}}>
-        {PAGES.map((p,i)=><div key={p} onClick={()=>{setPage(p);setSidebarOpen(false);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:8,cursor:"pointer",marginBottom:2,background:page===p?T.goldBg:"transparent",borderLeft:page===p?`3px solid ${T.gold}`:"3px solid transparent",color:page===p?T.gold:T.textMuted}}>
+        {PAGES.map((p,i)=><div key={p} onClick={()=>{setPage(p);if(isMobile)setSidebarOpen(false);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:8,cursor:"pointer",marginBottom:2,background:page===p?T.goldBg:"transparent",borderLeft:page===p?`3px solid ${T.gold}`:"3px solid transparent",color:page===p?T.gold:T.textMuted}}>
           <i className={`ti ${ICONS[i]}`} style={{fontSize:18,flexShrink:0}}/>
           <span style={{fontSize:13.5,fontWeight:page===p?500:400}}>{navLabel(i)}</span>
           {p==="conversations"&&convos.some(c=>c.status==="active")&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.success,animation:"pulse 2s infinite"}}/>}
@@ -875,7 +875,7 @@ export default function Dashboard() {
       </nav>
     </div>
 
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0,marginLeft:(!isMobile&&sidebarOpen)?240:0,transition:"margin-left 0.25s ease"}}>
       {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"14px 24px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:14,minWidth:0}}>
           <i onClick={()=>setSidebarOpen(true)} className="ti ti-menu-2" style={{fontSize:22,color:T.text,cursor:"pointer",flexShrink:0}}/>
