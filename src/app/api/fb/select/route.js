@@ -20,7 +20,7 @@ export async function POST(request) {
   const html = `<!DOCTYPE html><html><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:40px;text-align:center">
 <h3>✅ ${decodeURIComponent(encName || "Page")} connected</h3>${warn}
 <p>You can close this window.</p>
-<script>if(window.opener){window.opener.postMessage("fb_connected","*");setTimeout(()=>window.close(),1500);}</script>
+<script>setTimeout(function(){ if(window.opener){window.opener.postMessage("fb_connected","*");window.close();} else {window.location.href="/#channels";} },1200);</script>
 </body></html>`;
   return new NextResponse(html, { headers: { "Content-Type": "text/html" } });
 }
