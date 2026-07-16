@@ -709,9 +709,15 @@ function ConnectChannel({onDone,clientId}) {
     window.addEventListener("message",h);
     return ()=>window.removeEventListener("message",h);
   },[]);
+  const [popupErr,setPopupErr]=useState("");
   const openPopup=(url,name)=>{
     const w=520,ht=650,left=(window.screen.width-w)/2,top=(window.screen.height-ht)/2;
-    window.open(url,name,`width=${w},height=${ht},left=${left},top=${top}`);
+    const win=window.open(url,name,`width=${w},height=${ht},left=${left},top=${top}`);
+    if(!win||win.closed||typeof win.closed==="undefined"){
+      setPopupErr(url);
+      return;
+    }
+    setPopupErr("");
   };
   const fbConnect=()=>openPopup(`/api/fb/login?client_id=${clientId}`,"fbconnect");
   const igConnect=()=>openPopup(`/api/ig/login?client_id=${clientId}`,"igconnect");
@@ -744,6 +750,10 @@ function ConnectChannel({onDone,clientId}) {
         <div style={{fontSize:18,fontWeight:600}}>Connect a channel</div>
         <div style={{fontSize:12.5,color:T.textMuted}}>Your bot will reply to customers on this channel</div>
       </div>
+      {popupErr&&<Card style={{marginBottom:12,border:`1px solid ${T.gold}50`}}>
+        <div style={{fontSize:13,marginBottom:8}}>Popup was blocked by your browser.</div>
+        <a href={popupErr} target="_blank" rel="noreferrer" style={{color:T.gold,fontSize:13,textDecoration:"underline"}}>Click here to continue connecting</a>
+      </Card>}
       {!platform?<div style={{display:"flex",flexDirection:"column",gap:12}}>
         {opts.map(o=><Card key={o.id} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer",padding:"1rem 1.2rem"}} onClick={()=>handleClick(o.id)}>
           <i className={`ti ${o.icon}`} style={{fontSize:26,color:T.gold}}/>
