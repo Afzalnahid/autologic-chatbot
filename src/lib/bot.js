@@ -213,6 +213,21 @@ export async function handleIncoming(event) {
     } catch (e) { console.error("wa contact name:", e.message); }
   }
 
+  if (event.platform === "instagram") {
+    try {
+      const { data: existing } = await sb().from("contacts").select("name").eq("sender_id", event.senderId).limit(1);
+      if (!existing || !existing[0] || !existing[0].name) {
+        const prof = await fetch(`https://graph.instagram.com/v21.0/${event.senderId}?fields=username&access_token=${channel.access_token}`).then(r => r.json()).catch(() => ({}));
+        if (prof.username) {
+          await sb().from("contacts").upsert(
+            { sender_id: event.senderId, client_id: clientId, name: "@" + prof.username },
+            { onConflict: "sender_id" }
+          );
+        }
+      }
+    } catch (e) { console.error("ig contact name:", e.message); }
+  }
+
   if (event.video) {
     const { sendTextMessage } = await import("@/lib/messenger.js");
     const msg = "দুঃখিত, আমরা ভিডিও মেসেজ প্রসেস করতে পারি না। পণ্যের ছবি বা কোড পাঠান।";
