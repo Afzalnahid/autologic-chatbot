@@ -23,12 +23,27 @@ export async function GET(request) {
   try {
     const { data: all } = await supabase.from("message_buffer").select("*").order("created_at", { ascending: false }).limit(500);
     const messages = (all || []).filter(m => m.client_id === client.id);
+
+    const { data: contactRows } = await supabase.from("contacts").select("sender_id,name,client_id");
+    const nameOf = Object.fromEntries(
+      (contactRows || [])
+        .filter(c => c.client_id === client.id && c.name)
+        .map(c => [c.sender_id, c.name])
+    );
+    const displayName = (sid, platform) => {
+      if (nameOf[sid]) return nameOf[sid];
+      // WhatsApp sender_id is the customer's phone number in international format
+      if (platform === "whatsapp" && /^\d{6,}$/.test(sid || "")) return "+" + sid;
+      return "User " + (sid || "").slice(-4);
+    };
+
     const grouped = {};
     messages.forEach(m => {
       const sid = m.sender_id;
       if (!grouped[sid]) {
+        const platform = m.platform || "facebook";
         grouped[sid] = {
-          id: sid, sender: "User " + (sid || "").slice(-4), platform: m.platform || "facebook",
+          id: sid, sender: displayName(sid, platform), platform,
           status: m.status === "Pending" ? "active" : "resolved",
           lastMsg: (m.message_content || "").slice(0, 60), time: m.created_at, messages: [],
         };
