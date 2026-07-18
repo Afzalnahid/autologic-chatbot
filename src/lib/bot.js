@@ -31,6 +31,7 @@ async function botAllowed(channel, senderId) {
   if (ct && ct.bot_enabled === false) return false;
   const client = await getClient(channel.client_id);
   if (!client) return false;
+  if (client.suspended) return false;
   if (client.plan === "trial") {
     if (!client.trial_end || new Date(client.trial_end) <= new Date()) return false;
     const today = new Date(); today.setHours(0, 0, 0, 0);
