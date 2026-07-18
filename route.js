@@ -1,57 +1,32 @@
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
+import { chatWithGemini } from "@/lib/gemini.js";
 
-export async function GET(request) {
-  try {
-    const { client } = await requireClient(request);
-    if (!client) return NextResponse.json([]);
-    const { data } = await supabase.from("channels").select("*").order("created_at", { ascending: false });
-    return NextResponse.json((data || []).filter(c => c.client_id === client.id).map(({ access_token, ...r }) => r));
-  } catch {
-    return NextResponse.json([]);
-  }
-}
+const META = `You are an expert prompt engineer for AI sales chatbots. A business owner will describe their business. Write a complete, production-ready system prompt for their customer service sales bot.
 
-export async function PUT(request) {
-  try {
-    const { client } = await requireClient(request);
-    if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    const { id, status } = await request.json();
-    await supabase.from("channels").update({ status }).eq("id", id).eq("client_id", client.id);
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
-}
-
-export async function DELETE(request) {
-  try {
-    const { client } = await requireClient(request);
-    if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    const { id } = await request.json();
-    if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
-    const { error } = await supabase.from("channels").delete().eq("id", id).eq("client_id", client.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
-}
+The generated prompt MUST include:
+- Role and brand identity
+- Tone and language rules (match customer language, Bangla/English/Banglish)
+- A strict output format: reply ONLY with a JSON array of objects like {"type":"text_msg","text":"..."} or {"type":"image_msg","url":"..."}
+- Greeting rules
+- Product handling: use the injected PRODUCT SEARCH RESULTS as the only source of truth, never invent prices or codes
+- How to show products (image_msg then text_msg with name, code, price)
+- Delivery, payment and return policy placeholders the owner can edit
+- Order confirmation flow
+Output ONLY the final system prompt text, no preamble, no markdown fences.`;
 
 export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    const { platform, page_id, access_token } = await request.json();
-    if (!platform || !page_id || !access_token) return NextResponse.json({ error: "missing fields" }, { status: 400 });
-    const { error } = await supabase.from("channels").upsert(
-      { client_id: client.id, platform, page_id, access_token, status: "connected", connected_at: new Date().toISOString() },
-      { onConflict: "client_id,platform,page_id" }
-    );
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true });
+    const { description } = await request.json();
+    if (!description) return NextResponse.json({ error: "description required" }, { status: 400 });
+    const bt = client.business_type || "ecommerce";
+    const unit = client.item_label || (bt === "ecommerce" ? "product" : "service");
+    const prompt = await chatWithGemini(META, [{ role: "user", content: `Business type: ${bt}\nCatalog unit: ${unit}\nBusiness description:\n${description}` }]);
+    return NextResponse.json({ prompt: String(prompt).replace(/```/g, "").trim() });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

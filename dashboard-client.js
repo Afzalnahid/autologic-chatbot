@@ -41,7 +41,7 @@ const T = {
 const PAGES = ["analytics","conversations","inventory","orders","channels","settings","profile","demo"];
 const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-plug","ti-settings","ti-user","ti-robot"];
 const LABELS = ["Analytics","Conversations","Inventory","Orders","Channels","Settings","Profile","Demo"];
-const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, restaurant:{item:"Menu item",inv:"Menu",order:"Orders"}, education:{item:"Course",inv:"Courses",order:"Enrollments"}, realestate:{item:"Listing",inv:"Listings",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
+const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
 function words(bt){ return ITEM_WORDS[bt] || ITEM_WORDS.other; }
 
 function useIsMobile(){
@@ -494,8 +494,8 @@ function Profile() {
   const [form,setForm]=useState({business_name:"",phone:"",address:"",website:"",business_type:"ecommerce",item_label:""});
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState("");
-  const BIZ_LABEL={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider",restaurant:"Restaurant / Food",education:"Education / Coaching",realestate:"Real estate",other:"Other"};
-  const AUTO_ITEM={ecommerce:"product",agency:"service",restaurant:"menu item",education:"course",realestate:"listing",other:"item"};
+  const BIZ_LABEL={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider"};
+  const AUTO_ITEM={ecommerce:"product",agency:"service"};
 
   const [loadErr,setLoadErr]=useState(false);
   const [logoBusy,setLogoBusy]=useState(false);
