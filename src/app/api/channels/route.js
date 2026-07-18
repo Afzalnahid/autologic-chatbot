@@ -26,6 +26,20 @@ export async function PUT(request) {
   }
 }
 
+export async function DELETE(request) {
+  try {
+    const { client } = await requireClient(request);
+    if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const { id } = await request.json();
+    if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
+    const { error } = await supabase.from("channels").delete().eq("id", id).eq("client_id", client.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
 export async function POST(request) {
   try {
     const { client } = await requireClient(request);

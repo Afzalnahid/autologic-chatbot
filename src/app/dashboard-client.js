@@ -35,13 +35,13 @@ async function api(url,opts={}){
 const T = {
   bg: "#05080f", bgAlt: "#080e1a", card: "#0d1529",
   gold: "#f0c040", goldDim: "#c4982e", goldBg: "rgba(240,192,64,0.08)",
-  text: "#e8e8ec", textMuted: "#7a8db0", textDim: "#4a5a7a",
-  border: "#1a2744", danger: "#ef4444", success: "#22c55e", info: "#3b82f6", warn: "#f59e0b", purple: "#8b5cf6",
+  text: "#e8e8ec", textMuted: "#8b9cbd", textDim: "#94a3b8",
+  border: "#1a2744", danger: "#dc2626", success: "#22c55e", info: "#3b82f6", warn: "#f59e0b", purple: "#8b5cf6",
 };
 const PAGES = ["analytics","conversations","inventory","orders","channels","settings","profile","demo"];
 const ICONS = ["ti-chart-bar","ti-messages","ti-package","ti-shopping-cart","ti-plug","ti-settings","ti-user","ti-robot"];
 const LABELS = ["Analytics","Conversations","Inventory","Orders","Channels","Settings","Profile","Demo"];
-const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, restaurant:{item:"Menu item",inv:"Menu",order:"Orders"}, education:{item:"Course",inv:"Courses",order:"Enrollments"}, realestate:{item:"Listing",inv:"Listings",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
+const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
 function words(bt){ return ITEM_WORDS[bt] || ITEM_WORDS.other; }
 
 function useIsMobile(){
@@ -61,7 +61,7 @@ function Card({children,style,...p}){ return <div {...p} style={{background:T.ca
 function Inp({label,textarea,style,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>}</div>; }
 function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
 
-function Analytics({products,convos,orders,msgCount}) {
+function Analytics({products,convos,orders,msgCount,isAgency,bookingCount}) {
   const active = convos.filter(c=>c.status==="active").length;
   const pending = orders.filter(o=>o.status==="Pending").length;
   const cats = {};
@@ -72,16 +72,18 @@ function Analytics({products,convos,orders,msgCount}) {
     <div style={{display:"flex",gap:16,flexWrap:"wrap",marginBottom:24}}>
       <StatCard icon="ti-messages" label="Messages" value={msgCount} sub="From message buffer" color={T.info}/>
       <StatCard icon="ti-users" label="Active Chats" value={active} sub={`${convos.length} total`} color={T.success}/>
-      <StatCard icon="ti-package" label="Products" value={products.length} sub="In Supabase" color={T.purple}/>
-      <StatCard icon="ti-shopping-cart" label="Pending" value={pending} sub={`${orders.length} total orders`} color={T.gold}/>
+      {isAgency
+        ? <StatCard icon="ti-calendar-event" label="Bookings" value={bookingCount||0} sub="Meetings scheduled" color={T.gold}/>
+        : <><StatCard icon="ti-package" label="Products" value={products.length} sub="In Supabase" color={T.purple}/>
+          <StatCard icon="ti-shopping-cart" label="Pending" value={pending} sub={`${orders.length} total orders`} color={T.gold}/></>}
     </div>
-    <Card><div style={{fontSize:14,fontWeight:500,marginBottom:16}}>Product categories</div>
+    {!isAgency&&<Card><div style={{fontSize:14,fontWeight:500,marginBottom:16}}>Product categories</div>
       {sorted.map(([n,c],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
         <span style={{fontSize:12,color:T.textMuted,width:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n}</span>
         <div style={{flex:1,height:6,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${(c/maxC)*100}%`,background:T.gold,borderRadius:3}}/></div>
         <span style={{fontSize:12,fontWeight:500,width:24,textAlign:"right"}}>{c}</span>
       </div>)}
-    </Card>
+    </Card>}
   </div>;
 }
 
@@ -155,7 +157,7 @@ function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
   useEffect(()=>{loadContacts();},[]);
   useEffect(()=>{
     const ch=getSb().channel("mb").on("broadcast",{event:"insert"},()=>{refresh&&refresh(true);loadContacts();}).subscribe();
-    const t=setInterval(()=>{refresh&&refresh(true);loadContacts();},15000);
+    const t=setInterval(()=>{refresh&&refresh(true);loadContacts();},45000);
     return ()=>{getSb().removeChannel(ch);clearInterval(t);};
   },[refresh]);
   useEffect(()=>{chatRef.current?.scrollTo(0,chatRef.current.scrollHeight);},[convos,sel]);
@@ -377,6 +379,94 @@ function Inventory({products,refresh}) {
   </div>;
 }
 
+function KnowledgeBase() {
+  const [files,setFiles]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [uploading,setUploading]=useState(false);
+  const [msg,setMsg]=useState("");
+  const fileRef=useRef(null);
+
+  const load=async()=>{
+    setLoading(true);
+    const d=await api("/api/knowledge").then(r=>r.json()).catch(()=>[]);
+    if(Array.isArray(d)) setFiles(d);
+    setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+
+  const upload=async(file)=>{
+    if(!file) return;
+    setUploading(true); setMsg("Uploading and analyzing "+file.name+"...");
+    const fd=new FormData(); fd.append("file",file);
+    const r=await api("/api/knowledge",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
+    setUploading(false);
+    if(r.error){setMsg("Failed: "+r.error);}
+    else {setMsg(`Added ${file.name} — ${r.chunks} chunks indexed`); load();}
+    if(fileRef.current) fileRef.current.value="";
+  };
+
+  const del=async(file_id)=>{
+    await api("/api/knowledge",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({file_id})});
+    load();
+  };
+
+  return <div>
+    <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+      <input ref={fileRef} type="file" accept=".pdf,.docx,.doc,.txt,.md,.csv" hidden onChange={e=>{upload(e.target.files[0]);}}/>
+      <Btn gold onClick={()=>fileRef.current?.click()} disabled={uploading}><i className="ti ti-upload" style={{marginRight:6}}/>{uploading?"Uploading...":"Upload document"}</Btn>
+      <Btn onClick={load}><i className="ti ti-refresh" style={{marginRight:6}}/>Refresh</Btn>
+    </div>
+    <div style={{fontSize:11.5,color:T.textMuted,marginBottom:12}}>Upload PDF, Word (DOCX) or text files. Their content becomes your bot's knowledge base — the bot answers customer questions using only this information.</div>
+    {msg&&<div style={{fontSize:12,color:msg.startsWith("Failed")?T.danger:T.success,marginBottom:12}}>{msg}</div>}
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:files.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No documents yet. Upload your first file to build the knowledge base.</Card>:files.map(f=><Card key={f.file_id} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
+          <i className={`ti ${/pdf/i.test(f.file_type||"")?"ti-file-type-pdf":/word|docx?/i.test(f.file_type||f.file_name||"")?"ti-file-type-docx":"ti-file-text"}`} style={{fontSize:24,color:T.gold,flexShrink:0}}/>
+          <div style={{minWidth:0}}><div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.file_name}</div><div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{f.chunks||0} chunks indexed</div></div>
+        </div>
+        <button onClick={()=>del(f.file_id)} title="Delete" style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:18,padding:4,flexShrink:0}}><i className="ti ti-trash"/></button>
+      </Card>)}
+    </div>
+  </div>;
+}
+
+function Bookings() {
+  const [bookings,setBookings]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filter,setFilter]=useState("All");
+  const sts=["All","Confirmed","Completed","Cancelled"];
+
+  const load=async()=>{
+    setLoading(true);
+    const d=await api("/api/bookings").then(r=>r.json()).catch(()=>[]);
+    if(Array.isArray(d)) setBookings(d);
+    setLoading(false);
+  };
+  useEffect(()=>{load();},[]);
+  const update=async(id,status)=>{await api("/api/bookings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})}); load();};
+
+  const filtered = filter==="All"?bookings:bookings.filter(b=>b.status===filter);
+  return <div>
+    <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{sts.map(s=><button key={s} onClick={()=>setFilter(s)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===s?T.gold:"rgba(240,192,64,0.08)",color:filter===s?"#0a0a0a":T.textMuted}}>{s}</button>)}</div>
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:filtered.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No bookings yet</Card>:filtered.map(b=><Card key={b.id}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:14,fontWeight:600}}>{b.customer_name||"—"} <span style={{fontSize:12,color:T.textMuted,fontWeight:400}}>· {b.service_want||""}</span></div>
+            <div style={{fontSize:12,color:T.textMuted,marginTop:4}}><i className="ti ti-calendar" style={{marginRight:4}}/>{b.meeting_date} {b.meeting_time}</div>
+            <div style={{fontSize:12,color:T.textMuted,marginTop:2}}><i className="ti ti-mail" style={{marginRight:4}}/>{b.email||"—"} · <i className="ti ti-phone" style={{margin:"0 4px"}}/>{b.phone||"—"}</div>
+            {b.meeting_link&&<a href={b.meeting_link} target="_blank" rel="noreferrer" style={{fontSize:12,color:T.gold,marginTop:4,display:"inline-block"}}><i className="ti ti-video" style={{marginRight:4}}/>Join Meet</a>}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,flexShrink:0}}>
+            <Badge color={b.status==="Confirmed"?T.success:b.status==="Completed"?T.info:T.danger}>{b.status}</Badge>
+            {b.status==="Confirmed"&&<Btn small onClick={()=>update(b.id,"Completed")}>Mark done</Btn>}
+          </div>
+        </div>
+      </Card>)}
+    </div>
+  </div>;
+}
+
 function Orders({orders,refresh}) {
   const [filter,setFilter]=useState("All");
   const sts=["All","Pending","Shipped","Delivered","Cancelled"];
@@ -404,12 +494,37 @@ function Profile() {
   const [form,setForm]=useState({business_name:"",phone:"",address:"",website:"",business_type:"ecommerce",item_label:""});
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState("");
-  const BIZ_LABEL={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider",restaurant:"Restaurant / Food",education:"Education / Coaching",realestate:"Real estate",other:"Other"};
-  const AUTO_ITEM={ecommerce:"product",agency:"service",restaurant:"menu item",education:"course",realestate:"listing",other:"item"};
+  const BIZ_LABEL={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider"};
+  const AUTO_ITEM={ecommerce:"product",agency:"service"};
 
   const [loadErr,setLoadErr]=useState(false);
   const [logoBusy,setLogoBusy]=useState(false);
   const logoRef=useRef(null);
+  const [cal,setCal]=useState({connected:false,email:""});
+
+  const loadCal=async()=>{
+    const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);
+    if(d) setCal(d);
+  };
+  useEffect(()=>{loadCal();},[]);
+  useEffect(()=>{
+    const onMsg=(e)=>{ if(e.data==="gcal-connected") loadCal(); };
+    window.addEventListener("message",onMsg);
+    return ()=>window.removeEventListener("message",onMsg);
+  },[]);
+  const connectCal=()=>{
+    const w=window.open("/api/gcal/login?client_id="+(p?.client_id||p?.id||""),"gcal","width=520,height=640");
+    if(!w) window.location.href="/api/gcal/login?client_id="+(p?.client_id||p?.id||"");
+    const iv=setInterval(async()=>{
+      const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);
+      if(d){ setCal(d); if(d.connected) clearInterval(iv); }
+    },4000);
+    setTimeout(()=>clearInterval(iv),60000);
+  };
+  const disconnectCal=async()=>{
+    await api("/api/gcal/status",{method:"DELETE"}).catch(()=>{});
+    loadCal();
+  };
 
   const uploadLogo=async(file)=>{
     if(!file) return;
@@ -514,6 +629,17 @@ function Profile() {
       <div style={{height:16}}/>
       <Btn danger onClick={async()=>{await getSb().auth.signOut();AUTH_TOKEN="";location.reload();}} style={{width:"100%"}}><i className="ti ti-logout" style={{marginRight:6}}/>Logout</Btn>
     </Card>
+    {p.business_type==="agency"&&<Card>
+      <div style={{fontSize:14,fontWeight:600,marginBottom:6}}><i className="ti ti-calendar-event" style={{marginRight:6,color:T.gold}}/>Google Calendar</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Connect your Google Calendar so the bot can check your availability, create meetings, and send Google Meet links to customers automatically.</div>
+      {cal.connected?<>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+          <Badge color={T.success}>Connected</Badge>
+          <span style={{fontSize:13,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis"}}>{cal.email}</span>
+        </div>
+        <Btn onClick={disconnectCal} style={{width:"100%"}}><i className="ti ti-plug-x" style={{marginRight:6}}/>Disconnect</Btn>
+      </>:<Btn gold onClick={connectCal} style={{width:"100%"}}><i className="ti ti-brand-google" style={{marginRight:6}}/>Connect Google Calendar</Btn>}
+    </Card>}
   </div>;
 }
 
@@ -616,17 +742,40 @@ function Demo({settings}) {
 
 function Channels({onConnect}) {
   const [channels,setChannels]=useState([]);
+  const [busyId,setBusyId]=useState(null);
   const load=()=>api("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{});
   useEffect(()=>{load();},[]);
   const icons={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp",website:"ti-world"};
+
+  const toggle=async(ch)=>{
+    setBusyId(ch.id);
+    const next=ch.status==="connected"?"paused":"connected";
+    await api("/api/channels",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:ch.id,status:next})}).catch(()=>{});
+    await load(); setBusyId(null);
+  };
+  const disconnect=async(ch)=>{
+    if(!window.confirm(`Disconnect ${ch.platform}? The bot will stop replying on this channel and you'll need to reconnect to use it again.`)) return;
+    setBusyId(ch.id);
+    await api("/api/channels",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:ch.id})}).catch(()=>{});
+    await load(); setBusyId(null);
+  };
+
   return <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:700}}>
     <Btn gold onClick={onConnect} style={{alignSelf:"flex-start"}}><i className="ti ti-plus" style={{marginRight:6}}/>Connect new channel</Btn>
-    {channels.map(ch=><Card key={ch.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-      <div style={{display:"flex",alignItems:"center",gap:14}}>
-        <div style={{width:40,height:40,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icons[ch.platform]||"ti-plug"}`} style={{fontSize:20,color:T.gold}}/></div>
-        <div><div style={{fontSize:14,fontWeight:500,textTransform:"capitalize"}}>{ch.platform}</div><div style={{fontSize:12,color:T.textMuted,fontFamily:"monospace"}}>{ch.page_id||"-"}</div></div>
+    {channels.map(ch=><Card key={ch.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:14,minWidth:0}}>
+        <div style={{width:40,height:40,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className={`ti ${icons[ch.platform]||"ti-plug"}`} style={{fontSize:20,color:T.gold}}/></div>
+        <div style={{minWidth:0}}><div style={{fontSize:14,fontWeight:500,textTransform:"capitalize"}}>{ch.platform}</div><div style={{fontSize:12,color:T.textMuted,fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis"}}>{ch.page_id||"-"}</div></div>
       </div>
-      <Badge color={ch.status==="connected"?T.success:T.textDim}>{ch.status}</Badge>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+        <Badge color={ch.status==="connected"?T.success:T.textDim}>{ch.status}</Badge>
+        <Btn small onClick={()=>toggle(ch)} disabled={busyId===ch.id}>
+          <i className={`ti ${ch.status==="connected"?"ti-player-pause":"ti-player-play"}`} style={{marginRight:4}}/>{ch.status==="connected"?"Pause":"Resume"}
+        </Btn>
+        <button onClick={()=>disconnect(ch)} disabled={busyId===ch.id} title="Disconnect" style={{background:"none",border:`1px solid ${T.danger}`,borderRadius:6,cursor:"pointer",color:T.danger,fontSize:13,padding:"5px 10px",display:"flex",alignItems:"center",gap:4,opacity:busyId===ch.id?0.5:1}}>
+          <i className="ti ti-plug-x"/>Disconnect
+        </button>
+      </div>
     </Card>)}
     {channels.length===0&&<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No channels configured</Card>}
   </div>;
@@ -783,6 +932,7 @@ export default function Dashboard() {
   const [convos,setConvos]=useState([]);
   const [dashChannels,setDashChannels]=useState([]);
   const [orders,setOrders]=useState([]);
+  const [bookingCount,setBookingCount]=useState(0);
   const [settings,setSettings]=useState({botName:"Autologic Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [loading,setLoading]=useState(true);
@@ -791,10 +941,11 @@ export default function Dashboard() {
   const [me,setMe]=useState(null);
   const [stage,setStage]=useState("loading");
   const bt=me?.client?.business_type||"ecommerce";
+  const isAgency=bt==="agency";
   const navLabel=(i)=>{
     const p=PAGES[i];
-    if(p==="inventory") return words(bt).inv;
-    if(p==="orders") return words(bt).order;
+    if(p==="inventory") return isAgency?"Knowledge Base":words(bt).inv;
+    if(p==="orders") return isAgency?"Bookings":words(bt).order;
     return LABELS[i];
   };
 
@@ -832,6 +983,14 @@ export default function Dashboard() {
   const load=async(silent)=>{
     if(!silent)setLoading(true);
     try {
+      // Silent refreshes (realtime broadcast + fallback poll) only need conversations,
+      // which is the only data that changes live. Avoids re-fetching products/orders/
+      // settings/channels on every poll.
+      if(silent){
+        const cv=await api("/api/conversations").then(r=>r.json()).catch(()=>null);
+        if(Array.isArray(cv)) setConvos(cv);
+        return;
+      }
       const [pr,cv,or,st,ch]=await Promise.all([
         api("/api/products").then(r=>r.json()).catch(()=>[]),
         api("/api/conversations").then(r=>r.json()).catch(()=>[]),
@@ -844,8 +1003,12 @@ export default function Dashboard() {
       if(Array.isArray(or)) setOrders(or);
       if(st&&Object.keys(st).length) setSettings(s=>({...s,...st}));
       if(Array.isArray(ch)) setDashChannels(ch);
+      if(bt==="agency"){
+        const bk=await api("/api/bookings").then(r=>r.json()).catch(()=>[]);
+        if(Array.isArray(bk)) setBookingCount(bk.length);
+      }
     } catch {}
-    setLoading(false);
+    if(!silent)setLoading(false);
   };
 
   useEffect(()=>{if(authed&&stage==="app")load();},[authed,stage]);
@@ -870,7 +1033,7 @@ export default function Dashboard() {
       </div>
       <nav style={{flex:1,padding:"12px 8px",overflowY:"auto"}}>
         {PAGES.map((p,i)=><div key={p} onClick={()=>{setPage(p);if(isMobile)setSidebarOpen(false);}} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",borderRadius:8,cursor:"pointer",marginBottom:2,background:page===p?T.goldBg:"transparent",borderLeft:page===p?`3px solid ${T.gold}`:"3px solid transparent",color:page===p?T.gold:T.textMuted}}>
-          <i className={`ti ${ICONS[i]}`} style={{fontSize:18,flexShrink:0}}/>
+          <i className={`ti ${isAgency&&p==="inventory"?"ti-database":isAgency&&p==="orders"?"ti-calendar-event":ICONS[i]}`} style={{fontSize:18,flexShrink:0}}/>
           <span style={{fontSize:13.5,fontWeight:page===p?500:400}}>{navLabel(i)}</span>
           {p==="conversations"&&convos.some(c=>c.status==="active")&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.success,animation:"pulse 2s infinite"}}/>}
         </div>)}
@@ -888,10 +1051,10 @@ export default function Dashboard() {
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <>
-            {page==="analytics"&&<Analytics products={products} convos={convos} orders={orders} msgCount={convos.reduce((a,c)=>a+c.messages.length,0)}/>}
+            {page==="analytics"&&<Analytics products={products} convos={convos} orders={orders} msgCount={convos.reduce((a,c)=>a+c.messages.length,0)} isAgency={isAgency} bookingCount={bookingCount}/>}
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
-            {page==="inventory"&&<Inventory products={products} refresh={load}/>}
-            {page==="orders"&&<Orders orders={orders} refresh={load}/>}
+            {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load}/>)}
+            {page==="orders"&&(isAgency?<Bookings/>:<Orders orders={orders} refresh={load}/>)}
             {page==="channels"&&<Channels onConnect={()=>setStage("connect")}/>}
             {page==="profile"&&<Profile/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}

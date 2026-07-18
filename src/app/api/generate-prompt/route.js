@@ -24,7 +24,7 @@ export async function POST(request) {
     const { description } = await request.json();
     if (!description) return NextResponse.json({ error: "description required" }, { status: 400 });
     const bt = client.business_type || "ecommerce";
-    const unit = client.item_label || (bt === "ecommerce" ? "product" : bt === "restaurant" ? "menu item" : "service");
+    const unit = client.item_label || (bt === "ecommerce" ? "product" : "service");
     const prompt = await chatWithGemini(META, [{ role: "user", content: `Business type: ${bt}\nCatalog unit: ${unit}\nBusiness description:\n${description}` }]);
     return NextResponse.json({ prompt: String(prompt).replace(/```/g, "").trim() });
   } catch (e) {

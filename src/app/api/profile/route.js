@@ -12,6 +12,7 @@ export async function GET(request) {
   const usage = await getUsage(client);
   return NextResponse.json({
     email,
+    client_id: client.id,
     business_name: client.business_name,
     phone: client.phone || "",
     address: client.address || "",

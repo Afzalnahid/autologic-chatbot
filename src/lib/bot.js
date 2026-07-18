@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText } from "@/lib/messenger.js";
 import { analyzeImageBase64 } from "@/lib/gemini.js";
+import { searchKnowledge } from "@/lib/knowledge.js";
+import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
 
 function visionPrompt(businessType, itemLabel) {
   const unit = itemLabel || "item";
@@ -90,7 +92,7 @@ function parseReply(raw) {
   const cleaned = String(raw || "").replace(/```json|```/g, "").trim();
   try {
     const arr = JSON.parse(cleaned);
-    if (Array.isArray(arr)) return arr.filter(x => x && (x.type === "text_msg" || x.type === "image_msg"));
+    if (Array.isArray(arr)) return arr.filter(x => x && (x.type === "text_msg" || x.type === "image_msg" || x.type === "order" || x.type === "booking"));
   } catch {}
   return cleaned ? [{ type: "text_msg", text: cleaned }] : [];
 }
@@ -114,6 +116,68 @@ async function maybeSaveOrder(items, clientId) {
   }
   return items.filter(it => it.type !== "order");
 }
+
+// Parse booking objects from the AI reply, create the calendar event + Meet link,
+// save to the bookings table, and inject the real Meet link back into the text.
+async function maybeCreateBooking(items, client, senderId, platform) {
+  const bookingItems = items.filter(it => it.type === "booking");
+  if (!bookingItems.length) return items;
+
+  let accessToken = null;
+  try { accessToken = await getValidAccessToken(client); } catch (e) { console.error("gcal token:", e.message); }
+
+  for (const b of bookingItems) {
+    let meetLink = "";
+    let eventId = "";
+    let meetingDateTime = b.start || null;
+
+    if (accessToken && b.start && b.end) {
+      try {
+        const avail = await checkAvailability(accessToken, b.start, b.end);
+        if (avail.free) {
+          const ev = await createEvent(accessToken, {
+            summary: `${b.service_want || "Consultation"} with ${b.customer_name || "Client"}`,
+            description: `Booked via chatbot.\nService: ${b.service_want || ""}\nPhone: ${b.phone || ""}`,
+            startISO: b.start,
+            endISO: b.end,
+            attendeeEmail: b.email || "",
+          });
+          meetLink = ev.meetLink;
+          eventId = ev.eventId;
+        }
+      } catch (e) { console.error("gcal event:", e.message); }
+    }
+
+    try {
+      await sb().from("bookings").insert({
+        client_id: client.id,
+        customer_name: b.customer_name || "",
+        email: b.email || "",
+        phone: b.phone || "",
+        service_want: b.service_want || "",
+        meeting_date: b.meeting_date || "",
+        meeting_time: b.meeting_time || "",
+        meeting_datetime: meetingDateTime,
+        meeting_link: meetLink,
+        calendar_event_id: eventId,
+        sender_id: senderId,
+        platform: platform || "facebook",
+        status: "Confirmed",
+      });
+    } catch (e) { console.error("booking insert:", e.message); }
+
+    // Replace {{MEET_LINK}} placeholder in any text message with the real link
+    if (meetLink) {
+      for (const it of items) {
+        if (it.type === "text_msg" && it.text) it.text = it.text.replace(/\{\{MEET_LINK\}\}/g, meetLink);
+      }
+    }
+  }
+
+  return items.filter(it => it.type !== "booking");
+}
+
+const BOOKING_RULE = "\n\nBOOKING FLOW (agency): You can schedule meetings. Before booking you MUST have all 6: customer name, email, phone number, the specific service they want, preferred meeting date, and preferred meeting time. If any is missing, ask for it politely. Once you have all 6 and the customer confirms, append ONE object to the JSON array: {\"type\":\"booking\",\"customer_name\":\"..\",\"email\":\"..\",\"phone\":\"..\",\"service_want\":\"..\",\"meeting_date\":\"..\",\"meeting_time\":\"..\",\"start\":\"<ISO8601 datetime with timezone>\",\"end\":\"<ISO8601 datetime, 30 min after start>\"}. In your text message to the customer, write the meeting link exactly as {{MEET_LINK}} — it will be replaced with the real Google Meet link automatically. Never mention the booking JSON object in your text. Compute start/end as full ISO8601 timestamps (e.g. 2026-07-20T15:00:00+06:00) using the requested date and time in the Asia/Dhaka timezone.";
 
 export async function processConversation(channel, senderId, myRowId) {
   const clientId = channel.client_id;
@@ -139,28 +203,43 @@ export async function processConversation(channel, senderId, myRowId) {
   if (channel.platform !== "whatsapp") await sendTypingOn(channel.access_token, senderId);
 
   const combined = rows.map(r => r.message_content).join("\n");
-  let systemPrompt, history, products;
+  const isAgency = bType === "agency";
+
+  let systemPrompt, history, context;
   try {
-    [systemPrompt, history, products] = await Promise.all([
-      getSystemPrompt(clientId),
-      getMemory(senderId, clientId),
-      searchProducts(clientId, combined, combined.includes("--- PRODUCT") ? 4 : 3),
-    ]);
+    if (isAgency) {
+      let snippets;
+      [systemPrompt, history, snippets] = await Promise.all([
+        getSystemPrompt(clientId),
+        getMemory(senderId, clientId),
+        searchKnowledge(clientId, combined, 6),
+      ]);
+      context = snippets.length
+        ? "\n\nKNOWLEDGE BASE (answer ONLY from this retrieved context; if the answer is not here, say you'll connect them with the team):\n" +
+          snippets.map(s => s.content).join("\n---\n")
+        : "\n\nKNOWLEDGE BASE: no relevant information found.";
+    } else {
+      let products;
+      [systemPrompt, history, products] = await Promise.all([
+        getSystemPrompt(clientId),
+        getMemory(senderId, clientId),
+        searchProducts(clientId, combined, combined.includes("--- PRODUCT") ? 4 : 3),
+      ]);
+      context = products.length
+        ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
+          products.map(p => JSON.stringify(p.metadata || {})).join("\n")
+        : "\n\nSEARCH RESULTS: none found.";
+    }
   } catch (e) {
     console.error("PROC context error:", e.message);
-    systemPrompt = DEFAULT_PROMPT; history = []; products = [];
+    systemPrompt = DEFAULT_PROMPT; history = []; context = "";
   }
-
-  const context = products.length
-    ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
-      products.map(p => JSON.stringify(p.metadata || {})).join("\n")
-    : "\n\nSEARCH RESULTS: none found.";
 
   const orderRule = "\n\nORDER SAVING: When the customer finally confirms an order with name, phone and address, ALSO append one object to the JSON array: {\"type\":\"order\",\"order_code\":\"<unique alphanumeric>\",\"customer_name\":\"..\",\"phone_number\":\"..\",\"address\":\"..\",\"product_ids\":\"codes comma separated\",\"product_names\":\"..\",\"quantity\":\"..\",\"total_price\":\"..\",\"image_urls\":\"..\"}. Never mention this object in text.";
 
   let raw;
   try {
-    const rules = bType === "ecommerce" ? orderRule : "";
+    const rules = isAgency ? BOOKING_RULE : orderRule;
     raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
@@ -168,7 +247,8 @@ export async function processConversation(channel, senderId, myRowId) {
   }
 
   let items = parseReply(raw);
-  items = await maybeSaveOrder(items, clientId);
+  if (isAgency) items = await maybeCreateBooking(items, client, senderId, channel.platform);
+  else items = await maybeSaveOrder(items, clientId);
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
@@ -292,19 +372,30 @@ export async function handleIncoming(event) {
 }
 
 export async function runDemo(clientId, userText, history = []) {
-  const [systemPrompt, products] = await Promise.all([
-    getSystemPrompt(clientId),
-    searchProducts(clientId, userText, 3),
-  ]);
-  const context = products.length
-    ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
-      products.map(p => JSON.stringify(p.metadata || {})).join("\n")
-    : "\n\nSEARCH RESULTS: none found.";
+  const client = await getClient(clientId);
+  const isAgency = (client?.business_type || "ecommerce") === "agency";
+  const systemPrompt = await getSystemPrompt(clientId);
+
+  let context;
+  if (isAgency) {
+    const snippets = await searchKnowledge(clientId, userText, 6);
+    context = snippets.length
+      ? "\n\nKNOWLEDGE BASE (answer ONLY from this retrieved context):\n" +
+        snippets.map(s => s.content).join("\n---\n")
+      : "\n\nKNOWLEDGE BASE: no relevant information found.";
+  } else {
+    const products = await searchProducts(clientId, userText, 3);
+    context = products.length
+      ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
+        products.map(p => JSON.stringify(p.metadata || {})).join("\n")
+      : "\n\nSEARCH RESULTS: none found.";
+  }
+
   let raw;
   try {
     raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText }]);
   } catch (e) {
     return { error: e.message, items: [] };
   }
-  return { items: parseReply(raw) };
+  return { items: parseReply(raw).filter(i => i.type === "text_msg" || i.type === "image_msg") };
 }
