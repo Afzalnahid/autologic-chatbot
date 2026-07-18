@@ -58,7 +58,7 @@ function useIsMobile(){
 function Btn({children,gold,danger,small,style,...p}){ return <button {...p} style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:"rgba(240,192,64,0.12)",color:danger?"#fff":gold?"#0a0a0a":T.gold,...style}}>{children}</button>; }
 function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>; }
 function Card({children,style,...p}){ return <div {...p} style={{background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`,padding:"1.25rem",...style}}>{children}</div>; }
-function Inp({label,textarea,style,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>}</div>; }
+function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
 function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
 
 function Analytics({products,convos,orders,msgCount,isAgency,bookingCount}) {
@@ -786,8 +786,10 @@ function AuthGate({onReady}) {
   const [mode,setMode]=useState("signin");
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
+  const [showPw,setShowPw]=useState(false);
   const [biz,setBiz]=useState("");
   const [err,setErr]=useState("");
+  const [msg,setMsg]=useState("");
   const [busy,setBusy]=useState(false);
   const go=async()=>{
     if(!email||!pw||busy) return;
@@ -805,6 +807,13 @@ function AuthGate({onReady}) {
     }catch(e){setErr(e.message||"Failed");}
     setBusy(false);
   };
+  const forgot=async()=>{
+    setErr("");setMsg("");
+    if(!email){setErr("Enter your email first, then tap reset.");return;}
+    const {error}=await getSb().auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/reset`});
+    if(error) setErr(error.message);
+    else setMsg("Password reset link sent — check your email.");
+  };
   return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <Card style={{width:340,textAlign:"center",padding:"2.5rem 2rem"}}>
       <div style={{width:56,height:56,borderRadius:16,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:`1px solid ${T.gold}30`}}><i className="ti ti-robot" style={{fontSize:26,color:T.gold}}/></div>
@@ -812,10 +821,15 @@ function AuthGate({onReady}) {
       <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>{mode==="signin"?"Sign in to your dashboard":"Create your account"}</div>
       {mode==="signup"&&<Inp value={biz} onChange={e=>setBiz(e.target.value)} placeholder="Business name"/>}
       <Inp type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email"/>
-      <Inp type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Password"/>
+      <div style={{position:"relative",marginBottom:10}}>
+        <Inp type={showPw?"text":"password"} value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Password" style={{marginBottom:0}} inputStyle={{paddingRight:44}}/>
+        <button type="button" onClick={()=>setShowPw(s=>!s)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:12,padding:4}}>{showPw?"Hide":"Show"}</button>
+      </div>
+      {mode==="signin"&&<div style={{textAlign:"right",marginBottom:12}}><span onClick={forgot} style={{fontSize:11.5,color:T.gold,cursor:"pointer"}}>Forgot password?</span></div>}
       <Btn gold onClick={go} style={{width:"100%"}}>{busy?"Please wait...":(mode==="signin"?"Sign In":"Sign Up")}</Btn>
       {err&&<div style={{fontSize:12,color:T.danger,marginTop:10}}>{err}</div>}
-      <div style={{fontSize:12,color:T.textMuted,marginTop:16,cursor:"pointer"}} onClick={()=>{setMode(m=>m==="signin"?"signup":"signin");setErr("");}}>
+      {msg&&<div style={{fontSize:12,color:T.success,marginTop:10}}>{msg}</div>}
+      <div style={{fontSize:12,color:T.textMuted,marginTop:16,cursor:"pointer"}} onClick={()=>{setMode(m=>m==="signin"?"signup":"signin");setErr("");setMsg("");}}>
         {mode==="signin"?"New here? Create account":"Already have an account? Sign in"}
       </div>
     </Card>

@@ -4,16 +4,12 @@ import { createClient as createSb } from "@/utils/supabase/client";
 
 const T = {
   bg: "#05080f", bgAlt: "#080e1a", card: "#0d1529",
-  gold: "#f0c040", goldBg: "rgba(240,192,64,0.08)",
-  text: "#e8e8ec", textMuted: "#8b9cbd",
-  border: "#1a2744", danger: "#dc2626", success: "#22c55e", info: "#3b82f6", warn: "#f59e0b",
+  gold: "#f0c040", text: "#e8e8ec", textMuted: "#8b9cbd",
+  border: "#1a2744", danger: "#dc2626", success: "#22c55e", info: "#3b82f6", warn: "#f59e0b", purple: "#8b5cf6",
 };
 
 let sb = null;
-function getSb() {
-  if (!sb) sb = createSb();
-  return sb;
-}
+function getSb() { if (!sb) sb = createSb(); return sb; }
 
 function Card({ children, style }) {
   return <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 18, ...style }}>{children}</div>;
@@ -35,60 +31,66 @@ function Stat({ label, value, color }) {
 function Badge({ children, color }) {
   return <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 12, background: `${color}22`, color, fontWeight: 600 }}>{children}</span>;
 }
+function PwInput({ value, onChange, placeholder, onEnter }) {
+  const [show, setShow] = useState(false);
+  const wrap = { position: "relative", marginBottom: 12 };
+  const input = { width: "100%", background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "11px 42px 11px 13px", color: T.text, fontSize: 14, boxSizing: "border-box" };
+  return <div style={wrap}>
+    <input style={input} type={show ? "text" : "password"} placeholder={placeholder} value={value} onChange={onChange} onKeyDown={e => e.key === "Enter" && onEnter && onEnter()} />
+    <button onClick={() => setShow(s => !s)} type="button" style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.textMuted, fontSize: 12, padding: 4 }}>
+      {show ? "Hide" : "Show"}
+    </button>
+  </div>;
+}
+
+const ROLE_COLOR = { super: T.purple, full: T.success, editor: T.info, viewer: T.textMuted, pending: T.warn };
+const ROLE_LABEL = { super: "Super Admin", full: "Full Access", editor: "Editor", viewer: "Viewer", pending: "Pending" };
 
 export default function AdminClient() {
   const [session, setSession] = useState(null);
-  const [adminKey, setAdminKey] = useState("");
-  const [keyInput, setKeyInput] = useState("");
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authMsg, setAuthMsg] = useState("");
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
+  const [superKey, setSuperKey] = useState("");
+  const [keyOk, setKeyOk] = useState(false);
 
   useEffect(() => {
     getSb().auth.getSession().then(({ data: { session: s } }) => setSession(s));
     const { data: sub } = getSb().auth.onAuthStateChange((_e, s) => setSession(s));
-    const saved = sessionStorage.getItem("admin_key") || "";
-    if (saved) setAdminKey(saved);
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const api = useCallback(async (method, body) => {
+  const api = useCallback(async (method, body, extraHeaders) => {
     const token = session?.access_token || "";
-    const res = await fetch("/api/admin", {
+    return fetch("/api/admin", {
       method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "x-admin-key": adminKey },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(extraHeaders || {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    return res;
-  }, [session, adminKey]);
+  }, [session]);
 
   const load = useCallback(async () => {
     setErr("");
     const res = await api("GET");
-    if (res.status === 401) { setErr("Unauthorized — email admin তালিকায় নেই বা admin key ভুল"); setData(null); return; }
+    if (res.status === 401) { setData(null); return; }
     const d = await res.json().catch(() => null);
-    if (d?.overview) setData(d);
+    if (d) setData(d);
   }, [api]);
 
-  useEffect(() => { if (session && adminKey) load(); }, [session, adminKey, load]);
+  useEffect(() => { if (session) load(); }, [session, load]);
 
-  const login = async () => {
+  const auth = async () => {
     setAuthMsg("");
-    const { error } = await getSb().auth.signInWithPassword({ email, password });
+    const fn = mode === "signup" ? "signUp" : "signInWithPassword";
+    const { error } = await getSb().auth[fn]({ email, password });
     if (error) setAuthMsg(error.message);
+    else if (mode === "signup") setAuthMsg("Account created. If email confirmation is on, verify then login.");
   };
-  const submitKey = () => {
-    sessionStorage.setItem("admin_key", keyInput);
-    setAdminKey(keyInput);
-  };
-  const logout = async () => {
-    await getSb().auth.signOut();
-    sessionStorage.removeItem("admin_key");
-    setAdminKey(""); setData(null);
-  };
+  const logout = async () => { await getSb().auth.signOut(); setData(null); setKeyOk(false); };
 
   const act = async (id, action, value) => {
     setBusy(id + action);
@@ -97,54 +99,62 @@ export default function AdminClient() {
     await load(); setBusy("");
   };
   const del = async (c) => {
-    const typed = window.prompt(`"${c.business_name || c.owner_email}" স্থায়ীভাবে delete হবে — সব data মুছে যাবে।\n\nনিশ্চিত হলে DELETE লিখুন:`);
+    const typed = window.prompt(`"${c.business_name || c.owner_email}" permanently delete — all data removed.\n\nType DELETE to confirm:`);
     if (typed !== "DELETE") return;
     setBusy(c.id + "del");
     const res = await api("DELETE", { id: c.id, confirm: "DELETE" });
     if (!res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "failed"); }
     await load(); setBusy("");
   };
+  const setRole = async (target_email, new_role) => {
+    setBusy(target_email + new_role);
+    const res = await api("PUT", { type: "set_role", target_email, new_role }, { "x-admin-key": superKey });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "failed"); }
+    await load(); setBusy("");
+  };
 
   const page = { background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "sans-serif", padding: 20 };
-  const input = { width: "100%", background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "11px 13px", color: T.text, fontSize: 14, marginBottom: 12, boxSizing: "border-box" };
 
-  // Step 1: Supabase login
+  // --- Auth screen ---
   if (!session) return (
     <div style={{ ...page, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Card style={{ width: 360 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Admin Login</div>
-        <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 20 }}>Step 1 of 2 — account login</div>
-        <input style={input} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input style={input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && login()} />
-        {authMsg && <div style={{ fontSize: 12, color: T.danger, marginBottom: 10 }}>{authMsg}</div>}
-        <Btn gold onClick={login} style={{ width: "100%" }}>Sign in</Btn>
+      <Card style={{ width: 370 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Autologic <span style={{ color: T.gold }}>Admin</span></div>
+        <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 20 }}>{mode === "signup" ? "Create an admin account" : "Sign in to continue"}</div>
+        <input style={{ width: "100%", background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "11px 13px", color: T.text, fontSize: 14, marginBottom: 12, boxSizing: "border-box" }} placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+        <PwInput value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" onEnter={auth} />
+        {authMsg && <div style={{ fontSize: 12, color: authMsg.includes("created") ? T.success : T.danger, marginBottom: 10 }}>{authMsg}</div>}
+        <Btn gold onClick={auth} style={{ width: "100%" }}>{mode === "signup" ? "Sign up" : "Sign in"}</Btn>
+        <div style={{ textAlign: "center", marginTop: 14, fontSize: 12.5, color: T.textMuted }}>
+          {mode === "signup" ? "Already have an account? " : "New admin? "}
+          <span onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setAuthMsg(""); }} style={{ color: T.gold, cursor: "pointer" }}>
+            {mode === "signup" ? "Login" : "Sign up"}
+          </span>
+        </div>
       </Card>
     </div>
   );
 
-  // Step 2: admin key
-  if (!adminKey) return (
+  if (!data) return <div style={{ ...page, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: T.textMuted }}>Loading...</div></div>;
+
+  // --- Pending screen ---
+  if (data.role === "pending") return (
     <div style={{ ...page, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Card style={{ width: 360 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Admin Key</div>
-        <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 20 }}>Step 2 of 2 — {session.user.email}</div>
-        <input style={input} type="password" placeholder="Secret admin key" value={keyInput} onChange={e => setKeyInput(e.target.value)} onKeyDown={e => e.key === "Enter" && submitKey()} />
-        <Btn gold onClick={submitKey} style={{ width: "100%" }}>Enter</Btn>
-        <div style={{ height: 8 }} />
-        <Btn onClick={logout} style={{ width: "100%" }}>Logout</Btn>
+      <Card style={{ width: 400, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>⏳</div>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Awaiting approval</div>
+        <div style={{ fontSize: 13.5, color: T.textMuted, marginBottom: 6 }}>Your account <strong style={{ color: T.text }}>{data.email}</strong> is registered but not yet approved.</div>
+        <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 20 }}>The super admin needs to assign you a role before you can access the dashboard.</div>
+        <Btn onClick={load} style={{ marginRight: 8 }}>Check again</Btn>
+        <Btn danger onClick={logout}>Logout</Btn>
       </Card>
     </div>
   );
 
-  if (!data) return (
-    <div style={{ ...page, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-      <div style={{ color: T.textMuted }}>{err || "Loading..."}</div>
-      {err && <Btn onClick={logout}>Logout</Btn>}
-    </div>
-  );
-
-  const { overview: o, clients } = data;
+  const { overview: o, clients, role, admins } = data;
   const pIcons = { facebook: "FB", instagram: "IG", whatsapp: "WA", website: "WEB" };
+  const canEdit = ["super", "full", "editor"].includes(role);
+  const canDelete = ["super", "full"].includes(role);
 
   return (
     <div style={page}>
@@ -152,7 +162,7 @@ export default function AdminClient() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, flexWrap: "wrap", gap: 10 }}>
           <div>
             <div style={{ fontSize: 24, fontWeight: 700 }}>Autologic <span style={{ color: T.gold }}>Admin</span></div>
-            <div style={{ fontSize: 12.5, color: T.textMuted }}>{session.user.email}</div>
+            <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", alignItems: "center", gap: 8 }}>{data.email} <Badge color={ROLE_COLOR[role]}>{ROLE_LABEL[role]}</Badge></div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={load}>Refresh</Btn>
@@ -174,7 +184,37 @@ export default function AdminClient() {
           <Stat label="Live channels" value={o.connected_channels} color={T.gold} />
         </div>
 
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Clients</div>
+        {role === "super" && admins && (
+          <Card style={{ marginBottom: 26 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Admin Access Control <Badge color={T.purple}>Super Admin only</Badge></div>
+            <div style={{ fontSize: 12.5, color: T.textMuted, marginBottom: 14 }}>Assign roles to admins. Changing roles requires your secret key.</div>
+            <div style={{ marginBottom: 16 }}>
+              <PwInput value={superKey} onChange={e => { setSuperKey(e.target.value); setKeyOk(false); }} placeholder="Secret admin key (required to change roles)" onEnter={() => setKeyOk(true)} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {admins.map(a => (
+                <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 12px", background: T.bgAlt, borderRadius: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <span style={{ fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis" }}>{a.email}</span>
+                    <Badge color={ROLE_COLOR[a.role]}>{ROLE_LABEL[a.role]}</Badge>
+                  </div>
+                  {a.role !== "super" && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {["viewer", "editor", "full", "pending"].map(r => (
+                        <Btn key={r} small onClick={() => setRole(a.email, r)} disabled={!superKey || busy === a.email + r || a.role === r}
+                          style={{ background: a.role === r ? ROLE_COLOR[r] : "rgba(240,192,64,0.1)", color: a.role === r ? "#fff" : T.text }}>
+                          {ROLE_LABEL[r]}
+                        </Btn>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Clients {!canEdit && <Badge color={T.textMuted}>View only</Badge>}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {clients.map(c => {
             const trialLeft = c.trial_end ? Math.ceil((new Date(c.trial_end) - Date.now()) / 86400000) : 0;
@@ -196,9 +236,7 @@ export default function AdminClient() {
                     </div>
                     <div style={{ fontSize: 12, color: T.textMuted, marginTop: 6 }}>
                       {c.channels.length ? c.channels.map((ch, i) => (
-                        <span key={i} style={{ marginRight: 8, color: ch.status === "connected" ? T.success : T.textMuted }}>
-                          {pIcons[ch.platform] || ch.platform}
-                        </span>
+                        <span key={i} style={{ marginRight: 8, color: ch.status === "connected" ? T.success : T.textMuted }}>{pIcons[ch.platform] || ch.platform}</span>
                       )) : "No channels"}
                     </div>
                   </div>
@@ -211,17 +249,15 @@ export default function AdminClient() {
                         <div style={{ textAlign: "center" }}><div style={{ fontSize: 17, fontWeight: 700, color: T.text }}>{c.products}</div>products</div></>}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
-                  <Btn small onClick={() => act(c.id, "plan", c.plan === "pro" ? "trial" : "pro")} disabled={busy === c.id + "plan"}>
-                    {c.plan === "pro" ? "Downgrade to trial" : "Upgrade to Pro"}
-                  </Btn>
-                  <Btn small onClick={() => act(c.id, "extend_trial", 7)} disabled={busy === c.id + "extend_trial"}>+7d trial</Btn>
-                  <Btn small onClick={() => act(c.id, "extend_trial", 30)} disabled={busy === c.id + "extend_trial"}>+30d trial</Btn>
-                  <Btn small onClick={() => act(c.id, "suspend", !c.suspended)} disabled={busy === c.id + "suspend"} style={{ color: c.suspended ? T.success : T.warn }}>
-                    {c.suspended ? "Resume" : "Suspend"}
-                  </Btn>
-                  <Btn small danger onClick={() => del(c)} disabled={busy === c.id + "del"} style={{ marginLeft: "auto" }}>Delete</Btn>
-                </div>
+                {canEdit && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
+                    <Btn small onClick={() => act(c.id, "plan", c.plan === "pro" ? "trial" : "pro")} disabled={busy === c.id + "plan"}>{c.plan === "pro" ? "Downgrade to trial" : "Upgrade to Pro"}</Btn>
+                    <Btn small onClick={() => act(c.id, "extend_trial", 7)} disabled={busy === c.id + "extend_trial"}>+7d trial</Btn>
+                    <Btn small onClick={() => act(c.id, "extend_trial", 30)} disabled={busy === c.id + "extend_trial"}>+30d trial</Btn>
+                    <Btn small onClick={() => act(c.id, "suspend", !c.suspended)} disabled={busy === c.id + "suspend"} style={{ color: c.suspended ? T.success : T.warn }}>{c.suspended ? "Resume" : "Suspend"}</Btn>
+                    {canDelete && <Btn small danger onClick={() => del(c)} disabled={busy === c.id + "del"} style={{ marginLeft: "auto" }}>Delete</Btn>}
+                  </div>
+                )}
               </Card>
             );
           })}
