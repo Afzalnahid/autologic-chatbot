@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSb } from "@/utils/supabase/client";
 
 const T = {
   bg: "#05080f", bgAlt: "#080e1a", card: "#0d1529",
@@ -11,10 +11,7 @@ const T = {
 
 let sb = null;
 function getSb() {
-  if (!sb) sb = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  );
+  if (!sb) sb = createSb();
   return sb;
 }
 

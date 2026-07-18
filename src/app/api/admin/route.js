@@ -15,8 +15,8 @@ async function requireAdmin(request) {
   if (!token) return null;
 
   const anon = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cchvsgouqqxibhubioch.supabase.co",
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_L0-ea26IunVN_BET5SPXOw_VY_KwGZg"
   );
   const { data } = await anon.auth.getUser(token);
   const email = (data?.user?.email || "").toLowerCase();
