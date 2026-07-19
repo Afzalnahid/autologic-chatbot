@@ -81,5 +81,5 @@ export async function GET(request) {
     bookings: bookingsQ.data || [],
     products,
     files: filesQ.data || [],
-  });
+  }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } });
 }
