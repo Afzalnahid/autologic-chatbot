@@ -85,7 +85,10 @@ export async function GET(request) {
     admins = data || [];
   }
 
-  return NextResponse.json({ role, email, overview, clients: rows, admins });
+  return NextResponse.json(
+    { role, email, overview, clients: rows, admins, server_time: new Date().toISOString() },
+    { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } }
+  );
 }
 
 export async function PUT(request) {
