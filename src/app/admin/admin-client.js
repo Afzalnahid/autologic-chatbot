@@ -84,15 +84,23 @@ export default function AdminClient() {
     });
   }, [session]);
 
-  const load = useCallback(async () => {
-    setErr("");
+  const load = useCallback(async (silent) => {
+    if (!silent) setErr("");
     const res = await api("GET");
-    if (res.status === 401) { setData(null); return; }
+    if (res.status === 401) { if (!silent) setData(null); return; }
     const d = await res.json().catch(() => null);
     if (d) setData(d);
   }, [api]);
 
   useEffect(() => { if (session) load(); }, [session, load]);
+
+  // Auto-refresh every 10s so client-side changes (products, orders, bookings,
+  // knowledge files, plan changes) reflect in the admin dashboard in near real-time.
+  useEffect(() => {
+    if (!session) return;
+    const t = setInterval(() => load(true), 10000);
+    return () => clearInterval(t);
+  }, [session, load]);
 
   const auth = async () => {
     setAuthMsg("");
