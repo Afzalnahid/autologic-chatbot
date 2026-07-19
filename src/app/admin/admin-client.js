@@ -77,8 +77,10 @@ export default function AdminClient() {
 
   const api = useCallback(async (method, body, extraHeaders) => {
     const token = session?.access_token || "";
-    return fetch("/api/admin", {
+    const url = method === "GET" ? `/api/admin?t=${Date.now()}` : "/api/admin";
+    return fetch(url, {
       method,
+      cache: "no-store",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(extraHeaders || {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
