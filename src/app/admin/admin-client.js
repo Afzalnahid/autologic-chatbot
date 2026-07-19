@@ -86,12 +86,14 @@ export default function AdminClient() {
     });
   }, [session]);
 
+  const [refreshing, setRefreshing] = useState(false);
   const load = useCallback(async (silent) => {
-    if (!silent) setErr("");
+    if (!silent) { setErr(""); setRefreshing(true); }
     const res = await api("GET");
-    if (res.status === 401) { if (!silent) setData(null); return; }
+    if (res.status === 401) { if (!silent) { setData(null); setRefreshing(false); } return; }
     const d = await res.json().catch(() => null);
     if (d) setData(d);
+    if (!silent) setRefreshing(false);
   }, [api]);
 
   useEffect(() => { if (session) load(); }, [session, load]);
@@ -206,7 +208,7 @@ export default function AdminClient() {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-              <Btn onClick={() => load()}>Refresh</Btn>
+              <Btn onClick={() => load()} disabled={refreshing}>{refreshing ? "Refreshing..." : "Refresh"}</Btn>
               {data.server_time && <span style={{ fontSize: 10.5, color: T.textMuted }}>synced {new Date(data.server_time).toLocaleTimeString()}</span>}
             </div>
             <Btn danger onClick={logout}>Logout</Btn>
