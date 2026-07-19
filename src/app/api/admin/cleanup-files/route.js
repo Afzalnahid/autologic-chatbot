@@ -46,9 +46,23 @@ export async function POST(request) {
   const kbDel = await supabase.from("knowledge_base").delete().neq("id", 0);
   const frDel = await supabase.from("file_registry").delete().neq("file_id", "___never___");
 
+  // Also remove all objects from the knowledge-files storage bucket.
+  let storageError = null;
+  try {
+    const { data: folders } = await supabase.storage.from("knowledge-files").list("");
+    for (const folder of folders || []) {
+      const { data: objs } = await supabase.storage.from("knowledge-files").list(folder.name);
+      const paths = (objs || []).map((o) => `${folder.name}/${o.name}`);
+      if (paths.length) await supabase.storage.from("knowledge-files").remove(paths);
+    }
+  } catch (e) {
+    storageError = e.message;
+  }
+
   return NextResponse.json({
     ok: true,
     knowledge_base_error: kbDel.error?.message || null,
     file_registry_error: frDel.error?.message || null,
+    storage_error: storageError,
   }, { headers: { "Cache-Control": "no-store" } });
 }
