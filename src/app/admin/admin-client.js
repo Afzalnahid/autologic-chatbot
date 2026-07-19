@@ -63,7 +63,7 @@ export default function AdminClient() {
   const openDetail = async (id) => {
     setDetailLoading(true); setDetail({ loading: true });
     const token = session?.access_token || "";
-    const res = await fetch(`/api/admin/client-detail?id=${id}`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`/api/admin/client-detail?id=${id}&t=${Date.now()}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
     const d = await res.json().catch(() => null);
     setDetail(d && !d.error ? d : null);
     setDetailLoading(false);
