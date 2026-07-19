@@ -403,7 +403,7 @@ function ClientDetailModal({ detail, loading, onClose }) {
           <>
             <Section title={`Knowledge Base Files (${files.length})`}>
               {files.length ? files.map((f, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13, gap: 10 }}>
+                <div key={`kb-${f.file_name}-${i}`} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13, gap: 10 }}>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.file_name}</span>
                   <span style={{ color: T.textMuted, fontSize: 11.5, flexShrink: 0 }}>{f.chunks} chunks · {fmt(f.created_at)}</span>
                 </div>
