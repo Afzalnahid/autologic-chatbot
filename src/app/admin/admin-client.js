@@ -203,7 +203,10 @@ export default function AdminClient() {
             <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", alignItems: "center", gap: 8 }}>{data.email} <Badge color={ROLE_COLOR[role]}>{ROLE_LABEL[role]}</Badge></div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <Btn onClick={load}>Refresh</Btn>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+              <Btn onClick={() => load()}>Refresh</Btn>
+              {data.server_time && <span style={{ fontSize: 10.5, color: T.textMuted }}>synced {new Date(data.server_time).toLocaleTimeString()}</span>}
+            </div>
             <Btn danger onClick={logout}>Logout</Btn>
           </div>
         </div>
