@@ -127,6 +127,16 @@ export async function searchKnowledge(clientId, query, k = 5) {
 
 // ---- Delete a file and all its chunks ----
 export async function deleteFile(clientId, fileId) {
+  // Remove the original file from storage too (path: clientId/fileId.ext)
+  try {
+    const { data: objs } = await supabase.storage.from("knowledge-files").list(String(clientId));
+    const targets = (objs || [])
+      .filter((o) => o.name.startsWith(fileId))
+      .map((o) => `${clientId}/${o.name}`);
+    if (targets.length) await supabase.storage.from("knowledge-files").remove(targets);
+  } catch (e) {
+    console.error("storage cleanup:", e.message);
+  }
   await supabase.from("knowledge_base").delete().eq("file_id", fileId).eq("client_id", clientId);
   await supabase.from("file_registry").delete().eq("file_id", fileId).eq("client_id", clientId);
 }
