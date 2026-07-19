@@ -57,6 +57,17 @@ export default function AdminClient() {
   const [err, setErr] = useState("");
   const [superKey, setSuperKey] = useState("");
   const [keyOk, setKeyOk] = useState(false);
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const openDetail = async (id) => {
+    setDetailLoading(true); setDetail({ loading: true });
+    const token = session?.access_token || "";
+    const res = await fetch(`/api/admin/client-detail?id=${id}`, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await res.json().catch(() => null);
+    setDetail(d && !d.error ? d : null);
+    setDetailLoading(false);
+  };
 
   useEffect(() => {
     getSb().auth.getSession().then(({ data: { session: s } }) => setSession(s));
@@ -272,13 +283,18 @@ export default function AdminClient() {
                         <div style={{ textAlign: "center" }}><div style={{ fontSize: 17, fontWeight: 700, color: T.text }}>{c.products}</div>products</div></>}
                   </div>
                 </div>
-                {canEdit && (
+                {canEdit ? (
                   <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
+                    <Btn small onClick={() => openDetail(c.id)}>View details</Btn>
                     <Btn small onClick={() => act(c.id, "plan", c.plan === "pro" ? "trial" : "pro")} disabled={busy === c.id + "plan"}>{c.plan === "pro" ? "Downgrade to trial" : "Upgrade to Pro"}</Btn>
                     <Btn small onClick={() => act(c.id, "extend_trial", 7)} disabled={busy === c.id + "extend_trial"}>+7d trial</Btn>
                     <Btn small onClick={() => act(c.id, "extend_trial", 30)} disabled={busy === c.id + "extend_trial"}>+30d trial</Btn>
                     <Btn small onClick={() => act(c.id, "suspend", !c.suspended)} disabled={busy === c.id + "suspend"} style={{ color: c.suspended ? T.success : T.warn }}>{c.suspended ? "Resume" : "Suspend"}</Btn>
                     {canDelete && <Btn small danger onClick={() => del(c)} disabled={busy === c.id + "del"} style={{ marginLeft: "auto" }}>Delete</Btn>}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 8, marginTop: 14, borderTop: `1px solid ${T.border}`, paddingTop: 12 }}>
+                    <Btn small onClick={() => openDetail(c.id)}>View details</Btn>
                   </div>
                 )}
               </Card>
@@ -286,6 +302,135 @@ export default function AdminClient() {
           })}
           {clients.length === 0 && <Card style={{ textAlign: "center", color: T.textMuted, padding: 40 }}>No clients yet</Card>}
         </div>
+      </div>
+
+      {detail && <ClientDetailModal detail={detail} loading={detailLoading} onClose={() => setDetail(null)} />}
+    </div>
+  );
+}
+
+function Row({ label, value }) {
+  return <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "7px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}>
+    <span style={{ color: T.textMuted }}>{label}</span>
+    <span style={{ color: T.text, textAlign: "right", wordBreak: "break-word" }}>{value || "—"}</span>
+  </div>;
+}
+function Section({ title, children }) {
+  return <div style={{ marginTop: 18 }}>
+    <div style={{ fontSize: 13.5, fontWeight: 600, color: T.gold, marginBottom: 8 }}>{title}</div>
+    {children}
+  </div>;
+}
+
+function ClientDetailModal({ detail, loading, onClose }) {
+  const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 20, zIndex: 100, overflowY: "auto" };
+  const box = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 24, width: 640, maxWidth: "100%", marginTop: 20, marginBottom: 40 };
+  const pIcons = { facebook: "Facebook", instagram: "Instagram", whatsapp: "WhatsApp", website: "Website" };
+
+  if (loading || detail.loading) return (
+    <div style={overlay} onClick={onClose}><div style={box} onClick={e => e.stopPropagation()}><div style={{ color: T.textMuted, textAlign: "center", padding: 30 }}>Loading client details...</div></div></div>
+  );
+
+  const { client: c, channels, messages: m, orders, bookings, products, files } = detail;
+  const fmt = (d) => d ? new Date(d).toLocaleDateString() : "—";
+  const isAgency = c.business_type === "agency";
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={box} onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+          <div>
+            <div style={{ fontSize: 19, fontWeight: 700 }}>{c.business_name || "—"}</div>
+            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+              <Badge color={isAgency ? T.info : T.gold}>{isAgency ? "Agency" : "E-commerce"}</Badge>
+              <Badge color={c.plan === "pro" ? T.success : T.warn}>{c.plan}</Badge>
+              {c.suspended && <Badge color={T.danger}>Suspended</Badge>}
+              {c.gcal_connected && <Badge color={T.success}>Calendar connected</Badge>}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: T.textMuted, fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+        </div>
+
+        <Section title="Business Information">
+          <Row label="Email" value={c.owner_email} />
+          <Row label="Phone" value={c.phone} />
+          <Row label="Address" value={c.address} />
+          <Row label="Website" value={c.website} />
+          <Row label="Business type" value={isAgency ? "Agency / Service provider" : "E-commerce / Online shop"} />
+          <Row label="Plan" value={c.plan} />
+          <Row label="Joined" value={fmt(c.created_at)} />
+          <Row label="Trial start" value={fmt(c.trial_start)} />
+          <Row label="Trial end" value={fmt(c.trial_end)} />
+          {c.gcal_connected && <Row label="Calendar email" value={c.gcal_email} />}
+        </Section>
+
+        <Section title={`Messages (${m.total} total)`}>
+          <Row label="Today" value={m.today} />
+          <Row label="This week" value={m.week} />
+          <Row label="This month" value={m.month} />
+          <Row label="From customers" value={m.customer} />
+          <Row label="From bot" value={m.bot} />
+          <Row label="From agent" value={m.agent} />
+        </Section>
+
+        <Section title={`Channels (${channels.length})`}>
+          {channels.length ? channels.map((ch, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13, gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 500 }}>{pIcons[ch.platform] || ch.platform}</span>
+              <span style={{ color: T.textMuted, fontFamily: "monospace", fontSize: 11.5 }}>{ch.page_id || "—"}</span>
+              <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Badge color={ch.status === "connected" ? T.success : T.textMuted}>{ch.status}</Badge>
+                <span style={{ color: T.textMuted, fontSize: 11.5 }}>{fmt(ch.connected_at)}</span>
+              </span>
+            </div>
+          )) : <div style={{ color: T.textMuted, fontSize: 13, padding: "6px 0" }}>No channels connected</div>}
+        </Section>
+
+        {isAgency ? (
+          <>
+            <Section title={`Knowledge Base Files (${files.length})`}>
+              {files.length ? files.map((f, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13, gap: 10 }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.file_name}</span>
+                  <span style={{ color: T.textMuted, fontSize: 11.5, flexShrink: 0 }}>{f.chunks} chunks · {fmt(f.created_at)}</span>
+                </div>
+              )) : <div style={{ color: T.textMuted, fontSize: 13, padding: "6px 0" }}>No files uploaded</div>}
+            </Section>
+            <Section title={`Bookings (${bookings.length})`}>
+              {bookings.length ? bookings.slice(0, 20).map((b, i) => (
+                <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <span style={{ fontWeight: 500 }}>{b.customer_name || "—"}</span>
+                    <Badge color={b.status === "Confirmed" ? T.success : T.textMuted}>{b.status}</Badge>
+                  </div>
+                  <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>{b.service_want} · {b.meeting_date} {b.meeting_time}</div>
+                </div>
+              )) : <div style={{ color: T.textMuted, fontSize: 13, padding: "6px 0" }}>No bookings</div>}
+            </Section>
+          </>
+        ) : (
+          <>
+            <Section title={`Products (${products.length})`}>
+              {products.length ? products.slice(0, 30).map((p, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13, gap: 10 }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  <span style={{ color: T.textMuted, flexShrink: 0 }}>{p.price ? `${p.price}` : ""} {p.code ? `· ${p.code}` : ""}</span>
+                </div>
+              )) : <div style={{ color: T.textMuted, fontSize: 13, padding: "6px 0" }}>No products</div>}
+            </Section>
+            <Section title={`Orders (${orders.length})`}>
+              {orders.length ? orders.slice(0, 20).map((o, i) => (
+                <div key={i} style={{ padding: "8px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <span style={{ fontWeight: 500 }}>{o.customer_name || "—"} <span style={{ color: T.textMuted, fontWeight: 400 }}>#{o.order_code}</span></span>
+                    <Badge color={o.status === "Pending" ? T.warn : T.success}>{o.status}</Badge>
+                  </div>
+                  <div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>{o.total_price ? `৳${o.total_price} · ` : ""}{fmt(o.created_at)}</div>
+                </div>
+              )) : <div style={{ color: T.textMuted, fontSize: 13, padding: "6px 0" }}>No orders</div>}
+            </Section>
+          </>
+        )}
       </div>
     </div>
   );
