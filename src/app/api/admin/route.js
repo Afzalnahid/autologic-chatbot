@@ -121,10 +121,37 @@ export async function PUT(request) {
     if (key !== process.env.ADMIN_PASSWORD) return NextResponse.json({ error: "invalid key" }, { status: 403 });
     const { target_email } = body;
     if (!target_email) return NextResponse.json({ error: "missing target" }, { status: 400 });
-    if (target_email.toLowerCase() === SUPER_ADMIN)
+    const tEmail = target_email.toLowerCase();
+    if (tEmail === SUPER_ADMIN)
       return NextResponse.json({ error: "cannot remove super admin" }, { status: 400 });
-    const { error } = await supabase.from("admin_users").delete().eq("email", target_email.toLowerCase());
+
+    // 1) Remove the admin role row.
+    const { error } = await supabase.from("admin_users").delete().eq("email", tEmail);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // 2) Also delete the Supabase Auth account so the person can sign up fresh.
+    //    Only delete if this email is NOT also a platform client (owner_email),
+    //    to avoid destroying a real dashboard user who happens to be an admin.
+    try {
+      const { data: asClient } = await supabase.from("clients").select("id").eq("owner_email", tEmail).maybeSingle();
+      if (!asClient) {
+        let page = 1;
+        let uid = null;
+        while (page <= 10 && !uid) {
+          const { data: list } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+          const users = list?.users || [];
+          const match = users.find((u) => (u.email || "").toLowerCase() === tEmail);
+          if (match) uid = match.id;
+          if (users.length < 200) break;
+          page++;
+        }
+        if (uid) await supabase.auth.admin.deleteUser(uid);
+      }
+    } catch (e) {
+      // Auth cleanup is best-effort; the role removal above already succeeded.
+      console.error("auth delete:", e.message);
+    }
+
     return NextResponse.json({ ok: true });
   }
 
