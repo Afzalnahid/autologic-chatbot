@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
+import { notifyNewAdminSignup, notifyAdminApproved } from "@/lib/email.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -23,6 +24,8 @@ async function callerRole(email) {
   const { data } = await supabase.from("admin_users").select("role").eq("email", email).maybeSingle();
   if (!data) {
     await supabase.from("admin_users").insert({ email, role: "pending" });
+    // Notify super admin of the new access request (fire-and-forget).
+    notifyNewAdminSignup(email).catch(() => {});
     return "pending";
   }
   return data.role;
@@ -101,6 +104,10 @@ export async function PUT(request) {
       .update({ role: new_role, updated_at: new Date().toISOString() })
       .eq("email", target_email.toLowerCase());
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // Congratulate the admin when granted an active role (not on revoke to pending).
+    if (["full", "editor", "viewer"].includes(new_role)) {
+      notifyAdminApproved(target_email.toLowerCase(), new_role).catch(() => {});
+    }
     return NextResponse.json({ ok: true });
   }
 
