@@ -43,8 +43,8 @@ function PwInput({ value, onChange, placeholder, onEnter }) {
   </div>;
 }
 
-const ROLE_COLOR = { super: T.purple, full: T.success, editor: T.info, viewer: T.textMuted, pending: T.warn };
-const ROLE_LABEL = { super: "Super Admin", full: "Full Access", editor: "Editor", viewer: "Viewer", pending: "Pending" };
+const ROLE_COLOR = { super: T.purple, full: T.success, editor: T.info, viewer: T.textMuted, pending: T.warn, blocked: T.danger };
+const ROLE_LABEL = { super: "Super Admin", full: "Full Access", editor: "Editor", viewer: "Viewer", pending: "Pending", blocked: "Blocked" };
 
 export default function AdminClient() {
   const [session, setSession] = useState(null);
@@ -112,6 +112,13 @@ export default function AdminClient() {
     if (!res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "failed"); }
     await load(); setBusy("");
   };
+  const removeAdmin = async (target_email) => {
+    if (!window.confirm(`Remove ${target_email} completely from admin list? They can sign up again later but will start as pending.`)) return;
+    setBusy(target_email + "remove");
+    const res = await api("PUT", { type: "remove_admin", target_email }, { "x-admin-key": superKey });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "failed"); }
+    await load(); setBusy("");
+  };
 
   const page = { background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "sans-serif", padding: 20 };
 
@@ -146,6 +153,18 @@ export default function AdminClient() {
         <div style={{ fontSize: 13.5, color: T.textMuted, marginBottom: 6 }}>Your account <strong style={{ color: T.text }}>{data.email}</strong> is registered but not yet approved.</div>
         <div style={{ fontSize: 13, color: T.textMuted, marginBottom: 20 }}>The super admin needs to assign you a role before you can access the dashboard.</div>
         <Btn onClick={load} style={{ marginRight: 8 }}>Check again</Btn>
+        <Btn danger onClick={logout}>Logout</Btn>
+      </Card>
+    </div>
+  );
+
+  // --- Blocked screen ---
+  if (data.role === "blocked") return (
+    <div style={{ ...page, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Card style={{ width: 400, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>🚫</div>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Access blocked</div>
+        <div style={{ fontSize: 13.5, color: T.textMuted, marginBottom: 20 }}>Your admin account <strong style={{ color: T.text }}>{data.email}</strong> has been blocked by the super admin. Contact them if you think this is a mistake.</div>
         <Btn danger onClick={logout}>Logout</Btn>
       </Card>
     </div>
@@ -199,13 +218,17 @@ export default function AdminClient() {
                     <Badge color={ROLE_COLOR[a.role]}>{ROLE_LABEL[a.role]}</Badge>
                   </div>
                   {a.role !== "super" && (
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {["viewer", "editor", "full", "pending"].map(r => (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      {["viewer", "editor", "full"].map(r => (
                         <Btn key={r} small onClick={() => setRole(a.email, r)} disabled={!superKey || busy === a.email + r || a.role === r}
                           style={{ background: a.role === r ? ROLE_COLOR[r] : "rgba(240,192,64,0.1)", color: a.role === r ? "#fff" : T.text }}>
                           {ROLE_LABEL[r]}
                         </Btn>
                       ))}
+                      {a.role === "blocked"
+                        ? <Btn small onClick={() => setRole(a.email, "pending")} disabled={!superKey || busy === a.email + "pending"} style={{ color: T.success }}>Unblock</Btn>
+                        : <Btn small onClick={() => setRole(a.email, "blocked")} disabled={!superKey || busy === a.email + "blocked"} style={{ color: T.danger }}>Block</Btn>}
+                      <Btn small danger onClick={() => removeAdmin(a.email)} disabled={!superKey || busy === a.email + "remove"}>Remove</Btn>
                     </div>
                   )}
                 </div>

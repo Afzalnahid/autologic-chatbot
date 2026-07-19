@@ -39,7 +39,10 @@ export async function GET(request) {
   if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const role = await callerRole(email);
 
-  if (role === "pending" || !role) return NextResponse.json({ role: "pending", email });
+  // Pending / blocked / no role: return identity + status only, no data.
+  if (role === "pending" || role === "blocked" || !role) {
+    return NextResponse.json({ role: role || "pending", email });
+  }
 
   const [clientsQ, msgsQ, ordersQ, bookingsQ, channelsQ, filesQ, productsQ] = await Promise.all([
     supabase.from("clients").select("id,owner_email,business_name,business_type,plan,trial_end,suspended,created_at,gcal_connected"),
@@ -96,7 +99,7 @@ export async function PUT(request) {
     const key = request.headers.get("x-admin-key") || "";
     if (key !== process.env.ADMIN_PASSWORD) return NextResponse.json({ error: "invalid key" }, { status: 403 });
     const { target_email, new_role } = body;
-    if (!target_email || !["full", "editor", "viewer", "pending"].includes(new_role))
+    if (!target_email || !["full", "editor", "viewer", "pending", "blocked"].includes(new_role))
       return NextResponse.json({ error: "bad request" }, { status: 400 });
     if (target_email.toLowerCase() === SUPER_ADMIN)
       return NextResponse.json({ error: "cannot change super admin" }, { status: 400 });
@@ -104,10 +107,24 @@ export async function PUT(request) {
       .update({ role: new_role, updated_at: new Date().toISOString() })
       .eq("email", target_email.toLowerCase());
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    // Congratulate the admin when granted an active role (not on revoke to pending).
+    // Congratulate the admin when granted an active role (not on revoke to pending/blocked).
     if (["full", "editor", "viewer"].includes(new_role)) {
       notifyAdminApproved(target_email.toLowerCase(), new_role).catch(() => {});
     }
+    return NextResponse.json({ ok: true });
+  }
+
+  // Remove an admin entirely — super admin only, requires secret key.
+  if (body.type === "remove_admin") {
+    if (role !== "super") return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const key = request.headers.get("x-admin-key") || "";
+    if (key !== process.env.ADMIN_PASSWORD) return NextResponse.json({ error: "invalid key" }, { status: 403 });
+    const { target_email } = body;
+    if (!target_email) return NextResponse.json({ error: "missing target" }, { status: 400 });
+    if (target_email.toLowerCase() === SUPER_ADMIN)
+      return NextResponse.json({ error: "cannot remove super admin" }, { status: 400 });
+    const { error } = await supabase.from("admin_users").delete().eq("email", target_email.toLowerCase());
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
