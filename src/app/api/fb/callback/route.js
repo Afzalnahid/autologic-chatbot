@@ -1,14 +1,15 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
-const APP_ID = process.env.FB_APP_ID || "914246304594380";
-const APP_SECRET = process.env.FB_APP_SECRET || "007a98117791b59b8dd62c6db3d91400";
+const APP_ID = process.env.FB_APP_ID;
+const APP_SECRET = process.env.FB_APP_SECRET;
 
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const clientId = searchParams.get("state") || "";
   if (!code) return new NextResponse("Missing code", { status: 400 });
+  if (!APP_ID || !APP_SECRET) return new NextResponse("Server misconfigured: FB_APP_ID or FB_APP_SECRET missing", { status: 500 });
 
   const redirect = `${origin}/api/fb/callback`;
   const tokRes = await fetch(`https://graph.facebook.com/v24.0/oauth/access_token?client_id=${APP_ID}&client_secret=${APP_SECRET}&redirect_uri=${encodeURIComponent(redirect)}&code=${code}`).then(r => r.json());
