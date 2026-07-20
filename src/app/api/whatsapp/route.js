@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { parseWhatsAppEvent } from "@/lib/messenger.js";
 import { handleIncoming } from "@/lib/bot.js";
 
-const VERIFY_TOKENS = [process.env.FACEBOOK_VERIFY_TOKEN, "autologic"].filter(Boolean);
+const VERIFY_TOKENS = [process.env.FACEBOOK_VERIFY_TOKEN].filter(Boolean);
 
 export async function GET(request) {
   const q = new URL(request.url).searchParams;
