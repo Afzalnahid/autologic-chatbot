@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabase } from "@/lib/supabase.js";
 
-const APP_SECRET = process.env.FB_APP_SECRET || "007a98117791b59b8dd62c6db3d91400";
+const APP_SECRET = process.env.FB_APP_SECRET;
 
 function parseSignedRequest(signedRequest) {
+  if (!APP_SECRET) return null;
   const [encodedSig, payload] = signedRequest.split(".");
   const sig = Buffer.from(encodedSig.replace(/-/g, "+").replace(/_/g, "/"), "base64");
   const data = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
