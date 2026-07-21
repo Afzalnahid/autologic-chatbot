@@ -224,11 +224,11 @@ export async function processConversation(channel, senderId, myRowId) {
       [systemPrompt, history, products] = await Promise.all([
         getSystemPrompt(clientId),
         getMemory(senderId, clientId),
-        searchProducts(clientId, combined, combined.includes("--- PRODUCT") ? 4 : 3),
+        searchProducts(clientId, combined, combined.includes("--- ITEM") ? 4 : 3),
       ]);
       context = products.length
-        ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
-          products.map(p => JSON.stringify(p.metadata || {})).join("\n")
+        ? "\n\nSEARCH RESULTS (source of truth, pick from these only; each has match_score 0-1 — if the best match_score is below 0.5, do NOT guess: tell the customer you couldn't find that exact item and ask for a clearer photo or more details):\n" +
+          products.map(p => JSON.stringify({ ...(p.metadata || {}), match_score: typeof p.similarity === "number" ? Number(p.similarity.toFixed(2)) : undefined })).join("\n")
         : "\n\nSEARCH RESULTS: none found.";
     }
   } catch (e) {
@@ -387,8 +387,8 @@ export async function runDemo(clientId, userText, history = []) {
   } else {
     const products = await searchProducts(clientId, userText, 3);
     context = products.length
-      ? "\n\nSEARCH RESULTS (source of truth, pick from these only):\n" +
-        products.map(p => JSON.stringify(p.metadata || {})).join("\n")
+      ? "\n\nSEARCH RESULTS (source of truth, pick from these only; each has match_score 0-1 — if the best match_score is below 0.5, do NOT guess: say you couldn't find that exact item):\n" +
+        products.map(p => JSON.stringify({ ...(p.metadata || {}), match_score: typeof p.similarity === "number" ? Number(p.similarity.toFixed(2)) : undefined })).join("\n")
       : "\n\nSEARCH RESULTS: none found.";
   }
 
