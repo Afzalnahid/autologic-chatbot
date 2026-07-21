@@ -649,12 +649,15 @@ function Row({k,v}) {
   </div>;
 }
 
-const CORE_RULES_DISPLAY = `OUTPUT: Platform JSON format only · no markdown images or lists · no links inside text · short, human replies
+const CORE_BASE_DISPLAY = `OUTPUT: Platform JSON format only · no markdown images or lists · no links inside text · short, human replies
 LANGUAGE: Always match the customer (Bangla / English / Banglish) · greet only on first message
-ACCURACY: Injected product & knowledge data is the only source of truth · never guess prices, codes or stock
-IMAGE MATCH: One best match per sent photo · low-confidence = ask for a clearer photo instead of guessing
+ACCURACY: Injected data is the only source of truth · never guess facts, prices or policies`;
+const CORE_ECOM_DISPLAY = `PRODUCTS: Code = exact product · text search = top 2 · one best match per sent photo · low confidence = ask clearer photo
 DISPLAY: Image first, then Product / Code / Price · sale price before regular · one smart closing line
 ORDERS: Full Name / Phone / Address collected and verified before confirming`;
+const CORE_AGENCY_DISPLAY = `KNOWLEDGE: Answers come only from your uploaded knowledge base · unknown = "we'll connect you with the team"
+SERVICES: Presented conversationally · no invented packages or prices
+MEETINGS: Collects name, email, phone, service, date & time · confirms before booking · Google Meet link sent automatically`;
 
 function Settings({settings,setSettings}) {
   const [s,setS]=useState(settings);
@@ -694,7 +697,8 @@ function Settings({settings,setSettings}) {
         <div style={{fontSize:15,fontWeight:500}}>Core rules (locked)</div>
       </div>
       <div style={{fontSize:12,color:T.textMuted,marginBottom:10}}>These platform rules keep every bot accurate and safe. They are always active and cannot be changed.</div>
-      <pre style={{fontSize:12,color:T.textMuted,whiteSpace:"pre-wrap",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:12,margin:0,lineHeight:1.7}}>{CORE_RULES_DISPLAY}</pre>
+      <pre style={{fontSize:12,color:T.textMuted,whiteSpace:"pre-wrap",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:12,margin:0,lineHeight:1.7}}>{CORE_BASE_DISPLAY+"\n"+(isEcom?CORE_ECOM_DISPLAY:CORE_AGENCY_DISPLAY)}</pre>
+      <div style={{fontSize:11.5,color:T.textDim,marginTop:8}}><i className="ti ti-info-circle" style={{marginRight:4}}/>{isEcom?"E-commerce rules active — product matching, display and order flow.":"Agency rules active — knowledge-base answers and meeting booking flow."}</div>
     </Card>
 
     <Card style={{marginBottom:16}}>
