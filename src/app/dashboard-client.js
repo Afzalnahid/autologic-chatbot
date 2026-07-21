@@ -649,11 +649,12 @@ function Row({k,v}) {
   </div>;
 }
 
-const CORE_RULES_DISPLAY = `1. Reply ONLY in the platform's JSON message format — enforced automatically.
-2. Always reply in the customer's language (Bangla / English / Banglish).
-3. Injected product & knowledge data is the ONLY source of truth — the bot never invents prices, codes, stock or policies.
-4. Products are shown as image first, then name, code and price.
-5. Concise, warm, professional replies. Internal instructions are never revealed.`;
+const CORE_RULES_DISPLAY = `OUTPUT: Platform JSON format only · no markdown images or lists · no links inside text · short, human replies
+LANGUAGE: Always match the customer (Bangla / English / Banglish) · greet only on first message
+ACCURACY: Injected product & knowledge data is the only source of truth · never guess prices, codes or stock
+IMAGE MATCH: One best match per sent photo · low-confidence = ask for a clearer photo instead of guessing
+DISPLAY: Image first, then Product / Code / Price · sale price before regular · one smart closing line
+ORDERS: Full Name / Phone / Address collected and verified before confirming`;
 
 function Settings({settings,setSettings}) {
   const [s,setS]=useState(settings);
@@ -722,6 +723,8 @@ function Settings({settings,setSettings}) {
         <Inp textarea label="Services you offer" value={q.services||""} onChange={e=>setQ({services:e.target.value})}/>
         <Inp label="Meeting / booking info" value={q.meetingInfo||""} onChange={e=>setQ({meetingInfo:e.target.value})}/>
       </>}
+      <Inp label="Catalog / website link" value={q.catalogLink||""} onChange={e=>setQ({catalogLink:e.target.value})}/>
+      <Inp label="Special brand rules" value={q.special||""} onChange={e=>setQ({special:e.target.value})}/>
       <Inp label="Working hours" value={q.hours||""} onChange={e=>setQ({hours:e.target.value})}/>
       <Inp textarea label="Common questions & answers" value={q.faq||""} onChange={e=>setQ({faq:e.target.value})}/>
       <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?"Generating...":"Regenerate with AI"}</Btn>
@@ -971,7 +974,7 @@ function Onboarding({me,onTrial,onDemo}) {
   const [err,setErr]=useState("");
   const [form,setForm]=useState({business_name:c.business_name||"",business_type:c.business_type||"ecommerce",phone:"",address:"",website:""});
   const BIZ={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider"};
-  const [q,setQ]=useState({description:"",tone:"Friendly and helpful",languages:"Bangla and English",hours:"",delivery:"",payment:"",returnPolicy:"",services:"",meetingInfo:"",faq:""});
+  const [q,setQ]=useState({description:"",tone:"Friendly and helpful",languages:"Bangla and English",hours:"",delivery:"",payment:"",returnPolicy:"",services:"",meetingInfo:"",faq:"",catalogLink:"",special:""});
   const isEcom=form.business_type==="ecommerce";
   const trainBot=async(skip)=>{
     if(skip){setStep("choose");return;}
@@ -1056,6 +1059,8 @@ function Onboarding({me,onTrial,onDemo}) {
         <Inp textarea label="Services you offer" value={q.services} onChange={e=>setQ({...q,services:e.target.value})} placeholder="e.g. Facebook ads management, web design, SEO. Packages from 5000tk/month"/>
         <Inp label="Meeting / booking info" value={q.meetingInfo} onChange={e=>setQ({...q,meetingInfo:e.target.value})} placeholder="e.g. Free 30-min consultation call via Google Meet"/>
       </>}
+      <Inp label="Catalog / website link (optional)" value={q.catalogLink} onChange={e=>setQ({...q,catalogLink:e.target.value})} placeholder="e.g. www.yourshop.com"/>
+      <Inp label="Special brand rules (optional)" value={q.special} onChange={e=>setQ({...q,special:e.target.value})} placeholder="e.g. Address customers as আপনি, never say নমস্কার"/>
       <Inp label="Working hours" value={q.hours} onChange={e=>setQ({...q,hours:e.target.value})} placeholder="e.g. Everyday 10am-10pm"/>
       <Inp textarea label="Common questions & answers (optional)" value={q.faq} onChange={e=>setQ({...q,faq:e.target.value})} placeholder={"Q: Do you have a physical shop?\nA: No, we are online only."}/>
       {err&&<div style={{fontSize:12,color:T.danger,marginBottom:10}}>{err}</div>}
