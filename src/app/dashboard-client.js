@@ -787,10 +787,12 @@ function Channels({onConnect}) {
 
 
 function AuthGate({onReady}) {
-  // First-time visitors see "Create account" first; returning visitors see "Sign in".
+  // Priority: explicit ?auth=signup/signin from the landing page → then first-visit localStorage.
   const [mode,setMode]=useState("signin");
   useEffect(()=>{
     try {
+      const param = new URLSearchParams(window.location.search).get("auth");
+      if (param === "signup" || param === "signin") { setMode(param); return; }
       const seen = localStorage.getItem("autologic_visited");
       setMode(seen ? "signin" : "signup");
     } catch { setMode("signin"); }
