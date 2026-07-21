@@ -37,7 +37,7 @@ export default function GoogleCalendar() {
         <div style={{ marginTop: 40, display: "flex", gap: 20, fontSize: 13.5 }}>
           <a href="/privacy" style={{ color: "#8b9cbd", textDecoration: "none" }}>Privacy Policy</a>
           <a href="/terms" style={{ color: "#8b9cbd", textDecoration: "none" }}>Terms of Service</a>
-          <a href="mailto:nahidafzal97@gmail.com" style={{ color: "#8b9cbd", textDecoration: "none" }}>Contact</a>
+          <a href="/contact" style={{ color: "#8b9cbd", textDecoration: "none" }}>Contact</a>
         </div>
       </div>
     </div>
