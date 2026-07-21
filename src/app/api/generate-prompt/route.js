@@ -31,7 +31,9 @@ BOUNDARIES:
 (what the bot must not do or claim for this business)
 
 STRICT RULES for you:
-- Do NOT include any JSON/output-format instructions, language-matching rules, or "source of truth" rules — the platform enforces those separately.
+- Do NOT include any of these (the platform already enforces them): JSON/output format, markdown/list bans, language matching, greeting timing, image-match logic, product display format, price fallback logic, closing-line rule, source-of-truth rules, or order confirmation format.
+- DO include the owner's special brand rules (addressing style, banned words, brand phrases) under IDENTITY & TONE.
+- DO include the catalog link behavior under WHAT WE OFFER if a link is provided.
 - Only use facts from the owner's answers. Do not invent prices, policies or services.
 - Write in clear English (the bot itself will still reply to customers in their language).
 - Output ONLY the section text. No preamble, no markdown fences.`;
@@ -64,6 +66,8 @@ export async function POST(request) {
         if (answers.services) L.push(`Services offered: ${answers.services}`);
         if (answers.meetingInfo) L.push(`Meetings/booking info: ${answers.meetingInfo}`);
       }
+      if (answers.catalogLink) L.push(`Catalog/website link (bot should share this when the customer asks to see everything/full collection, without searching): ${answers.catalogLink}`);
+      if (answers.special) L.push(`Special brand rules from the owner (e.g. how to address customers, banned words, brand phrases): ${answers.special}`);
       if (answers.faq) L.push(`FAQs from the owner:\n${answers.faq}`);
       input = L.join("\n");
     } else {
