@@ -83,9 +83,17 @@ export const FIXED_CORE = `[CORE RULES - ALWAYS ENFORCED]
 async function getSystemPrompt(clientId) {
   const { data } = await sb().from("app_settings").select("*").limit(200);
   const row = (data || []).find(r => r.id === String(clientId));
-  const biz = row?.settings?.businessPrompt || row?.settings?.systemPrompt ||
+  const st = row?.settings || {};
+  const biz = st.businessPrompt || st.systemPrompt ||
     "You are a helpful, friendly sales and support assistant for this business.";
-  return FIXED_CORE + "\n\n[BUSINESS PROFILE - provided by the owner]\n" + biz;
+  let prompt = FIXED_CORE;
+  if (st.greeting) {
+    prompt += `\n\n[GREETING RULE] If this is the START of a new conversation (there are no previous messages in the history), begin your first reply with this exact greeting (adapt language to the customer if needed): "${st.greeting}". In ongoing conversations, never repeat the greeting — answer directly.`;
+  }
+  if (st.botName) {
+    prompt += `\n\n[BOT NAME] Your name is "${st.botName}". Use it if the customer asks who you are.`;
+  }
+  return prompt + "\n\n[BUSINESS PROFILE - provided by the owner]\n" + biz;
 }
 
 async function searchProducts(clientId, query, k = 3) {
