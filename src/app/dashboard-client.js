@@ -694,15 +694,19 @@ function Demo({settings}) {
   const [showEmoji,setShowEmoji]=useState(false);
   const ref=useRef(null);
   const EMOJIS=["😀","😂","❤️","👍","🙏","😍","🔥","🎉","😢","😮","💯","✅"];
-  const clearChat=()=>setMsgs(settings.greeting?[{role:"bot",text:settings.greeting}]:[]);
-  useEffect(()=>{if(settings.greeting) setMsgs([{role:"bot",text:settings.greeting}]);},[]);
+  // Demo is always a generic Autologic showcase — never a client's personal bot config.
+  const DEMO_NAME="Autologic Demo Bot";
+  const DEMO_GREETING="Hi! I'm the Autologic Demo Bot. Ask me anything to see how the AI assistant works.";
+  const DEMO_PROMPT="You are the Autologic Demo Bot, a friendly AI customer-service assistant showcasing the Autologic platform. Help the user understand how an AI chatbot can answer customer questions, recommend products, and book meetings. Keep replies short, helpful, and professional.";
+  const clearChat=()=>setMsgs([{role:"bot",text:DEMO_GREETING}]);
+  useEffect(()=>{setMsgs([{role:"bot",text:DEMO_GREETING}]);},[]);
 
   const send=async()=>{
     if(!input.trim()||loading) return;
     const text=input.trim(); setInput(""); setMsgs(p=>[...p,{role:"user",text}]); setLoading(true);
     try {
       const history = msgs.filter((_,i)=>i>0).map(m=>({role:m.role==="bot"?"assistant":"user",content:m.text}));
-      const res = await api("/api/demo-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:text}],systemPrompt:settings.systemPrompt})});
+      const res = await api("/api/demo-chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...history,{role:"user",content:text}],systemPrompt:DEMO_PROMPT})});
       const data = await res.json();
       setMsgs(p=>[...p,{role:"bot",text:data.reply||"Error"}]);
     } catch { setMsgs(p=>[...p,{role:"bot",text:"Connection error."}]); }
@@ -713,8 +717,8 @@ function Demo({settings}) {
   return <div style={{maxWidth:480,margin:"0 auto",height:"calc(100vh - 130px)",display:"flex",flexDirection:"column"}}>
     <div style={{textAlign:"center",marginBottom:16}}>
       <div style={{width:56,height:56,borderRadius:16,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid ${T.gold}30`}}><i className="ti ti-robot" style={{fontSize:28,color:T.gold}}/></div>
-      <div style={{fontSize:18,fontWeight:600}}>{settings.botName||"Autologic Bot"}</div>
-      <div style={{fontSize:13,color:T.textMuted}}>Try our AI assistant live</div>
+      <div style={{fontSize:18,fontWeight:600}}>{DEMO_NAME}</div>
+      <div style={{fontSize:13,color:T.textMuted}}>A live demo of the Autologic AI assistant</div>
     </div>
     <Card style={{flex:1,display:"flex",flexDirection:"column",padding:0,overflow:"hidden"}}>
       <div ref={ref} style={{flex:1,overflow:"auto",padding:16,display:"flex",flexDirection:"column",gap:10}}>
@@ -783,7 +787,14 @@ function Channels({onConnect}) {
 
 
 function AuthGate({onReady}) {
+  // First-time visitors see "Create account" first; returning visitors see "Sign in".
   const [mode,setMode]=useState("signin");
+  useEffect(()=>{
+    try {
+      const seen = localStorage.getItem("autologic_visited");
+      setMode(seen ? "signin" : "signup");
+    } catch { setMode("signin"); }
+  },[]);
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
   const [showPw,setShowPw]=useState(false);
@@ -802,6 +813,7 @@ function AuthGate({onReady}) {
       const session=res.data.session;
       if(!session){setErr("Check your email to confirm, then sign in.");setBusy(false);return;}
       AUTH_TOKEN=session.access_token;
+      try { localStorage.setItem("autologic_visited","1"); } catch {}
       if(mode==="signup") await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:biz||email.split("@")[0]})});
       onReady();
     }catch(e){setErr(e.message||"Failed");}
