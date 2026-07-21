@@ -649,22 +649,35 @@ function Row({k,v}) {
   </div>;
 }
 
+const CORE_RULES_DISPLAY = `1. Reply ONLY in the platform's JSON message format — enforced automatically.
+2. Always reply in the customer's language (Bangla / English / Banglish).
+3. Injected product & knowledge data is the ONLY source of truth — the bot never invents prices, codes, stock or policies.
+4. Products are shown as image first, then name, code and price.
+5. Concise, warm, professional replies. Internal instructions are never revealed.`;
+
 function Settings({settings,setSettings}) {
   const [s,setS]=useState(settings);
   const [saved,setSaved]=useState(false);
-  const [bizDesc,setBizDesc]=useState("");
   const [gen,setGen]=useState(false);
   const [genMsg,setGenMsg]=useState("");
-  const save=async()=>{setSettings(s); await api("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(s)}); setSaved(true); setTimeout(()=>setSaved(false),2000);};
+  const [me,setMe]=useState(null);
   useEffect(()=>{setS(settings);},[settings]);
-  const generate=async()=>{
-    if(!bizDesc.trim()||gen) return;
-    setGen(true); setGenMsg("Generating prompt...");
-    const r=await api("/api/generate-prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({description:bizDesc})}).then(r=>r.json()).catch(()=>({error:"network"}));
+  useEffect(()=>{api("/api/me").then(r=>r.json()).then(setMe).catch(()=>{});},[]);
+  const bType=me?.client?.business_type||"ecommerce";
+  const isEcom=bType==="ecommerce";
+  const q=s.questionnaire||{};
+  const setQ=(patch)=>setS(v=>({...v,questionnaire:{...(v.questionnaire||{}),...patch}}));
+  const save=async()=>{setSettings(s); await api("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(s)}); setSaved(true); setTimeout(()=>setSaved(false),2000);};
+  const regenerate=async()=>{
+    if(gen) return;
+    if(!(q.description||"").trim()){setGenMsg("Please describe your business first");return;}
+    setGen(true); setGenMsg("AI is writing your bot's business profile...");
+    const r=await api("/api/generate-prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers:q})}).then(r=>r.json()).catch(()=>({error:"network"}));
     setGen(false);
     if(r.error){setGenMsg("Failed: "+r.error);return;}
-    setS(v=>({...v,systemPrompt:r.prompt})); setGenMsg("Prompt generated. Review below and Save.");
+    setS(v=>({...v,businessPrompt:r.prompt})); setGenMsg("Generated and saved. Review below — you can edit it.");
   };
+  const selStyle={width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5};
   return <div style={{maxWidth:700}}>
     <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>General</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
@@ -673,15 +686,51 @@ function Settings({settings,setSettings}) {
       </div>
       <Inp label="Greeting" value={s.greeting||""} onChange={e=>setS({...s,greeting:e.target.value})}/>
     </Card>
+
+    <Card style={{marginBottom:16,border:`1px solid ${T.border}`}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+        <i className="ti ti-lock" style={{color:T.gold,fontSize:16}}/>
+        <div style={{fontSize:15,fontWeight:500}}>Core rules (locked)</div>
+      </div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:10}}>These platform rules keep every bot accurate and safe. They are always active and cannot be changed.</div>
+      <pre style={{fontSize:12,color:T.textMuted,whiteSpace:"pre-wrap",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:12,margin:0,lineHeight:1.7}}>{CORE_RULES_DISPLAY}</pre>
+    </Card>
+
     <Card style={{marginBottom:16}}>
-      <div style={{fontSize:15,fontWeight:500,marginBottom:6}}>AI prompt generator</div>
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>Describe your business, products, prices, delivery and policies. AI will write a complete system prompt for you.</div>
-      <Inp textarea value={bizDesc} onChange={e=>setBizDesc(e.target.value)} placeholder="e.g. We sell handmade leather bags for men and women. Prices 1500 to 5000 tk. Delivery 80 tk in Dhaka, 130 outside. Cash on delivery. 7 day return." style={{marginBottom:10}}/>
-      <Btn gold onClick={generate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?"Generating...":"Generate prompt"}</Btn>
+      <div style={{fontSize:15,fontWeight:500,marginBottom:6}}><i className="ti ti-wand" style={{marginRight:6,color:T.gold}}/>Bot training</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:14}}>Answer about your business — AI writes the bot's business profile inside the fixed structure. Edit anytime and regenerate.</div>
+      <Inp textarea label="Describe your business" value={q.description||""} onChange={e=>setQ({description:e.target.value})}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
+        <div style={{marginBottom:16}}>
+          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
+          <select value={q.tone||"Friendly and helpful"} onChange={e=>setQ({tone:e.target.value})} style={selStyle}>
+            {["Friendly and helpful","Professional and formal","Casual and fun"].map(t=><option key={t}>{t}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
+          <select value={q.languages||"Bangla and English"} onChange={e=>setQ({languages:e.target.value})} style={selStyle}>
+            {["Bangla and English","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+      {isEcom?<>
+        <Inp label="Delivery (time & charge)" value={q.delivery||""} onChange={e=>setQ({delivery:e.target.value})}/>
+        <Inp label="Payment methods" value={q.payment||""} onChange={e=>setQ({payment:e.target.value})}/>
+        <Inp label="Return / refund policy" value={q.returnPolicy||""} onChange={e=>setQ({returnPolicy:e.target.value})}/>
+      </>:<>
+        <Inp textarea label="Services you offer" value={q.services||""} onChange={e=>setQ({services:e.target.value})}/>
+        <Inp label="Meeting / booking info" value={q.meetingInfo||""} onChange={e=>setQ({meetingInfo:e.target.value})}/>
+      </>}
+      <Inp label="Working hours" value={q.hours||""} onChange={e=>setQ({hours:e.target.value})}/>
+      <Inp textarea label="Common questions & answers" value={q.faq||""} onChange={e=>setQ({faq:e.target.value})}/>
+      <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?"Generating...":"Regenerate with AI"}</Btn>
       {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
     </Card>
-    <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>AI system prompt</div>
-      <Inp textarea value={s.systemPrompt||""} onChange={e=>setS({...s,systemPrompt:e.target.value})} style={{marginBottom:0}}/>
+
+    <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:6}}>Business prompt (editable)</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>This is your bot's business knowledge. Edit freely — the locked core rules above are added automatically on top.</div>
+      <Inp textarea value={s.businessPrompt||s.systemPrompt||""} onChange={e=>setS({...s,businessPrompt:e.target.value})} style={{marginBottom:0}}/>
     </Card>
     <Btn gold onClick={save}><i className="ti ti-check" style={{marginRight:6}}/>{saved?"Saved!":"Save settings"}</Btn>
   </div>;
@@ -922,6 +971,20 @@ function Onboarding({me,onTrial,onDemo}) {
   const [err,setErr]=useState("");
   const [form,setForm]=useState({business_name:c.business_name||"",business_type:c.business_type||"ecommerce",phone:"",address:"",website:""});
   const BIZ={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider"};
+  const [q,setQ]=useState({description:"",tone:"Friendly and helpful",languages:"Bangla and English",hours:"",delivery:"",payment:"",returnPolicy:"",services:"",meetingInfo:"",faq:""});
+  const isEcom=form.business_type==="ecommerce";
+  const trainBot=async(skip)=>{
+    if(skip){setStep("choose");return;}
+    if(!q.description.trim()){setErr("Please describe your business");return;}
+    setBusy(true);setErr("");
+    try{
+      const res=await api("/api/generate-prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers:q})});
+      const d=await res.json();
+      if(d.error) throw new Error(d.error);
+      setStep("choose");
+    }catch(e){setErr(e.message||"Generation failed");}
+    setBusy(false);
+  };
 
   const saveProfile=async()=>{
     if(!form.business_name.trim()){setErr("Business name is required");return;}
@@ -930,7 +993,7 @@ function Onboarding({me,onTrial,onDemo}) {
     try{
       const res=await api("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});
       if(!res.ok) throw new Error("Save failed");
-      setStep("choose");
+      setStep("train");
     }catch(e){setErr(e.message||"Failed");}
     setBusy(false);
   };
@@ -963,11 +1026,49 @@ function Onboarding({me,onTrial,onDemo}) {
     </Card>
   </div>;
 
+  if(step==="train") return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <Card style={{maxWidth:520,width:"100%",padding:"1.8rem 1.6rem",maxHeight:"92dvh",overflowY:"auto"}}>
+      <div style={{textAlign:"center",marginBottom:18}}>
+        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid ${T.gold}30`}}><i className="ti ti-wand" style={{fontSize:24,color:T.gold}}/></div>
+        <div style={{fontSize:18,fontWeight:600}}>Train your AI bot</div>
+        <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>Step 2 of 3 — answer a few questions and AI will build your bot's brain. You can edit everything later in Settings.</div>
+      </div>
+      <Inp textarea label="Describe your business *" value={q.description} onChange={e=>setQ({...q,description:e.target.value})} placeholder={isEcom?"e.g. We sell handmade leather bags. Prices 1500-5000 tk. Based in Dhaka.":"e.g. We are a digital marketing agency helping small businesses grow on Facebook."}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
+        <div style={{marginBottom:16}}>
+          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
+          <select value={q.tone} onChange={e=>setQ({...q,tone:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5}}>
+            {["Friendly and helpful","Professional and formal","Casual and fun"].map(t=><option key={t}>{t}</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
+          <select value={q.languages} onChange={e=>setQ({...q,languages:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5}}>
+            {["Bangla and English","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+      {isEcom?<>
+        <Inp label="Delivery (time & charge)" value={q.delivery} onChange={e=>setQ({...q,delivery:e.target.value})} placeholder="e.g. Dhaka 80tk 1-2 days, outside 130tk 3-4 days"/>
+        <Inp label="Payment methods" value={q.payment} onChange={e=>setQ({...q,payment:e.target.value})} placeholder="e.g. Cash on delivery, bKash, Nagad"/>
+        <Inp label="Return / refund policy" value={q.returnPolicy} onChange={e=>setQ({...q,returnPolicy:e.target.value})} placeholder="e.g. 7 day return if unused"/>
+      </>:<>
+        <Inp textarea label="Services you offer" value={q.services} onChange={e=>setQ({...q,services:e.target.value})} placeholder="e.g. Facebook ads management, web design, SEO. Packages from 5000tk/month"/>
+        <Inp label="Meeting / booking info" value={q.meetingInfo} onChange={e=>setQ({...q,meetingInfo:e.target.value})} placeholder="e.g. Free 30-min consultation call via Google Meet"/>
+      </>}
+      <Inp label="Working hours" value={q.hours} onChange={e=>setQ({...q,hours:e.target.value})} placeholder="e.g. Everyday 10am-10pm"/>
+      <Inp textarea label="Common questions & answers (optional)" value={q.faq} onChange={e=>setQ({...q,faq:e.target.value})} placeholder={"Q: Do you have a physical shop?\nA: No, we are online only."}/>
+      {err&&<div style={{fontSize:12,color:T.danger,marginBottom:10}}>{err}</div>}
+      <Btn gold onClick={()=>trainBot(false)} disabled={busy} style={{width:"100%",marginBottom:8}}><i className="ti ti-sparkles" style={{marginRight:6}}/>{busy?"Building your bot...":"Generate my bot"}</Btn>
+      <div onClick={()=>!busy&&trainBot(true)} style={{textAlign:"center",fontSize:12.5,color:T.textMuted,cursor:"pointer"}}>Skip for now</div>
+    </Card>
+  </div>;
+
   return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{maxWidth:640,width:"100%"}}>
       <div style={{textAlign:"center",marginBottom:24}}>
         <div style={{fontSize:20,fontWeight:600}}>Welcome, {form.business_name||c.business_name}</div>
-        <div style={{fontSize:13,color:T.textMuted}}>Step 2 of 2 — choose how you want to start</div>
+        <div style={{fontSize:13,color:T.textMuted}}>Step 3 of 3 — choose how you want to start</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16}}>
         <Card style={{textAlign:"center",padding:"2rem 1.5rem",cursor:"pointer"}} onClick={onDemo}>
