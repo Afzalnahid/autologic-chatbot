@@ -70,7 +70,7 @@ export default function Home() {
             <a href="/google-calendar" style={{ color: T.muted, textDecoration: "none" }}>Google Calendar</a>
             <a href="/privacy" style={{ color: T.muted, textDecoration: "none" }}>Privacy Policy</a>
             <a href="/terms" style={{ color: T.muted, textDecoration: "none" }}>Terms of Service</a>
-            <a href="mailto:nahidafzal97@gmail.com" style={{ color: T.muted, textDecoration: "none" }}>Contact</a>
+            <a href="/contact" style={{ color: T.muted, textDecoration: "none" }}>Contact</a>
           </div>
         </div>
       </footer>
