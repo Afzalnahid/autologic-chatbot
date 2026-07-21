@@ -59,30 +59,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Google Calendar usage disclosure — important for verification */}
-      <section style={{ ...wrap, padding: "0 24px 64px" }}>
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "36px 32px" }}>
-          <h2 style={{ fontSize: 24, fontWeight: 700, marginTop: 0, marginBottom: 14 }}>How Autologic uses Google Calendar</h2>
-          <p style={{ fontSize: 15, color: T.muted, lineHeight: 1.8, marginBottom: 14 }}>
-            When a business owner connects their Google Calendar to Autologic, the app uses that access solely to automate meeting scheduling for their customers. Specifically, Autologic will:
-          </p>
-          <ul style={{ fontSize: 15, color: T.muted, lineHeight: 1.9, paddingLeft: 22, marginBottom: 14 }}>
-            <li>Check the business owner's calendar availability when a customer requests a meeting.</li>
-            <li>Create a calendar event with a Google Meet link on the owner's behalf when a booking is confirmed.</li>
-            <li>Send the Google Meet link to the customer through the connected messaging channel.</li>
-          </ul>
-          <p style={{ fontSize: 15, color: T.muted, lineHeight: 1.8 }}>
-            Autologic does not read, store, or share calendar data for any other purpose, and never uses it for advertising. Our use of information received from Google APIs adheres to the{" "}
-            <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: T.gold }}>Google API Services User Data Policy</a>, including the Limited Use requirements. You can disconnect Google Calendar at any time from your dashboard, which immediately revokes access.
-          </p>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer style={{ borderTop: `1px solid ${T.border}` }}>
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, padding: "26px 24px", fontSize: 13.5, color: T.muted }}>
           <div>© 2026 Autologic · Kandirpar, Cumilla, Bangladesh</div>
-          <div style={{ display: "flex", gap: 20 }}>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <a href="/google-calendar" style={{ color: T.muted, textDecoration: "none" }}>Google Calendar</a>
             <a href="/privacy" style={{ color: T.muted, textDecoration: "none" }}>Privacy Policy</a>
             <a href="/terms" style={{ color: T.muted, textDecoration: "none" }}>Terms of Service</a>
             <a href="mailto:nahidafzal97@gmail.com" style={{ color: T.muted, textDecoration: "none" }}>Contact</a>
