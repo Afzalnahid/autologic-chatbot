@@ -29,7 +29,10 @@ export default function Home() {
             <div style={{ width: 34, height: 34, borderRadius: 9, background: T.goldBg, border: `1px solid ${T.gold}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🤖</div>
             <span style={{ fontSize: 19, fontWeight: 700 }}>Autologic</span>
           </div>
-          <a href="/dashboard" style={{ padding: "9px 20px", background: T.gold, color: "#0a0a0a", borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: "none" }}>Login</a>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <a href="/dashboard?auth=signin" style={{ padding: "9px 18px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: "none" }}>Log in</a>
+            <a href="/dashboard?auth=signup" style={{ padding: "9px 20px", background: T.gold, color: "#0a0a0a", borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: "none" }}>Sign up</a>
+          </div>
         </div>
       </nav>
 
@@ -44,7 +47,7 @@ export default function Home() {
         <p style={{ fontSize: 17, color: T.muted, maxWidth: 620, margin: "0 auto 32px", lineHeight: 1.7 }}>
           Autologic connects to your Facebook, Instagram, and WhatsApp, answers customer questions automatically with AI, and books meetings straight into your Google Calendar — 24/7, in your own voice.
         </p>
-        <a href="/dashboard" style={{ display: "inline-block", padding: "13px 30px", background: T.gold, color: "#0a0a0a", borderRadius: 10, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>Get started</a>
+        <a href="/dashboard?auth=signup" style={{ display: "inline-block", padding: "13px 30px", background: T.gold, color: "#0a0a0a", borderRadius: 10, fontWeight: 700, fontSize: 15.5, textDecoration: "none" }}>Get started</a>
       </section>
 
       {/* Features */}
