@@ -121,6 +121,21 @@ export default function AdminClient() {
     if (!res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "failed"); }
     await load(); setBusy("");
   };
+
+  // Verify or reject a client payment.
+  const reviewPayment = async (req, decision) => {
+    let note = null;
+    if (decision === "reject") {
+      note = window.prompt(`Reject payment from "${req.business_name}"?\n\nReason (shown to the client):`);
+      if (note === null) return;
+    } else if (!window.confirm(`Confirm you received \u09F3${Number(req.amount).toLocaleString("en-IN")} via ${req.method}\nTransaction: ${req.txn_id}\n\nThis will activate the ${req.plan} plan.`)) {
+      return;
+    }
+    setBusy(req.id + decision);
+    const res = await api("PUT", { type: "payment", request_id: req.id, decision, note });
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "failed"); }
+    await load(); setBusy("");
+  };
   const del = async (c) => {
     const typed = window.prompt(`"${c.business_name || c.owner_email}" permanently delete — all data removed.\n\nType DELETE to confirm:`);
     if (typed !== "DELETE") return;
@@ -262,6 +277,73 @@ export default function AdminClient() {
             </div>
           </Card>
         )}
+
+        {(() => {
+          const payments = data.payments || [];
+          const pending = payments.filter(p => p.status === "pending");
+          const reviewed = payments.filter(p => p.status !== "pending").slice(0, 8);
+          if (!payments.length) return null;
+          const taka = n => "\u09F3" + Number(n || 0).toLocaleString("en-IN");
+          return (
+            <Card style={{ marginBottom: 20, border: pending.length ? `1px solid ${T.warn}55` : undefined }}>
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                Payments
+                {pending.length > 0 && <Badge color={T.warn}>{pending.length} awaiting review</Badge>}
+              </div>
+              <div style={{ fontSize: 12.5, color: T.textMuted, marginBottom: 16 }}>
+                Check the transaction in your bKash/Nagad app before approving.
+              </div>
+
+              {pending.length === 0
+                ? <div style={{ fontSize: 13, color: T.textMuted, marginBottom: reviewed.length ? 16 : 0 }}>No payments waiting for review.</div>
+                : pending.map(p => (
+                  <div key={p.id} style={{ background: T.bgAlt, border: `0.5px solid ${T.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 200, flex: "1 1 240px" }}>
+                        <div style={{ fontSize: 14.5, fontWeight: 600 }}>{p.business_name}</div>
+                        <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 2 }}>{p.owner_email}</div>
+                        <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 6 }}>
+                          {new Date(p.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ minWidth: 190 }}>
+                        <div style={{ fontSize: 19, fontWeight: 700, color: T.gold }}>{taka(p.amount)}</div>
+                        <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 3 }}>
+                          {p.plan} · {p.billing_cycle} · {p.method}
+                        </div>
+                        <div style={{ fontSize: 12.5, marginTop: 5 }}>
+                          <span style={{ color: T.textMuted }}>Txn </span>
+                          <span style={{ fontFamily: "monospace", color: T.text }}>{p.txn_id}</span>
+                        </div>
+                        {p.sender_number && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3 }}>From {p.sender_number}</div>}
+                      </div>
+                    </div>
+                    {canEdit && (
+                      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                        <Btn small onClick={() => reviewPayment(p, "approve")} disabled={busy === p.id + "approve"} style={{ background: T.success, color: "#fff" }}>
+                          {busy === p.id + "approve" ? "Approving..." : "Approve & activate"}
+                        </Btn>
+                        <Btn small danger onClick={() => reviewPayment(p, "reject")} disabled={busy === p.id + "reject"}>Reject</Btn>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+              {reviewed.length > 0 && (
+                <div style={{ marginTop: 8, paddingTop: 14, borderTop: `0.5px solid ${T.border}` }}>
+                  <div style={{ fontSize: 12, color: T.textMuted, textTransform: "uppercase", letterSpacing: .8, marginBottom: 10 }}>Recently reviewed</div>
+                  {reviewed.map(p => (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "7px 0", fontSize: 12.5, flexWrap: "wrap" }}>
+                      <span style={{ flex: "1 1 160px" }}>{p.business_name}</span>
+                      <span style={{ color: T.textMuted }}>{taka(p.amount)} · {p.plan}</span>
+                      <Badge color={p.status === "approved" ? T.success : T.danger}>{p.status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          );
+        })()}
 
         <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Clients {!canEdit && <Badge color={T.textMuted}>View only</Badge>}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
