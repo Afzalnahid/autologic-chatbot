@@ -1126,6 +1126,16 @@ function Row({k,v}) {
   </div>;
 }
 
+const SAMPLE_ECOM=[
+  {label:"Jewelry shop",text:"We sell imported jewelry — rings, necklaces and bracelets for both men and women. Prices are between 500 and 3000 taka. All rings are free size. We are online only, based in Savar. Delivery is 80 taka inside Dhaka (1-2 days) and 130 taka outside Dhaka (2-3 days). We take cash on delivery and bKash. Customers can check the product in front of the delivery rider."},
+  {label:"Cake & food",text:"We make homemade cakes and desserts to order in Dhaka. A half kg cake starts from 800 taka. Custom cakes need at least 2 days notice. We deliver inside Dhaka only for 100 taka. Payment is bKash advance. We are closed on Fridays."},
+  {label:"Clothing store",text:"We sell men's and women's clothing — shirts, panjabi, sarees and three-piece sets. Prices are 600 to 4000 taka. We have a size chart for every item, so always ask the customer for their size. Delivery all over Bangladesh: 70 taka in Dhaka, 130 taka outside. Cash on delivery is available. Exchange within 3 days if the size does not fit."},
+];
+const SAMPLE_AGENCY=[
+  {label:"Marketing agency",text:"We are a digital marketing agency in Dhaka. We manage Facebook and Instagram ads, create content, and handle page management. Packages start from 8000 taka per month. We offer a free 30 minute consultation call before starting any work. We are open Saturday to Thursday, 10am to 7pm."},
+  {label:"Clinic / chamber",text:"We are a dental clinic in Chattogram. We do check-ups, scaling, filling and braces. The consultation fee is 500 taka. Patients need an appointment — we are open Saturday to Thursday, 5pm to 9pm. For emergencies they can call us directly."},
+  {label:"Coaching centre",text:"We run an IELTS coaching centre in Dhaka. New batches start every month. The course fee is 12000 taka for 3 months with classes 3 days a week. We offer one free trial class. Students can book a counselling session to learn more before enrolling."},
+];
 const CORE_BASE_DISPLAY = `OUTPUT: Platform JSON format only · no markdown images or lists · no links inside text · short, human replies
 LANGUAGE: Always match the customer (Bangla / English / Banglish) · greet only on first message
 ACCURACY: Injected data is the only source of truth · never guess facts, prices or policies`;
@@ -1141,6 +1151,7 @@ function Settings({settings,setSettings}) {
   const [saved,setSaved]=useState(false);
   const [gen,setGen]=useState(false);
   const [genMsg,setGenMsg]=useState("");
+  const [showMore,setShowMore]=useState(false);
   const [me,setMe]=useState(null);
   useEffect(()=>{setS(settings);},[settings]);
   useEffect(()=>{api("/api/me").then(r=>r.json()).then(setMe).catch(()=>{});},[]);
@@ -1180,34 +1191,60 @@ function Settings({settings,setSettings}) {
 
     <Card style={{marginBottom:16}}>
       <div style={{fontSize:15,fontWeight:500,marginBottom:6}}><i className="ti ti-wand" style={{marginRight:6,color:T.gold}}/>Bot training</div>
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:14}}>Answer about your business — AI writes the bot's business profile inside the fixed structure. Edit anytime and regenerate.</div>
-      <Inp textarea label="Describe your business" value={q.description||""} onChange={e=>setQ({description:e.target.value})}/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
-        <div style={{marginBottom:16}}>
-          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
-          <select value={q.tone||"Friendly and helpful"} onChange={e=>setQ({tone:e.target.value})} style={selStyle}>
-            {["Friendly and helpful","Professional and formal","Casual and fun"].map(t=><option key={t}>{t}</option>)}
-          </select>
-        </div>
-        <div style={{marginBottom:16}}>
-          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
-          <select value={q.languages||"Bangla and English"} onChange={e=>setQ({languages:e.target.value})} style={selStyle}>
-            {["Bangla and English","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
-          </select>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Describe your business in your own words — AI rewrites the business profile below, inside the locked structure.</div>
+
+      <Inp textarea label="Describe your business" value={q.description||""} onChange={e=>setQ({description:e.target.value})}
+        inputStyle={{minHeight:140,lineHeight:1.65}}
+        placeholder={isEcom
+          ? "What do you sell? What are your prices? How do you deliver and take payment? Anything customers always ask?"
+          : "What services do you offer? What do they cost? How do clients book you? Anything clients always ask?"}/>
+      <div style={{fontSize:11.5,color:T.textDim,marginTop:-8,marginBottom:14,lineHeight:1.6}}>
+        Write it like you are explaining to a new employee. Bangla, English or a mix — all fine.
+      </div>
+
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:11.5,color:T.textMuted,marginBottom:8}}>Start from an example and edit it:</div>
+        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {(isEcom?SAMPLE_ECOM:SAMPLE_AGENCY).map(ex=><button key={ex.label} onClick={()=>setQ({description:ex.text})}
+            style={{padding:"6px 13px",borderRadius:20,border:`1px solid ${T.border}`,background:T.bgAlt,color:T.textMuted,fontSize:12,cursor:"pointer"}}>
+            {ex.label}
+          </button>)}
         </div>
       </div>
-      {isEcom?<>
-        <Inp label="Delivery (time & charge)" value={q.delivery||""} onChange={e=>setQ({delivery:e.target.value})}/>
-        <Inp label="Payment methods" value={q.payment||""} onChange={e=>setQ({payment:e.target.value})}/>
-        <Inp label="Return / refund policy" value={q.returnPolicy||""} onChange={e=>setQ({returnPolicy:e.target.value})}/>
-      </>:<>
-        <Inp textarea label="Services you offer" value={q.services||""} onChange={e=>setQ({services:e.target.value})}/>
-        <Inp label="Meeting / booking info" value={q.meetingInfo||""} onChange={e=>setQ({meetingInfo:e.target.value})}/>
+
+      <div onClick={()=>setShowMore(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"11px 13px",borderRadius:9,background:T.bgAlt,border:`0.5px solid ${T.border}`,marginBottom:16}}>
+        <span style={{fontSize:12.5,color:T.text}}>More details <span style={{color:T.textDim}}>— optional, improves accuracy</span></span>
+        <i className={`ti ti-chevron-${showMore?"up":"down"}`} style={{fontSize:15,color:T.textMuted}}/>
+      </div>
+
+      {showMore&&<>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
+            <select value={q.tone||"Friendly and helpful"} onChange={e=>setQ({tone:e.target.value})} style={selStyle}>
+              {["Friendly and helpful","Professional and formal","Casual and fun"].map(t=><option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
+            <select value={q.languages||"Bangla and English"} onChange={e=>setQ({languages:e.target.value})} style={selStyle}>
+              {["Bangla and English","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+        {isEcom?<>
+          <Inp label="Delivery (time & charge)" value={q.delivery||""} onChange={e=>setQ({delivery:e.target.value})}/>
+          <Inp label="Payment methods" value={q.payment||""} onChange={e=>setQ({payment:e.target.value})}/>
+          <Inp label="Return / refund policy" value={q.returnPolicy||""} onChange={e=>setQ({returnPolicy:e.target.value})}/>
+        </>:<>
+          <Inp textarea label="Services you offer" value={q.services||""} onChange={e=>setQ({services:e.target.value})}/>
+          <Inp label="Meeting / booking info" value={q.meetingInfo||""} onChange={e=>setQ({meetingInfo:e.target.value})}/>
+        </>}
+        <Inp label="Catalog / website link" value={q.catalogLink||""} onChange={e=>setQ({catalogLink:e.target.value})}/>
+        <Inp label="Special brand rules" value={q.special||""} onChange={e=>setQ({special:e.target.value})}/>
+        <Inp label="Working hours" value={q.hours||""} onChange={e=>setQ({hours:e.target.value})}/>
+        <Inp textarea label="Common questions & answers" value={q.faq||""} onChange={e=>setQ({faq:e.target.value})}/>
       </>}
-      <Inp label="Catalog / website link" value={q.catalogLink||""} onChange={e=>setQ({catalogLink:e.target.value})}/>
-      <Inp label="Special brand rules" value={q.special||""} onChange={e=>setQ({special:e.target.value})}/>
-      <Inp label="Working hours" value={q.hours||""} onChange={e=>setQ({hours:e.target.value})}/>
-      <Inp textarea label="Common questions & answers" value={q.faq||""} onChange={e=>setQ({faq:e.target.value})}/>
       <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?"Generating...":"Regenerate with AI"}</Btn>
       {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
     </Card>
@@ -1523,15 +1560,7 @@ function Onboarding({me,onTrial,onDemo}) {
     </Card>
   </div>;
 
-  const EXAMPLES = isEcom ? [
-    {label:"Jewelry shop", text:"We sell imported jewelry — rings, necklaces and bracelets for both men and women. Prices are between 500 and 3000 taka. All rings are free size. We are online only, based in Savar. Delivery is 80 taka inside Dhaka (1-2 days) and 130 taka outside Dhaka (2-3 days). We take cash on delivery and bKash. Customers can check the product in front of the delivery rider."},
-    {label:"Cake & food", text:"We make homemade cakes and desserts to order in Dhaka. A half kg cake starts from 800 taka. Custom cakes need at least 2 days notice. We deliver inside Dhaka only for 100 taka. Payment is bKash advance. We are closed on Fridays."},
-    {label:"Clothing store", text:"We sell men's and women's clothing — shirts, panjabi, sarees and three-piece sets. Prices are 600 to 4000 taka. We have a size chart for every item, so always ask the customer for their size. Delivery all over Bangladesh: 70 taka in Dhaka, 130 taka outside. Cash on delivery is available. Exchange within 3 days if the size does not fit."},
-  ] : [
-    {label:"Marketing agency", text:"We are a digital marketing agency in Dhaka. We manage Facebook and Instagram ads, create content, and handle page management. Packages start from 8000 taka per month. We offer a free 30 minute consultation call before starting any work. We are open Saturday to Thursday, 10am to 7pm."},
-    {label:"Clinic / chamber", text:"We are a dental clinic in Chattogram. We do check-ups, scaling, filling and braces. The consultation fee is 500 taka. Patients need an appointment — we are open Saturday to Thursday, 5pm to 9pm. For emergencies they can call us directly."},
-    {label:"Coaching centre", text:"We run an IELTS coaching centre in Dhaka. New batches start every month. The course fee is 12000 taka for 3 months with classes 3 days a week. We offer one free trial class. Students can book a counselling session to learn more before enrolling."},
-  ];
+  const EXAMPLES = isEcom ? SAMPLE_ECOM : SAMPLE_AGENCY;
 
   if(step==="train") return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <Card style={{maxWidth:560,width:"100%",padding:"1.8rem 1.6rem",maxHeight:"92dvh",overflowY:"auto"}}>
