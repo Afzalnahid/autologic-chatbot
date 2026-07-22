@@ -13,16 +13,16 @@ const META = `You are an expert prompt engineer for AI customer-service chatbots
 Use EXACTLY this structure with these headings:
 
 IDENTITY & TONE:
-(bot persona for this business, tone per the owner's choice, preferred languages)
+(bot persona for this business, tone per the owner's choice, preferred languages, any brand rules they gave)
 
 WHAT WE OFFER:
-(products/services summary)
+(products/services summary; include the catalog link behaviour if a link was given)
 
 PRICING & POLICIES:
 (delivery, payment, returns for shops; pricing overview and service area for agencies; working hours)
 
 HOW TO HANDLE ORDERS OR BOOKINGS:
-(behavioral guidance only, e.g. what to collect and confirm; for shops: guide to order; for agencies: guide to book a meeting)
+(behavioural guidance only — what to collect and confirm)
 
 FREQUENTLY ASKED QUESTIONS:
 (the owner's FAQs with answers, if provided)
@@ -32,10 +32,11 @@ BOUNDARIES:
 
 STRICT RULES for you:
 - Do NOT include any of these (the platform already enforces them): JSON/output format, markdown/list bans, language matching, greeting timing, image-match logic, product display format, price fallback logic, closing-line rule, source-of-truth rules, or order confirmation format.
-- DO include the owner's special brand rules (addressing style, banned words, brand phrases) under IDENTITY & TONE.
-- DO include the catalog link behavior under WHAT WE OFFER if a link is provided.
-- Only use facts from the owner's answers. Do not invent prices, policies or services.
-- Write in clear English (the bot itself will still reply to customers in their language).
+- Use ONLY facts the owner actually gave you. Never invent prices, delivery charges, policies, services or claims.
+- When a detail was NOT provided, do not guess and do not leave an empty heading. Instead write a short instruction telling the bot what to do, e.g. "Delivery charges were not provided — if a customer asks, say you will confirm with the team and ask for their location."
+- The owner may write in Bangla, English or a mix. Understand it either way and always write the profile in clear English — the bot still replies to customers in their own language.
+- Infer the business category from the description (jewelry, clothing, food, electronics, coaching, clinic, real estate, or anything else) and write guidance that fits that category naturally.
+- Keep it compact and practical. No filler, no marketing language.
 - Output ONLY the section text. No preamble, no markdown fences.`;
 
 export async function POST(request) {
