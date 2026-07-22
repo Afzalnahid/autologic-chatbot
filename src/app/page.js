@@ -30,6 +30,7 @@ export default function Home() {
             <span style={{ fontSize: 19, fontWeight: 700 }}>Autologic</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <a href="/pricing" style={{ padding: "9px 14px", color: T.muted, fontWeight: 600, fontSize: 14, textDecoration: "none" }}>Pricing</a>
             <a href="/dashboard?auth=signin" style={{ padding: "9px 18px", background: "transparent", color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: "none" }}>Log in</a>
             <a href="/dashboard?auth=signup" style={{ padding: "9px 20px", background: T.gold, color: "#0a0a0a", borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: "none" }}>Sign up</a>
           </div>
@@ -67,6 +68,7 @@ export default function Home() {
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, padding: "26px 24px", fontSize: 13.5, color: T.muted }}>
           <div>© 2026 Autologic · Kandirpar, Cumilla, Bangladesh</div>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <a href="/pricing" style={{ color: T.muted, textDecoration: "none" }}>Pricing</a>
             <a href="/google-calendar" style={{ color: T.muted, textDecoration: "none" }}>Google Calendar</a>
             <a href="/privacy" style={{ color: T.muted, textDecoration: "none" }}>Privacy Policy</a>
             <a href="/terms" style={{ color: T.muted, textDecoration: "none" }}>Terms of Service</a>
