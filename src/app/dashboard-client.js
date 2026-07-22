@@ -61,6 +61,36 @@ function Card({children,style,...p}){ return <div {...p} style={{background:T.ca
 function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
 function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
 
+const fmtNum=n=>{const v=Number(n)||0;if(Math.abs(v)>=1e6)return (v/1e6).toFixed(v%1e6===0?0:1)+"M";if(Math.abs(v)>=1000)return (v/1000).toFixed(v%1000===0?0:1)+"K";return String(v);};
+const fmtMoney=n=>"\u09F3"+(Number(n)||0).toLocaleString("en-IN");
+
+function Trend({value,unit="%",invert}) {
+  if(value===null||value===undefined) return <span style={{fontSize:11,color:T.textDim}}>new</span>;
+  const up=value>0, flat=value===0;
+  const good=invert?!up:up;
+  const color=flat?T.textDim:good?T.success:T.danger;
+  return <span style={{fontSize:11,color,fontWeight:600,display:"inline-flex",alignItems:"center",gap:2}}>
+    {!flat&&<i className={`ti ti-${up?"arrow-up-right":"arrow-down-right"}`} style={{fontSize:12}}/>}
+    {flat?"0":`${Math.abs(value)}`}{unit}
+  </span>;
+}
+
+function KStat({icon,label,value,sub,color=T.gold,trend,trendUnit,invert}) {
+  return <Card style={{flex:1,minWidth:150}}>
+    <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:10}}>
+      <div style={{width:30,height:30,borderRadius:9,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        <i className={`ti ${icon}`} style={{fontSize:15,color}}/>
+      </div>
+      <span style={{fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:.7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</span>
+    </div>
+    <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap"}}>
+      <span style={{fontSize:24,fontWeight:600,color:T.text,lineHeight:1.1}}>{value}</span>
+      {trend!==undefined&&<Trend value={trend} unit={trendUnit} invert={invert}/>}
+    </div>
+    {sub&&<div style={{fontSize:11.5,color:T.textMuted,marginTop:4}}>{sub}</div>}
+  </Card>;
+}
+
 function Spark({data,keys,colors,height=120,labels}) {
   const max=Math.max(1,...data.flatMap(d=>keys.map(k=>d[k]||0)));
   const W=320,H=height,P=6;
@@ -68,19 +98,28 @@ function Spark({data,keys,colors,height=120,labels}) {
   const y=v=>H-P-(v/max)*(H-P*2-10);
   const line=k=>data.map((d,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(d[k]||0).toFixed(1)}`).join(" ");
   const area=k=>data.length<2?"":`${line(k)} L${x(data.length-1).toFixed(1)},${H-P} L${x(0).toFixed(1)},${H-P} Z`;
-  const ticks=[0,Math.round(max/2),max];
   return <div>
-    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:height,display:"block",overflow:"visible"}}>
-      {ticks.map((t,i)=><line key={i} x1={P} x2={W-P} y1={y(t)} y2={y(t)} stroke={T.border} strokeWidth="0.5" strokeDasharray="2 3"/>)}
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height,display:"block",overflow:"visible"}}>
+      {[0,max/2,max].map((t,i)=><line key={i} x1={P} x2={W-P} y1={y(t)} y2={y(t)} stroke={T.border} strokeWidth="0.5" strokeDasharray="2 3"/>)}
       {keys.map((k,ki)=><g key={k}>
         <path d={area(k)} fill={colors[ki]} opacity="0.10"/>
         <path d={line(k)} fill="none" stroke={colors[ki]} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"/>
       </g>)}
     </svg>
     <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.textDim,marginTop:4}}>
-      <span>{labels?.[0]}</span><span>{labels?.[1]}</span>
+      <span>{labels?.[0]}</span><span style={{color:T.textMuted}}>peak {fmtNum(max)}</span><span>{labels?.[1]}</span>
     </div>
   </div>;
+}
+
+function BarList({items,color=T.gold,empty,money}) {
+  if(!items?.length) return <div style={{fontSize:12.5,color:T.textDim}}>{empty}</div>;
+  const max=Math.max(1,...items.map(i=>i.count));
+  return items.map((it,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+    <span style={{fontSize:12.5,width:112,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={it.name||it.term}>{it.name||it.term}</span>
+    <div style={{flex:1,height:5,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${(it.count/max)*100}%`,background:color,borderRadius:3}}/></div>
+    <span style={{fontSize:12,fontWeight:500,minWidth:22,textAlign:"right",color:T.textMuted}}>{money?fmtMoney(it.count):it.count}</span>
+  </div>);
 }
 
 function Analytics({isAgency}) {
@@ -95,7 +134,7 @@ function Analytics({isAgency}) {
       const res=await api(`/api/analytics?days=${days}&t=${Date.now()}`,{cache:"no-store"});
       const j=await res.json();
       if(j.error) setErr(j.error); else {setD(j);setErr("");}
-    }catch(e){setErr("Could not load analytics");}
+    }catch{setErr("Could not load analytics");}
     setLoading(false);
   },[days]);
 
@@ -106,23 +145,24 @@ function Analytics({isAgency}) {
   if(err&&!d) return <Card style={{textAlign:"center",color:T.textDim,padding:40}}>{err}</Card>;
   if(!d) return null;
 
-  const k=d.kpi;
+  const k=d.kpi, g=d.growth, c=d.conversations;
   const fmtDay=s=>{const p=String(s).split("-");return `${p[2]}/${p[1]}`;};
   const first=d.daily[0]?.date, last=d.daily[d.daily.length-1]?.date;
   const noData=k.total_messages===0;
   const PICON={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp"};
   const PNAME={facebook:"Facebook",instagram:"Instagram",whatsapp:"WhatsApp"};
   const PCOLOR={facebook:"#3b82f6",instagram:"#e1306c",whatsapp:"#25d366"};
-  const maxCh=Math.max(1,...d.channels.map(c=>c.total));
+  const maxCh=Math.max(1,...d.channels.map(x=>x.total));
   const maxHr=Math.max(1,...d.hours.map(h=>h.count));
-  const maxQ=Math.max(1,...d.top_queries.map(q=>q.count));
-  const hourLabel=h=>{const ampm=h<12?"AM":"PM";const hh=h%12===0?12:h%12;return `${hh}${ampm}`;};
+  const hourLabel=h=>{const a=h<12?"AM":"PM";const hh=h%12===0?12:h%12;return `${hh}${a}`;};
+  const totalCust=k.unique_contacts||0;
+  const newPct=totalCust?Math.round((k.new_contacts/totalCust)*100):0;
+  const SCOLOR={Pending:T.warn,Shipped:T.info,Delivered:T.success,Cancelled:T.danger,confirmed:T.success};
 
   return <div>
-    {/* Range selector */}
     <div style={{display:"flex",gap:6,marginBottom:18,flexWrap:"wrap",alignItems:"center"}}>
       {[7,30,90].map(n=><button key={n} onClick={()=>setDays(n)} style={{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:500,background:days===n?T.gold:T.card,color:days===n?"#0a0a0a":T.textMuted}}>{n} days</button>)}
-      <span style={{fontSize:11,color:T.textDim,marginLeft:"auto"}}>updated {new Date(d.generated_at).toLocaleTimeString()}</span>
+      <span style={{fontSize:11,color:T.textDim,marginLeft:"auto"}}>vs previous {days} days · updated {new Date(d.generated_at).toLocaleTimeString()}</span>
     </div>
 
     {noData&&<Card style={{marginBottom:18,textAlign:"center",padding:"28px 20px"}}>
@@ -131,53 +171,105 @@ function Analytics({isAgency}) {
       <div style={{fontSize:12.5,color:T.textMuted,marginTop:5}}>Connect a channel and start receiving customer messages — your analytics will appear here.</div>
     </Card>}
 
-    {/* KPI cards */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
-      <StatCard icon="ti-messages" label="Messages" value={k.total_messages} sub={`${k.messages_today} today`} color={T.info}/>
-      <StatCard icon="ti-users" label="Customers" value={k.unique_contacts} sub="unique people" color={T.success}/>
-      <StatCard icon="ti-robot" label="Bot handled" value={k.bot_handled_pct===null?"—":`${k.bot_handled_pct}%`} sub={k.agent_messages?`${k.agent_messages} by agent`:"no agent replies"} color={T.gold}/>
-      <StatCard icon="ti-activity" label="Daily average" value={k.avg_messages_per_active_day} sub="on active days" color={T.purple}/>
+    {/* KPI row */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(158px,1fr))",gap:12,marginBottom:16}}>
+      <KStat icon="ti-messages" label="Messages" value={fmtNum(k.total_messages)} sub={`${k.messages_today} today`} color={T.info} trend={g.messages}/>
+      <KStat icon="ti-users" label="Customers" value={fmtNum(k.unique_contacts)} sub={`${k.new_contacts} new · ${k.returning_contacts} returning`} color={T.success} trend={g.contacts}/>
+      <KStat icon="ti-message-2" label="Conversations" value={fmtNum(c.total)} sub={`${c.avg_messages} msgs each`} color={T.purple} trend={g.conversations}/>
+      <KStat icon="ti-robot" label="Bot resolved" value={c.bot_resolved_pct===null?"—":`${c.bot_resolved_pct}%`} sub={`${c.handoff} needed a human`} color={T.gold} trend={g.bot_handled_points} trendUnit="pp"/>
       {isAgency
-        ? <StatCard icon="ti-calendar-event" label="Bookings" value={k.bookings} sub="meetings scheduled" color={T.gold}/>
-        : <StatCard icon="ti-shopping-cart" label="Orders" value={k.orders} sub={`${k.pending_orders} pending`} color={T.gold}/>}
+        ? <KStat icon="ti-calendar-event" label="Bookings" value={fmtNum(k.bookings)} sub={k.conversion_pct===null?"no data":`${k.conversion_pct}% of customers`} color={T.gold} trend={g.conversions}/>
+        : <KStat icon="ti-cash" label="Revenue" value={fmtMoney(k.revenue)} sub={`${k.orders} orders · avg ${fmtMoney(k.avg_order_value)}`} color={T.gold} trend={g.revenue}/>}
     </div>
 
-    {/* Message volume */}
+    {/* Volume */}
     <Card style={{marginBottom:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
         <div style={{fontSize:14,fontWeight:500}}>Message volume</div>
         <div style={{display:"flex",gap:14,fontSize:11.5,color:T.textMuted}}>
-          <span><span style={{display:"inline-block",width:9,height:2.5,background:T.gold,marginRight:5,verticalAlign:"middle"}}/>Customers ({k.customer_messages})</span>
-          <span><span style={{display:"inline-block",width:9,height:2.5,background:T.info,marginRight:5,verticalAlign:"middle"}}/>Bot ({k.bot_messages})</span>
+          <span><span style={{display:"inline-block",width:9,height:2.5,background:T.gold,marginRight:5,verticalAlign:"middle"}}/>Customers ({fmtNum(k.customer_messages)})</span>
+          <span><span style={{display:"inline-block",width:9,height:2.5,background:T.info,marginRight:5,verticalAlign:"middle"}}/>Bot ({fmtNum(k.bot_messages)})</span>
         </div>
       </div>
       <Spark data={d.daily} keys={["customer","bot"]} colors={[T.gold,T.info]} labels={[fmtDay(first),fmtDay(last)]}/>
     </Card>
 
+    {/* Conversation health + customer mix */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:16}}>
-      {/* Channels */}
+      <Card>
+        <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>Conversation health</div>
+        <div style={{fontSize:11.5,color:T.textDim,marginBottom:16}}>How well the bot is handling customers on its own</div>
+        {[
+          {label:"Handled by bot alone",value:c.bot_resolved,color:T.success},
+          {label:"Needed a human agent",value:c.handoff,color:T.warn},
+          {label:"Never answered",value:c.unanswered,color:T.danger},
+        ].map((r,i)=>{const pct=c.total?Math.round((r.value/c.total)*100):0;return <div key={i} style={{marginBottom:13}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:5}}>
+            <span style={{color:T.textMuted}}>{r.label}</span>
+            <span><strong style={{color:T.text}}>{r.value}</strong> <span style={{color:T.textDim,fontSize:11}}>({pct}%)</span></span>
+          </div>
+          <div style={{height:5,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${pct}%`,background:r.color,borderRadius:3}}/></div>
+        </div>;})}
+        {c.unanswered>0&&<div style={{fontSize:11.5,color:T.warn,marginTop:12,display:"flex",gap:6,alignItems:"flex-start"}}>
+          <i className="ti ti-alert-triangle" style={{fontSize:13,marginTop:1}}/>
+          <span>{c.unanswered} conversation{c.unanswered>1?"s":""} got no reply — check that your channel is connected and the bot is not paused.</span>
+        </div>}
+      </Card>
+
+      <Card>
+        <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>Customer mix</div>
+        <div style={{fontSize:11.5,color:T.textDim,marginBottom:16}}>New people vs people who came back</div>
+        <div style={{display:"flex",height:9,borderRadius:5,overflow:"hidden",background:T.bgAlt,marginBottom:14}}>
+          <div style={{width:`${newPct}%`,background:T.gold}}/>
+          <div style={{width:`${100-newPct}%`,background:T.info}}/>
+        </div>
+        <div style={{display:"flex",gap:16}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11.5,color:T.textMuted,marginBottom:3}}><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:T.gold,marginRight:6}}/>New</div>
+            <div style={{fontSize:20,fontWeight:600}}>{k.new_contacts}</div>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11.5,color:T.textMuted,marginBottom:3}}><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:T.info,marginRight:6}}/>Returning</div>
+            <div style={{fontSize:20,fontWeight:600}}>{k.returning_contacts}</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:16,paddingTop:14,borderTop:`0.5px solid ${T.border}`}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:T.textMuted,marginBottom:3}}><i className="ti ti-photo" style={{marginRight:4}}/>Photos received</div>
+            <div style={{fontSize:16,fontWeight:600}}>{k.image_messages}</div>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:T.textMuted,marginBottom:3}}><i className="ti ti-microphone" style={{marginRight:4}}/>Voice messages</div>
+            <div style={{fontSize:16,fontWeight:600}}>{k.voice_messages}</div>
+          </div>
+        </div>
+      </Card>
+    </div>
+
+    {/* Channels + hours */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:16}}>
       <Card>
         <div style={{fontSize:14,fontWeight:500,marginBottom:14}}>Channels</div>
-        {d.channels.length?d.channels.map(c=><div key={c.platform} style={{marginBottom:14}}>
+        {d.channels.length?d.channels.map(ch=><div key={ch.platform} style={{marginBottom:14}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-            <i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:15,color:PCOLOR[c.platform]||T.textMuted}}/>
-            <span style={{fontSize:13,flex:1}}>{PNAME[c.platform]||c.platform}</span>
-            <span style={{fontSize:12,color:T.textMuted}}>{c.contacts||0} customers</span>
-            <span style={{fontSize:13,fontWeight:600,minWidth:28,textAlign:"right"}}>{c.total}</span>
+            <i className={`ti ${PICON[ch.platform]||"ti-message"}`} style={{fontSize:15,color:PCOLOR[ch.platform]||T.textMuted}}/>
+            <span style={{fontSize:13,flex:1}}>{PNAME[ch.platform]||ch.platform}</span>
+            <span style={{fontSize:11.5,color:T.textMuted}}>{ch.contacts||0} customers</span>
+            <span style={{fontSize:13,fontWeight:600,minWidth:30,textAlign:"right"}}>{fmtNum(ch.total)}</span>
           </div>
           <div style={{height:5,background:T.bgAlt,borderRadius:3,overflow:"hidden"}}>
-            <div style={{height:"100%",width:`${(c.total/maxCh)*100}%`,background:PCOLOR[c.platform]||T.gold,borderRadius:3}}/>
+            <div style={{height:"100%",width:`${(ch.total/maxCh)*100}%`,background:PCOLOR[ch.platform]||T.gold,borderRadius:3}}/>
           </div>
         </div>):<div style={{fontSize:12.5,color:T.textDim}}>No channel activity yet</div>}
       </Card>
 
-      {/* Peak hours */}
       <Card>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14,gap:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4,gap:8}}>
           <div style={{fontSize:14,fontWeight:500}}>When customers message</div>
           {k.peak_hour!==null&&<span style={{fontSize:11.5,color:T.gold}}>peak {hourLabel(k.peak_hour)}</span>}
         </div>
-        <div style={{display:"flex",alignItems:"flex-end",gap:2,height:90}}>
+        <div style={{fontSize:11.5,color:T.textDim,marginBottom:14}}>Bangladesh time — plan your team around this</div>
+        <div style={{display:"flex",alignItems:"flex-end",gap:2,height:88}}>
           {d.hours.map(h=><div key={h.hour} title={`${hourLabel(h.hour)} — ${h.count}`} style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"flex-end",height:"100%"}}>
             <div style={{height:`${Math.max(h.count?8:2,(h.count/maxHr)*100)}%`,background:h.hour===k.peak_hour?T.gold:T.info,opacity:h.count?1:0.25,borderRadius:2}}/>
           </div>)}
@@ -188,32 +280,46 @@ function Analytics({isAgency}) {
       </Card>
     </div>
 
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
-      {/* Top queries */}
+    {/* Queries + business-specific */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:16}}>
       <Card>
         <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>What customers ask about</div>
         <div style={{fontSize:11.5,color:T.textDim,marginBottom:14}}>Most frequent words in customer messages</div>
-        {d.top_queries.length?d.top_queries.map(q=><div key={q.term} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
-          <span style={{fontSize:12.5,width:110,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{q.term}</span>
-          <div style={{flex:1,height:5,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${(q.count/maxQ)*100}%`,background:T.gold,borderRadius:3}}/></div>
-          <span style={{fontSize:12,fontWeight:500,minWidth:20,textAlign:"right",color:T.textMuted}}>{q.count}</span>
-        </div>):<div style={{fontSize:12.5,color:T.textDim}}>Not enough customer messages yet</div>}
+        <BarList items={d.top_queries} empty="Not enough customer messages yet"/>
       </Card>
 
-      {/* Conversions + media */}
       <Card>
-        <div style={{fontSize:14,fontWeight:500,marginBottom:14}}>{isAgency?"Bookings":"Orders"} over time</div>
-        <Spark data={d.conversions} keys={[isAgency?"bookings":"orders"]} colors={[T.success]} height={90} labels={[fmtDay(first),fmtDay(last)]}/>
-        <div style={{display:"flex",gap:10,marginTop:14,paddingTop:14,borderTop:`0.5px solid ${T.border}`}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:T.textMuted,marginBottom:3}}><i className="ti ti-photo" style={{marginRight:4}}/>Photos received</div>
-            <div style={{fontSize:17,fontWeight:600}}>{k.image_messages}</div>
-          </div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:T.textMuted,marginBottom:3}}><i className="ti ti-microphone" style={{marginRight:4}}/>Voice messages</div>
-            <div style={{fontSize:17,fontWeight:600}}>{k.voice_messages}</div>
-          </div>
+        <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>{isAgency?"Most requested services":"Best selling products"}</div>
+        <div style={{fontSize:11.5,color:T.textDim,marginBottom:14}}>{isAgency?"From confirmed bookings":"From confirmed orders"}</div>
+        <BarList items={isAgency?d.top_services:d.top_products} color={T.success}
+          empty={isAgency?"No bookings in this period":"No orders in this period"}/>
+      </Card>
+    </div>
+
+    {/* Conversions over time + status */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
+      <Card>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14,gap:8}}>
+          <div style={{fontSize:14,fontWeight:500}}>{isAgency?"Bookings":"Orders"} over time</div>
+          {k.conversion_pct!==null&&<span style={{fontSize:11.5,color:T.textMuted}}>{k.conversion_pct}% conversion</span>}
         </div>
+        <Spark data={d.conversions_daily} keys={[isAgency?"bookings":"orders"]} colors={[T.success]} height={92} labels={[fmtDay(first),fmtDay(last)]}/>
+      </Card>
+
+      <Card>
+        <div style={{fontSize:14,fontWeight:500,marginBottom:14}}>{isAgency?"Booking summary":"Order status"}</div>
+        {isAgency
+          ? <div style={{display:"flex",gap:16}}>
+              <div style={{flex:1}}><div style={{fontSize:11.5,color:T.textMuted,marginBottom:4}}>Total bookings</div><div style={{fontSize:22,fontWeight:600}}>{k.bookings}</div></div>
+              <div style={{flex:1}}><div style={{fontSize:11.5,color:T.textMuted,marginBottom:4}}>Previous period</div><div style={{fontSize:22,fontWeight:600,color:T.textMuted}}>{g.previous.conversions}</div></div>
+            </div>
+          : d.order_status.length
+            ? d.order_status.map(s=><div key={s.status} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <Badge color={SCOLOR[s.status]||T.textMuted}>{s.status}</Badge>
+                <div style={{flex:1,height:5,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${(s.count/Math.max(1,k.orders))*100}%`,background:SCOLOR[s.status]||T.textMuted,borderRadius:3}}/></div>
+                <span style={{fontSize:13,fontWeight:600,minWidth:22,textAlign:"right"}}>{s.count}</span>
+              </div>)
+            : <div style={{fontSize:12.5,color:T.textDim}}>No orders in this period</div>}
       </Card>
     </div>
   </div>;
