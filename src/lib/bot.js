@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
+import { PLANS, PAID_PLANS } from "@/lib/plans.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText } from "@/lib/messenger.js";
 import { analyzeImageBase64 } from "@/lib/gemini.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
@@ -35,10 +36,22 @@ async function botAllowed(channel, senderId) {
   if (client.plan === "trial") {
     if (!client.trial_end || new Date(client.trial_end) <= new Date()) return false;
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const { data: msgs } = await sb().from("message_buffer").select("client_id,role,created_at").limit(2000);
-    const used = (msgs || []).filter(m => m.client_id === client.id && (m.role || "customer") === "customer" && new Date(m.created_at) >= today).length;
-    if (used > 30) return false;
-  } else if (client.plan !== "pro") {
+    const { count } = await sb().from("message_buffer")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", client.id).eq("role", "customer").gte("created_at", today.toISOString());
+    if ((count || 0) > (PLANS.trial.messagesPerDay || 30)) return false;
+  } else if (PAID_PLANS.includes(client.plan)) {
+    if (client.plan_expires_at && new Date(client.plan_expires_at) <= new Date()) return false;
+    const limit = PLANS[client.plan]?.messagesPerMonth;
+    if (limit) {
+      const monthStart = new Date();
+      monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      const { count } = await sb().from("message_buffer")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", client.id).eq("role", "customer").gte("created_at", monthStart.toISOString());
+      if ((count || 0) > limit) return false;
+    }
+  } else {
     return false;
   }
   return true;
