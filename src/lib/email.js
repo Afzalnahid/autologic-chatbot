@@ -67,3 +67,51 @@ export async function notifyAdminApproved(adminEmail, role) {
     ),
   });
 }
+
+// A client submitted a payment for review.
+export async function notifyPaymentRequest({ business, email, plan, cycle, amount, method, txnId }) {
+  return send({
+    to: SUPER_ADMIN,
+    subject: `Payment submitted: ${business} — ${plan}`,
+    html: wrap(
+      "New payment awaiting verification",
+      `<strong style="color:#f0c040">${business}</strong> (${email}) submitted a payment.
+       <br/><br/>
+       Plan: <strong>${plan}</strong> (${cycle})<br/>
+       Amount: <strong>৳${Number(amount).toLocaleString("en-IN")}</strong><br/>
+       Method: <strong>${method}</strong><br/>
+       Transaction ID: <strong>${txnId}</strong>
+       <br/><br/>Verify the transaction, then approve it in the
+       <a href="https://autologic-chatbot.vercel.app/admin" style="color:#f0c040">Admin panel</a>.`
+    ),
+  });
+}
+
+// Payment verified — tell the client their plan is live.
+export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
+  const until = expiresAt ? new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
+  return send({
+    to: clientEmail,
+    subject: `Your ${planName} plan is active — Autologic`,
+    html: wrap(
+      "\u{1F389} Payment confirmed",
+      `Your payment has been verified and your <strong style="color:#22c55e">${planName}</strong> plan is now active.
+       ${until ? `<br/><br/>Valid until <strong>${until}</strong>.` : ""}
+       <br/><br/>Open your <a href="https://autologic-chatbot.vercel.app/dashboard" style="color:#f0c040">dashboard</a> to keep going.`
+    ),
+  });
+}
+
+// Payment could not be verified.
+export async function notifyPaymentRejected(clientEmail, reason) {
+  return send({
+    to: clientEmail,
+    subject: "We could not verify your payment — Autologic",
+    html: wrap(
+      "Payment not verified",
+      `We could not verify your recent payment.${reason ? `<br/><br/>Reason: <strong>${reason}</strong>` : ""}
+       <br/><br/>Please check the transaction ID and submit it again from your dashboard,
+       or reply to this email and we'll help you sort it out.`
+    ),
+  });
+}
