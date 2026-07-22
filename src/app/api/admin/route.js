@@ -4,7 +4,7 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
-import { notifyNewAdminSignup, notifyAdminApproved } from "@/lib/email.js";
+import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentApproved, notifyPaymentRejected } from "@/lib/email.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -81,6 +81,15 @@ export async function GET(request) {
     connected_channels: channels.filter((ch) => ch.status === "connected").length,
   };
 
+  // Payments awaiting verification, newest first, with the business attached.
+  const { data: payRows } = await supabase.from("payment_requests")
+    .select("*").order("created_at", { ascending: false }).limit(100);
+  const clientById = new Map((clients || []).map((c) => [c.id, c]));
+  const payments = (payRows || []).map((p) => {
+    const c = clientById.get(p.client_id);
+    return { ...p, business_name: c?.business_name || "Unknown", owner_email: c?.owner_email || "" };
+  });
+
   let admins = null;
   if (role === "super") {
     const { data } = await supabase.from("admin_users").select("*").order("created_at", { ascending: true });
@@ -88,7 +97,7 @@ export async function GET(request) {
   }
 
   return NextResponse.json(
-    { role, email, overview, clients: rows, admins, server_time: new Date().toISOString() },
+    { role, email, overview, clients: rows, admins, payments, server_time: new Date().toISOString() },
     { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } }
   );
 }
@@ -157,6 +166,47 @@ export async function PUT(request) {
       console.error("auth delete:", e.message);
     }
 
+    return NextResponse.json({ ok: true });
+  }
+
+  // Verify or reject a client payment.
+  if (body.type === "payment") {
+    if (!CAN_EDIT.includes(role)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const { request_id, decision, note } = body;
+    if (!request_id || !["approve", "reject"].includes(decision))
+      return NextResponse.json({ error: "bad request" }, { status: 400 });
+
+    const { data: pr } = await supabase.from("payment_requests").select("*").eq("id", request_id).single();
+    if (!pr) return NextResponse.json({ error: "request not found" }, { status: 404 });
+    if (pr.status !== "pending") return NextResponse.json({ error: "already reviewed" }, { status: 409 });
+
+    const { data: cl } = await supabase.from("clients").select("*").eq("id", pr.client_id).single();
+
+    if (decision === "approve") {
+      // Extend from the current expiry when the plan is still running, otherwise from today.
+      const current = cl?.plan_expires_at ? new Date(cl.plan_expires_at) : null;
+      const base = current && current > new Date() ? current : new Date();
+      base.setDate(base.getDate() + (pr.billing_cycle === "yearly" ? 365 : 30));
+
+      const { error: upErr } = await supabase.from("clients")
+        .update({ plan: pr.plan, plan_expires_at: base.toISOString(), suspended: false })
+        .eq("id", pr.client_id);
+      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+
+      await supabase.from("payment_requests")
+        .update({ status: "approved", reviewed_at: new Date().toISOString(), reviewed_by: email })
+        .eq("id", request_id);
+
+      if (cl?.owner_email) {
+        notifyPaymentApproved(cl.owner_email, pr.plan, base.toISOString()).catch(() => {});
+      }
+      return NextResponse.json({ ok: true, plan_expires_at: base.toISOString() });
+    }
+
+    await supabase.from("payment_requests")
+      .update({ status: "rejected", admin_note: note || null, reviewed_at: new Date().toISOString(), reviewed_by: email })
+      .eq("id", request_id);
+    if (cl?.owner_email) notifyPaymentRejected(cl.owner_email, note || "").catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
