@@ -1456,17 +1456,30 @@ function Onboarding({me,onTrial,onDemo}) {
   const [form,setForm]=useState({business_name:c.business_name||"",business_type:c.business_type||"ecommerce",phone:"",address:"",website:""});
   const BIZ={ecommerce:"E-commerce / Online shop",agency:"Agency / Service provider"};
   const [q,setQ]=useState({description:"",tone:"Friendly and helpful",languages:"Bangla and English",hours:"",delivery:"",payment:"",returnPolicy:"",services:"",meetingInfo:"",faq:"",catalogLink:"",special:""});
+  const [showMore,setShowMore]=useState(false);
+  const [preview,setPreview]=useState("");
   const isEcom=form.business_type==="ecommerce";
   const trainBot=async(skip)=>{
     if(skip){setStep("choose");return;}
-    if(!q.description.trim()){setErr("Please describe your business");return;}
+    if(q.description.trim().length<25){setErr("Please describe your business in a little more detail — a few sentences is enough");return;}
     setBusy(true);setErr("");
     try{
       const res=await api("/api/generate-prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers:q})});
       const d=await res.json();
       if(d.error) throw new Error(d.error);
-      setStep("choose");
+      setPreview(d.prompt||"");
+      setStep("preview");
     }catch(e){setErr(e.message||"Generation failed");}
+    setBusy(false);
+  };
+
+  // Keep any edits the owner made to the generated profile.
+  const savePreview=async()=>{
+    setBusy(true);setErr("");
+    try{
+      await api("/api/settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({businessPrompt:preview})});
+      setStep("choose");
+    }catch(e){setErr("Could not save. Please try again.");}
     setBusy(false);
   };
 
@@ -1510,43 +1523,98 @@ function Onboarding({me,onTrial,onDemo}) {
     </Card>
   </div>;
 
+  const EXAMPLES = isEcom ? [
+    {label:"Jewelry shop", text:"We sell imported jewelry — rings, necklaces and bracelets for both men and women. Prices are between 500 and 3000 taka. All rings are free size. We are online only, based in Savar. Delivery is 80 taka inside Dhaka (1-2 days) and 130 taka outside Dhaka (2-3 days). We take cash on delivery and bKash. Customers can check the product in front of the delivery rider."},
+    {label:"Cake & food", text:"We make homemade cakes and desserts to order in Dhaka. A half kg cake starts from 800 taka. Custom cakes need at least 2 days notice. We deliver inside Dhaka only for 100 taka. Payment is bKash advance. We are closed on Fridays."},
+    {label:"Clothing store", text:"We sell men's and women's clothing — shirts, panjabi, sarees and three-piece sets. Prices are 600 to 4000 taka. We have a size chart for every item, so always ask the customer for their size. Delivery all over Bangladesh: 70 taka in Dhaka, 130 taka outside. Cash on delivery is available. Exchange within 3 days if the size does not fit."},
+  ] : [
+    {label:"Marketing agency", text:"We are a digital marketing agency in Dhaka. We manage Facebook and Instagram ads, create content, and handle page management. Packages start from 8000 taka per month. We offer a free 30 minute consultation call before starting any work. We are open Saturday to Thursday, 10am to 7pm."},
+    {label:"Clinic / chamber", text:"We are a dental clinic in Chattogram. We do check-ups, scaling, filling and braces. The consultation fee is 500 taka. Patients need an appointment — we are open Saturday to Thursday, 5pm to 9pm. For emergencies they can call us directly."},
+    {label:"Coaching centre", text:"We run an IELTS coaching centre in Dhaka. New batches start every month. The course fee is 12000 taka for 3 months with classes 3 days a week. We offer one free trial class. Students can book a counselling session to learn more before enrolling."},
+  ];
+
   if(step==="train") return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-    <Card style={{maxWidth:520,width:"100%",padding:"1.8rem 1.6rem",maxHeight:"92dvh",overflowY:"auto"}}>
-      <div style={{textAlign:"center",marginBottom:18}}>
+    <Card style={{maxWidth:560,width:"100%",padding:"1.8rem 1.6rem",maxHeight:"92dvh",overflowY:"auto"}}>
+      <div style={{textAlign:"center",marginBottom:20}}>
         <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid ${T.gold}30`}}><i className="ti ti-wand" style={{fontSize:24,color:T.gold}}/></div>
-        <div style={{fontSize:18,fontWeight:600}}>Train your AI bot</div>
-        <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>Step 2 of 3 — answer a few questions and AI will build your bot's brain. You can edit everything later in Settings.</div>
+        <div style={{fontSize:18,fontWeight:600}}>Teach your bot about your business</div>
+        <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>Step 2 of 3 — write it in your own words and AI does the rest</div>
       </div>
-      <Inp textarea label="Describe your business *" value={q.description} onChange={e=>setQ({...q,description:e.target.value})} placeholder={isEcom?"e.g. We sell handmade leather bags. Prices 1500-5000 tk. Based in Dhaka.":"e.g. We are a digital marketing agency helping small businesses grow on Facebook."}/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
-        <div style={{marginBottom:16}}>
-          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
-          <select value={q.tone} onChange={e=>setQ({...q,tone:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5}}>
-            {["Friendly and helpful","Professional and formal","Casual and fun"].map(t=><option key={t}>{t}</option>)}
-          </select>
-        </div>
-        <div style={{marginBottom:16}}>
-          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
-          <select value={q.languages} onChange={e=>setQ({...q,languages:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5}}>
-            {["Bangla and English","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
-          </select>
+
+      <Inp textarea label="Tell us about your business *" value={q.description}
+        onChange={e=>setQ({...q,description:e.target.value})}
+        inputStyle={{minHeight:150,lineHeight:1.65}}
+        placeholder={isEcom
+          ? "What do you sell? What are your prices? How do you deliver and take payment? Anything customers always ask?"
+          : "What services do you offer? What do they cost? How do clients book you? Anything clients always ask?"}/>
+      <div style={{fontSize:11.5,color:T.textDim,marginTop:-8,marginBottom:14,lineHeight:1.6}}>
+        Write it like you are explaining to a new employee on their first day. Bangla, English or a mix — all fine.
+      </div>
+
+      <div style={{marginBottom:18}}>
+        <div style={{fontSize:11.5,color:T.textMuted,marginBottom:8}}>Not sure what to write? Start from an example and edit it:</div>
+        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {EXAMPLES.map(ex=><button key={ex.label} onClick={()=>setQ({...q,description:ex.text})}
+            style={{padding:"6px 13px",borderRadius:20,border:`1px solid ${T.border}`,background:T.bgAlt,color:T.textMuted,fontSize:12,cursor:"pointer"}}>
+            {ex.label}
+          </button>)}
         </div>
       </div>
-      {isEcom?<>
-        <Inp label="Delivery (time & charge)" value={q.delivery} onChange={e=>setQ({...q,delivery:e.target.value})} placeholder="e.g. Dhaka 80tk 1-2 days, outside 130tk 3-4 days"/>
-        <Inp label="Payment methods" value={q.payment} onChange={e=>setQ({...q,payment:e.target.value})} placeholder="e.g. Cash on delivery, bKash, Nagad"/>
-        <Inp label="Return / refund policy" value={q.returnPolicy} onChange={e=>setQ({...q,returnPolicy:e.target.value})} placeholder="e.g. 7 day return if unused"/>
-      </>:<>
-        <Inp textarea label="Services you offer" value={q.services} onChange={e=>setQ({...q,services:e.target.value})} placeholder="e.g. Facebook ads management, web design, SEO. Packages from 5000tk/month"/>
-        <Inp label="Meeting / booking info" value={q.meetingInfo} onChange={e=>setQ({...q,meetingInfo:e.target.value})} placeholder="e.g. Free 30-min consultation call via Google Meet"/>
+
+      <div onClick={()=>setShowMore(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"11px 13px",borderRadius:9,background:T.bgAlt,border:`0.5px solid ${T.border}`,marginBottom:showMore?16:18}}>
+        <span style={{fontSize:12.5,color:T.text}}>Add more details <span style={{color:T.textDim}}>— optional, improves accuracy</span></span>
+        <i className={`ti ti-chevron-${showMore?"up":"down"}`} style={{fontSize:15,color:T.textMuted}}/>
+      </div>
+
+      {showMore&&<>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
+            <select value={q.tone} onChange={e=>setQ({...q,tone:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5}}>
+              {["Friendly and helpful","Professional and formal","Casual and fun"].map(t=><option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
+            <select value={q.languages} onChange={e=>setQ({...q,languages:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5}}>
+              {["Bangla and English","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+        <Inp label="Working hours" value={q.hours} onChange={e=>setQ({...q,hours:e.target.value})} placeholder="e.g. Everyday 10am-10pm"/>
+        <Inp label="Catalog / website link" value={q.catalogLink} onChange={e=>setQ({...q,catalogLink:e.target.value})} placeholder="e.g. www.yourshop.com"/>
+        <Inp label="Special brand rules" value={q.special} onChange={e=>setQ({...q,special:e.target.value})} placeholder="e.g. Address customers as আপনি, never say নমস্কার"/>
+        <Inp textarea label="Common questions & answers" value={q.faq} onChange={e=>setQ({...q,faq:e.target.value})} placeholder={"Q: Do you have a physical shop?\nA: No, we are online only."}/>
       </>}
-      <Inp label="Catalog / website link (optional)" value={q.catalogLink} onChange={e=>setQ({...q,catalogLink:e.target.value})} placeholder="e.g. www.yourshop.com"/>
-      <Inp label="Special brand rules (optional)" value={q.special} onChange={e=>setQ({...q,special:e.target.value})} placeholder="e.g. Address customers as আপনি, never say নমস্কার"/>
-      <Inp label="Working hours" value={q.hours} onChange={e=>setQ({...q,hours:e.target.value})} placeholder="e.g. Everyday 10am-10pm"/>
-      <Inp textarea label="Common questions & answers (optional)" value={q.faq} onChange={e=>setQ({...q,faq:e.target.value})} placeholder={"Q: Do you have a physical shop?\nA: No, we are online only."}/>
+
       {err&&<div style={{fontSize:12,color:T.danger,marginBottom:10}}>{err}</div>}
       <Btn gold onClick={()=>trainBot(false)} disabled={busy} style={{width:"100%",marginBottom:8}}><i className="ti ti-sparkles" style={{marginRight:6}}/>{busy?"Building your bot...":"Generate my bot"}</Btn>
       <div onClick={()=>!busy&&trainBot(true)} style={{textAlign:"center",fontSize:12.5,color:T.textMuted,cursor:"pointer"}}>Skip for now</div>
+    </Card>
+  </div>;
+
+  if(step==="preview") return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <Card style={{maxWidth:620,width:"100%",padding:"1.8rem 1.6rem",maxHeight:"92dvh",overflowY:"auto"}}>
+      <div style={{textAlign:"center",marginBottom:18}}>
+        <div style={{width:52,height:52,borderRadius:14,background:`${T.success}15`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid ${T.success}35`}}><i className="ti ti-check" style={{fontSize:26,color:T.success}}/></div>
+        <div style={{fontSize:18,fontWeight:600}}>Your bot is trained</div>
+        <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>This is what it now knows about your business. Change anything that is not right.</div>
+      </div>
+
+      <Inp textarea value={preview} onChange={e=>setPreview(e.target.value)} inputStyle={{minHeight:260,fontSize:12.8,lineHeight:1.7}}/>
+
+      <div style={{fontSize:11.5,color:T.textDim,marginBottom:16,lineHeight:1.6}}>
+        <i className="ti ti-lock" style={{marginRight:5}}/>
+        Platform rules — reply format, language matching and never guessing prices — are always applied on top of this and cannot be removed.
+      </div>
+
+      {err&&<div style={{fontSize:12,color:T.danger,marginBottom:10}}>{err}</div>}
+      <Btn gold onClick={savePreview} disabled={busy} style={{width:"100%",marginBottom:10}}>{busy?"Saving...":"Looks good — continue"}</Btn>
+      <div style={{display:"flex",gap:10,justifyContent:"center",fontSize:12.5}}>
+        <span onClick={()=>!busy&&trainBot(false)} style={{color:T.gold,cursor:"pointer"}}>Regenerate</span>
+        <span style={{color:T.textDim}}>·</span>
+        <span onClick={()=>!busy&&setStep("train")} style={{color:T.textMuted,cursor:"pointer"}}>Edit my answers</span>
+      </div>
     </Card>
   </div>;
 
