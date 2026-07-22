@@ -1,6 +1,6 @@
 "use client";
 import { createClient as createSb } from "@/utils/supabase/client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 let _sbi=null;
 let AUTH_TOKEN="";
@@ -61,29 +61,161 @@ function Card({children,style,...p}){ return <div {...p} style={{background:T.ca
 function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
 function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
 
-function Analytics({products,convos,orders,msgCount,isAgency,bookingCount}) {
-  const active = convos.filter(c=>c.status==="active").length;
-  const pending = orders.filter(o=>o.status==="Pending").length;
-  const cats = {};
-  products.forEach(p=>{const c=p.category||p.metadata?.category||"Other";cats[c]=(cats[c]||0)+1;});
-  const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const maxC = sorted[0]?.[1]||1;
+function Spark({data,keys,colors,height=120,labels}) {
+  const max=Math.max(1,...data.flatMap(d=>keys.map(k=>d[k]||0)));
+  const W=320,H=height,P=6;
+  const x=i=>data.length<=1?W/2:(i/(data.length-1))*(W-P*2)+P;
+  const y=v=>H-P-(v/max)*(H-P*2-10);
+  const line=k=>data.map((d,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(d[k]||0).toFixed(1)}`).join(" ");
+  const area=k=>data.length<2?"":`${line(k)} L${x(data.length-1).toFixed(1)},${H-P} L${x(0).toFixed(1)},${H-P} Z`;
+  const ticks=[0,Math.round(max/2),max];
   return <div>
-    <div style={{display:"flex",gap:16,flexWrap:"wrap",marginBottom:24}}>
-      <StatCard icon="ti-messages" label="Messages" value={msgCount} sub="From message buffer" color={T.info}/>
-      <StatCard icon="ti-users" label="Active Chats" value={active} sub={`${convos.length} total`} color={T.success}/>
-      {isAgency
-        ? <StatCard icon="ti-calendar-event" label="Bookings" value={bookingCount||0} sub="Meetings scheduled" color={T.gold}/>
-        : <><StatCard icon="ti-package" label="Products" value={products.length} sub="In Supabase" color={T.purple}/>
-          <StatCard icon="ti-shopping-cart" label="Pending" value={pending} sub={`${orders.length} total orders`} color={T.gold}/></>}
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:height,display:"block",overflow:"visible"}}>
+      {ticks.map((t,i)=><line key={i} x1={P} x2={W-P} y1={y(t)} y2={y(t)} stroke={T.border} strokeWidth="0.5" strokeDasharray="2 3"/>)}
+      {keys.map((k,ki)=><g key={k}>
+        <path d={area(k)} fill={colors[ki]} opacity="0.10"/>
+        <path d={line(k)} fill="none" stroke={colors[ki]} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"/>
+      </g>)}
+    </svg>
+    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.textDim,marginTop:4}}>
+      <span>{labels?.[0]}</span><span>{labels?.[1]}</span>
     </div>
-    {!isAgency&&<Card><div style={{fontSize:14,fontWeight:500,marginBottom:16}}>Product categories</div>
-      {sorted.map(([n,c],i)=><div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-        <span style={{fontSize:12,color:T.textMuted,width:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n}</span>
-        <div style={{flex:1,height:6,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${(c/maxC)*100}%`,background:T.gold,borderRadius:3}}/></div>
-        <span style={{fontSize:12,fontWeight:500,width:24,textAlign:"right"}}>{c}</span>
-      </div>)}
+  </div>;
+}
+
+function Analytics({isAgency}) {
+  const [days,setDays]=useState(30);
+  const [d,setD]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [err,setErr]=useState("");
+
+  const load=useCallback(async(silent)=>{
+    if(!silent) setLoading(true);
+    try{
+      const res=await api(`/api/analytics?days=${days}&t=${Date.now()}`,{cache:"no-store"});
+      const j=await res.json();
+      if(j.error) setErr(j.error); else {setD(j);setErr("");}
+    }catch(e){setErr("Could not load analytics");}
+    setLoading(false);
+  },[days]);
+
+  useEffect(()=>{load();},[load]);
+  useEffect(()=>{const t=setInterval(()=>load(true),60000);return()=>clearInterval(t);},[load]);
+
+  if(loading&&!d) return <div style={{padding:40,textAlign:"center",color:T.textMuted,fontSize:13}}>Loading analytics...</div>;
+  if(err&&!d) return <Card style={{textAlign:"center",color:T.textDim,padding:40}}>{err}</Card>;
+  if(!d) return null;
+
+  const k=d.kpi;
+  const fmtDay=s=>{const p=String(s).split("-");return `${p[2]}/${p[1]}`;};
+  const first=d.daily[0]?.date, last=d.daily[d.daily.length-1]?.date;
+  const noData=k.total_messages===0;
+  const PICON={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp"};
+  const PNAME={facebook:"Facebook",instagram:"Instagram",whatsapp:"WhatsApp"};
+  const PCOLOR={facebook:"#3b82f6",instagram:"#e1306c",whatsapp:"#25d366"};
+  const maxCh=Math.max(1,...d.channels.map(c=>c.total));
+  const maxHr=Math.max(1,...d.hours.map(h=>h.count));
+  const maxQ=Math.max(1,...d.top_queries.map(q=>q.count));
+  const hourLabel=h=>{const ampm=h<12?"AM":"PM";const hh=h%12===0?12:h%12;return `${hh}${ampm}`;};
+
+  return <div>
+    {/* Range selector */}
+    <div style={{display:"flex",gap:6,marginBottom:18,flexWrap:"wrap",alignItems:"center"}}>
+      {[7,30,90].map(n=><button key={n} onClick={()=>setDays(n)} style={{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:500,background:days===n?T.gold:T.card,color:days===n?"#0a0a0a":T.textMuted}}>{n} days</button>)}
+      <span style={{fontSize:11,color:T.textDim,marginLeft:"auto"}}>updated {new Date(d.generated_at).toLocaleTimeString()}</span>
+    </div>
+
+    {noData&&<Card style={{marginBottom:18,textAlign:"center",padding:"28px 20px"}}>
+      <i className="ti ti-chart-line" style={{fontSize:30,color:T.textDim}}/>
+      <div style={{fontSize:14,fontWeight:500,marginTop:10}}>No activity in this period</div>
+      <div style={{fontSize:12.5,color:T.textMuted,marginTop:5}}>Connect a channel and start receiving customer messages — your analytics will appear here.</div>
     </Card>}
+
+    {/* KPI cards */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:18}}>
+      <StatCard icon="ti-messages" label="Messages" value={k.total_messages} sub={`${k.messages_today} today`} color={T.info}/>
+      <StatCard icon="ti-users" label="Customers" value={k.unique_contacts} sub="unique people" color={T.success}/>
+      <StatCard icon="ti-robot" label="Bot handled" value={k.bot_handled_pct===null?"—":`${k.bot_handled_pct}%`} sub={k.agent_messages?`${k.agent_messages} by agent`:"no agent replies"} color={T.gold}/>
+      <StatCard icon="ti-activity" label="Daily average" value={k.avg_messages_per_active_day} sub="on active days" color={T.purple}/>
+      {isAgency
+        ? <StatCard icon="ti-calendar-event" label="Bookings" value={k.bookings} sub="meetings scheduled" color={T.gold}/>
+        : <StatCard icon="ti-shopping-cart" label="Orders" value={k.orders} sub={`${k.pending_orders} pending`} color={T.gold}/>}
+    </div>
+
+    {/* Message volume */}
+    <Card style={{marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+        <div style={{fontSize:14,fontWeight:500}}>Message volume</div>
+        <div style={{display:"flex",gap:14,fontSize:11.5,color:T.textMuted}}>
+          <span><span style={{display:"inline-block",width:9,height:2.5,background:T.gold,marginRight:5,verticalAlign:"middle"}}/>Customers ({k.customer_messages})</span>
+          <span><span style={{display:"inline-block",width:9,height:2.5,background:T.info,marginRight:5,verticalAlign:"middle"}}/>Bot ({k.bot_messages})</span>
+        </div>
+      </div>
+      <Spark data={d.daily} keys={["customer","bot"]} colors={[T.gold,T.info]} labels={[fmtDay(first),fmtDay(last)]}/>
+    </Card>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:16}}>
+      {/* Channels */}
+      <Card>
+        <div style={{fontSize:14,fontWeight:500,marginBottom:14}}>Channels</div>
+        {d.channels.length?d.channels.map(c=><div key={c.platform} style={{marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:15,color:PCOLOR[c.platform]||T.textMuted}}/>
+            <span style={{fontSize:13,flex:1}}>{PNAME[c.platform]||c.platform}</span>
+            <span style={{fontSize:12,color:T.textMuted}}>{c.contacts||0} customers</span>
+            <span style={{fontSize:13,fontWeight:600,minWidth:28,textAlign:"right"}}>{c.total}</span>
+          </div>
+          <div style={{height:5,background:T.bgAlt,borderRadius:3,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${(c.total/maxCh)*100}%`,background:PCOLOR[c.platform]||T.gold,borderRadius:3}}/>
+          </div>
+        </div>):<div style={{fontSize:12.5,color:T.textDim}}>No channel activity yet</div>}
+      </Card>
+
+      {/* Peak hours */}
+      <Card>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14,gap:8}}>
+          <div style={{fontSize:14,fontWeight:500}}>When customers message</div>
+          {k.peak_hour!==null&&<span style={{fontSize:11.5,color:T.gold}}>peak {hourLabel(k.peak_hour)}</span>}
+        </div>
+        <div style={{display:"flex",alignItems:"flex-end",gap:2,height:90}}>
+          {d.hours.map(h=><div key={h.hour} title={`${hourLabel(h.hour)} — ${h.count}`} style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"flex-end",height:"100%"}}>
+            <div style={{height:`${Math.max(h.count?8:2,(h.count/maxHr)*100)}%`,background:h.hour===k.peak_hour?T.gold:T.info,opacity:h.count?1:0.25,borderRadius:2}}/>
+          </div>)}
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.textDim,marginTop:6}}>
+          <span>12AM</span><span>6AM</span><span>12PM</span><span>6PM</span><span>11PM</span>
+        </div>
+      </Card>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
+      {/* Top queries */}
+      <Card>
+        <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>What customers ask about</div>
+        <div style={{fontSize:11.5,color:T.textDim,marginBottom:14}}>Most frequent words in customer messages</div>
+        {d.top_queries.length?d.top_queries.map(q=><div key={q.term} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+          <span style={{fontSize:12.5,width:110,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{q.term}</span>
+          <div style={{flex:1,height:5,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${(q.count/maxQ)*100}%`,background:T.gold,borderRadius:3}}/></div>
+          <span style={{fontSize:12,fontWeight:500,minWidth:20,textAlign:"right",color:T.textMuted}}>{q.count}</span>
+        </div>):<div style={{fontSize:12.5,color:T.textDim}}>Not enough customer messages yet</div>}
+      </Card>
+
+      {/* Conversions + media */}
+      <Card>
+        <div style={{fontSize:14,fontWeight:500,marginBottom:14}}>{isAgency?"Bookings":"Orders"} over time</div>
+        <Spark data={d.conversions} keys={[isAgency?"bookings":"orders"]} colors={[T.success]} height={90} labels={[fmtDay(first),fmtDay(last)]}/>
+        <div style={{display:"flex",gap:10,marginTop:14,paddingTop:14,borderTop:`0.5px solid ${T.border}`}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:T.textMuted,marginBottom:3}}><i className="ti ti-photo" style={{marginRight:4}}/>Photos received</div>
+            <div style={{fontSize:17,fontWeight:600}}>{k.image_messages}</div>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:T.textMuted,marginBottom:3}}><i className="ti ti-microphone" style={{marginRight:4}}/>Voice messages</div>
+            <div style={{fontSize:17,fontWeight:600}}>{k.voice_messages}</div>
+          </div>
+        </div>
+      </Card>
+    </div>
   </div>;
 }
 
@@ -1294,7 +1426,7 @@ export default function Dashboard() {
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <>
-            {page==="analytics"&&<Analytics products={products} convos={convos} orders={orders} msgCount={convos.reduce((a,c)=>a+c.messages.length,0)} isAgency={isAgency} bookingCount={bookingCount}/>}
+            {page==="analytics"&&<Analytics isAgency={isAgency}/>}
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load}/>)}
             {page==="orders"&&(isAgency?<Bookings/>:<Orders orders={orders} refresh={load}/>)}
