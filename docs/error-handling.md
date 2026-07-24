@@ -95,6 +95,24 @@ service-role client the app uses.
 a temporary debug endpoint that dumps exactly what the server sees ends the
 argument in minutes.
 
+### The bot that went silent when the plan ran out
+
+*Symptom:* a client's bot simply stopped replying when their trial ended or their
+monthly quota was hit. No error, no notice — customers messaged into the void and
+the owner assumed the product was broken.
+
+*Cause:* `botAllowed()` returned a plain `false`. The caller did `if (!allowed)
+return;` with no branch for *why*, so there was nothing to tell either side.
+
+*Fix:* `botAllowed()` now returns `{ allowed, reason, silent, client, used, limit }`.
+Deliberate pauses (human handling, admin suspension) stay silent; billing stops now
+send the customer one holding message per 12 hours and email the owner once a day.
+A separate lazy check warns owners 3 days before expiry.
+
+*Lesson:* a boolean gate at a revenue-critical point is a bug waiting to happen.
+When the answer is "no", the code almost always needs to know *why* — design the
+gate to carry the reason from the start.
+
 ### Settings that were saved but never used
 
 *Symptom:* the greeting configured in Settings never appeared in real conversations.
