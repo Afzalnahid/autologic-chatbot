@@ -115,3 +115,68 @@ export async function notifyPaymentRejected(clientEmail, reason) {
     ),
   });
 }
+
+const PLAN_LABEL = { trial: "Free Trial", starter: "Starter", pro: "Pro", agency: "Agency" };
+
+// The bot has stopped answering customers for a billing reason.
+export async function notifyBotBlocked(clientEmail, { business, reason, used, limit, plan }) {
+  const detail = {
+    trial_expired: {
+      title: "Your free trial has ended",
+      body: "Your 3-day trial is over, so your bot has stopped replying to customers.",
+    },
+    plan_expired: {
+      title: "Your plan has expired",
+      body: `Your ${PLAN_LABEL[plan] || plan} plan has expired, so your bot has stopped replying to customers.`,
+    },
+    quota_daily: {
+      title: "Daily message limit reached",
+      body: `You have used all ${limit} messages for today${used ? ` (${used} received)` : ""}. Your bot will resume tomorrow, or immediately on a paid plan.`,
+    },
+    quota_monthly: {
+      title: "Monthly message limit reached",
+      body: `You have used all ${limit ? limit.toLocaleString("en-IN") : ""} messages included in your ${PLAN_LABEL[plan] || plan} plan this month${used ? ` (${used.toLocaleString("en-IN")} received)` : ""}.`,
+    },
+    no_plan: {
+      title: "No active plan",
+      body: "There is no active plan on your account, so your bot is not replying to customers.",
+    },
+  }[reason] || { title: "Your bot has stopped replying", body: "Your bot is currently unable to reply to customers." };
+
+  return send({
+    to: clientEmail,
+    subject: `Action needed: ${detail.title} — ${business}`,
+    html: wrap(
+      detail.title,
+      `${detail.body}
+       <br/><br/>
+       <strong style="color:#f0c040">Customers messaging you right now are not getting answers.</strong>
+       We are replying to them with a short holding message so they are not left waiting, but that is not a substitute for your bot.
+       <br/><br/>
+       <a href="https://autologic-chatbot.vercel.app/dashboard#billing" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
+       <br/><br/>
+       <span style="font-size:12px;color:#8b9cbd">You will get this reminder at most once a day.</span>`
+    ),
+  });
+}
+
+// Sent a few days before a trial or paid plan runs out.
+export async function notifyExpiringSoon(clientEmail, { business, plan, daysLeft, expiresAt }) {
+  const when = expiresAt ? new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
+  const isTrial = plan === "trial";
+  return send({
+    to: clientEmail,
+    subject: `${isTrial ? "Your trial" : "Your plan"} ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"} — ${business}`,
+    html: wrap(
+      `${isTrial ? "Trial" : PLAN_LABEL[plan] || plan} ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
+      `Your ${isTrial ? "free trial" : `${PLAN_LABEL[plan] || plan} plan`} ends${when ? ` on <strong>${when}</strong>` : " soon"}.
+       When it does, your bot will stop replying to customers.
+       <br/><br/>
+       ${isTrial
+         ? "Pick a plan to keep everything running — your products, knowledge base and conversations all stay exactly as they are."
+         : "Renew to keep your bot answering without a break."}
+       <br/><br/>
+       <a href="https://autologic-chatbot.vercel.app/dashboard#billing" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">${isTrial ? "Choose a plan" : "Renew now"}</a>`
+    ),
+  });
+}
