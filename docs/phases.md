@@ -89,6 +89,25 @@ Detail: [prompts.md](./prompts.md)
 
 ---
 
+## Phase 10 — No more silent failures ✅
+
+Previously, when a plan expired or a quota ran out, `botAllowed()` returned a bare
+`false` and the bot went silent — the owner never knew, the customer got nothing,
+and a paying opportunity was lost quietly.
+
+- `botAllowed()` now returns a reason (`trial_expired`, `plan_expired`,
+  `quota_daily`, `quota_monthly`, `no_plan`, plus silent pauses for
+  channel/contact/suspension).
+- Customers get one polite holding message per 12 hours instead of silence.
+- Owners get an email (at most once a day) naming the reason with an upgrade link.
+- Owners are warned by email when a trial or plan ends within 3 days — a lazy check
+  on dashboard load, throttled by `expiry_warned_at`, so no cron is required.
+
+New columns: `clients.bot_blocked_notified_at`, `clients.expiry_warned_at`,
+`contacts.last_unavailable_at`.
+
+---
+
 ## Roadmap
 
 ### Next
