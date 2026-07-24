@@ -25,23 +25,39 @@ export async function getClient(clientId) {
   return (data || []).find(c => c.id === clientId) || null;
 }
 
+// Returns why the bot may not answer, so the caller can tell the owner and the
+// customer instead of going silent.
+//   { allowed: true }
+//   { allowed: false, reason, silent }
+// `silent` marks a deliberate pause (human handling / admin suspension) where no
+// automatic message should be sent.
 async function botAllowed(channel, senderId) {
-  if (channel.bot_enabled === false) return false;
+  if (channel.bot_enabled === false) return { allowed: false, reason: "channel_paused", silent: true };
+
   const { data: contacts } = await sb().from("contacts").select("*").limit(1000);
   const ct = (contacts || []).find(c => c.sender_id === senderId);
-  if (ct && ct.bot_enabled === false) return false;
+  if (ct && ct.bot_enabled === false) return { allowed: false, reason: "contact_paused", silent: true };
+
   const client = await getClient(channel.client_id);
-  if (!client) return false;
-  if (client.suspended) return false;
+  if (!client) return { allowed: false, reason: "no_client", silent: true };
+  if (client.suspended) return { allowed: false, reason: "suspended", silent: true, client };
+
   if (client.plan === "trial") {
-    if (!client.trial_end || new Date(client.trial_end) <= new Date()) return false;
+    if (!client.trial_end || new Date(client.trial_end) <= new Date()) {
+      return { allowed: false, reason: "trial_expired", client };
+    }
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const { count } = await sb().from("message_buffer")
       .select("id", { count: "exact", head: true })
       .eq("client_id", client.id).eq("role", "customer").gte("created_at", today.toISOString());
-    if ((count || 0) > (PLANS.trial.messagesPerDay || 30)) return false;
+    const limit = PLANS.trial.messagesPerDay || 30;
+    if ((count || 0) > limit) {
+      return { allowed: false, reason: "quota_daily", client, used: count, limit };
+    }
   } else if (PAID_PLANS.includes(client.plan)) {
-    if (client.plan_expires_at && new Date(client.plan_expires_at) <= new Date()) return false;
+    if (client.plan_expires_at && new Date(client.plan_expires_at) <= new Date()) {
+      return { allowed: false, reason: "plan_expired", client };
+    }
     const limit = PLANS[client.plan]?.messagesPerMonth;
     if (limit) {
       const monthStart = new Date();
@@ -49,12 +65,65 @@ async function botAllowed(channel, senderId) {
       const { count } = await sb().from("message_buffer")
         .select("id", { count: "exact", head: true })
         .eq("client_id", client.id).eq("role", "customer").gte("created_at", monthStart.toISOString());
-      if ((count || 0) > limit) return false;
+      if ((count || 0) > limit) {
+        return { allowed: false, reason: "quota_monthly", client, used: count, limit };
+      }
     }
   } else {
-    return false;
+    return { allowed: false, reason: "no_plan", client };
   }
-  return true;
+
+  return { allowed: true, client };
+}
+
+// The bot cannot answer for a billing reason. Reply once so the customer is not
+// left hanging, and email the owner at most once a day so they can act.
+async function handleUnavailable(channel, senderId, block, platform) {
+  const client = block.client;
+  if (!client) return;
+
+  const now = new Date();
+
+  // --- customer side: one polite reply per 12 hours, per person ---
+  try {
+    const { data: ct } = await sb().from("contacts").select("last_unavailable_at")
+      .eq("sender_id", senderId).eq("client_id", client.id).maybeSingle();
+    const last = ct?.last_unavailable_at ? new Date(ct.last_unavailable_at) : null;
+    if (!last || now - last > 12 * 3600 * 1000) {
+      const msg = "ধন্যবাদ মেসেজ করার জন্য! আমরা একটু পরেই আপনাকে জানাচ্ছি। / Thanks for your message! Our team will get back to you shortly.";
+      const isWa = platform === "whatsapp";
+      if (isWa) await waSendText(channel.access_token, channel.page_id, senderId, msg);
+      else {
+        const { sendTextMessage } = await import("@/lib/messenger.js");
+        await sendTextMessage(channel.access_token, senderId, msg);
+      }
+      await bufferInsert({
+        sender_id: senderId, client_id: client.id, role: "bot", status: "Replied",
+        message_content: msg, platform: platform || "facebook",
+      });
+      await sb().from("contacts").upsert(
+        { sender_id: senderId, client_id: client.id, last_unavailable_at: now.toISOString() },
+        { onConflict: "sender_id" }
+      );
+    }
+  } catch (e) { console.error("unavailable reply:", e.message); }
+
+  // --- owner side: at most one email per day ---
+  try {
+    const lastNotified = client.bot_blocked_notified_at ? new Date(client.bot_blocked_notified_at) : null;
+    if (lastNotified && now - lastNotified < 24 * 3600 * 1000) return;
+    if (!client.owner_email) return;
+
+    const { notifyBotBlocked } = await import("@/lib/email.js");
+    await notifyBotBlocked(client.owner_email, {
+      business: client.business_name,
+      reason: block.reason,
+      used: block.used,
+      limit: block.limit,
+      plan: client.plan,
+    });
+    await sb().from("clients").update({ bot_blocked_notified_at: now.toISOString() }).eq("id", client.id);
+  } catch (e) { console.error("blocked notify:", e.message); }
 }
 
 export async function bufferInsert(row) {
@@ -422,8 +491,14 @@ export async function handleIncoming(event) {
     wa_msg_id: event.msgId || null,
   });
 
-  const allowed = await botAllowed(channel, event.senderId);
-  if (!allowed) return;
+  const block = await botAllowed(channel, event.senderId);
+  if (!block.allowed) {
+    // A deliberate pause stays silent; a billing stop tells both sides.
+    if (!block.silent) {
+      await handleUnavailable(channel, event.senderId, block, event.platform || channel.platform);
+    }
+    return;
+  }
 
   await processConversation(channel, event.senderId, row?.id || null);
 }
