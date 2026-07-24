@@ -2,6 +2,32 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient, trialActive } from "@/lib/auth.js";
+import { notifyExpiringSoon } from "@/lib/email.js";
+
+// Warn the owner when a trial or paid plan ends within 3 days, at most once per
+// plan period (tracked by expiry_warned_at against the current expiry date).
+async function maybeWarnExpiry(client) {
+  if (!client?.owner_email) return;
+  const expiry = client.plan === "trial" ? client.trial_end : client.plan_expires_at;
+  if (!expiry) return;
+
+  const end = new Date(expiry);
+  const now = new Date();
+  const daysLeft = Math.ceil((end - now) / 86400000);
+  if (daysLeft < 0 || daysLeft > 3) return; // only in the final 3-day window
+
+  // Skip if we already warned for this exact expiry date.
+  const warned = client.expiry_warned_at ? new Date(client.expiry_warned_at) : null;
+  if (warned && Math.abs(warned - end) < 24 * 3600 * 1000) return;
+
+  await notifyExpiringSoon(client.owner_email, {
+    business: client.business_name,
+    plan: client.plan,
+    daysLeft: Math.max(0, daysLeft),
+    expiresAt: expiry,
+  });
+  await supabase.from("clients").update({ expiry_warned_at: end.toISOString() }).eq("id", client.id);
+}
 
 export async function GET(request) {
   const { client, email, error } = await requireClient(request);
@@ -11,6 +37,10 @@ export async function GET(request) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const { data: msgs } = await supabase.from("message_buffer").select("id,client_id,role,created_at");
   const used = (msgs || []).filter(m => m.client_id === client.id && (m.role || "customer") === "customer" && new Date(m.created_at) >= today).length;
+
+  // Lazy expiry warning: when the owner opens the dashboard and their plan ends
+  // within 3 days, email them once per plan period. No cron needed.
+  maybeWarnExpiry(client).catch(() => {});
 
   return NextResponse.json({
     client: { id: client.id, business_name: client.business_name, plan: client.plan, trial_end: client.trial_end, business_type: client.business_type || "ecommerce", item_label: client.item_label || "", logo_url: client.logo_url || "" },
