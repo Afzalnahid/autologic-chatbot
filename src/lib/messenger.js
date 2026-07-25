@@ -139,3 +139,20 @@ export function parseWhatsAppEvent(body) {
     profileName: value?.contacts?.[0]?.profile?.name || "",
   };
 }
+
+// WhatsApp status events (delivered, read, failed).
+// "read" status means the customer has seen the message.
+export function parseWhatsAppStatus(body) {
+  const value = body?.entry?.[0]?.changes?.[0]?.value;
+  const s = value?.statuses?.[0];
+  if (!s?.status) return null;
+  return {
+    platform: "whatsapp",
+    type: "status",
+    status: s.status,       // sent | delivered | read | failed
+    msgId: s.id,
+    recipientId: s.recipient_id,
+    phoneId: value?.metadata?.phone_number_id,
+    timestamp: s.timestamp,
+  };
+}
