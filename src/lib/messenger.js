@@ -49,6 +49,47 @@ export function parseMessengerEvent(body) {
   };
 }
 
+// A new comment on a Page post arrives as a "feed" change, not a message.
+// We only act on freshly added top-level/reply comments from someone else.
+export function parseCommentEvent(body) {
+  if (body?.object !== "page") return null;
+  const entry = body?.entry?.[0];
+  const change = entry?.changes?.find(c => c.field === "feed");
+  if (!change) return null;
+  const v = change.value || {};
+  if (v.item !== "comment" || v.verb !== "add") return null;
+  if (!v.comment_id || !v.from?.id) return null;
+  // Ignore the Page replying to itself.
+  if (String(v.from.id) === String(entry.id)) return null;
+  return {
+    platform: "facebook",
+    pageId: String(entry.id),
+    commentId: v.comment_id,
+    postId: v.post_id || null,
+    parentId: v.parent_id || null,
+    senderId: String(v.from.id),
+    senderName: v.from.name || "",
+    text: v.message || "",
+  };
+}
+
+// Public reply under the comment.
+export const fbReplyToComment = (token, commentId, message) =>
+  fetch(`https://graph.facebook.com/v24.0/${commentId}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, access_token: token }),
+  }).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
+
+// Private message to the commenter (comment-to-inbox). Only works within
+// Facebook's messaging window and needs pages_messaging.
+export const fbPrivateReply = (token, commentId, message) =>
+  fetch(`https://graph.facebook.com/v24.0/${commentId}/private_replies`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, access_token: token }),
+  }).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
+
 const WA_API = (phoneId) => `https://graph.facebook.com/v24.0/${phoneId}/messages`;
 
 async function waSend(token, phoneId, body) {
