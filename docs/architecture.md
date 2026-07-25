@@ -99,7 +99,8 @@ it would add import churn without changing the bundle.
 `generate-prompt`, `demo-chat`, `send-message`, `send-media`.
 
 **Channel webhooks** (no JWT — verified by Meta signature/token):
-`messenger`, `whatsapp`, `telegram`.
+`messenger` (direct messages **and** Facebook Page comments via the `feed` field),
+`whatsapp`, `telegram`.
 
 **OAuth flows**: `fb/login`, `fb/callback`, `fb/select`, `fb/data-deletion`,
 `ig/login`, `ig/callback`, `ig/select`, `gcal/login`, `gcal/callback`, `gcal/status`.
