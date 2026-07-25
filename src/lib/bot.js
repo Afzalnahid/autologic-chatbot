@@ -503,6 +503,85 @@ export async function handleIncoming(event) {
   await processConversation(channel, event.senderId, row?.id || null);
 }
 
+// A customer commented on a Page post. Reply publicly under the comment and,
+// when enabled, send a private message that pulls them into the inbox.
+export async function handleComment(event) {
+  const channel = await getChannelByPage(event.pageId);
+  if (!channel || channel.platform !== "facebook") return;
+  if (channel.status === "paused" || channel.bot_enabled === false) return;
+
+  const replyOn = channel.comment_reply_enabled !== false;
+  const dmOn = channel.comment_dm_enabled !== false;
+  if (!replyOn && !dmOn) return;
+
+  // Dedupe — Facebook can deliver the same comment more than once.
+  const { error: dupErr } = await sb().from("processed_comments")
+    .insert({ comment_id: event.commentId, client_id: channel.client_id });
+  if (dupErr) return; // primary-key clash = already handled
+
+  const client = await getClient(channel.client_id);
+  if (!client) return;
+
+  // Respect plan/quota exactly like a normal message.
+  const block = await botAllowed(channel, event.senderId);
+  if (!block.allowed) return;
+
+  const clientId = channel.client_id;
+  const bType = client.business_type || "ecommerce";
+  const text = (event.text || "").trim();
+
+  // Build a short, plain-text reply (comments are not JSON messages).
+  let context = "";
+  if (bType === "agency") {
+    const snips = await searchKnowledge(clientId, text || "services", 5);
+    context = snips.length ? "\n\nKNOWLEDGE:\n" + snips.map(x => x.content).join("\n---\n") : "";
+  } else {
+    const prods = await searchProducts(clientId, text || "products", 3);
+    context = prods.length ? "\n\nPRODUCTS:\n" + prods.map(p => JSON.stringify(p.metadata || {})).join("\n") : "";
+  }
+
+  const { data: setRows } = await sb().from("app_settings").select("*").limit(200);
+  const settings = (setRows || []).find(r => r.id === String(clientId))?.settings || {};
+  const persona = settings.businessPrompt || settings.systemPrompt || "";
+  const commentInstruction =
+    "You are replying to a PUBLIC Facebook comment on a post. Write ONE short, warm, human reply " +
+    "(max 2 sentences) in the commenter's language (Bangla/English). Do NOT output JSON, lists, links or prices unless the customer asked. " +
+    "Invite them to check their inbox for details. Use only the facts in the context below; never invent prices or claims.";
+
+  let reply = "";
+  try {
+    reply = await chatWithGemini(
+      commentInstruction + "\n\n" + persona + context,
+      [{ role: "user", content: `A customer named ${event.senderName || "someone"} commented: "${text || "(no text, maybe a photo)"}"` }]
+    );
+    reply = String(reply || "").replace(/```/g, "").trim();
+    // If the model returned a JSON array anyway, pull out the first text.
+    if (reply.startsWith("[")) {
+      const arr = parseReply(reply);
+      reply = arr.find(x => x.type === "text_msg")?.text || "";
+    }
+  } catch (e) { console.error("comment reply gen:", e.message); }
+
+  if (!reply) reply = "ধন্যবাদ! বিস্তারিত জানাতে আপনাকে ইনবক্সে মেসেজ করছি। / Thanks! We've messaged you the details in your inbox.";
+
+  const { fbReplyToComment, fbPrivateReply } = await import("@/lib/messenger.js");
+
+  if (replyOn) {
+    const r = await fbReplyToComment(channel.access_token, event.commentId, reply);
+    if (r?.error) console.error("comment public reply:", r.error.message);
+  }
+  if (dmOn) {
+    const pr = await fbPrivateReply(channel.access_token, event.commentId, reply);
+    if (pr?.error) console.error("comment private reply:", pr.error.message);
+  }
+
+  // Log it so it shows in analytics as bot activity.
+  await bufferInsert({
+    sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied",
+    message_content: "[comment] " + reply, platform: "facebook",
+  });
+}
+
 export async function runDemo(clientId, userText, history = []) {
   const client = await getClient(clientId);
   const isAgency = (client?.business_type || "ecommerce") === "agency";
