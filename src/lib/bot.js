@@ -438,14 +438,37 @@ export async function handleIncoming(event) {
     } catch (e) { console.error("wa contact name:", e.message); }
   }
 
+  // Facebook: fetch the person's real name once, the first time we see them.
+  if (event.platform === "facebook") {
+    try {
+      const { data: existing } = await sb().from("contacts").select("name").eq("sender_id", event.senderId).limit(1);
+      if (!existing || !existing[0] || !existing[0].name) {
+        const prof = await fetch(
+          `https://graph.facebook.com/v24.0/${event.senderId}?fields=first_name,last_name,name&access_token=${channel.access_token}`
+        ).then(r => r.json()).catch(() => ({}));
+        const realName = prof.name || [prof.first_name, prof.last_name].filter(Boolean).join(" ").trim();
+        if (realName) {
+          await sb().from("contacts").upsert(
+            { sender_id: event.senderId, client_id: clientId, name: realName },
+            { onConflict: "sender_id" }
+          );
+        }
+      }
+    } catch (e) { console.error("fb contact name:", e.message); }
+  }
+
+  // Instagram: prefer the real name, fall back to @username.
   if (event.platform === "instagram") {
     try {
       const { data: existing } = await sb().from("contacts").select("name").eq("sender_id", event.senderId).limit(1);
       if (!existing || !existing[0] || !existing[0].name) {
-        const prof = await fetch(`https://graph.instagram.com/v21.0/${event.senderId}?fields=username&access_token=${channel.access_token}`).then(r => r.json()).catch(() => ({}));
-        if (prof.username) {
+        const prof = await fetch(
+          `https://graph.instagram.com/v21.0/${event.senderId}?fields=name,username&access_token=${channel.access_token}`
+        ).then(r => r.json()).catch(() => ({}));
+        const displayName = prof.name || (prof.username ? "@" + prof.username : "");
+        if (displayName) {
           await sb().from("contacts").upsert(
-            { sender_id: event.senderId, client_id: clientId, name: "@" + prof.username },
+            { sender_id: event.senderId, client_id: clientId, name: displayName },
             { onConflict: "sender_id" }
           );
         }
@@ -547,6 +570,19 @@ export async function handleComment(event) {
 
   const clientId = channel.client_id;
   const bType = client.business_type || "ecommerce";
+
+  // The comment webhook carries the commenter's real name — save it for the inbox.
+  if (event.senderName) {
+    try {
+      const { data: ex } = await sb().from("contacts").select("name").eq("sender_id", event.senderId).limit(1);
+      if (!ex || !ex[0] || !ex[0].name) {
+        await sb().from("contacts").upsert(
+          { sender_id: event.senderId, client_id: clientId, name: event.senderName },
+          { onConflict: "sender_id" }
+        );
+      }
+    } catch (e) { console.error("comment contact name:", e.message); }
+  }
   const text = (event.text || "").trim();
 
   // Build a short, plain-text reply (comments are not JSON messages).
