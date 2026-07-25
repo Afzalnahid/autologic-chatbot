@@ -18,8 +18,13 @@ export async function PUT(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    const { id, status } = await request.json();
-    await supabase.from("channels").update({ status }).eq("id", id).eq("client_id", client.id);
+    const { id, status, comment_reply_enabled, comment_dm_enabled } = await request.json();
+    const patch = {};
+    if (status !== undefined) patch.status = status;
+    if (comment_reply_enabled !== undefined) patch.comment_reply_enabled = comment_reply_enabled;
+    if (comment_dm_enabled !== undefined) patch.comment_dm_enabled = comment_dm_enabled;
+    if (Object.keys(patch).length === 0) return NextResponse.json({ error: "nothing to update" }, { status: 400 });
+    await supabase.from("channels").update(patch).eq("id", id).eq("client_id", client.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
