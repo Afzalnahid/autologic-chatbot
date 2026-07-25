@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
-const APP_ID = process.env.FB_APP_ID;
+// App ID is a public value; fallback is safe. App secret stays env-only in the callback.
+const APP_ID = process.env.FB_APP_ID || "914246304594380";
 
 export async function GET(request) {
-  if (!APP_ID) return new NextResponse("Server misconfigured: FB_APP_ID missing", { status: 500 });
   const { searchParams, origin } = new URL(request.url);
   const clientId = searchParams.get("client_id") || "";
   const redirect = `${origin}/api/wa/callback`;
