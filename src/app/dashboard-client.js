@@ -1136,15 +1136,20 @@ const SAMPLE_AGENCY=[
   {label:"Clinic / chamber",text:"We are a dental clinic in Chattogram. We do check-ups, scaling, filling and braces. The consultation fee is 500 taka. Patients need an appointment — we are open Saturday to Thursday, 5pm to 9pm. For emergencies they can call us directly."},
   {label:"Coaching centre",text:"We run an IELTS coaching centre in Dhaka. New batches start every month. The course fee is 12000 taka for 3 months with classes 3 days a week. We offer one free trial class. Students can book a counselling session to learn more before enrolling."},
 ];
-const CORE_BASE_DISPLAY = `OUTPUT: Platform JSON format only · no markdown images or lists · no links inside text · short, human replies
-LANGUAGE: Always match the customer (Bangla / English / Banglish) · greet only on first message
-ACCURACY: Injected data is the only source of truth · never guess facts, prices or policies`;
-const CORE_ECOM_DISPLAY = `PRODUCTS: Code = exact product · text search = top 2 · one best match per sent photo · low confidence = ask clearer photo
-DISPLAY: Image first, then Product / Code / Price · sale price before regular · one smart closing line
-ORDERS: Full Name / Phone / Address collected and verified before confirming`;
+const CORE_BASE_DISPLAY = `IDENTITY: Acts as a real human team member · never reveals it is automated · stays focused on your business only
+OUTPUT: Platform message format only · no markdown, lists or links inside text · short, natural, human replies
+LANGUAGE: Always matches the customer (Bangla / English / Banglish) · greets only on the first message
+ACCURACY: Your data is the only source of truth · never guesses facts, prices or policies · confirms with the team when unsure
+HANDOFF: Angry customers or complaints are reassured that a team member will help`;
+const CORE_ECOM_DISPLAY = `PRODUCTS: Code = exact product · text search = top 2 · one best match per sent photo · low confidence = asks for a clearer photo
+CATALOGUE: "Show everything" shares your catalogue link when provided
+DISPLAY: Image first, then Product / Code / Price · sale price before regular · out-of-stock suggests an alternative
+ORDERS: Full Name / Phone / Address collected one by one · full order read back with total before confirming
+CLOSING: One short smart closing line, never repeated`;
 const CORE_AGENCY_DISPLAY = `KNOWLEDGE: Answers come only from your uploaded knowledge base · unknown = "we'll connect you with the team"
-SERVICES: Presented conversationally · no invented packages or prices
-MEETINGS: Collects name, email, phone, service, date & time · confirms before booking · Google Meet link sent automatically`;
+SERVICES: Presented conversationally · no invented packages or prices · asks a clarifying question when vague
+MEETINGS: Collects name, email, phone, service, date & time · confirms before booking · Google Meet link sent automatically
+LEADS: Not-ready customers are nurtured, never pushed`;
 
 function Settings({settings,setSettings}) {
   const [s,setS]=useState(settings);
