@@ -37,21 +37,40 @@ export async function GET(request) {
       return "User " + (sid || "").slice(-4);
     };
 
+    // Turn a stored bot reply (a JSON array of message objects) into readable text.
+    const humanize = (raw, role) => {
+      const s = String(raw || "");
+      if (role === "bot" && (s.trim().startsWith("[") || s.trim().startsWith("{"))) {
+        try {
+          const parsed = JSON.parse(s);
+          const arr = Array.isArray(parsed) ? parsed : [parsed];
+          const parts = arr.map(o => {
+            if (o.type === "text_msg" && o.text) return o.text;
+            if (o.type === "image_msg") return "🖼️ Image";
+            return "";
+          }).filter(Boolean);
+          if (parts.length) return parts.join("\n");
+        } catch { /* not JSON, fall through */ }
+      }
+      return s;
+    };
+
     const grouped = {};
     messages.forEach(m => {
       const sid = m.sender_id;
+      const role = m.role || "customer";
+      const rawContent = m.message_content || "";
+      const shown = role !== "bot" && rawContent.startsWith("IDENTIFIED ITEMS") ? "📷 Photo" : humanize(rawContent, role);
       if (!grouped[sid]) {
         const platform = m.platform || "facebook";
         grouped[sid] = {
           id: sid, sender: displayName(sid, platform), platform,
           status: m.status === "Pending" ? "active" : "resolved",
-          lastMsg: (m.message_content || "").slice(0, 60), time: m.created_at, messages: [],
+          lastMsg: shown.slice(0, 60), time: m.created_at, messages: [],
         };
       }
-      const raw = m.message_content || "";
-      const text = m.role !== "bot" && raw.startsWith("IDENTIFIED ITEMS") ? "📷 Photo" : raw;
       const attachments = (m.attachments || "").split(",").map(s => s.trim()).filter(Boolean);
-      grouped[sid].messages.push({ role: m.role || "customer", text, attachments, time: m.created_at, status: m.status });
+      grouped[sid].messages.push({ role, text: shown, attachments, time: m.created_at, status: m.status });
     });
     const result = Object.values(grouped);
     result.forEach(c => c.messages.sort((a, b) => new Date(a.time) - new Date(b.time)));
