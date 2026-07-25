@@ -1699,60 +1699,47 @@ function Onboarding({me,onTrial,onDemo}) {
 
 function ConnectChannel({onDone,clientId}) {
   useEffect(()=>{
-    const h=e=>{if(e.data==="fb_connected"||e.data==="ig_connected")onDone();};
+    const h=e=>{
+      if(e.data==="fb_connected"||e.data==="ig_connected"||e.data==="wa_connected") onDone();
+    };
     window.addEventListener("message",h);
     return ()=>window.removeEventListener("message",h);
   },[]);
-  const openPopup=(url,name)=>{
+  const openPopup=(url)=>{
     if(typeof window!=="undefined") window.location.href=url;
   };
-  const fbConnect=()=>openPopup(`/api/fb/login?client_id=${clientId}`,"fbconnect");
-  const igConnect=()=>openPopup(`/api/ig/login?client_id=${clientId}`,"igconnect");
-  const [platform,setPlatform]=useState(null);
-  const [pageId,setPageId]=useState("");
-  const [token,setToken]=useState("");
-  const [busy,setBusy]=useState(false);
-  const [err,setErr]=useState("");
   const opts=[
-    {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"One click connect with Facebook login"},
-    {id:"instagram",icon:"ti-brand-instagram",label:"Instagram Business",hint:"One click connect with Instagram login"},
-    {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"Phone Number ID + WhatsApp Cloud API Token"},
+    {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"One-click connect with Facebook login",color:"#1877f2"},
+    {id:"instagram",icon:"ti-brand-instagram",label:"Instagram Business",hint:"One-click connect with Instagram login",color:"#e1306c"},
+    {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"One-click connect with Facebook login",color:"#25d366"},
   ];
   const handleClick=(id)=>{
-    if(id==="facebook") fbConnect();
-    else if(id==="instagram") igConnect();
-    else setPlatform(id);
-  };
-  const connect=async()=>{
-    if(!pageId||!token||busy) return;
-    setBusy(true); setErr("");
-    const r=await api("/api/channels",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({platform,page_id:pageId,access_token:token})}).then(r=>r.json()).catch(()=>({error:"network"}));
-    setBusy(false);
-    if(r.error) setErr(r.error);
-    else onDone();
+    if(id==="facebook") openPopup(`/api/fb/login?client_id=${clientId}`);
+    else if(id==="instagram") openPopup(`/api/ig/login?client_id=${clientId}`);
+    else if(id==="whatsapp") openPopup(`/api/wa/login?client_id=${clientId}`);
   };
   return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-    <div style={{maxWidth:560,width:"100%"}}>
-      <div style={{textAlign:"center",marginBottom:20}}>
-        <div style={{fontSize:18,fontWeight:600}}>Connect a channel</div>
-        <div style={{fontSize:12.5,color:T.textMuted}}>Your bot will reply to customers on this channel</div>
-      </div>
-      {!platform?<div style={{display:"flex",flexDirection:"column",gap:12}}>
-        {opts.map(o=><Card key={o.id} style={{display:"flex",alignItems:"center",gap:14,cursor:"pointer",padding:"1rem 1.2rem"}} onClick={()=>handleClick(o.id)}>
-          <i className={`ti ${o.icon}`} style={{fontSize:26,color:T.gold}}/>
-          <div><div style={{fontSize:14,fontWeight:500}}>{o.label}</div><div style={{fontSize:11.5,color:T.textMuted}}>{o.hint}</div></div>
-        </Card>)}
-        <div style={{textAlign:"center",fontSize:12,color:T.textMuted,cursor:"pointer",marginTop:8}} onClick={onDone}>Skip for now</div>
-      </div>:<Card>
-        <div style={{fontSize:14,fontWeight:500,marginBottom:12,textTransform:"capitalize"}}>{platform} connection</div>
-        <Inp value={pageId} onChange={e=>setPageId(e.target.value)} placeholder={platform==="whatsapp"?"Phone Number ID":"Page / Account ID"}/>
-        <Inp value={token} onChange={e=>setToken(e.target.value)} placeholder="Access Token"/>
-        <div style={{display:"flex",gap:8}}>
-          <Btn onClick={()=>setPlatform(null)}>Back</Btn>
-          <Btn gold onClick={connect} style={{flex:1}}>{busy?"Connecting...":"Connect"}</Btn>
+    <div style={{maxWidth:520,width:"100%"}}>
+      <div style={{textAlign:"center",marginBottom:24}}>
+        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",border:`1px solid ${T.gold}30`}}>
+          <i className="ti ti-plug" style={{fontSize:24,color:T.gold}}/>
         </div>
-        {err&&<div style={{fontSize:12,color:T.danger,marginTop:10}}>{err}</div>}
-      </Card>}
+        <div style={{fontSize:18,fontWeight:600}}>Connect a channel</div>
+        <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>Your bot will reply to customers on this channel</div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {opts.map(o=><Card key={o.id} style={{display:"flex",alignItems:"center",gap:16,cursor:"pointer",padding:"1rem 1.2rem",border:`1px solid ${T.border}`}} onClick={()=>handleClick(o.id)}>
+          <div style={{width:44,height:44,borderRadius:12,background:`${o.color}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${o.color}30`}}>
+            <i className={`ti ${o.icon}`} style={{fontSize:22,color:o.color}}/>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:14,fontWeight:600}}>{o.label}</div>
+            <div style={{fontSize:11.5,color:T.textMuted,marginTop:2}}>{o.hint}</div>
+          </div>
+          <i className="ti ti-chevron-right" style={{fontSize:16,color:T.textDim,flexShrink:0}}/>
+        </Card>)}
+        <div style={{textAlign:"center",fontSize:12,color:T.textMuted,cursor:"pointer",marginTop:4}} onClick={onDone}>Skip for now</div>
+      </div>
     </div>
   </div>;
 }
