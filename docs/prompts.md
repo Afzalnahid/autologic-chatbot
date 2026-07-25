@@ -147,3 +147,14 @@ client at once**. Before pushing:
    still see the truth.
 4. Test both business types, and test an image message — rule 1 and rule 10 are the
    easiest to break.
+
+
+## Rule set (current)
+
+The locked rules were expanded so a client's bot behaves like an expert agent out of the box, with the client only supplying business facts:
+
+- **FIXED_BASE (1-12):** human identity (never admits being automated), output format, 2-3 short bubbles, language match, greet-once, honesty/never-guess, human handoff on anger or complaints, safety (no politics/religion/competitors).
+- **FIXED_ECOM (13-22):** product search limits, catalogue-link behaviour, image matching with 0.5 floor, image-then-text display, sale→regular price logic, out-of-stock alternative, buying-signal handling, one-by-one order collection, read-back confirmation with total, single closing line.
+- **FIXED_AGENCY (13-20):** knowledge-only answers, conversational service presentation, qualifying question when vague, meeting detail collection, confirm-before-booking, post-booking reassurance, lead nurture, single closing line.
+
+The Settings "Core rules (locked)" panel mirrors these so clients can see exactly what is enforced.
