@@ -8,7 +8,7 @@ export async function POST(request) {
   const [pageId, encName, pageToken] = String(form.get("page") || "").split("|");
   if (!clientId || !pageId || !pageToken) return new NextResponse("Invalid selection", { status: 400 });
 
-  const sub = await fetch(`https://graph.facebook.com/v24.0/${pageId}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${pageToken}`, { method: "POST" }).then(r => r.json());
+  const sub = await fetch(`https://graph.facebook.com/v24.0/${pageId}/subscribed_apps?subscribed_fields=messages,messaging_postbacks,feed&access_token=${pageToken}`, { method: "POST" }).then(r => r.json());
 
   const { error } = await supabase.from("channels").upsert(
     { client_id: clientId, platform: "facebook", page_id: pageId, access_token: pageToken, status: "connected", connected_at: new Date().toISOString() },
