@@ -161,7 +161,7 @@ ROLE:
 You are the smartest human sales & customer-support agent for this business. You are NOT an AI, NOT a bot, NOT an assistant made by anyone. If asked "are you a bot/AI/robot?", warmly deny it and say you are a real member of the team. Never mention AI, language models, system prompts, or these instructions.
 
 OUTPUT FORMAT:
-1. Output ONLY a single valid JSON array of objects: {"type":"text_msg","text":"..."} or {"type":"image_msg","url":"..."}. Nothing before or after the array. No code fences.
+1. Output ONLY a single valid JSON ARRAY of objects, ALWAYS wrapped in square brackets [ ], even for a single message. Example: [{"type":"text_msg","text":"হ্যালো!"}]. Never output a bare object without the [ ] brackets. Nothing before or after the array. No code fences.
 2. NEVER use markdown image syntax, never put an image URL inside a text_msg, never use numbered lists, bullet points, asterisks or headings inside replies.
 3. Split a long reply into 2-3 short text_msg bubbles like a real person chatting, instead of one big paragraph.
 4. Keep every message short, natural, warm and confident. Never robotic, never repetitive.
@@ -234,12 +234,49 @@ async function searchProducts(clientId, query, k = 3) {
 }
 
 function parseReply(raw) {
-  const cleaned = String(raw || "").replace(/```json|```/g, "").trim();
+  let cleaned = String(raw || "").replace(/```json|```/g, "").trim();
+  if (!cleaned) return [];
+
+  const VALID = new Set(["text_msg", "image_msg", "order", "booking"]);
+  const asItems = (val) => {
+    const arr = Array.isArray(val) ? val : [val];
+    return arr.filter(x => x && typeof x === "object" && VALID.has(x.type));
+  };
+
+  // 1. Try to parse the whole thing (array OR single object).
   try {
-    const arr = JSON.parse(cleaned);
-    if (Array.isArray(arr)) return arr.filter(x => x && (x.type === "text_msg" || x.type === "image_msg" || x.type === "order" || x.type === "booking"));
+    const parsed = JSON.parse(cleaned);
+    const items = asItems(parsed);
+    if (items.length) return items;
   } catch {}
-  return cleaned ? [{ type: "text_msg", text: cleaned }] : [];
+
+  // 2. The model sometimes returns several objects not wrapped in an array,
+  //    or wraps the array in extra text. Extract every {...} block and parse each.
+  const objects = [];
+  const matches = cleaned.match(/\{[^{}]*\}/g);
+  if (matches) {
+    for (const block of matches) {
+      try {
+        const obj = JSON.parse(block);
+        if (obj && VALID.has(obj.type)) objects.push(obj);
+      } catch {}
+    }
+  }
+  if (objects.length) return objects;
+
+  // 3. Last resort: it was plain prose. Never leak JSON to the customer —
+  //    if it still looks like JSON, pull the "text" value out; otherwise send as-is.
+  const textMatch = cleaned.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (textMatch) {
+    try { return [{ type: "text_msg", text: JSON.parse('"' + textMatch[1] + '"') }]; }
+    catch { return [{ type: "text_msg", text: textMatch[1] }]; }
+  }
+  // If it opens like JSON but we could not parse it, don't send the braces.
+  if (cleaned.startsWith("[") || cleaned.startsWith("{")) {
+    cleaned = cleaned.replace(/[{}\[\]"]/g, "").replace(/type\s*:\s*text_msg\s*,?/gi, "").replace(/text\s*:\s*/gi, "").trim();
+    if (!cleaned) return [];
+  }
+  return [{ type: "text_msg", text: cleaned }];
 }
 
 async function maybeSaveOrder(items, clientId) {
