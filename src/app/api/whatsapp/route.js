@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
-import { parseWhatsAppEvent } from "@/lib/messenger.js";
+import { parseWhatsAppEvent, parseWhatsAppStatus } from "@/lib/messenger.js";
 import { handleIncoming } from "@/lib/bot.js";
 
 const VERIFY_TOKENS = [process.env.FACEBOOK_VERIFY_TOKEN].filter(Boolean);
@@ -17,6 +17,17 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
+
+    // Status events (delivered / read / failed) — log and ignore.
+    // "read" = customer has seen the message.
+    const status = parseWhatsAppStatus(body);
+    if (status) {
+      if (status.status === "read") {
+        console.log(`[wa] message ${status.msgId} read by ${status.recipientId}`);
+      }
+      return NextResponse.json({ status: "ok" });
+    }
+
     const event = parseWhatsAppEvent(body);
     if (!event) return NextResponse.json({ status: "ignored" });
     await handleIncoming(event);
