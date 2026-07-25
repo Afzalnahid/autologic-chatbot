@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
-import { parseMessengerEvent } from "@/lib/messenger.js";
-import { handleIncoming } from "@/lib/bot.js";
+import { parseMessengerEvent, parseCommentEvent } from "@/lib/messenger.js";
+import { handleIncoming, handleComment } from "@/lib/bot.js";
 
 const VERIFY_TOKENS = [process.env.FACEBOOK_VERIFY_TOKEN].filter(Boolean);
 
@@ -17,6 +17,14 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
+
+    // A Page comment ("feed" change) rather than a direct message.
+    const comment = parseCommentEvent(body);
+    if (comment) {
+      await handleComment(comment);
+      return NextResponse.json({ status: "ok" });
+    }
+
     const event = parseMessengerEvent(body);
     if (!event) return NextResponse.json({ status: "ignored" });
     await handleIncoming(event);
