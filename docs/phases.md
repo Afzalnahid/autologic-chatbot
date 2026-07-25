@@ -108,12 +108,32 @@ New columns: `clients.bot_blocked_notified_at`, `clients.expiry_warned_at`,
 
 ---
 
+## Phase 11 — Comment automation ✅
+
+Facebook comments are a primary sales funnel in this market, and it was the top
+feature competitors offered that we lacked.
+
+- Connecting a Facebook page now subscribes to the `feed` field automatically, so
+  comment automation is on by default — no extra setup.
+- `parseCommentEvent()` picks new comments (`item:comment`, `verb:add`) out of the
+  feed webhook, ignoring the page's own replies.
+- `handleComment()` generates a short, plain-text AI reply from the same business
+  profile and product/knowledge context, then posts a public reply under the comment
+  and (optionally) a private reply that pulls the commenter into the inbox.
+- Deduped via a `processed_comments` primary key; respects plan/quota and channel pause.
+- Per-channel toggles in the dashboard: "Auto-reply to comments" and "Send to inbox".
+
+New columns: `channels.comment_reply_enabled`, `channels.comment_dm_enabled`;
+new table `processed_comments`.
+
+Note: private replies require the page to have `pages_messaging` and only work
+within Facebook's messaging window.
+
 ## Roadmap
 
 ### Next
 | Item | Why | Notes |
 |---|---|---|
-| Comment automation | Competitors' most-used feature; Facebook comments are a sales funnel in this market | Subscribe to the `feed` webhook when a page connects, so it is on by default. Auto-reply plus comment-to-inbox |
 | Custom domain | `vercel.app` is blocked by some mobile carriers, cannot be verified in Search Console, and blocks Resend domain verification | One purchase unblocks three problems |
 
 ### Later
