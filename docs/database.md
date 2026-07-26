@@ -99,6 +99,28 @@ parses the `Total = N` portion.
 `meeting_link` (Google Meet), `calendar_event_id`, `sender_id`, `platform`,
 `status`, `created_at`.
 
+### `comments` — Facebook post comments
+| Column | Type | Notes |
+|---|---|---|
+| `id` | bigserial | PK |
+| `client_id` | uuid | Owner |
+| `platform`, `page_id`, `post_id` | text | Where the comment lives |
+| `comment_id` | text | **Unique** — also the dedupe key |
+| `parent_id` | text | Set when the comment is a reply to another comment |
+| `commenter_id`, `commenter_name` | text | Who commented |
+| `comment_text` | text | What they wrote |
+| `reply_text` | text | What the bot replied |
+| `replied` | boolean | Public reply succeeded |
+| `reply_error` | text | Why the public reply failed, if it did |
+| `dm_sent` | boolean | Private reply (comment-to-inbox) succeeded |
+| `dm_error` | text | Why the private reply failed, if it did |
+
+Comments are deliberately **not** stored in `message_buffer`. They have different
+identifiers and a different lifecycle, and mixing them into the direct-message
+inbox made a comment reply look like a chat message in the customer's thread.
+The dashboard shows them in their own Comments tab, including the failure reason
+when Facebook rejects a private reply.
+
 ### `contacts` — per-customer state
 `sender_id` + `client_id`, `name`, `bot_enabled` (per-contact pause for human
 handoff), `created_at`.
