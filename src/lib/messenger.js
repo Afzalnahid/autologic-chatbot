@@ -108,6 +108,17 @@ async function waSend(token, phoneId, body) {
   }
 }
 
+// Marks the customer's incoming message as read (blue ticks) and shows a typing
+// bubble. WhatsApp clears the indicator when we send the reply, or after 25s.
+// Must reference an INCOMING message id — outgoing ids are rejected.
+export const waMarkReadTyping = (token, phoneId, messageId) =>
+  waSend(token, phoneId, {
+    messaging_product: "whatsapp",
+    status: "read",
+    message_id: messageId,
+    typing_indicator: { type: "text" },
+  });
+
 export const waSendText = (token, phoneId, to, text) =>
   waSend(token, phoneId, { messaging_product: "whatsapp", to, type: "text", text: { body: text } });
 
