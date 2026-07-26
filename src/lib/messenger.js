@@ -86,6 +86,33 @@ export const fbReplyToComment = (token, commentId, message) =>
 
 // Private message to the commenter (comment-to-inbox). Only works within
 // Facebook's messaging window and needs pages_messaging.
+// Turns a raw Graph API failure into something a business owner can act on.
+// Facebook returns the same generic "(#100) ... does not support this operation"
+// for several very different situations, so we disambiguate by subcode/context.
+export function explainPrivateReplyError(err) {
+  if (!err) return null;
+  const code = err.code;
+  const sub = err.error_subcode;
+  const msg = String(err.message || "");
+
+  if (code === 100 && sub === 2018292) {
+    return "That comment was deleted on Facebook before we could reply.";
+  }
+  if (code === 2022) {
+    return "Facebook has temporarily blocked this Page from sending messages. It usually lifts on its own.";
+  }
+  if (code === 10 || /permission/i.test(msg) && /pages_messaging/i.test(msg)) {
+    return "The pages_messaging permission is not approved yet, so inbox messages cannot be sent.";
+  }
+  if (code === 100) {
+    return "Facebook would not deliver an inbox message for this comment. This happens when the comment came from a Page rather than a personal profile, when the person's privacy settings block private replies, when a private reply was already sent for this comment, or when the comment is older than 7 days.";
+  }
+  if (code === 200) {
+    return "This Page is missing a permission needed to send inbox messages.";
+  }
+  return msg || "Facebook rejected the inbox message.";
+}
+
 export const fbPrivateReply = (token, commentId, message) =>
   fetch(`https://graph.facebook.com/v24.0/${commentId}/private_replies`, {
     method: "POST",
