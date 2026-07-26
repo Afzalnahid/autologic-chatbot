@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
 import { PLANS, PAID_PLANS } from "@/lib/plans.js";
-import { sendTypingOn, sendResponses, waSendResponses, waSendText } from "@/lib/messenger.js";
+import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { analyzeImageBase64 } from "@/lib/gemini.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
@@ -578,6 +578,18 @@ export async function handleIncoming(event) {
     }
     return;
   }
+
+  // Show typing straight away — before debouncing and before the model call —
+  // so the customer never sits looking at silence. On WhatsApp this also marks
+  // their message as read (blue ticks).
+  const platform = event.platform || channel.platform;
+  try {
+    if (platform === "whatsapp") {
+      if (event.msgId) await waMarkReadTyping(channel.access_token, channel.page_id, event.msgId);
+    } else {
+      await sendTypingOn(channel.access_token, event.senderId);
+    }
+  } catch (e) { console.error("typing indicator:", e.message); }
 
   await processConversation(channel, event.senderId, row?.id || null);
 }
