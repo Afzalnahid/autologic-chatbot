@@ -126,8 +126,14 @@ feature competitors offered that we lacked.
 New columns: `channels.comment_reply_enabled`, `channels.comment_dm_enabled`;
 new table `processed_comments`.
 
-Note: private replies require the page to have `pages_messaging` and only work
-within Facebook's messaging window.
+Comments are stored in their own `comments` table rather than `message_buffer`,
+so a public comment reply never appears inside a customer's direct-message thread.
+The dashboard has a dedicated Comments tab showing each comment, the bot's reply,
+whether the inbox message was delivered, and the exact Facebook error when it was not.
+
+Note: private replies require `pages_messaging`, can only be sent once per comment,
+and only within Facebook's 7-day window — so the error is surfaced to the owner
+rather than swallowed.
 
 ## Roadmap
 
