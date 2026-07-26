@@ -658,20 +658,60 @@ export async function handleComment(event) {
 
   const { fbReplyToComment, fbPrivateReply } = await import("@/lib/messenger.js");
 
+  // The DM invites the customer to continue in the inbox, so it reads differently
+  // from the public reply.
+  const dmText = dmOn
+    ? `${reply}\n\n${event.senderName ? event.senderName.split(" ")[0] + ", " : ""}${bType === "agency"
+        ? "এখানে যেকোনো প্রশ্ন করতে পারেন। / Feel free to ask anything here."
+        : "এখানে অর্ডার বা যেকোনো প্রশ্ন করতে পারেন। / You can order or ask anything here."}`
+    : "";
+
+  let replied = false, replyError = null, dmSent = false, dmError = null;
+
   if (replyOn) {
     const r = await fbReplyToComment(channel.access_token, event.commentId, reply);
-    if (r?.error) console.error("comment public reply:", r.error.message);
-  }
-  if (dmOn) {
-    const pr = await fbPrivateReply(channel.access_token, event.commentId, reply);
-    if (pr?.error) console.error("comment private reply:", pr.error.message);
+    if (r?.error) {
+      replyError = r.error.message || String(r.error);
+      console.error("[comment] public reply failed:", replyError);
+    } else {
+      replied = true;
+    }
   }
 
-  // Log it so it shows in analytics as bot activity.
-  await bufferInsert({
-    sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied",
-    message_content: "[comment] " + reply, platform: "facebook",
-  });
+  if (dmOn) {
+    const pr = await fbPrivateReply(channel.access_token, event.commentId, dmText);
+    if (pr?.error) {
+      dmError = `${pr.error.code ? "(#" + pr.error.code + ") " : ""}${pr.error.message || String(pr.error)}`;
+      console.error("[comment] private reply failed:", dmError);
+    } else {
+      dmSent = true;
+      // The DM lands in the customer's inbox, so it belongs in the DM thread.
+      await bufferInsert({
+        sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied",
+        message_content: dmText, platform: "facebook",
+      });
+    }
+  }
+
+  // Comments are their own stream - never mixed into the direct-message inbox.
+  try {
+    await sb().from("comments").insert({
+      client_id: clientId,
+      platform: "facebook",
+      page_id: event.pageId,
+      post_id: event.postId,
+      comment_id: event.commentId,
+      parent_id: event.parentId,
+      commenter_id: event.senderId,
+      commenter_name: event.senderName || null,
+      comment_text: text || null,
+      reply_text: reply,
+      replied,
+      reply_error: replyError,
+      dm_sent: dmSent,
+      dm_error: dmError,
+    });
+  } catch (e) { console.error("[comment] save:", e.message); }
 }
 
 export async function runDemo(clientId, userText, history = []) {
