@@ -696,7 +696,7 @@ export async function handleComment(event) {
 
   if (!reply) reply = "ধন্যবাদ! বিস্তারিত জানাতে আপনাকে ইনবক্সে মেসেজ করছি। / Thanks! We've messaged you the details in your inbox.";
 
-  const { fbReplyToComment, fbPrivateReply } = await import("@/lib/messenger.js");
+  const { fbReplyToComment, fbPrivateReply, explainPrivateReplyError } = await import("@/lib/messenger.js");
 
   // The DM invites the customer to continue in the inbox, so it reads differently
   // from the public reply.
@@ -719,17 +719,23 @@ export async function handleComment(event) {
   }
 
   if (dmOn) {
-    const pr = await fbPrivateReply(channel.access_token, event.commentId, dmText);
-    if (pr?.error) {
-      dmError = `${pr.error.code ? "(#" + pr.error.code + ") " : ""}${pr.error.message || String(pr.error)}`;
-      console.error("[comment] private reply failed:", dmError);
+    // Facebook does not allow a Page to privately message another Page, so skip
+    // the call rather than logging a confusing generic error.
+    if (String(event.senderId) === String(event.pageId)) {
+      dmError = "This comment came from the Page itself, so Facebook does not allow an inbox message. Test with a personal Facebook profile instead.";
     } else {
-      dmSent = true;
-      // The DM lands in the customer's inbox, so it belongs in the DM thread.
-      await bufferInsert({
-        sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied",
-        message_content: dmText, platform: "facebook",
-      });
+      const pr = await fbPrivateReply(channel.access_token, event.commentId, dmText);
+      if (pr?.error) {
+        dmError = explainPrivateReplyError(pr.error);
+        console.error("[comment] private reply failed:", pr.error.code, pr.error.message);
+      } else {
+        dmSent = true;
+        // The DM lands in the customer's inbox, so it belongs in the DM thread.
+        await bufferInsert({
+          sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied",
+          message_content: dmText, platform: "facebook",
+        });
+      }
     }
   }
 
