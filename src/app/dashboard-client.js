@@ -951,9 +951,9 @@ function Comments() {
       <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
         <i className="ti ti-alert-triangle" style={{fontSize:17,color:T.danger,flexShrink:0,marginTop:1}}/>
         <div style={{fontSize:12.5,lineHeight:1.6}}>
-          <strong>{dmFailed} inbox message{dmFailed>1?"s":""} could not be delivered.</strong> Facebook only allows a private reply
-          to a comment once, within 7 days, and it needs the <code style={{fontSize:11.5}}>pages_messaging</code> permission approved.
-          The exact reason is shown on each comment below.
+          <strong>{dmFailed} inbox message{dmFailed>1?"s":""} could not be delivered.</strong> Facebook blocks a private reply when the
+          comment came from a Page instead of a personal profile, when the person's privacy settings disallow it, when one was already
+          sent for that comment, or when the comment is over 7 days old. The reason for each is shown below.
         </div>
       </div>
     </Card>}
