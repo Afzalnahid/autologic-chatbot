@@ -95,6 +95,29 @@ service-role client the app uses.
 a temporary debug endpoint that dumps exactly what the server sees ends the
 argument in minutes.
 
+### Customers received raw JSON instead of a reply
+
+*Symptom:* a customer messaged the Facebook page and got back
+`{"type":"text_msg","text":"আমি কীভাবে আপনাকে সাহায্য করতে পারি?"}` — the internal
+message envelope, verbatim, in their Messenger thread.
+
+*Cause:* `parseReply()` only accepted a JSON **array**. The model had returned a
+single bare object without the surrounding brackets. `JSON.parse` succeeded, but
+`Array.isArray` was false, so the code fell through to its "not JSON, send as
+plain text" branch and shipped the entire JSON string to the customer.
+
+*Fix:* `parseReply()` now accepts an array or a single object, extracts multiple
+objects that were not wrapped in an array, pulls the `text` value out of malformed
+JSON as a last resort, and strips braces rather than ever sending them. The output
+rule in `FIXED_BASE` was also tightened to demand the `[ ]` brackets explicitly,
+with an example.
+
+*Lesson:* a fallback branch is a code path, not a safety net. "If parsing fails,
+send the raw string" looks harmless until the raw string is machine output. Any
+fallback that can reach the customer needs to be as carefully designed as the happy
+path — and parser edge cases (bare object, extra prose, code fences, several objects)
+deserve real unit tests before they reach production.
+
 ### The bot that went silent when the plan ran out
 
 *Symptom:* a client's bot simply stopped replying when their trial ended or their
