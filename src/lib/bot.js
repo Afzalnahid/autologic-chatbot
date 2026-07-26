@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
 import { PLANS, PAID_PLANS } from "@/lib/plans.js";
-import { sendTypingOn, sendTypingOff, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
+import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { analyzeImageBase64 } from "@/lib/gemini.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
@@ -458,7 +458,7 @@ export async function processConversation(channel, senderId, myRowId) {
 function startTyping(channel, senderId, platform, msgId) {
   const isWa = platform === "whatsapp";
   // WhatsApp can only show typing against an incoming message id.
-  if (isWa && !msgId) return async () => {};
+  if (isWa && !msgId) return () => {};
 
   let stopped = false;
   const ping = async () => {
@@ -474,14 +474,14 @@ function startTyping(channel, senderId, platform, msgId) {
   const timer = setInterval(ping, isWa ? 18000 : 8000);
   if (typeof timer.unref === "function") timer.unref();
 
-  return async () => {
+  // Only stop refreshing. We deliberately do NOT send typing_off: when a customer
+  // sends two messages quickly, the second handler finds no pending rows and
+  // returns immediately — turning the bubble off here would cancel the indicator
+  // while the first handler is still composing the reply. Sending the reply
+  // clears the bubble anyway, and an unanswered one expires on its own.
+  return () => {
     stopped = true;
     clearInterval(timer);
-    // Sending the reply clears the bubble by itself. This only matters when we
-    // finished without sending anything, so the customer isn't left waiting.
-    if (!isWa) {
-      try { await sendTypingOff(channel.access_token, senderId); } catch {}
-    }
   };
 }
 
@@ -618,7 +618,7 @@ export async function handleIncoming(event) {
   try {
     await processConversation(channel, event.senderId, row?.id || null);
   } finally {
-    await stopTyping();
+    stopTyping();
   }
 }
 
