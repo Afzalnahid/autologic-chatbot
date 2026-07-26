@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
 import { PLANS, PAID_PLANS } from "@/lib/plans.js";
-import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
+import { sendTypingOn, sendTypingOff, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { analyzeImageBase64 } from "@/lib/gemini.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
@@ -382,8 +382,6 @@ export async function processConversation(channel, senderId, myRowId) {
   rows = rows.filter(r => r.message_content);
   if (!rows.length) return;
 
-  if (channel.platform !== "whatsapp") await sendTypingOn(channel.access_token, senderId);
-
   const combined = rows.map(r => r.message_content).join("\n");
   const isAgency = bType === "agency";
 
@@ -452,6 +450,39 @@ export async function processConversation(channel, senderId, myRowId) {
 
   const orphans = await pendingFor(senderId, clientId);
   if (orphans.length) await processConversation(channel, senderId, null);
+}
+
+// Meta's typing bubble expires on its own (Messenger ~20s, WhatsApp ~25s), so a
+// single call vanishes while the model is still working. This keeps it alive on
+// the real platform until the reply actually goes out.
+function startTyping(channel, senderId, platform, msgId) {
+  const isWa = platform === "whatsapp";
+  // WhatsApp can only show typing against an incoming message id.
+  if (isWa && !msgId) return async () => {};
+
+  let stopped = false;
+  const ping = async () => {
+    if (stopped) return;
+    try {
+      if (isWa) await waMarkReadTyping(channel.access_token, channel.page_id, msgId);
+      else await sendTypingOn(channel.access_token, senderId);
+    } catch { /* a cosmetic call must never break the reply */ }
+  };
+
+  ping();
+  // Refresh comfortably before each platform's expiry.
+  const timer = setInterval(ping, isWa ? 18000 : 8000);
+  if (typeof timer.unref === "function") timer.unref();
+
+  return async () => {
+    stopped = true;
+    clearInterval(timer);
+    // Sending the reply clears the bubble by itself. This only matters when we
+    // finished without sending anything, so the customer isn't left waiting.
+    if (!isWa) {
+      try { await sendTypingOff(channel.access_token, senderId); } catch {}
+    }
+  };
 }
 
 export async function handleIncoming(event) {
@@ -579,19 +610,16 @@ export async function handleIncoming(event) {
     return;
   }
 
-  // Show typing straight away — before debouncing and before the model call —
-  // so the customer never sits looking at silence. On WhatsApp this also marks
-  // their message as read (blue ticks).
+  // Typing starts immediately — before debouncing and before the model call — and
+  // is refreshed until the reply is sent, so the customer never sees silence.
+  // On WhatsApp the same call also marks their message read (blue ticks).
   const platform = event.platform || channel.platform;
+  const stopTyping = startTyping(channel, event.senderId, platform, event.msgId);
   try {
-    if (platform === "whatsapp") {
-      if (event.msgId) await waMarkReadTyping(channel.access_token, channel.page_id, event.msgId);
-    } else {
-      await sendTypingOn(channel.access_token, event.senderId);
-    }
-  } catch (e) { console.error("typing indicator:", e.message); }
-
-  await processConversation(channel, event.senderId, row?.id || null);
+    await processConversation(channel, event.senderId, row?.id || null);
+  } finally {
+    await stopTyping();
+  }
 }
 
 // A customer commented on a Page post. Reply publicly under the comment and,
