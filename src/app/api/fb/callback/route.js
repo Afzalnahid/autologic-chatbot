@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { verifyState } from "@/lib/oauth-state.js";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -7,7 +8,11 @@ const APP_SECRET = process.env.FB_APP_SECRET;
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const clientId = searchParams.get("state") || "";
+  const stateToken = searchParams.get("state") || "";
+  const clientId = verifyState(stateToken);
+  if (!clientId) {
+    return new NextResponse("This connect link has expired or is invalid. Please start again from your dashboard.", { status: 400 });
+  }
   if (!code) return new NextResponse("Missing code", { status: 400 });
   if (!APP_ID || !APP_SECRET) return new NextResponse("Server misconfigured: FB_APP_ID or FB_APP_SECRET missing", { status: 500 });
 
@@ -27,7 +32,7 @@ export async function GET(request) {
   const html = `<!DOCTYPE html><html><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:24px;max-width:420px;margin:auto">
 <h3>Select a page to connect</h3>
 <form method="POST" action="/api/fb/select">
-<input type="hidden" name="client_id" value="${clientId}">
+<input type="hidden" name="state" value="${stateToken}">
 ${options}
 <button type="submit" style="margin-top:12px;padding:10px 18px;background:#0084ff;color:#fff;border:none;border-radius:8px;cursor:pointer">Connect</button>
 </form></body></html>`;
