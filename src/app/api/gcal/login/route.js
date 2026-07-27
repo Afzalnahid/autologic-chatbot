@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { signState } from "@/lib/oauth-state.js";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const SCOPES = [
@@ -22,7 +23,7 @@ export async function GET(request) {
       scope: SCOPES,
       access_type: "offline",
       prompt: "consent",
-      state: clientId,
+      state: signState(clientId),
     }).toString();
 
   return NextResponse.redirect(url);
