@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { chatWithGemini, analyzeImageBase64, transcribeAudioBase64 } from "@/lib/gemini.js";
 
 // The demo bot is always a product expert for Autologic itself — it never uses
@@ -48,6 +49,10 @@ export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ reply: "Unauthorized" }, { status: 401 });
+
+    // Expensive AI call — keep one account from running up the bill in a loop.
+    const rl = rateLimit(`demo-chat:${client.id}`, 30, 5 * 60 * 1000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter, "You are sending messages very quickly. Please slow down a little.");
 
     const body = await request.json();
     const { messages, imageBase64, imageMime, audioBase64, audioMime } = body;
