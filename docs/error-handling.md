@@ -26,6 +26,24 @@ can show something useful instead of a blank screen.
 
 ---
 
+## 1b. The safety net
+
+Every API route is now wrapped. Two shapes, because the callers differ:
+
+- **JSON routes** use `withErrors()` from `src/lib/route-errors.js`:
+  `export const GET = withErrors(async (request) => { ... }, "analytics");`
+  An unexpected throw becomes `{ error: "Something went wrong on our side." }`
+  with a 500, and the real message is logged server-side under the label.
+
+- **OAuth routes** (login / callback / select) return a redirect or an HTML page,
+  so JSON would be useless to the browser. They wrap their body in try/catch and
+  return a short, readable page instead.
+
+This is a net, not a substitute for handling expected failures. A route that knows
+a call can fail should still return a specific message — the wrapper only catches
+what nobody predicted, so the user never sees a Next.js stack trace with internal
+file paths.
+
 ## 2. Failure modes by area
 
 ### Gemini API
