@@ -1,15 +1,17 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { exchangeCode, fetchGoogleEmail } from "@/lib/gcal.js";
 
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const clientId = searchParams.get("state") || "";
+  const clientId = verifyState(searchParams.get("state"));
   const err = searchParams.get("error");
   if (err) return htmlClose("Google Calendar connect cancelled.");
-  if (!code || !clientId) return new NextResponse("Missing code or state", { status: 400 });
+  if (!code) return new NextResponse("Missing authorization code", { status: 400 });
+  if (!clientId) return new NextResponse("This connect link has expired or is invalid. Please start again from your dashboard.", { status: 403 });
 
   try {
     const redirectUri = `${origin}/api/gcal/callback`;
