@@ -2,17 +2,18 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
+import { withErrors } from "@/lib/route-errors.js";
 
-export async function GET(request) {
+export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json({ connected: false }, { status: authErr ? 401 : 200 });
   return NextResponse.json({
     connected: !!client.gcal_connected,
     email: client.gcal_email || "",
   });
-}
+}, "gcal-status");
 
-export async function DELETE(request) {
+export const DELETE = withErrors(async (request) => {
   const { client } = await requireClient(request);
   if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   await supabase
@@ -26,4 +27,4 @@ export async function DELETE(request) {
     })
     .eq("id", client.id);
   return NextResponse.json({ ok: true });
-}
+}, "gcal-status");
