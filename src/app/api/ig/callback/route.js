@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { verifyState } from "@/lib/oauth-state.js";
 
 const IG_APP_ID = process.env.IG_APP_ID || "1249182887184854";
 const IG_APP_SECRET = process.env.IG_APP_SECRET;
@@ -7,7 +8,11 @@ const IG_APP_SECRET = process.env.IG_APP_SECRET;
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const clientId = searchParams.get("state") || "";
+  const stateToken = searchParams.get("state") || "";
+  const clientId = verifyState(stateToken);
+  if (!clientId) {
+    return new NextResponse("This connect link has expired or is invalid. Please start again from your dashboard.", { status: 400 });
+  }
   const errDesc = searchParams.get("error_description");
   if (errDesc) return new NextResponse("Instagram error: " + errDesc, { status: 400 });
   if (!code) return new NextResponse("Missing code", { status: 400 });
@@ -45,7 +50,7 @@ export async function GET(request) {
   const html = `<!DOCTYPE html><html><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:24px;max-width:420px;margin:auto">
 <h3>Connect Instagram</h3>
 <form method="POST" action="/api/ig/select">
-<input type="hidden" name="client_id" value="${clientId}">
+<input type="hidden" name="state" value="${stateToken}">
 <input type="hidden" name="acct" value="${accountId}|${encodeURIComponent(username)}|${token}">
 <div style="padding:12px;border:1px solid #333;border-radius:8px;margin:12px 0">@${username}</div>
 <button type="submit" style="padding:10px 18px;background:#E1306C;color:#fff;border:none;border-radius:8px;cursor:pointer">Connect</button>
