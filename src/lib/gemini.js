@@ -68,10 +68,6 @@ async function withRetry(fn, tries = 3) {
   throw last;
 }
 
-export async function analyzeImageFromTelegram(fileUrl, prompt) {
-  return analyzeImage(fileUrl, prompt);
-}
-
 export async function generateEmbedding(text) {
   const model = getGenAI().getGenerativeModel({ model: "gemini-embedding-001" });
   const result = await withRetry(() => model.embedContent({
