@@ -4,8 +4,9 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
+import { withErrors } from "@/lib/route-errors.js";
 
-export async function GET(request) {
+export const GET = withErrors(async (request) => {
   const { client, email, error: authErr } = await requireClient(request);
   if (authErr) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!client) return NextResponse.json({ error: "client_not_found" }, { status: 404 });
@@ -25,9 +26,9 @@ export async function GET(request) {
     created_at: client.created_at,
     usage,
   }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache", "Expires": "0" } });
-}
+}, "profile");
 
-export async function PUT(request) {
+export const PUT = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
   if (authErr) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!client) return NextResponse.json({ error: "client_not_found" }, { status: 404 });
@@ -39,7 +40,7 @@ export async function PUT(request) {
   const { error } = await supabase.from("clients").update(patch).eq("id", client.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
-}
+}, "profile");
 
 async function getUsage(client) {
   const { count: products } = await supabase.from("products").select("id", { count: "exact", head: true }).eq("client_id", client.id);
