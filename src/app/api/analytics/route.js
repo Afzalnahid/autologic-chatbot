@@ -4,6 +4,7 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
+import { withErrors } from "@/lib/route-errors.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
 const DHAKA_OFFSET = 6 * 3600 * 1000;
@@ -90,7 +91,7 @@ function topOf(map, limit) {
   return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([name, count]) => ({ name, count }));
 }
 
-export async function GET(request) {
+export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -304,4 +305,4 @@ export async function GET(request) {
     top_services: topOf(serviceCount, 6),
     order_status: [...orderStatus.entries()].map(([status, count]) => ({ status, count })),
   }, NO_CACHE);
-}
+}, "analytics");
