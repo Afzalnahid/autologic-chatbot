@@ -19,9 +19,6 @@ async function send(token, body) {
 export const sendTypingOn = (token, id) =>
   send(token, { recipient: { id }, sender_action: "typing_on" });
 
-export const sendTypingOff = (token, id) =>
-  send(token, { recipient: { id }, sender_action: "typing_off" });
-
 export const sendTextMessage = (token, id, text) =>
   send(token, { recipient: { id }, messaging_type: "RESPONSE", message: { text } });
 
