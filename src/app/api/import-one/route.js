@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { analyzeImage, generateEmbedding } from "@/lib/gemini.js";
 
@@ -13,6 +14,10 @@ export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    // Each import runs AI calls — cap the burst rate per account.
+    const rl = rateLimit(`import-one:${client.id}`, 60, 3600000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter, "You have imported many products recently. Please wait a few minutes.");
     const bType = client.business_type || "ecommerce";
     const unit = client.item_label || "product";
     const p = await request.json();
