@@ -1,10 +1,14 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 
 export async function POST(request) {
   const form = await request.formData();
-  const clientId = form.get("client_id");
+  const clientId = verifyState(form.get("state"));
+  if (!clientId) {
+    return new NextResponse("This connect session has expired or is invalid. Please start again from your dashboard.", { status: 403 });
+  }
   const [pageId, encName, pageToken] = String(form.get("page") || "").split("|");
   if (!clientId || !pageId || !pageToken) return new NextResponse("Invalid selection", { status: 400 });
 
