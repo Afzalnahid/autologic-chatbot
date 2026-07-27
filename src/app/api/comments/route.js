@@ -3,8 +3,9 @@ export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
+import { withErrors } from "@/lib/route-errors.js";
 
-export async function GET(request) {
+export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json([], { status: authErr ? 401 : 200 });
 
@@ -18,4 +19,4 @@ export async function GET(request) {
   return NextResponse.json(data || [], {
     headers: { "Cache-Control": "no-store" },
   });
-}
+}, "comments");
