@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { chatWithGemini } from "@/lib/gemini.js";
 import { supabase } from "@/lib/supabase.js";
 
@@ -43,6 +44,10 @@ export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    // Expensive AI call — keep one account from running up the bill in a loop.
+    const rl = rateLimit(`generate-prompt:${client.id}`, 10, 3600000);
+    if (!rl.ok) return tooManyRequests(rl.retryAfter, "You have generated several prompts recently. Please wait a few minutes before trying again.");
     const body = await request.json();
     const { answers, description } = body;
     if (!answers && !description) return NextResponse.json({ error: "answers required" }, { status: 400 });
