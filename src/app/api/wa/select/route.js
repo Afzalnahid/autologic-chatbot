@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 
 function html(body) {
@@ -11,7 +12,10 @@ function html(body) {
 
 export async function POST(request) {
   const form = await request.formData();
-  const clientId = form.get("client_id");
+  const clientId = verifyState(form.get("state"));
+  if (!clientId) {
+    return new NextResponse("This connect session has expired or is invalid. Please start again from your dashboard.", { status: 403 });
+  }
   if (!clientId) return html(`<h3>Error</h3><p>Missing client.</p>`);
 
   let phoneId, displayNumber, verifiedName, token;
