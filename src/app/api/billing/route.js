@@ -6,6 +6,7 @@ import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
 import { PLANS, PAID_PLANS, priceOf, planActive } from "@/lib/plans.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
+import { withErrors } from "@/lib/route-errors.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
 
@@ -44,7 +45,7 @@ async function usageToday(clientId) {
   return count || 0;
 }
 
-export async function GET(request) {
+export const GET = withErrors(async (request) => {
   const { client, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -81,9 +82,9 @@ export async function GET(request) {
     pending_request: pending,
     requests,
   }, NO_CACHE);
-}
+}, "billing");
 
-export async function POST(request) {
+export const POST = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
@@ -128,4 +129,4 @@ export async function POST(request) {
   }).catch(() => {});
 
   return NextResponse.json({ ok: true, request: data }, NO_CACHE);
-}
+}, "billing");
