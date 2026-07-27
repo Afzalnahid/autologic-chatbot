@@ -81,6 +81,38 @@ Two layers:
 
 ---
 
+## 4b. OAuth connect flows
+
+OAuth callbacks arrive as plain redirects and form POSTs, so they carry no session
+JWT. The `client_id` used to travel through the `state` parameter unsigned, which
+meant a crafted POST to `/api/fb/select` (or the Instagram, WhatsApp and Google
+Calendar equivalents) could attach an attacker's Page — or overwrite stored
+tokens — on **any** tenant's account.
+
+`src/lib/oauth-state.js` now mints an HMAC-signed, 30-minute token at the start of
+every connect flow. Every callback and every `/select` route verifies it before
+writing anything, using a constant-time comparison. A raw client id, a tampered
+id, or an expired token is rejected with 403.
+
+The signing key is `OAUTH_STATE_SECRET` if set, otherwise `FB_APP_SECRET` — server
+side only, never sent to the browser.
+
+## 4c. Rate limiting
+
+`src/lib/rate-limit.js` caps the endpoints that cost money on every call:
+
+| Endpoint | Limit |
+|---|---|
+| `generate-prompt` | 10 / hour per account |
+| `demo-chat` | 30 / 5 min per account |
+| `import-url` | 20 / hour per account |
+| `import-one`, `add-product` | 60 / hour per account |
+
+The limiter is in-process, so on serverless it applies per warm instance rather
+than globally. That is a deliberate trade-off: it costs nothing and stops the
+realistic abuse case (one account looping an AI endpoint). A shared store is the
+right upgrade once there is real paid traffic.
+
 ## 5. Webhook verification
 
 Meta calls `GET /api/messenger` and `/api/whatsapp` with `hub.verify_token`. The
