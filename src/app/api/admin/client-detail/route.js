@@ -4,6 +4,7 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
+import { withErrors } from "@/lib/route-errors.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -26,7 +27,7 @@ async function isAdmin(email) {
   return data && !["pending", "blocked"].includes(data.role);
 }
 
-export async function GET(request) {
+export const GET = withErrors(async (request) => {
   const email = await callerEmail(request);
   if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!(await isAdmin(email))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -84,4 +85,4 @@ export async function GET(request) {
     products,
     files: filesQ.data || [],
   }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } });
-}
+}, "admin-client-detail");
