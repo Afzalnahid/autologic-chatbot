@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient, trialActive } from "@/lib/auth.js";
 import { notifyExpiringSoon } from "@/lib/email.js";
+import { withErrors } from "@/lib/route-errors.js";
 
 // Warn the owner when a trial or paid plan ends within 3 days, at most once per
 // plan period (tracked by expiry_warned_at against the current expiry date).
@@ -29,7 +30,7 @@ async function maybeWarnExpiry(client) {
   await supabase.from("clients").update({ expiry_warned_at: end.toISOString() }).eq("id", client.id);
 }
 
-export async function GET(request) {
+export const GET = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
   if (error) return NextResponse.json({ error }, { status: 401 });
   if (!client) return NextResponse.json({ client: null, email });
@@ -48,9 +49,9 @@ export async function GET(request) {
     active: trialActive(client),
     usage: { today: used, limit: client.plan === "trial" ? 30 : null },
   });
-}
+}, "me");
 
-export async function POST(request) {
+export const POST = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
   if (error) return NextResponse.json({ error }, { status: 401 });
   const body = await request.json();
@@ -76,4 +77,4 @@ export async function POST(request) {
   }
 
   return NextResponse.json({ error: "unknown action" }, { status: 400 });
-}
+}, "me");
