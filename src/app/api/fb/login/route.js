@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { signState } from "@/lib/oauth-state.js";
 
 // App ID and Config ID are public values (visible in the OAuth URL in the browser),
 // so a fallback is safe. The App SECRET is never hardcoded — that stays env-only.
@@ -10,6 +11,6 @@ export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const clientId = searchParams.get("client_id") || "";
   const redirect = `${origin}/api/fb/callback`;
-  const url = `https://www.facebook.com/v24.0/dialog/oauth?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(redirect)}&state=${encodeURIComponent(clientId)}&config_id=${CONFIG_ID}&response_type=code`;
+  const url = `https://www.facebook.com/v24.0/dialog/oauth?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(redirect)}&state=${encodeURIComponent(signState(clientId))}&config_id=${CONFIG_ID}&response_type=code`;
   return NextResponse.redirect(url);
 }
