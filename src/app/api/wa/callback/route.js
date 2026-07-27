@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { verifyState } from "@/lib/oauth-state.js";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -14,7 +15,11 @@ function html(body) {
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const clientId = searchParams.get("state") || "";
+  const stateToken = searchParams.get("state") || "";
+  const clientId = verifyState(stateToken);
+  if (!clientId) {
+    return new NextResponse("This connect link has expired or is invalid. Please start again from your dashboard.", { status: 400 });
+  }
 
   if (!code) return html(`<h3>Error</h3><p>Missing authorization code.</p>`);
   if (!APP_ID || !APP_SECRET) return html(`<h3>Error</h3><p>Server misconfigured.</p>`);
@@ -91,7 +96,7 @@ export async function GET(request) {
         the access token has been filled in automatically.
       </p>
       <form method="POST" action="/api/wa/select">
-        <input type="hidden" name="client_id" value="${clientId}">
+        <input type="hidden" name="state" value="${stateToken}">
         <input type="hidden" name="manual_token" value="${userToken}">
         <div style="margin-bottom:12px">
           <label style="display:block;font-size:12px;color:#8b9cbd;margin-bottom:5px">Phone Number ID</label>
@@ -124,7 +129,7 @@ export async function GET(request) {
     <h3 style="color:#f0c040;margin-bottom:4px">Connect WhatsApp</h3>
     <p style="color:#8b9cbd;font-size:13px;margin-bottom:20px">Select which number to connect</p>
     <form method="POST" action="/api/wa/select">
-      <input type="hidden" name="client_id" value="${clientId}">
+      <input type="hidden" name="state" value="${stateToken}">
       <input type="hidden" name="phones" value="${encoded}">
       ${opts}
       <button type="submit" style="margin-top:14px;width:100%;padding:12px;background:#f0c040;color:#0a0a0a;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
