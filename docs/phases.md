@@ -135,6 +135,23 @@ Note: private replies require `pages_messaging`, can only be sent once per comme
 and only within Facebook's 7-day window — so the error is surfaced to the owner
 rather than swallowed.
 
+## Phase 12 — Hardening pass ✅
+
+An audit of the whole application produced a prioritised list; these were fixed in
+order.
+
+- **Cross-tenant hijacking (critical).** The `/select` routes and the Google
+  Calendar callback trusted an unsigned `client_id` from a form POST, so a crafted
+  request could attach a Page — or overwrite calendar tokens — on any tenant's
+  account. All OAuth flows now carry an HMAC-signed, 30-minute state token,
+  verified before any write. See [security.md](./security.md).
+- **Rate limiting.** The five endpoints that call Gemini on every request are now
+  capped per account.
+- **Error handling.** Every API route is wrapped so an unexpected throw returns a
+  clean message instead of a stack trace.
+- **Dead code removed.** The Telegram stub (never implemented, no UI), an empty
+  `push` route, an unused Telegram image helper, and an unused `sendTypingOff`.
+
 ## Roadmap
 
 ### Next
