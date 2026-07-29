@@ -303,8 +303,10 @@ async function maybeSaveOrder(items, clientId) {
 // save to the bookings table, and inject the real Meet link back into the text.
 async function maybeCreateBooking(items, client, senderId, platform) {
   const bookingItems = items.filter(it => it.type === "booking");
-  if (!bookingItems.length) return items;
+  if (!bookingItems.length) return { items, booked: false, bookingNote: "" };
 
+  let booked = false;
+  let bookingNote = "";
   let accessToken = null;
   try { accessToken = await getValidAccessToken(client); } catch (e) { console.error("gcal token:", e.message); }
 
@@ -346,20 +348,44 @@ async function maybeCreateBooking(items, client, senderId, platform) {
         platform: platform || "facebook",
         status: "Confirmed",
       });
+      booked = true;
+      bookingNote = `[A meeting was already booked for ${b.customer_name || "the customer"} on ${b.meeting_date || ""} ${b.meeting_time || ""}. Do not book again.]`;
     } catch (e) { console.error("booking insert:", e.message); }
 
-    // Replace {{MEET_LINK}} placeholder in any text message with the real link
-    if (meetLink) {
-      for (const it of items) {
-        if (it.type === "text_msg" && it.text) it.text = it.text.replace(/\{\{MEET_LINK\}\}/g, meetLink);
+    // Put the real Meet link into the text. If Calendar is not connected we have no
+    // link, so remove the placeholder and fall back to an honest line instead of
+    // leaving "{{MEET_LINK}}" visible to the customer.
+    for (const it of items) {
+      if (it.type !== "text_msg" || !it.text) continue;
+      if (meetLink) {
+        it.text = it.text.replace(/\{\{MEET_LINK\}\}/g, meetLink);
+      } else if (it.text.includes("{{MEET_LINK}}")) {
+        it.text = it.text
+          .replace(/\n?[^\n]*\{\{MEET_LINK\}\}[^\n]*/g, "")
+          .trim();
+        it.text += (it.text ? "\n\n" : "") +
+          "আমাদের টিম শীঘ্রই আপনাকে মিটিং লিংকটি পাঠিয়ে দেবে। / Our team will share the meeting link with you shortly.";
       }
     }
   }
 
-  return items.filter(it => it.type !== "booking");
+  return { items: items.filter(it => it.type !== "booking"), booked, bookingNote };
 }
 
-const BOOKING_RULE = "\n\nBOOKING FLOW (agency): You can schedule meetings. Before booking you MUST have all 6: customer name, email, phone number, the specific service they want, preferred meeting date, and preferred meeting time. If any is missing, ask for it politely. Once you have all 6 and the customer confirms, append ONE object to the JSON array: {\"type\":\"booking\",\"customer_name\":\"..\",\"email\":\"..\",\"phone\":\"..\",\"service_want\":\"..\",\"meeting_date\":\"..\",\"meeting_time\":\"..\",\"start\":\"<ISO8601 datetime with timezone>\",\"end\":\"<ISO8601 datetime, 30 min after start>\"}. In your text message to the customer, write the meeting link exactly as {{MEET_LINK}} — it will be replaced with the real Google Meet link automatically. Never mention the booking JSON object in your text. Compute start/end as full ISO8601 timestamps (e.g. 2026-07-20T15:00:00+06:00) using the requested date and time in the Asia/Dhaka timezone.";
+function bookingRule() {
+  // Give the model the real current date in Dhaka time, so it never guesses the
+  // year (it was producing 2024) and can resolve "tomorrow" / "next Monday".
+  const now = new Date();
+  const dhaka = new Date(now.getTime() + 6 * 3600 * 1000); // UTC+6, no DST in BD
+  const iso = dhaka.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+  const weekday = dhaka.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+  return "\n\nCURRENT DATE & TIME: Today is " + weekday + ", " + iso.slice(0, 10) +
+    " and the current time is " + iso.slice(11, 16) + " in the Asia/Dhaka timezone (UTC+6). " +
+    "Always use THIS as the reference for \"today\", \"tomorrow\", \"next week\", etc. Never invent a different year." +
+    "\n\nBOOKING FLOW (agency): You can schedule meetings. Before booking you MUST have all 6: customer name, email, phone number, the specific service they want, preferred meeting date, and preferred meeting time. If any is missing, ask for it politely. Once you have all 6 and the customer confirms, append ONE object to the JSON array: {\"type\":\"booking\",\"customer_name\":\"..\",\"email\":\"..\",\"phone\":\"..\",\"service_want\":\"..\",\"meeting_date\":\"..\",\"meeting_time\":\"..\",\"start\":\"<ISO8601 datetime with timezone>\",\"end\":\"<ISO8601 datetime, 30 min after start>\"}. In your text message to the customer, write the meeting link exactly as {{MEET_LINK}} — it will be replaced with the real Google Meet link automatically. Never mention the booking JSON object in your text. Compute start/end as full ISO8601 timestamps (e.g. " + iso.slice(0,10) + "T15:00:00+06:00) using the requested date and time in the Asia/Dhaka timezone. " +
+    "CRITICAL: Only append the booking object in the SINGLE turn where the customer first confirms. If the recent conversation already shows a booking was confirmed and a meeting link was already sent, do NOT create another booking — just answer their question normally.";
+}
+const BOOKING_RULE_PLACEHOLDER = "";
 
 export async function processConversation(channel, senderId, myRowId) {
   const clientId = channel.client_id;
@@ -419,7 +445,7 @@ export async function processConversation(channel, senderId, myRowId) {
 
   let raw;
   try {
-    const rules = isAgency ? BOOKING_RULE : orderRule;
+    const rules = isAgency ? bookingRule() : orderRule;
     raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
@@ -427,8 +453,14 @@ export async function processConversation(channel, senderId, myRowId) {
   }
 
   let items = parseReply(raw);
-  if (isAgency) items = await maybeCreateBooking(items, client, senderId, channel.platform);
-  else items = await maybeSaveOrder(items, clientId);
+  let bookingNote = "";
+  if (isAgency) {
+    const r = await maybeCreateBooking(items, client, senderId, channel.platform);
+    items = r.items;
+    if (r.booked) bookingNote = r.bookingNote;
+  } else {
+    items = await maybeSaveOrder(items, clientId);
+  }
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
@@ -446,10 +478,16 @@ export async function processConversation(channel, senderId, myRowId) {
     });
   }
 
-  await saveMemory(senderId, clientId, combined, items.filter(i => i.text).map(i => i.text).join("\n"));
+  const aiText = items.filter(i => i.text).map(i => i.text).join("\n");
+  await saveMemory(senderId, clientId, combined, aiText + (bookingNote ? "\n" + bookingNote : ""));
 
+  // If genuinely NEW customer messages arrived while we were composing, handle them
+  // once more. The status filter above already marked the current batch Replied, so
+  // only messages received after this point qualify — this prevents re-answering the
+  // same batch (which showed up as duplicate replies).
   const orphans = await pendingFor(senderId, clientId);
-  if (orphans.length) await processConversation(channel, senderId, null);
+  const freshOrphans = orphans.filter(o => !ids.includes(o.id));
+  if (freshOrphans.length) await processConversation(channel, senderId, null);
 }
 
 // Meta's typing bubble expires on its own (Messenger ~20s, WhatsApp ~25s), so a
