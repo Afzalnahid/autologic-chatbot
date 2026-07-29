@@ -677,14 +677,18 @@ export async function handleComment(event) {
   const persona = settings.businessPrompt || settings.systemPrompt || "";
   const commentInstruction =
     "You are replying to a PUBLIC Facebook comment on a post. Write ONE short, warm, human reply " +
-    "(max 2 sentences) in the commenter's language (Bangla/English). Do NOT output JSON, lists, links or prices unless the customer asked. " +
+    "(max 2 sentences). " +
+    "LANGUAGE RULE (critical): reply in the EXACT same language and script the commenter used. " +
+    "If they wrote in Bangla, reply only in Bangla. If they wrote in English, reply only in English. " +
+    "If they wrote Banglish (Bangla in English letters), reply in Banglish. Never mix two languages in one reply, and never default to English. " +
+    "Do NOT output JSON, lists, links or prices unless the customer asked. " +
     "Invite them to check their inbox for details. Use only the facts in the context below; never invent prices or claims.";
 
   let reply = "";
   try {
     reply = await chatWithGemini(
       commentInstruction + "\n\n" + persona + context,
-      [{ role: "user", content: `A customer named ${event.senderName || "someone"} commented: "${text || "(no text, maybe a photo)"}"` }]
+      [{ role: "user", content: `A customer commented on the post: "${text || "(no text, maybe a photo)"}"\n\nReply in the same language as this comment.` }]
     );
     reply = String(reply || "").replace(/```/g, "").trim();
     // If the model returned a JSON array anyway, pull out the first text.
