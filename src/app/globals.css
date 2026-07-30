@@ -1,20 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Hind+Siliguri:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --s0:#0A0D14; --s1:#0F1420; --s2:#151B2A; --s3:#1C2436;
+  --line:#1F2839; --line-strong:#2C374D;
+  --t1:#E7EAF2; --t2:#98A3BA; --t3:#5E6B85;
+  --p:#5B8CFF; --p-dim:rgba(91,140,255,.12);
+  --live:#2ED3A7; --live-dim:rgba(46,211,167,.11);
+  --warn:#F0B429; --bad:#FF5A5F;
+  --sans:"Geist",-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --bn:"Hind Siliguri","Noto Sans Bengali",var(--sans);
+  --mono:"Geist Mono",ui-monospace,'SF Mono',monospace;
+  --r-sm:6px; --r:10px; --r-lg:14px;
+}
+
 * { box-sizing: border-box; margin: 0; }
-body { background: #05080f; color: #e8e8ec; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+body {
+  background: var(--s0); color: var(--t1);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11","ss01";
+}
+/* Bangla picks up its own face wherever it is marked */
+:lang(bn), .bn { font-family: var(--bn); }
+.mono, code { font-family: var(--mono); letter-spacing: -.01em; }
+
+/* Numbers in stats and tables align as they update */
+.tnum { font-variant-numeric: tabular-nums; }
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes dotPulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #1a2744; border-radius: 4px; }
-::selection { background: rgba(240,192,64,0.3); }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+::selection { background: var(--p-dim); color: var(--t1); }
+:focus-visible { outline: 2px solid var(--p); outline-offset: 2px; border-radius: 4px; }
 
 html { -webkit-text-size-adjust: 100%; }
-input, textarea, select { font-size: 16px !important; }
+input, textarea, select { font-size: 16px !important; font-family: var(--sans); }
 @media (min-width: 768px) { input, textarea, select { font-size: 13px !important; } }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
