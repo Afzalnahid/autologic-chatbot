@@ -773,18 +773,31 @@ export async function handleComment(event) {
     }
   } catch (e) { console.error("comment reply gen:", e.message); }
 
-  if (!reply) reply = "ধন্যবাদ! বিস্তারিত জানাতে আপনাকে ইনবক্সে মেসেজ করছি। / Thanks! We've messaged you the details in your inbox.";
+  // Gemini can fail (quota, timeout) and the fallback then becomes what the
+  // customer actually reads, so it must respect the same language rule the model
+  // was given. Bengali script in the comment means a Bangla reply; anything else
+  // gets English. A bilingual "X / Y" line reads like a broken bot.
+  const isBangla = /[\u0980-\u09FF]/.test(String(text || ""));
+  if (!reply) {
+    reply = isBangla
+      ? "ধন্যবাদ! বিস্তারিত জানাতে আপনাকে ইনবক্সে মেসেজ করছি।"
+      : "Thanks for reaching out! We've sent the details to your inbox.";
+  }
 
   const { fbReplyToComment, fbPrivateReply, igReplyToComment, igPrivateReply, explainPrivateReplyError } = await import("@/lib/messenger.js");
   const isIG = channel.platform === "instagram";
 
   // The DM invites the customer to continue in the inbox, so it reads differently
   // from the public reply.
-  const dmText = dmOn
-    ? `${reply}\n\n${event.senderName ? event.senderName.split(" ")[0] + ", " : ""}${bType === "agency"
-        ? "এখানে যেকোনো প্রশ্ন করতে পারেন। / Feel free to ask anything here."
-        : "এখানে অর্ডার বা যেকোনো প্রশ্ন করতে পারেন। / You can order or ask anything here."}`
-    : "";
+  const invite = isBangla
+    ? (bType === "agency"
+        ? "এখানে যেকোনো প্রশ্ন করতে পারেন।"
+        : "এখানে অর্ডার বা যেকোনো প্রশ্ন করতে পারেন।")
+    : (bType === "agency"
+        ? "Feel free to ask anything here."
+        : "You can order or ask anything here.");
+  const firstName = event.senderName ? event.senderName.split(" ")[0] + ", " : "";
+  const dmText = dmOn ? `${reply}\n\n${firstName}${invite}` : "";
 
   let replied = false, replyError = null, dmSent = false, dmError = null;
 
