@@ -1,14 +1,14 @@
 export const metadata = { title: "Terms of Service - Autologic" };
 
 export default function Terms() {
-  const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#e8e8ec", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
-  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#f0c040" };
+  const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
+  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#5B8CFF" };
   const P = { marginBottom: 12 };
   return (
-    <div style={{ background: "#05080f", minHeight: "100vh" }}>
+    <div style={{ background: "#0A0D14", minHeight: "100vh" }}>
       <div style={S}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>Terms of Service</h1>
-        <p style={{ color: "#8b9cbd", marginBottom: 32 }}>Last updated: July 18, 2026</p>
+        <p style={{ color: "#98A3BA", marginBottom: 32 }}>Last updated: July 18, 2026</p>
         <p style={P}>These Terms of Service ("Terms") govern your use of Autologic ("we", "our", "us"), an AI-powered customer service chatbot platform operated at autologic-chatbot.vercel.app. By creating an account or using the platform, you agree to these Terms.</p>
 
         <h2 style={H2}>1. The Service</h2>
@@ -27,7 +27,7 @@ export default function Terms() {
         <p style={P}>Free trials are provided with message and feature limits as described at signup. Paid plans are billed as agreed at the time of purchase. We reserve the right to modify plan features or pricing with reasonable advance notice. No refunds are provided for partial billing periods unless required by applicable law.</p>
 
         <h2 style={H2}>6. Data and Privacy</h2>
-        <p style={P}>Data handling is described in detail in our <a href="/privacy" style={{ color: "#f0c040" }}>Privacy Policy</a>. You retain ownership of your business data, including uploaded files, product catalogues, and customer conversations. We may permanently delete data associated with terminated or inactive accounts after 30 days notice.</p>
+        <p style={P}>Data handling is described in detail in our <a href="/privacy" style={{ color: "#5B8CFF" }}>Privacy Policy</a>. You retain ownership of your business data, including uploaded files, product catalogues, and customer conversations. We may permanently delete data associated with terminated or inactive accounts after 30 days notice.</p>
 
         <h2 style={H2}>7. Intellectual Property</h2>
         <p style={P}>Autologic and its underlying technology remain our intellectual property. You are granted a limited, non-exclusive, non-transferable license to use the platform for your business purposes. You may not copy, reverse-engineer, or resell any part of the platform without written permission.</p>
@@ -48,7 +48,7 @@ export default function Terms() {
         <p style={P}>These Terms are governed by the laws of Bangladesh. Any disputes shall be resolved in the courts of Dhaka, Bangladesh.</p>
 
         <h2 style={H2}>13. Contact</h2>
-        <p style={P}><strong>Autologic</strong> · Kandirpar, Cumilla, Bangladesh<br/>Email: <a href="mailto:nahidafzal97@gmail.com" style={{ color: "#f0c040" }}>nahidafzal97@gmail.com</a></p>
+        <p style={P}><strong>Autologic</strong> · Kandirpar, Cumilla, Bangladesh<br/>Email: <a href="mailto:nahidafzal97@gmail.com" style={{ color: "#5B8CFF" }}>nahidafzal97@gmail.com</a></p>
       </div>
     </div>
   );
