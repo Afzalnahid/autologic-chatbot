@@ -90,8 +90,8 @@ export async function GET(request) {
     // If still nothing found — show manual fallback with the token pre-filled
     if (!phoneNumbers.length) {
       return html(`
-        <h3 style="color:#f0c040;margin-bottom:6px">Connect WhatsApp</h3>
-        <p style="color:#8b9cbd;font-size:13px;margin-bottom:20px">
+        <h3 style="color:#5B8CFF;margin-bottom:6px">Connect WhatsApp</h3>
+        <p style="color:#98A3BA;font-size:13px;margin-bottom:20px">
           Auto-detection requires <strong>whatsapp_business_management</strong> permission 
           (pending App Review). Enter your Phone Number ID manually below — 
           the access token has been filled in automatically.
@@ -100,14 +100,14 @@ export async function GET(request) {
           <input type="hidden" name="state" value="${stateToken}">
           <input type="hidden" name="manual_token" value="${userToken}">
           <div style="margin-bottom:12px">
-            <label style="display:block;font-size:12px;color:#8b9cbd;margin-bottom:5px">Phone Number ID</label>
+            <label style="display:block;font-size:12px;color:#98A3BA;margin-bottom:5px">Phone Number ID</label>
             <input name="phone_id" required placeholder="e.g. 123456789012345"
-              style="width:100%;box-sizing:border-box;background:#0d1529;border:1px solid #1a2744;border-radius:8px;padding:11px 12px;color:#eee;font-size:14px">
+              style="width:100%;box-sizing:border-box;background:#0F1420;border:1px solid #1F2839;border-radius:8px;padding:11px 12px;color:#eee;font-size:14px">
             <p style="font-size:11px;color:#64748b;margin-top:4px">
               Find this in: Meta App Dashboard → WhatsApp → API Setup → Phone number ID
             </p>
           </div>
-          <button type="submit" style="width:100%;padding:12px;background:#f0c040;color:#0a0a0a;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
+          <button type="submit" style="width:100%;padding:12px;background:#5B8CFF;color:#0a0a0a;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
         </form>
         <p style="font-size:11px;color:#64748b;margin-top:14px;text-align:center">
           After App Review is approved, this will be fully automatic.
@@ -117,27 +117,27 @@ export async function GET(request) {
 
     // Found phone numbers — show selection
     const opts = phoneNumbers.map((p, i) =>
-      `<label style="display:block;margin:8px 0;padding:14px;border:1px solid #1a2744;border-radius:10px;cursor:pointer;background:#0d1529">
+      `<label style="display:block;margin:8px 0;padding:14px;border:1px solid #1F2839;border-radius:10px;cursor:pointer;background:#0F1420">
         <input type="radio" name="phone" value="${i}" required style="margin-right:10px">
         <strong>${p.verifiedName}</strong><br>
-        <span style="color:#8b9cbd;font-size:13px">${p.displayNumber} &middot; ${p.status || "active"}</span>
+        <span style="color:#98A3BA;font-size:13px">${p.displayNumber} &middot; ${p.status || "active"}</span>
       </label>`
     ).join("");
 
     const encoded = encodeURIComponent(JSON.stringify(phoneNumbers));
 
     return html(`
-      <h3 style="color:#f0c040;margin-bottom:4px">Connect WhatsApp</h3>
-      <p style="color:#8b9cbd;font-size:13px;margin-bottom:20px">Select which number to connect</p>
+      <h3 style="color:#5B8CFF;margin-bottom:4px">Connect WhatsApp</h3>
+      <p style="color:#98A3BA;font-size:13px;margin-bottom:20px">Select which number to connect</p>
       <form method="POST" action="/api/wa/select">
         <input type="hidden" name="state" value="${stateToken}">
         <input type="hidden" name="phones" value="${encoded}">
         ${opts}
-        <button type="submit" style="margin-top:14px;width:100%;padding:12px;background:#f0c040;color:#0a0a0a;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
+        <button type="submit" style="margin-top:14px;width:100%;padding:12px;background:#5B8CFF;color:#0a0a0a;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
       </form>
     `);
   } catch (e) {
     console.error("[wa-callback]", e?.message || e);
-    return html(`<h3>Something went wrong</h3><p style="color:#8b9cbd">We could not finish connecting WhatsApp. Please close this window and try again from your dashboard.</p>`);
+    return html(`<h3>Something went wrong</h3><p style="color:#98A3BA">We could not finish connecting WhatsApp. Please close this window and try again from your dashboard.</p>`);
   }
 }
