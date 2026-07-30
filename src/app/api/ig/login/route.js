@@ -12,6 +12,7 @@ export async function GET(request) {
     const scope = [
       "instagram_business_basic",
       "instagram_business_manage_messages",
+      "instagram_business_manage_comments",
     ].join(",");
     const url = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${IG_APP_ID}&redirect_uri=${encodeURIComponent(redirect)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${encodeURIComponent(signState(clientId))}`;
     return NextResponse.redirect(url);
