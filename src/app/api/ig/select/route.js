@@ -46,7 +46,7 @@ export async function POST(request) {
   <h3>✅ @${decodeURIComponent(encName || "Instagram")} connected</h3>
   ${subWarn}${statusMsg}
   <p>You can close this window.</p>
-  <script>setTimeout(function(){ if(window.opener){window.opener.postMessage("ig_connected","*");window.close();} else {window.location.href="/#channels";} },1200);</script>
+  <script>setTimeout(function(){ if(window.opener){window.opener.postMessage("ig_connected","*");window.close();} else {window.location.href="/dashboard#channels";} },1200);</script>
   </body></html>`;
     return new NextResponse(html, { headers: { "Content-Type": "text/html" } });
   } catch (e) {
