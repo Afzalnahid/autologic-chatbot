@@ -1520,7 +1520,7 @@ function Channels({onConnect}) {
           </button>
         </div>
       </div>
-      {ch.platform==="facebook"&&<div style={{marginTop:14,paddingTop:14,borderTop:`0.5px solid ${T.border}`}}>
+      {(ch.platform==="facebook"||ch.platform==="instagram")&&<div style={{marginTop:14,paddingTop:14,borderTop:`0.5px solid ${T.border}`}}>
         <div style={{fontSize:12,color:T.textMuted,marginBottom:12,display:"flex",alignItems:"center",gap:6}}><i className="ti ti-message-circle-2"/>Comment automation</div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
           <div style={{minWidth:0,paddingRight:12}}>
