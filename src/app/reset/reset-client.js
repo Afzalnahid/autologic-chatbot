@@ -3,9 +3,9 @@ import { useState, useEffect } from "react";
 import { createClient as createSb } from "@/utils/supabase/client";
 
 const T = {
-  bg: "#05080f", bgAlt: "#080e1a", card: "#0d1529",
-  gold: "#f0c040", text: "#e8e8ec", textMuted: "#8b9cbd",
-  border: "#1a2744", danger: "#dc2626", success: "#22c55e",
+  bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420",
+  gold: "#5B8CFF", text: "#E7EAF2", textMuted: "#98A3BA",
+  border: "#1F2839", danger: "#FF5A5F", success: "#2ED3A7",
 };
 
 let sb = null;
