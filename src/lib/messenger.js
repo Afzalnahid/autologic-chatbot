@@ -1,13 +1,12 @@
 const FB_API = "https://graph.facebook.com/v24.0/me/messages";
-const IG_API = "https://graph.instagram.com/v24.0/me/messages";
 
-// Instagram Login tokens (IGAA...) must call graph.instagram.com with a Bearer
-// header; Facebook Page tokens (EAA...) call graph.facebook.com. Sending an IG
-// token to the Facebook endpoint silently fails, which is why IG replies never
-// arrived. We pick the endpoint from the platform, falling back to a token sniff.
-async function send(token, body, platform) {
+// Instagram requires the IG account ID in the path — /me/messages is FB-only.
+// pageId is the IG account numeric ID stored in channels.page_id.
+const igApi = (pageId) => `https://graph.instagram.com/v24.0/${pageId}/messages`;
+
+async function send(token, body, platform, pageId) {
   const isIG = platform === "instagram" || String(token).startsWith("IGA");
-  const url = isIG ? IG_API : FB_API;
+  const url = isIG ? igApi(pageId) : FB_API;
   try {
     const r = await fetch(url, {
       method: "POST",
@@ -25,19 +24,19 @@ async function send(token, body, platform) {
   }
 }
 
-export const sendTypingOn = (token, id, platform) =>
-  send(token, { recipient: { id }, sender_action: "typing_on" }, platform);
+export const sendTypingOn = (token, id, platform, pageId) =>
+  send(token, { recipient: { id }, sender_action: "typing_on" }, platform, pageId);
 
-export const sendTextMessage = (token, id, text, platform) =>
-  send(token, { recipient: { id }, messaging_type: "RESPONSE", message: { text } }, platform);
+export const sendTextMessage = (token, id, text, platform, pageId) =>
+  send(token, { recipient: { id }, messaging_type: "RESPONSE", message: { text } }, platform, pageId);
 
-export const sendImageMessage = (token, id, url, platform) =>
-  send(token, { recipient: { id }, message: { attachment: { type: "image", payload: { url, is_reusable: true } } } }, platform);
+export const sendImageMessage = (token, id, url, platform, pageId) =>
+  send(token, { recipient: { id }, message: { attachment: { type: "image", payload: { url, is_reusable: true } } } }, platform, pageId);
 
-export async function sendResponses(token, id, items, platform) {
+export async function sendResponses(token, id, items, platform, pageId) {
   for (const it of items) {
-    if (it.type === "image_msg" && it.url) await sendImageMessage(token, id, it.url, platform);
-    else if (it.type === "text_msg" && it.text) await sendTextMessage(token, id, it.text, platform);
+    if (it.type === "image_msg" && it.url) await sendImageMessage(token, id, it.url, platform, pageId);
+    else if (it.type === "text_msg" && it.text) await sendTextMessage(token, id, it.text, platform, pageId);
   }
 }
 
