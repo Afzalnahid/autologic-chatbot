@@ -5,6 +5,7 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { chatWithGemini } from "@/lib/gemini.js";
 import { supabase } from "@/lib/supabase.js";
+import { composeProfile } from "@/lib/profile.js";
 
 // Hybrid generation: the AI writes ONLY the business profile section, inside a
 // fixed structure. Core output/format rules live in code (bot.js FIXED_CORE)
@@ -80,7 +81,21 @@ export async function POST(request) {
       input = `Business type: ${bt}\nCatalog unit: ${unit}\nBusiness description:\n${description}`;
     }
 
-    const prompt = String(await chatWithGemini(META, [{ role: "user", content: input }])).replace(/```/g, "").trim();
+    // The AI rewrites the owner's answers; the composer builds a usable profile
+    // from those same answers with no AI at all. If generation fails for any
+    // reason — quota, rate limit, timeout — we still save a real profile rather
+    // than leaving the tenant with a bot that knows nothing about them.
+    let prompt = "";
+    let generated = false;
+    if (body.mode !== "raw") {
+      try {
+        prompt = String(await chatWithGemini(META, [{ role: "user", content: input }])).replace(/```/g, "").trim();
+        generated = Boolean(prompt);
+      } catch (e) {
+        console.error("[generate-prompt] AI failed, using composed profile:", e.message);
+      }
+    }
+    if (!prompt) prompt = composeProfile(answers || { description }, bt);
 
     // Persist server-side: merge businessPrompt + questionnaire into settings.
     const { data: rows } = await supabase.from("app_settings").select("*");
@@ -88,7 +103,7 @@ export async function POST(request) {
     const merged = { ...(row?.settings || {}), businessPrompt: prompt, ...(answers ? { questionnaire: answers } : {}) };
     await supabase.from("app_settings").upsert({ id: String(client.id), settings: merged }, { onConflict: "id" });
 
-    return NextResponse.json({ prompt });
+    return NextResponse.json({ prompt, generated });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
