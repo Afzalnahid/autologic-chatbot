@@ -217,8 +217,14 @@ async function getSystemPrompt(clientId, bType) {
   const { data } = await sb().from("app_settings").select("*").limit(200);
   const row = (data || []).find(r => r.id === String(clientId));
   const st = row?.settings || {};
+  // A tenant who has not finished onboarding still needs a safe bot. Without a
+  // profile it must not improvise about the business — it should defer to the
+  // team rather than invent services or prices.
   const biz = st.businessPrompt || st.systemPrompt ||
-    "You are a helpful, friendly sales and support assistant for this business.";
+    `You are the customer-service assistant for ${st.businessName || "this business"}. ` +
+    "The owner has not added their business details yet, so you do not know their products, " +
+    "prices or policies. Be warm and helpful, answer general questions, and for anything " +
+    "specific tell the customer you will confirm with the team. Never invent details.";
   let prompt = FIXED_BASE + (bType === "agency" ? FIXED_AGENCY : FIXED_ECOM);
   if (st.greeting) {
     prompt += `\n\n[GREETING RULE] If this is the START of a new conversation (there are no previous messages in the history), begin your first reply with this exact greeting (adapt language to the customer if needed): "${st.greeting}". In ongoing conversations, never repeat the greeting - answer directly.`;
