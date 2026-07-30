@@ -95,7 +95,7 @@ async function handleUnavailable(channel, senderId, block, platform) {
       if (isWa) await waSendText(channel.access_token, channel.page_id, senderId, msg);
       else {
         const { sendTextMessage } = await import("@/lib/messenger.js");
-        await sendTextMessage(channel.access_token, senderId, msg);
+        await sendTextMessage(channel.access_token, senderId, msg, channel.platform);
       }
       await bufferInsert({
         sender_id: senderId, client_id: client.id, role: "bot", status: "Replied",
@@ -464,7 +464,7 @@ export async function processConversation(channel, senderId, myRowId) {
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
-  else await sendResponses(channel.access_token, senderId, items);
+  else await sendResponses(channel.access_token, senderId, items, channel.platform);
 
   const ids = rows.map(r => r.id);
   for (const id of ids) await sb().from("message_buffer").update({ status: "Replied" }).eq("id", id);
@@ -503,7 +503,7 @@ function startTyping(channel, senderId, platform, msgId) {
     if (stopped) return;
     try {
       if (isWa) await waMarkReadTyping(channel.access_token, channel.page_id, msgId);
-      else await sendTypingOn(channel.access_token, senderId);
+      else await sendTypingOn(channel.access_token, senderId, channel.platform);
     } catch { /* a cosmetic call must never break the reply */ }
   };
 
@@ -588,7 +588,7 @@ export async function handleIncoming(event) {
     const isWa = (event.platform || channel.platform) === "whatsapp";
     await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎥 Video", platform: event.platform || channel.platform || "facebook" });
     if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
-    else await sendTextMessage(channel.access_token, event.senderId, msg);
+    else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform);
     await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook" });
     return;
   }
@@ -664,7 +664,7 @@ export async function handleIncoming(event) {
 // when enabled, send a private message that pulls them into the inbox.
 export async function handleComment(event) {
   const channel = await getChannelByPage(event.pageId);
-  if (!channel || channel.platform !== "facebook") return;
+  if (!channel || (channel.platform !== "facebook" && channel.platform !== "instagram")) return;
   if (channel.status === "paused" || channel.bot_enabled === false) return;
 
   const replyOn = channel.comment_reply_enabled !== false;
@@ -714,7 +714,7 @@ export async function handleComment(event) {
   const settings = (setRows || []).find(r => r.id === String(clientId))?.settings || {};
   const persona = settings.businessPrompt || settings.systemPrompt || "";
   const commentInstruction =
-    "You are replying to a PUBLIC Facebook comment on a post. Write ONE short, warm, human reply " +
+    "You are replying to a PUBLIC comment on a social media post. Write ONE short, warm, human reply " +
     "(max 2 sentences). " +
     "LANGUAGE RULE (critical): reply in the EXACT same language and script the commenter used. " +
     "If they wrote in Bangla, reply only in Bangla. If they wrote in English, reply only in English. " +
@@ -738,7 +738,8 @@ export async function handleComment(event) {
 
   if (!reply) reply = "ধন্যবাদ! বিস্তারিত জানাতে আপনাকে ইনবক্সে মেসেজ করছি। / Thanks! We've messaged you the details in your inbox.";
 
-  const { fbReplyToComment, fbPrivateReply, explainPrivateReplyError } = await import("@/lib/messenger.js");
+  const { fbReplyToComment, fbPrivateReply, igReplyToComment, igPrivateReply, explainPrivateReplyError } = await import("@/lib/messenger.js");
+  const isIG = channel.platform === "instagram";
 
   // The DM invites the customer to continue in the inbox, so it reads differently
   // from the public reply.
@@ -751,7 +752,9 @@ export async function handleComment(event) {
   let replied = false, replyError = null, dmSent = false, dmError = null;
 
   if (replyOn) {
-    const r = await fbReplyToComment(channel.access_token, event.commentId, reply);
+    const r = isIG
+      ? await igReplyToComment(channel.access_token, event.commentId, reply)
+      : await fbReplyToComment(channel.access_token, event.commentId, reply);
     if (r?.error) {
       replyError = r.error.message || String(r.error);
       console.error("[comment] public reply failed:", replyError);
@@ -764,9 +767,11 @@ export async function handleComment(event) {
     // Facebook does not allow a Page to privately message another Page, so skip
     // the call rather than logging a confusing generic error.
     if (String(event.senderId) === String(event.pageId)) {
-      dmError = "This comment came from the Page itself, so Facebook does not allow an inbox message. Test with a personal Facebook profile instead.";
+      dmError = "This comment came from the account itself, so an inbox message is not allowed. Test with a different personal profile.";
     } else {
-      const pr = await fbPrivateReply(channel.access_token, event.commentId, dmText);
+      const pr = isIG
+        ? await igPrivateReply(channel.access_token, event.pageId, event.commentId, dmText)
+        : await fbPrivateReply(channel.access_token, event.commentId, dmText);
       if (pr?.error) {
         dmError = explainPrivateReplyError(pr.error);
         console.error("[comment] private reply failed:", pr.error.code, pr.error.message);
@@ -775,7 +780,7 @@ export async function handleComment(event) {
         // The DM lands in the customer's inbox, so it belongs in the DM thread.
         await bufferInsert({
           sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied",
-          message_content: dmText, platform: "facebook",
+          message_content: dmText, platform: channel.platform,
         });
       }
     }
@@ -785,7 +790,7 @@ export async function handleComment(event) {
   try {
     await sb().from("comments").insert({
       client_id: clientId,
-      platform: "facebook",
+      platform: channel.platform,
       page_id: event.pageId,
       post_id: event.postId,
       comment_id: event.commentId,
