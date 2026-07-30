@@ -5,21 +5,25 @@ sections after every work session.
 
 ---
 
-## Last session (2026-07-30)
+## Last session (2026-07-30, later)
 
-Fixed four agency-booking bugs reported from a live WhatsApp conversation:
-- **Wrong date (bot said 2024).** The prompt never told the model today's date, so
-  it guessed the year. Now the real Asia/Dhaka date+time is injected into the
-  booking rule on every reply.
-- **No Meet link.** Google Calendar was not connected, so the `{{MEET_LINK}}`
-  placeholder leaked into the message. Now, with no link, the placeholder is
-  removed and an honest "team will share the link shortly" line is shown.
-- **Double booking.** After a booking, a marker is written to memory so the next
-  turn does not book again; the prompt also forbids re-booking.
-- **Double reply.** The orphan re-processing now only re-runs for genuinely new
-  customer messages, not the batch already answered.
+Fixed Instagram end-to-end. Three separate bugs:
+- **IG bot never replied.** All sends went to `graph.facebook.com/me/messages`, but
+  IG uses Instagram-Login tokens (`IGAA...`) that only work on
+  `graph.instagram.com` with a Bearer header. `send()` in `messenger.js` now picks
+  the endpoint + auth by platform; all four `bot.js` send calls pass `platform`.
+- **No IG comment handling.** `parseCommentEvent` only handled Facebook
+  (`object=page`, field=feed). Added the Instagram shape (`object=instagram`,
+  field=comments).
+- **No IG comment-to-inbox.** Added `igReplyToComment` and `igPrivateReply`
+  (graph.instagram.com); `handleComment` is now platform-aware for both public
+  reply and the private reply, and records the real platform in the comments table.
 
-All in `src/lib/bot.js`. Deployed and READY.
+All in `src/lib/messenger.js` and `src/lib/bot.js`. Built clean, deployed.
+
+Note: IG comment reply / inbox need `instagram_manage_comments` +
+`instagram_manage_messages` approved to work for all clients (pending App Review);
+DM reply needs `instagram_manage_messages`.
 
 ## Next up
 
