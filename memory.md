@@ -5,37 +5,33 @@ sections after every work session.
 
 ---
 
-## Last session (2026-07-30, later)
+## Last session (2026-07-30, latest)
 
-Fixed Instagram end-to-end. Three separate bugs:
-- **IG bot never replied.** All sends went to `graph.facebook.com/me/messages`, but
-  IG uses Instagram-Login tokens (`IGAA...`) that only work on
-  `graph.instagram.com` with a Bearer header. `send()` in `messenger.js` now picks
-  the endpoint + auth by platform; all four `bot.js` send calls pass `platform`.
-- **No IG comment handling.** `parseCommentEvent` only handled Facebook
-  (`object=page`, field=feed). Added the Instagram shape (`object=instagram`,
-  field=comments).
-- **No IG comment-to-inbox.** Added `igReplyToComment` and `igPrivateReply`
-  (graph.instagram.com); `handleComment` is now platform-aware for both public
-  reply and the private reply, and records the real platform in the comments table.
+Google Calendar enterprise polish for agency clients — three changes in `dashboard-client.js`:
 
-All in `src/lib/messenger.js` and `src/lib/bot.js`. Built clean, deployed.
+1. **`ConnectCalendar` component (new):** Full-screen onboarding step with one-click
+   Google OAuth popup. Shows success state after `gcal-connected` postMessage, then
+   "Go to dashboard" button. "Skip for now" link available.
 
-Note: IG comment reply / inbox need `instagram_manage_comments` +
-`instagram_manage_messages` approved to work for all clients (pending App Review);
-DM reply needs `instagram_manage_messages`.
+2. **Onboarding flow extended:** After `ConnectChannel` completes, `onDone` checks
+   `me?.client?.business_type`. If `agency` → goes to new `connect-cal` stage;
+   otherwise → `app` as before. Flow: `onboarding → connect → connect-cal (agency only) → app`.
+
+3. **Bookings warning banner:** `Bookings` now accepts `calConnected` + `clientId`
+   props. When Calendar not connected, shows a gold warning card with "Connect now"
+   button that opens the gcal OAuth popup inline. Banner dismisses on `gcal-connected`
+   postMessage.
+
+Deployed: commit 6fb4c0bbd0359ec2c3f5843fb77f7be5504625d9
 
 ## Next up
 
-- **Enterprise polish (standing goal):** every client connection must be one-click.
-  Concrete items:
-  - Google Calendar: add a one-click connect step in onboarding for agency clients,
-    or a clear dashboard prompt before the first booking fails.
+- **Verify deploy** on autologic-chatbot.vercel.app (Vercel should be READY now).
+- **Enterprise polish (remaining):**
   - WhatsApp: still needs manual Phone Number ID until `whatsapp_business_management`
     is approved; move to full Embedded Signup once approved.
-- **Meta App Review resubmission (after rejections):** 9 permissions remain (see
-  `Autologic_Meta_App_Review_Guide.pdf`). 2 approved: pages_show_list,
-  pages_messaging.
+- **Meta App Review resubmission:** 9 permissions remain (see
+  `Autologic_Meta_App_Review_Guide.pdf`). 2 approved: pages_show_list, pages_messaging.
 - **Blocked on money/approval (not code):** custom domain (unlocks Resend email +
   fixes mobile-carrier vercel.app block), Google Cloud billing (Gemini 429),
   Instagram/WhatsApp comment+message permissions.
@@ -78,6 +74,8 @@ DM reply needs `instagram_manage_messages`.
   `src/lib/gcal.js`, `src/lib/plans.js`.
 - **Channels:** each connect flow is `/api/<fb|ig|wa>/login → callback → select`,
   all using signed state tokens. Google Calendar: `/api/gcal/login → callback`.
+- **Onboarding flow (agency):** `onboarding → connect (FB/IG/WA) → connect-cal (GCal) → app`
+- **Onboarding flow (ecommerce/other):** `onboarding → connect (FB/IG/WA) → app`
 - **Docs:** `docs/` holds architecture, database, security, error-handling,
   prompts, phases. Keep them updated with each feature.
 
