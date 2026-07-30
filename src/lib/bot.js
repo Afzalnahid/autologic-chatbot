@@ -312,19 +312,32 @@ async function maybeCreateBooking(items, client, senderId, platform) {
   const bookingItems = items.filter(it => it.type === "booking");
   if (!bookingItems.length) return { items, booked: false, bookingNote: "" };
 
+  console.log(`[booking] ${bookingItems.length} booking object(s) from AI:`, JSON.stringify(bookingItems));
+
   let booked = false;
   let bookingNote = "";
   let accessToken = null;
-  try { accessToken = await getValidAccessToken(client); } catch (e) { console.error("gcal token:", e.message); }
+  try {
+    accessToken = await getValidAccessToken(client);
+    console.log("[booking] gcal token:", accessToken ? "obtained" : "NULL — calendar not usable",
+      "| gcal_connected =", client.gcal_connected, "| has_refresh =", !!client.gcal_refresh_token);
+  } catch (e) {
+    console.error("[booking] gcal token error:", e.message);
+  }
 
   for (const b of bookingItems) {
     let meetLink = "";
     let eventId = "";
     let meetingDateTime = b.start || null;
 
-    if (accessToken && b.start && b.end) {
+    if (!accessToken) {
+      console.error("[booking] SKIPPING calendar — no access token");
+    } else if (!b.start || !b.end) {
+      console.error("[booking] SKIPPING calendar — AI did not provide start/end. start =", b.start, "end =", b.end);
+    } else {
       try {
         const avail = await checkAvailability(accessToken, b.start, b.end);
+        console.log("[booking] availability", b.start, "→", b.end, "| free =", avail.free, "| busy =", JSON.stringify(avail.busy));
         if (avail.free) {
           const ev = await createEvent(accessToken, {
             summary: `${b.service_want || "Consultation"} with ${b.customer_name || "Client"}`,
@@ -335,8 +348,14 @@ async function maybeCreateBooking(items, client, senderId, platform) {
           });
           meetLink = ev.meetLink;
           eventId = ev.eventId;
+          console.log("[booking] event created id =", eventId, "| meetLink =", meetLink || "EMPTY");
+          if (!meetLink) console.error("[booking] event created but Google returned no Meet link");
+        } else {
+          console.log("[booking] slot is busy — no event created");
         }
-      } catch (e) { console.error("gcal event:", e.message); }
+      } catch (e) {
+        console.error("[booking] calendar error:", e.message);
+      }
     }
 
     try {
@@ -462,6 +481,11 @@ export async function processConversation(channel, senderId, myRowId) {
   let items = parseReply(raw);
   let bookingNote = "";
   if (isAgency) {
+    if (!items.some(it => it.type === "booking")) {
+      console.log("[booking] AI produced no booking object. types =",
+        items.map(it => it.type).join(",") || "none",
+        "| raw preview =", String(raw).slice(0, 300));
+    }
     const r = await maybeCreateBooking(items, client, senderId, channel.platform);
     items = r.items;
     if (r.booked) bookingNote = r.bookingNote;
