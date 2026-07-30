@@ -44,9 +44,16 @@ export async function GET(request) {
     const long = await fetch(`https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${IG_APP_SECRET}&access_token=${shortToken}`).then(r => r.json()).catch(() => ({}));
     const token = long.access_token || shortToken;
 
-    const me = await fetch(`https://graph.instagram.com/v21.0/me?fields=id,username&access_token=${token}`).then(r => r.json()).catch(() => ({}));
+    // Instagram returns two different ids. `me?fields=id` gives an app-scoped id
+    // (e.g. 28445178038400379) which never appears in webhooks. The real IG
+    // account id (e.g. 17841441686062791) is what arrives as recipient.id, and it
+    // comes from `me?fields=user_id`. We must store the latter or channel lookup
+    // on every incoming message will miss.
+    const me = await fetch(`https://graph.instagram.com/v21.0/me?fields=id,user_id,username&access_token=${token}`).then(r => r.json()).catch(() => ({}));
     const username = me.username || "instagram";
-    const accountId = me.id || igUserId;
+    const accountId = String(me.user_id || igUserId || me.id || "");
+    if (!accountId) return new NextResponse("Could not determine the Instagram account id", { status: 400 });
+    console.log("[ig-callback] app_scoped_id=", me.id, "ig_account_id=", me.user_id, "using=", accountId);
 
     const html = `<!DOCTYPE html><html><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:24px;max-width:420px;margin:auto">
   <h3>Connect Instagram</h3>
