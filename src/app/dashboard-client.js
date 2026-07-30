@@ -32,11 +32,17 @@ async function api(url,opts={}){
   return res;
 }
 
+// Design tokens. Every component reads from here, so the whole surface
+// re-skins by editing this object alone. Key names are kept from the previous
+// palette so no component needs touching; `gold` is now the periwinkle
+// primary, and the amber it used to hold lives on in `warn`.
 const T = {
-  bg: "#05080f", bgAlt: "#080e1a", card: "#0d1529",
-  gold: "#f0c040", goldDim: "#c4982e", goldBg: "rgba(240,192,64,0.08)",
-  text: "#e8e8ec", textMuted: "#8b9cbd", textDim: "#94a3b8",
-  border: "#1a2744", danger: "#dc2626", success: "#22c55e", info: "#3b82f6", warn: "#f59e0b", purple: "#8b5cf6",
+  bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420", cardAlt: "#151B2A", inset: "#1C2436",
+  gold: "#5B8CFF", goldDim: "#3D6FE0", goldBg: "rgba(91,140,255,0.12)",
+  text: "#E7EAF2", textMuted: "#98A3BA", textDim: "#5E6B85",
+  border: "#1F2839", borderStrong: "#2C374D",
+  danger: "#FF5A5F", success: "#2ED3A7", info: "#5B8CFF", warn: "#F0B429", purple: "#8b5cf6",
+  live: "#2ED3A7", liveBg: "rgba(46,211,167,0.11)", warnBg: "rgba(240,180,41,0.11)", dangerBg: "rgba(255,90,95,0.11)",
 };
 const PAGES = ["analytics","conversations","comments","inventory","orders","channels","billing","settings","profile","demo"];
 const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-settings","ti-user","ti-robot"];
