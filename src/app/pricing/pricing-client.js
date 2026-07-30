@@ -3,8 +3,8 @@ import { useState } from "react";
 import { PLANS, PLAN_ORDER, formatMoney, yearlySavingMonths } from "@/lib/plans.js";
 
 const T = {
-  bg: "#05080f", card: "#0d1529", gold: "#f0c040", goldBg: "rgba(240,192,64,0.08)",
-  text: "#e8e8ec", muted: "#8b9cbd", dim: "#64748b", border: "#1a2744", green: "#22c55e",
+  bg: "#0A0D14", card: "#0F1420", gold: "#5B8CFF", goldBg: "rgba(91,140,255,0.12)",
+  text: "#E7EAF2", muted: "#98A3BA", dim: "#64748b", border: "#1F2839", green: "#2ED3A7",
 };
 
 const COMPARE = [
