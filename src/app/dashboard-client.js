@@ -1644,7 +1644,17 @@ function Onboarding({me,onTrial,onDemo}) {
   const [preview,setPreview]=useState("");
   const isEcom=form.business_type==="ecommerce";
   const trainBot=async(skip)=>{
-    if(skip){setStep("choose");return;}
+    // Skipping must not throw away what the owner already typed. If they wrote
+    // anything, save it as their business profile without AI — an imperfect
+    // profile is far better than a bot that knows nothing about the business.
+    if(skip){
+      if(q.description.trim().length>=25){
+        try{
+          await api("/api/generate-prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers:q,mode:"raw"})});
+        }catch{}
+      }
+      setStep("choose");return;
+    }
     if(q.description.trim().length<25){setErr("Please describe your business in a little more detail — a few sentences is enough");return;}
     setBusy(true);setErr("");
     try{
