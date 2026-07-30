@@ -58,12 +58,28 @@ export const POST = withErrors(async (request) => {
 
   if (body.action === "register") {
     if (client) return NextResponse.json({ ok: true, client_id: client.id });
+    const businessName = body.business_name || "My Business";
     const { data, error: e } = await supabase.from("clients")
-      .insert({ business_name: body.business_name || "My Business", owner_email: email, plan: "none" })
+      .insert({ business_name: businessName, owner_email: email, plan: "none" })
       .select().single();
     if (e) return NextResponse.json({ error: e.message }, { status: 500 });
-    const { data: def } = await supabase.from("app_settings").select("settings").eq("id", "default").single();
-    if (def?.settings) await supabase.from("app_settings").upsert({ id: String(data.id), settings: def.settings }, { onConflict: "id" });
+
+    // Seed settings from the new client's own name. Copying a shared "default"
+    // row leaked one tenant's brand, prompt and greeting into every new signup,
+    // so the starting point is now generated per client and stays neutral until
+    // they describe their business in onboarding.
+    await supabase.from("app_settings").upsert({
+      id: String(data.id),
+      settings: {
+        botName: `${businessName} Assistant`,
+        businessName,
+        greeting: `Hello! Welcome to ${businessName}. How can I help you today?`,
+        systemPrompt: "",
+        tone: "Friendly and helpful",
+        languages: "Bangla and English",
+      },
+    }, { onConflict: "id" });
+
     return NextResponse.json({ ok: true, client_id: data.id });
   }
 
