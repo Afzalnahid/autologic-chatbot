@@ -1,34 +1,43 @@
-const API = "https://graph.facebook.com/v24.0/me/messages";
+const FB_API = "https://graph.facebook.com/v24.0/me/messages";
+const IG_API = "https://graph.instagram.com/v24.0/me/messages";
 
-async function send(token, body) {
+// Instagram Login tokens (IGAA...) must call graph.instagram.com with a Bearer
+// header; Facebook Page tokens (EAA...) call graph.facebook.com. Sending an IG
+// token to the Facebook endpoint silently fails, which is why IG replies never
+// arrived. We pick the endpoint from the platform, falling back to a token sniff.
+async function send(token, body, platform) {
+  const isIG = platform === "instagram" || String(token).startsWith("IGA");
+  const url = isIG ? IG_API : FB_API;
   try {
-    const r = await fetch(`${API}?access_token=${token}`, {
+    const r = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      headers: isIG
+        ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+        : { "Content-Type": "application/json" },
+      body: isIG ? JSON.stringify(body) : JSON.stringify({ ...body, access_token: token }),
     });
     const d = await r.json();
-    if (d.error) console.error("FB send error:", d.error.message);
+    if (d.error) console.error(`${isIG ? "IG" : "FB"} send error:`, d.error.message);
     return d;
   } catch (e) {
-    console.error("FB send failed:", e.message);
+    console.error("send failed:", e.message);
     return { error: e.message };
   }
 }
 
-export const sendTypingOn = (token, id) =>
-  send(token, { recipient: { id }, sender_action: "typing_on" });
+export const sendTypingOn = (token, id, platform) =>
+  send(token, { recipient: { id }, sender_action: "typing_on" }, platform);
 
-export const sendTextMessage = (token, id, text) =>
-  send(token, { recipient: { id }, messaging_type: "RESPONSE", message: { text } });
+export const sendTextMessage = (token, id, text, platform) =>
+  send(token, { recipient: { id }, messaging_type: "RESPONSE", message: { text } }, platform);
 
-export const sendImageMessage = (token, id, url) =>
-  send(token, { recipient: { id }, message: { attachment: { type: "image", payload: { url, is_reusable: true } } } });
+export const sendImageMessage = (token, id, url, platform) =>
+  send(token, { recipient: { id }, message: { attachment: { type: "image", payload: { url, is_reusable: true } } } }, platform);
 
-export async function sendResponses(token, id, items) {
+export async function sendResponses(token, id, items, platform) {
   for (const it of items) {
-    if (it.type === "image_msg" && it.url) await sendImageMessage(token, id, it.url);
-    else if (it.type === "text_msg" && it.text) await sendTextMessage(token, id, it.text);
+    if (it.type === "image_msg" && it.url) await sendImageMessage(token, id, it.url, platform);
+    else if (it.type === "text_msg" && it.text) await sendTextMessage(token, id, it.text, platform);
   }
 }
 
@@ -52,25 +61,49 @@ export function parseMessengerEvent(body) {
 // A new comment on a Page post arrives as a "feed" change, not a message.
 // We only act on freshly added top-level/reply comments from someone else.
 export function parseCommentEvent(body) {
-  if (body?.object !== "page") return null;
-  const entry = body?.entry?.[0];
-  const change = entry?.changes?.find(c => c.field === "feed");
-  if (!change) return null;
-  const v = change.value || {};
-  if (v.item !== "comment" || v.verb !== "add") return null;
-  if (!v.comment_id || !v.from?.id) return null;
-  // Ignore the Page replying to itself.
-  if (String(v.from.id) === String(entry.id)) return null;
-  return {
-    platform: "facebook",
-    pageId: String(entry.id),
-    commentId: v.comment_id,
-    postId: v.post_id || null,
-    parentId: v.parent_id || null,
-    senderId: String(v.from.id),
-    senderName: v.from.name || "",
-    text: v.message || "",
-  };
+  // Facebook Page comment: object=page, changes[].field=feed, item=comment
+  if (body?.object === "page") {
+    const entry = body?.entry?.[0];
+    const change = entry?.changes?.find(c => c.field === "feed");
+    if (!change) return null;
+    const v = change.value || {};
+    if (v.item !== "comment" || v.verb !== "add") return null;
+    if (!v.comment_id || !v.from?.id) return null;
+    if (String(v.from.id) === String(entry.id)) return null; // Page replying to itself
+    return {
+      platform: "facebook",
+      pageId: String(entry.id),
+      commentId: v.comment_id,
+      postId: v.post_id || null,
+      parentId: v.parent_id || null,
+      senderId: String(v.from.id),
+      senderName: v.from.name || "",
+      text: v.message || "",
+    };
+  }
+
+  // Instagram comment: object=instagram, changes[].field=comments
+  if (body?.object === "instagram") {
+    const entry = body?.entry?.[0];
+    const change = entry?.changes?.find(c => c.field === "comments");
+    if (!change) return null;
+    const v = change.value || {};
+    if (!v.id || !v.from?.id) return null;
+    // Ignore the account commenting on itself.
+    if (String(v.from.id) === String(entry.id)) return null;
+    return {
+      platform: "instagram",
+      pageId: String(entry.id),          // the IG account id
+      commentId: v.id,
+      postId: v.media?.id || null,
+      parentId: v.parent_id || null,
+      senderId: String(v.from.id),
+      senderName: v.from.username || "",
+      text: v.text || "",
+    };
+  }
+
+  return null;
 }
 
 // Public reply under the comment.
@@ -79,6 +112,23 @@ export const fbReplyToComment = (token, commentId, message) =>
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, access_token: token }),
+  }).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
+
+// Instagram public reply to a comment — graph.instagram.com with a Bearer token.
+export const igReplyToComment = (token, commentId, message) =>
+  fetch(`https://graph.instagram.com/v24.0/${commentId}/replies`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ message }),
+  }).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
+
+// Instagram private reply (comment-to-inbox) — posted to the IG messages endpoint
+// with the comment id as the recipient.
+export const igPrivateReply = (token, igId, commentId, message) =>
+  fetch(`https://graph.instagram.com/v24.0/${igId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ recipient: { comment_id: commentId }, message: { text: message } }),
   }).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
 
 // Private message to the commenter (comment-to-inbox). Only works within
