@@ -95,7 +95,7 @@ async function handleUnavailable(channel, senderId, block, platform) {
       if (isWa) await waSendText(channel.access_token, channel.page_id, senderId, msg);
       else {
         const { sendTextMessage } = await import("@/lib/messenger.js");
-        await sendTextMessage(channel.access_token, senderId, msg, channel.platform);
+        await sendTextMessage(channel.access_token, senderId, msg, channel.platform, channel.page_id);
       }
       await bufferInsert({
         sender_id: senderId, client_id: client.id, role: "bot", status: "Replied",
@@ -464,7 +464,7 @@ export async function processConversation(channel, senderId, myRowId) {
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
-  else await sendResponses(channel.access_token, senderId, items, channel.platform);
+  else await sendResponses(channel.access_token, senderId, items, channel.platform, channel.page_id);
 
   const ids = rows.map(r => r.id);
   for (const id of ids) await sb().from("message_buffer").update({ status: "Replied" }).eq("id", id);
@@ -503,7 +503,7 @@ function startTyping(channel, senderId, platform, msgId) {
     if (stopped) return;
     try {
       if (isWa) await waMarkReadTyping(channel.access_token, channel.page_id, msgId);
-      else await sendTypingOn(channel.access_token, senderId, channel.platform);
+      else await sendTypingOn(channel.access_token, senderId, channel.platform, channel.page_id);
     } catch { /* a cosmetic call must never break the reply */ }
   };
 
@@ -588,7 +588,7 @@ export async function handleIncoming(event) {
     const isWa = (event.platform || channel.platform) === "whatsapp";
     await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎥 Video", platform: event.platform || channel.platform || "facebook" });
     if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
-    else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform);
+    else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform, channel.page_id);
     await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook" });
     return;
   }
