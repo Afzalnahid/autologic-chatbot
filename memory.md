@@ -1,88 +1,157 @@
 # Autologic — Working Memory
 
-A living log so any session can resume with full context. Update the top two
-sections after every work session.
+Update the top two sections after every session.
 
 ---
 
-## Last session (2026-07-30, latest)
+## Last session (2026-07-30)
 
-Google Calendar enterprise polish for agency clients — three changes in `dashboard-client.js`:
+Long session. Two threads: **Meta App Review prep** and **fixing real bugs found while preparing it**.
 
-1. **`ConnectCalendar` component (new):** Full-screen onboarding step with one-click
-   Google OAuth popup. Shows success state after `gcal-connected` postMessage, then
-   "Go to dashboard" button. "Skip for now" link available.
+### Bugs found and fixed
 
-2. **Onboarding flow extended:** After `ConnectChannel` completes, `onDone` checks
-   `me?.client?.business_type`. If `agency` → goes to new `connect-cal` stage;
-   otherwise → `app` as before. Flow: `onboarding → connect → connect-cal (agency only) → app`.
+1. **Instagram was silently dead.** Webhooks arrived, nothing happened. Cause: we stored
+   Instagram's *app-scoped* id (`me?fields=id`, e.g. 28445178038400379) but webhooks carry
+   the *IG account* id (`me?fields=user_id`, e.g. 17841441686062791), so `getChannelByPage`
+   missed on every message. Fixed in `api/ig/callback`; DB row corrected; duplicate stale
+   IG channel deleted. IG DM + comment→inbox now confirmed working.
+2. **IG send URL** used `/me/messages`; Instagram needs `/{ig_account_id}/messages`.
+   `page_id` is now threaded through every send call in `messenger.js` / `bot.js`.
+3. **FB private reply used a retired endpoint.** `/{comment-id}/private_replies` returns a
+   generic `(#100) ... does not support this operation`. Moved to the Send API
+   (`/{page-id}/messages` with `recipient.comment_id`), same shape as the IG path. Confirmed
+   working — Facebook now shows "Page responded privately".
+4. **Multi-tenant leak (serious).** `api/me` seeded every new client by copying a shared
+   `app_settings` row with id `default` — which held Evalora jewellery's name, greeting and a
+   4,800-char jewellery sales prompt. Every new signup inherited another business's brand.
+   Now each tenant is seeded from its own `business_name`; the `default` row was made neutral.
+5. **Onboarding threw away the client's work.** "Skip for now" was `setStep("choose"); return;`
+   — the business description was discarded. Combined with Gemini being 429'd, *every* new
+   client today would have ended up with a knowledge-free bot. Added `src/lib/profile.js`
+   `composeProfile()` — deterministic, no AI. Generation now upgrades a profile; it never
+   creates it. Skip saves via `mode:"raw"`. `getSystemPrompt` fallback no longer improvises.
+6. **Page picker scrolled out of view.** Unbounded radio list in a short popup. Rebuilt with a
+   bounded scroll area, search box and sticky Connect button.
+7. **Comment fallback was hardcoded bilingual** ("ধন্যবাদ! ... / Thanks! ..."). When Gemini
+   fails the fallback *is* the customer-facing reply, so it now follows the commenter's script.
+8. **Post-connect redirect** went to `/#channels` (landing page) instead of `/dashboard#channels`
+   for FB and IG. WA was already correct.
+9. Added `/api/ig/deauth` (required by Meta App Review).
+10. IG OAuth scope gained `instagram_business_manage_comments`.
 
-3. **Bookings warning banner:** `Bookings` now accepts `calConnected` + `clientId`
-   props. When Calendar not connected, shows a gold warning card with "Connect now"
-   button that opens the gcal OAuth popup inline. Banner dismisses on `gcal-connected`
-   postMessage.
+### Design system
 
-Deployed: commit 6fb4c0bbd0359ec2c3f5843fb77f7be5504625d9
-
-## Next up
-
-- **Verify deploy** on autologic-chatbot.vercel.app (Vercel should be READY now).
-- **Enterprise polish (remaining):**
-  - WhatsApp: still needs manual Phone Number ID until `whatsapp_business_management`
-    is approved; move to full Embedded Signup once approved.
-- **Meta App Review resubmission:** 9 permissions remain (see
-  `Autologic_Meta_App_Review_Guide.pdf`). 2 approved: pages_show_list, pages_messaging.
-- **Blocked on money/approval (not code):** custom domain (unlocks Resend email +
-  fixes mobile-carrier vercel.app block), Google Cloud billing (Gemini 429),
-  Instagram/WhatsApp comment+message permissions.
+New token system applied across the whole app. Gold `#f0c040` → periwinkle `#5B8CFF` primary;
+amber survives as warning only; mint `#2ED3A7` means exactly one thing (a bot is live).
+Surfaces are blue-black, never pure black. Type: Geist + Geist Mono + Hind Siliguri for Bangla.
+Signature element: a 2px state rail on the left edge of cards and rows.
+Nine files carried their own copy of the old palette (landing, pricing, admin, legal pages) —
+all migrated. **Still to do:** replace hex literals with `var(--…)` reads so there is one source
+of truth. A standalone design-system reference page was produced for review.
 
 ---
 
-## How I work here (operating rules)
+## Next up — resume exactly here
 
-1. **Team / sub-agent mindset.** Break a task into clear stages, do them in order,
-   verify each before moving on.
-2. **Token discipline.** Reuse an existing clone instead of re-cloning; read only
-   the lines needed; don't re-read unchanged files; batch related edits. Same
-   output, fewer tokens.
-3. **This file.** Update "Last session" and "Next up" at the end of each session.
-4. **Enterprise standard.** One-click, hassle-free, no token/ID hunting for clients.
-5. **Quality over speed.** Verify with `node --check` / build / unit tests before
-   pushing; trust Vercel READY as final proof.
+**Blocked on one step, then Video 1 can be recorded.**
+
+`pages_manage_engagement` is missing from the token, so public comment replies fail with
+`(#200) Permissions error`. The Facebook Login *configuration* (id `2178064332957710`) — not a
+`scope` param — decides permissions. `pages_manage_engagement` and `business_management` were
+added to it, but the old token is still in use.
+
+Do this in order:
+1. `facebook.com/settings?tab=business_tools` → AutoLogic → **Remove**  ← the step that keeps
+   getting skipped; without it Facebook never re-prompts and the old token persists.
+2. Dashboard → Channels → Facebook → Disconnect.
+3. Connect new channel → Facebook → **"Opt in to all current and future Pages"**.
+4. Comment on the pricing post → dashboard should show "Replied", not a red error.
+5. Then record **Video 1**.
+
+### Meta App Review plan
+
+Three videos, nine permissions. Same video link can back several permissions; each permission
+still needs its own usage description. Put timestamps in the YouTube description and cite them
+in the reviewer instructions.
+
+- **Video 1 — Facebook** (~4 min): pages_manage_metadata · pages_read_engagement · pages_manage_engagement
+- **Video 2 — Instagram** (~4 min): instagram_business_basic · ..._manage_messages · ..._manage_comments
+- **Video 3 — WhatsApp** (~3 min): business_management · whatsapp_business_management · whatsapp_business_messaging
+
+Already approved: `pages_show_list`, `pages_messaging`.
+
+**Recording setup that works:** two Chrome profiles side by side, 55/45 — left is the dashboard
+(owner account), right is Facebook/Instagram as a *second* account playing the customer. Text
+overlay, no narration. OBS at 1920×1080/30fps, MP4, cursor capture on, extensions unpinned,
+bookmarks hidden. Every test message and comment must be **in English** — the reviewer cannot
+read Bangla, and the bot mirrors the customer's language.
+
+**Two earlier takes were rejected in review:** the first ran only 2:15 and covered one
+permission of three; both had the bot replying in Bangla. Do not cut Segments 3 and 4 — they
+are the only evidence for two of the three permissions.
+
+**Assets ready:** 3 Facebook posts, 3 Instagram posts (1080×1080, generated to match the new
+design system), all carrying a "Comment DETAILS / PRICE / DEMO" call to action so comment
+automation looks natural to a reviewer.
+
+### Also pending
+
+- **Booking pipeline** is instrumented but untested end to end. `gcal_connected` is true and a
+  refresh token exists, but `gcal_token_expiry` was stale. Unverified Google apps get 7-day
+  refresh tokens, so it may simply be dead — `getValidAccessToken` now detects `invalid_grant`,
+  clears `gcal_connected` and logs it. Reconnect Calendar, book a meeting, read the
+  `[booking]` log lines to see which step fails.
+- **Google Cloud billing** — Gemini is 429ing. Comment replies are landing on the fallback
+  rather than real AI output. Fix before recording if the videos should show the bot at its best.
+- **Custom domain** — still blocks Resend email verification and Google Calendar OAuth
+  verification.
 
 ---
 
-## Project facts (stable)
+## How I work here
 
-- **Repo:** `Afzalnahid/autologic-chatbot` (public). Push directly via GitHub
-  Contents API; Vercel auto-deploys `main`.
-- **Live:** autologic-chatbot.vercel.app
-- **Stack:** Next.js 14 (App Router), Supabase (pgvector), Google Gemini, Meta Graph
-  API (FB/IG/WhatsApp), Resend, Google Calendar, Vercel.
-- **Owner:** Nahid Afzal — Cumilla, Bangladesh. Replies in Bangla. Business type:
-  agency (Autologic Systems).
-- **Meta App ID:** 914246304594380.
+1. **Verify before asserting.** This session produced a wrong confident diagnosis (claimed the
+   Page list was scrolled; it was actually Business-Portfolio ownership hiding the Page from
+   `/me/accounts`). Check logs, DB or the Graph API first, then state the cause.
+2. **Team / sub-agent mindset.** Break work into stages, verify each before moving on.
+3. **Token discipline.** Reuse the clone, read only the lines needed, batch edits.
+4. **This file.** Update "Last session" and "Next up" at the end of each session.
+5. **Enterprise standard.** One-click, no token/ID hunting. And fix the *system*, not the
+   symptom — the Evalora leak was one client's settings; the real bug was the seeding path.
+6. **Quality over speed.** `node --check` before pushing; Vercel READY is the proof.
 
-## Architecture quick map
+---
 
-- **Prompt system (3 tiers, enforced in code):** `FIXED_BASE` (all bots) +
-  `FIXED_ECOM` or `FIXED_AGENCY` (by business_type) + the client's own business
-  profile from `app_settings`. Clients cannot remove the fixed rules.
+## Project facts
+
+- **Repo:** `Afzalnahid/autologic-chatbot` (public). Push via GitHub Contents API; Vercel
+  auto-deploys `main`. **Live:** autologic-chatbot.vercel.app
+- **Stack:** Next.js 14 App Router, Supabase (pgvector), Google Gemini, Meta Graph API, Resend,
+  Google Calendar, Vercel.
+- **Owner:** Nahid Afzal, Cumilla. Replies in Bangla. Business type: agency.
+- **Meta App ID:** 914246304594380 · **Instagram App ID:** 1249182887184854
+- **FB Login config id:** 2178064332957710 (permissions come from here, not a scope param)
+- **Supabase:** cchvsgouqqxibhubioch · **Vercel:** prj_xGVnXbbzOPPDiqqwLGjnnwMJzv3V,
+  team_EH2oK3NTVjHRAqGHvohVbxAa
+
+## Architecture
+
+- **Prompt system (3 tiers, enforced in code):** `FIXED_BASE` + `FIXED_ECOM`/`FIXED_AGENCY`
+  by business_type + the client's own profile from `app_settings`. Clients cannot remove the
+  fixed rules. `getSystemPrompt` reads `businessPrompt || systemPrompt || safe fallback`.
 - **Key files:** `src/lib/bot.js` (reply engine, booking, comments, typing),
-  `src/lib/messenger.js` (send/parse for all channels), `src/lib/oauth-state.js`
-  (signed OAuth state), `src/lib/rate-limit.js`, `src/lib/route-errors.js`,
-  `src/lib/gcal.js`, `src/lib/plans.js`.
-- **Channels:** each connect flow is `/api/<fb|ig|wa>/login → callback → select`,
-  all using signed state tokens. Google Calendar: `/api/gcal/login → callback`.
-- **Onboarding flow (agency):** `onboarding → connect (FB/IG/WA) → connect-cal (GCal) → app`
-- **Onboarding flow (ecommerce/other):** `onboarding → connect (FB/IG/WA) → app`
-- **Docs:** `docs/` holds architecture, database, security, error-handling,
-  prompts, phases. Keep them updated with each feature.
+  `src/lib/messenger.js` (send/parse, all channels), `src/lib/profile.js` (AI-free profile
+  composer), `src/lib/oauth-state.js` (signed state, 30-min TTL), `src/lib/rate-limit.js`,
+  `src/lib/route-errors.js`, `src/lib/gcal.js`, `src/lib/plans.js`.
+- **Channels:** `/api/<fb|ig|wa>/login → callback → select`, signed state throughout.
+  Calendar: `/api/gcal/login → callback`.
+- **Onboarding:** `onboarding → connect → connect-cal (agency only) → app`.
 
-## Known constraints (Meta/platform, not bugs)
+## Known Meta constraints (not bugs)
 
-- Facebook/Instagram cannot reply-to-specific-message or react via API (bots aren't
-  given those). WhatsApp can do both.
-- Private reply to a comment: once only, within 7 days, needs `pages_messaging`;
-  a Page cannot private-reply to another Page or to its own admin.
-- WhatsApp typing indicator also marks the message read (blue ticks).
+- FB/IG cannot reply-to-a-specific-message or react via API. WhatsApp can.
+- Private reply to a comment: once only, within 7 days, needs `pages_messaging`. A Page cannot
+  private-reply to another Page or to its own admin — always test from a second personal profile.
+- Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
+  `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
+- WhatsApp typing indicator also marks the message read.
