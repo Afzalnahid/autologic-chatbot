@@ -17,7 +17,14 @@ const sb = () => supabase;
 
 export async function getChannelByPage(pageId) {
   const { data } = await sb().from("channels").select("*").eq("status", "connected").limit(200);
-  return (data || []).find(c => c.page_id === pageId) || null;
+  const match = (data || []).find(c => String(c.page_id) === String(pageId)) || null;
+  if (!match) {
+    console.error(
+      `[channel-miss] no connected channel for pageId="${pageId}". Known page_ids:`,
+      (data || []).map(c => `${c.platform}:${c.page_id}`).join(", ")
+    );
+  }
+  return match;
 }
 
 export async function getClient(clientId) {
