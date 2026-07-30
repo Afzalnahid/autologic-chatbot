@@ -1,14 +1,14 @@
 export const metadata = { title: "Privacy Policy - Autologic" };
 
 export default function Privacy() {
-  const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#e8e8ec", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
-  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#f0c040" };
+  const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
+  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#5B8CFF" };
   const P = { marginBottom: 12 };
   return (
-    <div style={{ background: "#05080f", minHeight: "100vh" }}>
+    <div style={{ background: "#0A0D14", minHeight: "100vh" }}>
       <div style={S}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>Privacy Policy</h1>
-        <p style={{ color: "#8b9cbd", marginBottom: 32 }}>Last updated: July 18, 2026</p>
+        <p style={{ color: "#98A3BA", marginBottom: 32 }}>Last updated: July 18, 2026</p>
         <p style={P}>Autologic ("we", "our", "us") operates an AI-powered chatbot platform at autologic-chatbot.vercel.app. This Privacy Policy explains how we collect, use, store, and protect data.</p>
         <h2 style={H2}>1. Information We Collect</h2>
         <p style={P}><strong>From clients (business owners):</strong> Email and business name at registration. Facebook, Instagram, and WhatsApp access tokens and account IDs when channels are connected. Google Calendar OAuth tokens (access token and refresh token) when a client connects their Google Calendar — used exclusively to check availability and create meeting events on that client's own calendar. Business logo, product catalogue, and knowledge base documents uploaded by the client.</p>
@@ -37,10 +37,10 @@ export default function Privacy() {
         <h2 style={H2}>9. Changes to This Policy</h2>
         <p style={P}>We may update this Privacy Policy from time to time. The date at the top reflects the most recent revision. Continued use after changes constitutes acceptance.</p>
         <h2 style={H2}>10. Contact</h2>
-        <p style={P}><strong>Autologic</strong> · Kandirpar, Cumilla, Bangladesh<br/>Email: <a href="mailto:nahidafzal97@gmail.com" style={{ color: "#f0c040" }}>nahidafzal97@gmail.com</a></p>
-        <div style={{ marginTop: 48, padding: "16px 20px", background: "rgba(240,192,64,0.06)", borderRadius: 8, border: "1px solid rgba(240,192,64,0.15)", fontSize: 13, color: "#8b9cbd" }}>
+        <p style={P}><strong>Autologic</strong> · Kandirpar, Cumilla, Bangladesh<br/>Email: <a href="mailto:nahidafzal97@gmail.com" style={{ color: "#5B8CFF" }}>nahidafzal97@gmail.com</a></p>
+        <div style={{ marginTop: 48, padding: "16px 20px", background: "rgba(91,140,255,0.06)", borderRadius: 8, border: "1px solid rgba(91,140,255,0.15)", fontSize: 13, color: "#98A3BA" }}>
           Autologic's use of information received from Google APIs will adhere to the{" "}
-          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: "#f0c040" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: "#5B8CFF" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.
         </div>
       </div>
     </div>
