@@ -159,11 +159,21 @@ export function explainPrivateReplyError(err) {
   return msg || "Facebook rejected the inbox message.";
 }
 
-export const fbPrivateReply = (token, commentId, message) =>
-  fetch(`https://graph.facebook.com/v24.0/${commentId}/private_replies`, {
+// Private message to the commenter (comment-to-inbox).
+// Meta retired the /{comment-id}/private_replies edge — it now returns a generic
+// "(#100) ... does not support this operation". Private replies go through the
+// Send API instead, addressed to the page with the comment id as recipient,
+// exactly like the Instagram path above. Needs pages_messaging.
+export const fbPrivateReply = (token, pageId, commentId, message) =>
+  fetch(`https://graph.facebook.com/v24.0/${pageId}/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, access_token: token }),
+    body: JSON.stringify({
+      recipient: { comment_id: commentId },
+      message: { text: message },
+      messaging_type: "RESPONSE",
+      access_token: token,
+    }),
   }).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
 
 const WA_API = (phoneId) => `https://graph.facebook.com/v24.0/${phoneId}/messages`;
