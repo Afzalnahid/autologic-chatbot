@@ -998,10 +998,11 @@ function Comments() {
   </div>;
 }
 
-function Bookings() {
+function Bookings({calConnected,clientId}) {
   const [bookings,setBookings]=useState([]);
   const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState("All");
+  const [calOk,setCalOk]=useState(!!calConnected);
   const sts=["All","Confirmed","Completed","Cancelled"];
 
   const load=async()=>{
@@ -1011,10 +1012,26 @@ function Bookings() {
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
+  useEffect(()=>{setCalOk(!!calConnected);},[calConnected]);
   const update=async(id,status)=>{await api("/api/bookings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})}); load();};
+
+  const connectCal=()=>{
+    const w=window.open(`/api/gcal/login?client_id=${clientId}`,"gcal","width=520,height=640");
+    if(!w) window.location.href=`/api/gcal/login?client_id=${clientId}`;
+    const h=e=>{if(e.data==="gcal-connected"){window.removeEventListener("message",h);setCalOk(true);}};
+    window.addEventListener("message",h);
+  };
 
   const filtered = filter==="All"?bookings:bookings.filter(b=>b.status===filter);
   return <div>
+    {!calOk&&<Card style={{background:`${T.gold}0d`,border:`1px solid ${T.gold}35`,marginBottom:16,display:"flex",alignItems:"center",gap:12,padding:"12px 16px",flexWrap:"wrap"}}>
+      <i className="ti ti-calendar-exclamation" style={{fontSize:22,color:T.gold,flexShrink:0}}/>
+      <div style={{flex:1,minWidth:180}}>
+        <div style={{fontSize:13,fontWeight:600,color:T.gold}}>Google Calendar not connected</div>
+        <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Bookings are saved but Meet links won't be generated until you connect.</div>
+      </div>
+      <Btn gold small onClick={connectCal}><i className="ti ti-brand-google" style={{marginRight:5}}/>Connect now</Btn>
+    </Card>}
     <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{sts.map(s=><button key={s} onClick={()=>setFilter(s)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===s?T.gold:"rgba(240,192,64,0.08)",color:filter===s?"#0a0a0a":T.textMuted}}>{s}</button>)}</div>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:filtered.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No bookings yet</Card>:filtered.map(b=><Card key={b.id}>
@@ -1840,6 +1857,51 @@ function ConnectChannel({onDone,clientId}) {
   </div>;
 }
 
+function ConnectCalendar({clientId,onDone}) {
+  const [calOk,setCalOk]=useState(false);
+  useEffect(()=>{
+    const h=e=>{if(e.data==="gcal-connected") setCalOk(true);};
+    window.addEventListener("message",h);
+    return ()=>window.removeEventListener("message",h);
+  },[]);
+  const open=()=>{
+    const w=window.open(`/api/gcal/login?client_id=${clientId}`,"gcal","width=520,height=640");
+    if(!w) window.location.href=`/api/gcal/login?client_id=${clientId}`;
+  };
+  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+    <div style={{maxWidth:480,width:"100%"}}>
+      <div style={{textAlign:"center",marginBottom:24}}>
+        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",border:`1px solid ${T.gold}30`}}>
+          <i className="ti ti-calendar-event" style={{fontSize:24,color:T.gold}}/>
+        </div>
+        <div style={{fontSize:18,fontWeight:600}}>Connect Google Calendar</div>
+        <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>Your bot books appointments and sends automatic Google Meet links to customers</div>
+      </div>
+      {calOk
+        ?<Card style={{textAlign:"center",padding:"2rem",border:`1px solid ${T.success}40`}}>
+            <i className="ti ti-circle-check" style={{fontSize:38,color:T.success}}/>
+            <div style={{fontSize:15,fontWeight:600,marginTop:12,marginBottom:6}}>Google Calendar connected!</div>
+            <div style={{fontSize:12.5,color:T.textMuted,marginBottom:20}}>Your bot will now create Meet links automatically for every booking.</div>
+            <Btn gold onClick={onDone} style={{width:"100%"}}>Go to dashboard →</Btn>
+          </Card>
+        :<>
+          <Card style={{display:"flex",alignItems:"center",gap:16,cursor:"pointer",padding:"1.2rem 1.4rem",border:`1px solid ${T.border}`}} onClick={open}>
+            <div style={{width:44,height:44,borderRadius:12,background:"#4285f415",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:"1px solid #4285f430"}}>
+              <i className="ti ti-brand-google" style={{fontSize:22,color:"#4285f4"}}/>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:600}}>Connect with Google</div>
+              <div style={{fontSize:11.5,color:T.textMuted,marginTop:2}}>One-click — select your calendar and confirm</div>
+            </div>
+            <i className="ti ti-chevron-right" style={{fontSize:16,color:T.textDim,flexShrink:0}}/>
+          </Card>
+          <div style={{textAlign:"center",fontSize:12,color:T.textMuted,cursor:"pointer",marginTop:16}} onClick={onDone}>Skip for now</div>
+        </>
+      }
+    </div>
+  </div>;
+}
+
 export default function Dashboard() {
   const isMobile=useIsMobile();
   const [chatOpen,setChatOpen]=useState(false);
@@ -1958,7 +2020,8 @@ export default function Dashboard() {
   if(!authChecked||stage==="loading") return null;
   if(stage==="auth") return <AuthGate onReady={async()=>{setAuthed(true);await loadMe();}}/>;
   if(stage==="onboarding") return <Onboarding me={me} onDemo={()=>{setStage("app");setPage("demo");}} onTrial={async()=>{await loadMe();setStage("connect");}}/>;
-  if(stage==="connect") return <ConnectChannel clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;
+  if(stage==="connect") return <ConnectChannel clientId={me?.client?.id} onDone={async()=>{const bt=me?.client?.business_type;await loadMe();setStage(bt==="agency"?"connect-cal":"app");}}/>;
+  if(stage==="connect-cal") return <ConnectCalendar clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;  
 
   return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden"}}>
     {sidebarOpen&&isMobile&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:40}}/>}
@@ -1992,7 +2055,7 @@ export default function Dashboard() {
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
             {page==="comments"&&<Comments/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load}/>)}
-            {page==="orders"&&(isAgency?<Bookings/>:<Orders orders={orders} refresh={load}/>)}
+            {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load}/>)}
             {page==="channels"&&<Channels onConnect={()=>setStage("connect")}/>}
             {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}
             {page==="profile"&&<Profile/>}
