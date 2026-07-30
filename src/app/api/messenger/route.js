@@ -18,15 +18,23 @@ export async function POST(request) {
   try {
     const body = await request.json();
 
+    // Diagnostic: log the raw shape so channel-matching failures are visible.
+    console.log("[webhook] object=", body?.object, "raw=", JSON.stringify(body).slice(0, 800));
+
     // A Page comment ("feed" change) rather than a direct message.
     const comment = parseCommentEvent(body);
     if (comment) {
+      console.log("[webhook] comment event pageId=", comment.pageId, "platform=", comment.platform);
       await handleComment(comment);
       return NextResponse.json({ status: "ok" });
     }
 
     const event = parseMessengerEvent(body);
-    if (!event) return NextResponse.json({ status: "ignored" });
+    if (!event) {
+      console.log("[webhook] no event parsed — ignored");
+      return NextResponse.json({ status: "ignored" });
+    }
+    console.log("[webhook] msg event platform=", event.platform, "pageId=", event.pageId, "senderId=", event.senderId);
     await handleIncoming(event);
     return NextResponse.json({ status: "ok" });
   } catch (e) {
