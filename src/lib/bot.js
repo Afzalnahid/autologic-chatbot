@@ -802,10 +802,13 @@ export async function handleComment(event) {
     } else {
       const pr = isIG
         ? await igPrivateReply(channel.access_token, event.pageId, event.commentId, dmText)
-        : await fbPrivateReply(channel.access_token, event.commentId, dmText);
+        : await fbPrivateReply(channel.access_token, event.pageId, event.commentId, dmText);
       if (pr?.error) {
-        dmError = explainPrivateReplyError(pr.error);
-        console.error("[comment] private reply failed:", pr.error.code, pr.error.message);
+        // Keep the raw Graph error next to the friendly text — without it every
+        // failure looks identical in the dashboard and cannot be diagnosed.
+        const raw = `[${pr.error.code}${pr.error.error_subcode ? "/" + pr.error.error_subcode : ""}] ${pr.error.message || ""}`;
+        dmError = `${explainPrivateReplyError(pr.error)} ${raw}`.trim();
+        console.error("[comment] private reply failed:", raw);
       } else {
         dmSent = true;
         // The DM lands in the customer's inbox, so it belongs in the DM thread.
