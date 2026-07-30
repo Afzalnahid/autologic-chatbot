@@ -1,15 +1,15 @@
 export const metadata = { title: "How Autologic uses Google Calendar" };
 
 export default function GoogleCalendar() {
-  const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#e8e8ec", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
-  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#f0c040" };
+  const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
+  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#5B8CFF" };
   const P = { marginBottom: 12 };
   return (
-    <div style={{ background: "#05080f", minHeight: "100vh" }}>
+    <div style={{ background: "#0A0D14", minHeight: "100vh" }}>
       <div style={S}>
-        <a href="/" style={{ color: "#8b9cbd", fontSize: 13.5, textDecoration: "none" }}>← Back to home</a>
+        <a href="/" style={{ color: "#98A3BA", fontSize: 13.5, textDecoration: "none" }}>← Back to home</a>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginTop: 18, marginBottom: 4 }}>How Autologic uses Google Calendar</h1>
-        <p style={{ color: "#8b9cbd", marginBottom: 32 }}>Google Calendar integration & Limited Use disclosure</p>
+        <p style={{ color: "#98A3BA", marginBottom: 32 }}>Google Calendar integration & Limited Use disclosure</p>
 
         <p style={P}>Autologic is an AI-powered customer service platform for businesses. For service businesses and agencies, Autologic offers an optional Google Calendar integration that automates meeting scheduling with their customers.</p>
 
@@ -32,12 +32,12 @@ export default function GoogleCalendar() {
 
         <h2 style={H2}>Limited Use compliance</h2>
         <p style={P}>Autologic's use of information received from Google APIs adheres to the{" "}
-          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: "#f0c040" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: "#5B8CFF" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
 
         <div style={{ marginTop: 40, display: "flex", gap: 20, fontSize: 13.5 }}>
-          <a href="/privacy" style={{ color: "#8b9cbd", textDecoration: "none" }}>Privacy Policy</a>
-          <a href="/terms" style={{ color: "#8b9cbd", textDecoration: "none" }}>Terms of Service</a>
-          <a href="/contact" style={{ color: "#8b9cbd", textDecoration: "none" }}>Contact</a>
+          <a href="/privacy" style={{ color: "#98A3BA", textDecoration: "none" }}>Privacy Policy</a>
+          <a href="/terms" style={{ color: "#98A3BA", textDecoration: "none" }}>Terms of Service</a>
+          <a href="/contact" style={{ color: "#98A3BA", textDecoration: "none" }}>Contact</a>
         </div>
       </div>
     </div>
