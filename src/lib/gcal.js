@@ -42,18 +42,40 @@ async function refreshAccessToken(refreshToken) {
 
 // Return a valid access token for a client, refreshing + persisting if needed
 export async function getValidAccessToken(client) {
-  if (!client?.gcal_refresh_token) return null;
+  if (!client?.gcal_refresh_token) {
+    console.error("[gcal] no refresh token stored for client", client?.id);
+    return null;
+  }
   const expiry = client.gcal_token_expiry ? new Date(client.gcal_token_expiry).getTime() : 0;
   const now = Date.now();
   if (client.gcal_access_token && expiry - now > 60_000) {
     return client.gcal_access_token;
   }
-  const refreshed = await refreshAccessToken(client.gcal_refresh_token);
+
+  let refreshed;
+  try {
+    refreshed = await refreshAccessToken(client.gcal_refresh_token);
+  } catch (e) {
+    // invalid_grant means the user revoked access or the refresh token expired
+    // (unverified apps get 7-day refresh tokens). Mark it so the dashboard can
+    // prompt a reconnect instead of silently failing on every booking.
+    console.error("[gcal] refresh failed:", e.message);
+    if (/invalid_grant|invalid_request/i.test(e.message)) {
+      await supabase
+        .from("clients")
+        .update({ gcal_connected: false, gcal_access_token: null, gcal_token_expiry: null })
+        .eq("id", client.id);
+      console.error("[gcal] refresh token is dead — client must reconnect Google Calendar");
+    }
+    return null;
+  }
+
   const newExpiry = new Date(now + (refreshed.expires_in || 3600) * 1000).toISOString();
   await supabase
     .from("clients")
     .update({ gcal_access_token: refreshed.access_token, gcal_token_expiry: newExpiry })
     .eq("id", client.id);
+  console.log("[gcal] access token refreshed, valid until", newExpiry);
   return refreshed.access_token;
 }
 
