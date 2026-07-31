@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 
-const IG_APP_ID = process.env.IG_APP_ID || "1249182887184854";
+const IG_APP_ID = process.env.IG_APP_ID;
 const IG_APP_SECRET = process.env.IG_APP_SECRET;
 
 export async function GET(request) {
@@ -17,7 +17,7 @@ export async function GET(request) {
     const errDesc = searchParams.get("error_description");
     if (errDesc) return new NextResponse("Instagram error: " + errDesc, { status: 400 });
     if (!code) return new NextResponse("Missing code", { status: 400 });
-    if (!IG_APP_SECRET) return new NextResponse("Server misconfigured: IG_APP_SECRET missing", { status: 500 });
+    if (!IG_APP_ID || !IG_APP_SECRET) return new NextResponse("Server misconfigured", { status: 500 });
 
     const redirect = `${origin}/api/ig/callback`;
 
@@ -44,11 +44,6 @@ export async function GET(request) {
     const long = await fetch(`https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${IG_APP_SECRET}&access_token=${shortToken}`).then(r => r.json()).catch(() => ({}));
     const token = long.access_token || shortToken;
 
-    // Instagram returns two different ids. `me?fields=id` gives an app-scoped id
-    // (e.g. 28445178038400379) which never appears in webhooks. The real IG
-    // account id (e.g. 17841441686062791) is what arrives as recipient.id, and it
-    // comes from `me?fields=user_id`. We must store the latter or channel lookup
-    // on every incoming message will miss.
     const me = await fetch(`https://graph.instagram.com/v21.0/me?fields=id,user_id,username&access_token=${token}`).then(r => r.json()).catch(() => ({}));
     const username = me.username || "instagram";
     const accountId = String(me.user_id || igUserId || me.id || "");
