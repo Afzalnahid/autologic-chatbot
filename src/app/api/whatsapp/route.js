@@ -1,10 +1,26 @@
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { parseWhatsAppEvent, parseWhatsAppStatus } from "@/lib/messenger.js";
 import { handleIncoming } from "@/lib/bot.js";
 
 const VERIFY_TOKENS = [process.env.FACEBOOK_VERIFY_TOKEN].filter(Boolean);
+
+function verifyFBSignature(rawBody, signatureHeader) {
+  const secret = process.env.FACEBOOK_APP_SECRET;
+  if (!secret) {
+    console.warn("[whatsapp] FACEBOOK_APP_SECRET not set — skipping signature check");
+    return true;
+  }
+  if (!signatureHeader) return false;
+  const parts = signatureHeader.split("=");
+  if (parts[0] !== "sha256" || !parts[1]) return false;
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(parts[1], "hex"), Buffer.from(expected, "hex"));
+  } catch { return false; }
+}
 
 export async function GET(request) {
   const q = new URL(request.url).searchParams;
@@ -16,10 +32,16 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    const sig = request.headers.get("x-hub-signature-256") || "";
 
-    // Status events (delivered / read / failed) — log and ignore.
-    // "read" = customer has seen the message.
+    if (!verifyFBSignature(rawBody, sig)) {
+      console.warn("[whatsapp] Invalid X-Hub-Signature-256 — rejected");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
+
     const status = parseWhatsAppStatus(body);
     if (status) {
       if (status.status === "read") {
