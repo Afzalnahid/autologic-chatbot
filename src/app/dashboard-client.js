@@ -1850,12 +1850,12 @@ function ConnectChannel({onDone,clientId}) {
   const opts=[
     {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"One-click connect with Facebook login",color:"#1877f2"},
     {id:"instagram",icon:"ti-brand-instagram",label:"Instagram Business",hint:"One-click connect with Instagram login",color:"#e1306c"},
-    {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"One-click connect with Facebook login",color:"#25d366"},
+    {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"Set up your number with Meta — no account needed first",color:"#25d366"},
   ];
   const handleClick=(id)=>{
     if(id==="facebook") openPopup(`/api/fb/login?client_id=${clientId}`);
     else if(id==="instagram") openPopup(`/api/ig/login?client_id=${clientId}`);
-    else if(id==="whatsapp") openPopup(`/api/wa/login?client_id=${clientId}`);
+    else if(id==="whatsapp") openPopup(`/api/wa/embedded?client_id=${clientId}`);
   };
   return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{maxWidth:520,width:"100%"}}>
