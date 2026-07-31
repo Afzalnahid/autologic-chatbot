@@ -927,6 +927,15 @@ function Comments() {
   };
   useEffect(()=>{load();},[]);
 
+  // Removes the record from the dashboard only — the comment itself stays on
+  // Facebook or Instagram. Clients need this to clear failed or test entries.
+  const remove=async(id)=>{
+    if(!confirm("Remove this comment from your dashboard? It will stay on Facebook.")) return;
+    setRows(rs=>rs.filter(r=>r.id!==id));
+    try{ await api(`/api/comments?id=${encodeURIComponent(id)}`,{method:"DELETE"}); }
+    catch{ load(); }
+  };
+
   const dmFailed = rows.filter(r=>r.dm_error).length;
   const filters=["All","Replied","Sent to inbox","Needs attention"];
   const filtered = rows.filter(r=>{
@@ -965,7 +974,7 @@ function Comments() {
     </Card>}
 
     <div style={{display:"flex",gap:8,marginBottom:18,flexWrap:"wrap"}}>
-      {filters.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===f?T.gold:"rgba(240,192,64,0.08)",color:filter===f?"#0a0a0a":T.textMuted}}>{f}</button>)}
+      {filters.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===f?T.gold:T.goldBg,color:filter===f?"#0a0a0a":T.textMuted}}>{f}</button>)}
     </div>
 
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -982,6 +991,7 @@ function Comments() {
           <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
             <Badge color={c.replied?T.success:T.textDim}>{c.replied?"Replied":"Not replied"}</Badge>
             <Badge color={c.dm_sent?T.success:(c.dm_error?T.danger:T.textDim)}>{c.dm_sent?"Sent to inbox":(c.dm_error?"Inbox failed":"No inbox msg")}</Badge>
+            <button onClick={()=>remove(c.id)} title="Remove from dashboard" style={{background:"none",border:"none",cursor:"pointer",color:T.textDim,padding:"2px 4px",fontSize:15,lineHeight:1}}><i className="ti ti-trash"/></button>
           </div>
         </div>
 
