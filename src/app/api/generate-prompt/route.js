@@ -7,9 +7,6 @@ import { chatWithGemini } from "@/lib/gemini.js";
 import { supabase } from "@/lib/supabase.js";
 import { composeProfile } from "@/lib/profile.js";
 
-// Hybrid generation: the AI writes ONLY the business profile section, inside a
-// fixed structure. Core output/format rules live in code (bot.js FIXED_CORE)
-// and are never part of what clients can edit.
 const META = `You are an expert prompt engineer for AI customer-service chatbots. From the business owner's answers, write ONLY the BUSINESS PROFILE section of a system prompt.
 
 Use EXACTLY this structure with these headings:
@@ -46,7 +43,6 @@ export async function POST(request) {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    // Expensive AI call — keep one account from running up the bill in a loop.
     const rl = rateLimit(`generate-prompt:${client.id}`, 10, 3600000);
     if (!rl.ok) return tooManyRequests(rl.retryAfter, "You have generated several prompts recently. Please wait a few minutes before trying again.");
     const body = await request.json();
@@ -81,10 +77,6 @@ export async function POST(request) {
       input = `Business type: ${bt}\nCatalog unit: ${unit}\nBusiness description:\n${description}`;
     }
 
-    // The AI rewrites the owner's answers; the composer builds a usable profile
-    // from those same answers with no AI at all. If generation fails for any
-    // reason — quota, rate limit, timeout — we still save a real profile rather
-    // than leaving the tenant with a bot that knows nothing about them.
     let prompt = "";
     let generated = false;
     if (body.mode !== "raw") {
@@ -97,14 +89,17 @@ export async function POST(request) {
     }
     if (!prompt) prompt = composeProfile(answers || { description }, bt);
 
-    // Persist server-side: merge businessPrompt + questionnaire into settings.
-    const { data: rows } = await supabase.from("app_settings").select("*");
-    const row = (rows || []).find(r => r.id === String(client.id));
+    const { data: row } = await supabase
+      .from("app_settings")
+      .select("*")
+      .eq("id", String(client.id))
+      .maybeSingle();
     const merged = { ...(row?.settings || {}), businessPrompt: prompt, ...(answers ? { questionnaire: answers } : {}) };
     await supabase.from("app_settings").upsert({ id: String(client.id), settings: merged }, { onConflict: "id" });
 
     return NextResponse.json({ prompt, generated });
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error("[generate-prompt]", e.message);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
