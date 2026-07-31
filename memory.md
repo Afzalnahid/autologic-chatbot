@@ -108,6 +108,13 @@ automation looks natural to a reviewer.
 
 ---
 
+## Start here every session
+
+1. Read this file.
+2. Read `lessons.md` — the running log of mistakes and the rule each produced. It exists so the
+   same mistake is not repeated. Append to it whenever a new one is found.
+3. Pick up from **Next up** above.
+
 ## How I work here
 
 1. **Verify before asserting.** This session produced a wrong confident diagnosis (claimed the
