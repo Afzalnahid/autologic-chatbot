@@ -11,12 +11,14 @@ export async function requireClient(request) {
   const { data, error } = await authClient.auth.getUser(token);
   if (error || !data?.user?.email) return { error: "unauthorized" };
   const email = data.user.email;
-  const { data: rows } = await supabase.from("clients").select("*");
-  const client = (rows || []).find(c => c.owner_email === email);
+  const { data: client } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("owner_email", email)
+    .maybeSingle();
   return { client: client || null, email };
 }
 
-// Kept under the old name so existing callers keep working.
 export function trialActive(client) {
   return planActive(client);
 }
