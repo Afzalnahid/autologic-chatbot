@@ -86,7 +86,16 @@ export async function GET(request) {
   window.fbAsyncInit = function(){
     FB.init({ appId: ${JSON.stringify(APP_ID)}, cookie:true, xfbml:false, version:'v24.0' });
     btn.disabled = false;
+    say('');
   };
+
+  // If the SDK never loads (blocked script, offline, ad blocker) the button
+  // would otherwise stay dead with no explanation.
+  setTimeout(function(){
+    if (typeof FB === 'undefined') {
+      say('Could not load Facebook. Disable any ad blocker for this page and reload.', 'err');
+    }
+  }, 6000);
 
   // Meta's popup reports progress on a postMessage channel. The FINISH event
   // carries the WABA and phone number ids that the owner just created.
@@ -136,12 +145,33 @@ export async function GET(request) {
   }
 
   btn.disabled = true;
+  say('<span class="spin"></span>Loading…');
+
+  var stallTimer = null;
   btn.onclick = function(){
+    if (typeof FB === 'undefined') {
+      say('Facebook has not loaded yet. Please reload the page.', 'err');
+      return;
+    }
     btn.disabled = true;
     busy('Waiting for Meta…');
+
+    // FB.login opens a popup. If the browser blocks it, or the domain is not on
+    // the app's JavaScript SDK allowlist, the callback never fires and this page
+    // would sit on "Waiting for Meta" forever. Tell the person what to check.
+    clearTimeout(stallTimer);
+    stallTimer = setTimeout(function(){
+      if (!authCode && !done) {
+        say('The Meta window did not open. Allow pop-ups for this site and try again.', 'err');
+        btn.disabled = false;
+      }
+    }, 12000);
+
     FB.login(function(resp){
+      clearTimeout(stallTimer);
       if (resp.authResponse && resp.authResponse.code) {
         authCode = resp.authResponse.code;
+        busy('Waiting for you to finish setup with Meta…');
         maybeFinish();
       } else {
         say('Setup was not completed. You can start again when ready.', 'err');
