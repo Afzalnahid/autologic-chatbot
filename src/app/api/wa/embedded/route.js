@@ -44,6 +44,7 @@ export async function GET(request) {
      padding:16px 18px;margin-bottom:22px}
   li{font-size:13px;color:#98A3BA;padding:6px 0 6px 22px;position:relative;line-height:1.55}
   li:before{content:"";position:absolute;left:0;top:13px;width:6px;height:6px;border-radius:50%;background:#25D366}
+  li b{color:#E7EAF2;font-weight:600}
   button{width:100%;padding:13px;background:#25D366;color:#06210F;border:0;border-radius:10px;
          font-size:15px;font-weight:700;font-family:inherit;cursor:pointer}
   button:hover{background:#3BE07A}
@@ -58,12 +59,13 @@ export async function GET(request) {
 <div class="box">
   <div class="icon">💬</div>
   <h3>Connect WhatsApp Business</h3>
-  <p>Meta will guide you through setting up your WhatsApp Business account. You do not need to
-     create anything beforehand.</p>
+  <p>Meta will guide you through the whole setup in its own window. Fill in every field it asks
+     for — leaving one blank sends you back to the start.</p>
   <ul>
-    <li>Enter your business name and details</li>
+    <li>Choose or create a business portfolio</li>
+    <li>Enter your business name, <b>category</b> and <b>country</b> — all required</li>
     <li>Add the phone number you want customers to message</li>
-    <li>Verify it with the code Meta sends you by SMS</li>
+    <li>Verify it with the code Meta sends by SMS or call</li>
     <li>Your bot starts replying immediately</li>
   </ul>
   <button id="go">Continue with Meta</button>
