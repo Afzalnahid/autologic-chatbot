@@ -156,16 +156,17 @@ export async function GET(request) {
     btn.disabled = true;
     busy('Waiting for Meta…');
 
-    // FB.login opens a popup. If the browser blocks it, or the domain is not on
-    // the app's JavaScript SDK allowlist, the callback never fires and this page
-    // would sit on "Waiting for Meta" forever. Tell the person what to check.
+    // FB.login opens a popup and its callback only fires once the person has
+    // finished or dismissed it, which legitimately takes minutes. So a timeout
+    // cannot mean "blocked" — it can only offer a hint, and must never claim
+    // failure while the person is still working in Meta's window.
     clearTimeout(stallTimer);
     stallTimer = setTimeout(function(){
       if (!authCode && !done) {
-        say('The Meta window did not open. Allow pop-ups for this site and try again.', 'err');
+        say('Still waiting for Meta. If no Meta window opened, allow pop-ups for this site and click again.');
         btn.disabled = false;
       }
-    }, 12000);
+    }, 20000);
 
     FB.login(function(resp){
       clearTimeout(stallTimer);
