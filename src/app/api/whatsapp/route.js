@@ -8,9 +8,9 @@ import { handleIncoming } from "@/lib/bot.js";
 const VERIFY_TOKENS = [process.env.FACEBOOK_VERIFY_TOKEN].filter(Boolean);
 
 function verifyFBSignature(rawBody, signatureHeader) {
-  const secret = process.env.FACEBOOK_APP_SECRET;
+  const secret = process.env.FB_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
   if (!secret) {
-    console.warn("[whatsapp] FACEBOOK_APP_SECRET not set — skipping signature check");
+    console.warn("[whatsapp] FB_APP_SECRET not set — skipping signature check");
     return true;
   }
   if (!signatureHeader) return false;
