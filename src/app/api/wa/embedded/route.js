@@ -84,7 +84,7 @@ export async function GET(request) {
   function busy(msg){ say('<span class="spin"></span>' + msg); }
 
   window.fbAsyncInit = function(){
-    FB.init({ appId: ${JSON.stringify(APP_ID)}, cookie:true, xfbml:false, version:'v24.0' });
+    FB.init({ appId: ${JSON.stringify(APP_ID)}, cookie:true, xfbml:false, version:'v26.0' });
     btn.disabled = false;
     say('');
   };
