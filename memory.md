@@ -4,6 +4,49 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-07-31)
+
+**Security audit & hardening** — Full 5-prompt security review (Gitleaks, Bearer, ECC Production
+Audit, Trail of Bits, ECC Security Review) applied to the codebase. 9 fixes pushed.
+
+### What was done
+1. `src/utils/supabase/client.js` — Removed hardcoded Supabase URL/key fallbacks (were leaking
+   project ID into source code even without env vars set).
+2. `src/lib/auth.js` — `requireClient()` was fetching ALL clients then filtering in JS;
+   now uses `.eq("owner_email", email).maybeSingle()` for DB-level filtering.
+3. `src/app/api/settings/route.js` — GET returned `{}` (200) for unauthenticated requests;
+   now returns 401. All error responses hide `e.message`; DB queries use `.eq()` filter.
+   PATCH similarly fixed.
+4. `src/app/api/generate-prompt/route.js` — Final catch was returning `e.message` to client;
+   now logs server-side and returns generic "Internal server error".
+5. `src/app/api/ig/callback/route.js` — `IG_APP_ID` had hardcoded fallback `"1249182887184854"`;
+   removed. Now fails with 500 if env var missing.
+6. `src/app/api/auth/route.js` — No rate limiting on admin password check;
+   added IP-based rate limit: 5 attempts/minute using existing `rate-limit.js`.
+7. `next.config.js` — Added security headers to all routes:
+   X-Frame-Options: DENY, X-Content-Type-Options: nosniff,
+   Strict-Transport-Security (1 year), Referrer-Policy, Permissions-Policy.
+8. `src/app/api/messenger/route.js` — Added `verifyFBSignature()` using HMAC-SHA256 against
+   `FACEBOOK_APP_SECRET`. If secret not set → warns and allows (graceful degradation).
+   If set and signature invalid → 401 reject.
+9. `src/app/api/whatsapp/route.js` — Same signature verification as Messenger.
+
+### What's next
+- **ACTION REQUIRED:** Add `FACEBOOK_APP_SECRET` to Vercel env vars (Settings → Environment
+  Variables). Get it from Meta Developer Portal → App → App Secret. Once set, webhooks will
+  enforce signature verification and reject any forged POST requests.
+- Confirm Vercel build green after today's 9 commits.
+- Ongoing: acquire custom domain (unlocks Resend + Google Calendar OAuth verification).
+
+### Mistakes & lessons
+- `supabase.from("clients").select("*")` in `requireClient()` was fetching the entire clients
+  table on every authenticated API call — a performance and data-scope problem. Always add
+  `.eq()` filter at DB level, not in JS.
+- Hardcoded fallback values in source code (||"real-value") are a secret leak even when the
+  "real" env var is set: the fallback is stored in git history forever. Never use real values
+  as fallbacks.
+
+
 ## Last session (2026-07-30)
 
 Long session. Two threads: **Meta App Review prep** and **fixing real bugs found while preparing it**.
