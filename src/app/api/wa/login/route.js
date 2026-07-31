@@ -8,7 +8,11 @@ const APP_ID = process.env.FB_APP_ID || "914246304594380";
 // WhatsApp accounts. Embedded Signup creates a brand new WhatsApp account, so
 // it is the wrong door for a business that already has one — this path lets
 // them pick the account they already own instead.
-const LOGIN_CONFIG_ID = process.env.WA_LOGIN_CONFIG_ID;
+// Prefer a dedicated "General" configuration, but fall back to the Embedded
+// Signup one: both carry the same WhatsApp assets and permissions, so the asset
+// picker may well work from either, and falling back saves setting up a second
+// configuration just to find out.
+const LOGIN_CONFIG_ID = process.env.WA_LOGIN_CONFIG_ID || process.env.WA_CONFIG_ID;
 
 export async function GET(request) {
   try {
