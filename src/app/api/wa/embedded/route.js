@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { signState } from "@/lib/oauth-state.js";
+import { supabase } from "@/lib/supabase.js";
 
 const APP_ID = process.env.FB_APP_ID || "914246304594380";
 const CONFIG_ID = process.env.WA_CONFIG_ID;
@@ -17,6 +18,44 @@ const CONFIG_ID = process.env.WA_CONFIG_ID;
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const clientId = searchParams.get("client_id") || "";
+
+  // Meta requires a business portfolio and a filled-in business profile before
+  // it will create a WhatsApp account. We cannot remove those steps, but we
+  // already hold the same details from onboarding, so we pre-fill them and the
+  // owner only has to confirm. A client with no portfolio can still create one
+  // inside Meta's own window.
+  let profile = null;
+  if (clientId) {
+    const { data } = await supabase
+      .from("clients")
+      .select("business_name, owner_email, phone, website, address")
+      .eq("id", clientId)
+      .maybeSingle();
+    profile = data || null;
+  }
+
+  // Meta wants the country code and the local number separately.
+  const rawPhone = String(profile?.phone || "").replace(/[^0-9]/g, "");
+  let phoneCode = "";
+  let phoneNumber = "";
+  if (rawPhone.length >= 10) {
+    if (rawPhone.startsWith("880")) { phoneCode = "880"; phoneNumber = rawPhone.slice(3); }
+    else if (rawPhone.startsWith("0")) { phoneCode = "880"; phoneNumber = rawPhone.slice(1); }
+    else { phoneCode = "880"; phoneNumber = rawPhone; }
+  }
+
+  const prefill = {
+    business: {
+      name: profile?.business_name || "",
+      email: profile?.owner_email || "",
+      website: profile?.website || "",
+      ...(phoneNumber ? { phone: { code: Number(phoneCode), number: phoneNumber } } : {}),
+      address: {
+        streetAddress1: profile?.address || "",
+        country: "BD",
+      },
+    },
+  };
 
   if (!CONFIG_ID) {
     return new NextResponse(
@@ -40,6 +79,7 @@ export async function GET(request) {
         margin:0 auto 18px;font-size:28px}
   h3{font-size:19px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
   p{font-size:13.5px;color:#98A3BA;line-height:1.65;margin-bottom:22px}
+  p b{color:#E7EAF2;font-weight:600}
   ul{text-align:left;list-style:none;background:#0F1420;border:1px solid #1F2839;border-radius:12px;
      padding:16px 18px;margin-bottom:22px}
   li{font-size:13px;color:#98A3BA;padding:6px 0 6px 22px;position:relative;line-height:1.55}
@@ -59,11 +99,12 @@ export async function GET(request) {
 <div class="box">
   <div class="icon">💬</div>
   <h3>Connect WhatsApp Business</h3>
-  <p>Meta will guide you through the whole setup in its own window. Fill in every field it asks
-     for — leaving one blank sends you back to the start.</p>
+  <p>Meta will guide you through the setup in its own window. We have filled in what we already
+     know about your business. If you do not have a business portfolio yet, choose
+     <b>Create a business portfolio</b> — it takes one field.</p>
   <ul>
     <li>Choose or create a business portfolio</li>
-    <li>Enter your business name, <b>category</b> and <b>country</b> — all required</li>
+    <li>Your business details are filled in already — just pick a <b>category</b></li>
     <li>Add the phone number you want customers to message</li>
     <li>Verify it with the code Meta sends by SMS or call</li>
     <li>Your bot starts replying immediately</li>
@@ -184,7 +225,7 @@ export async function GET(request) {
       config_id: ${JSON.stringify(CONFIG_ID)},
       response_type: 'code',
       override_default_response_type: true,
-      extras: { setup:{}, featureType:'', sessionInfoVersion:'3' }
+      extras: { setup: ${JSON.stringify(prefill)}, featureType:'', sessionInfoVersion:'3' }
     });
   };
 })();
