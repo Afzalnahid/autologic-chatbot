@@ -419,28 +419,10 @@ function bookingRule() {
 }
 const BOOKING_RULE_PLACEHOLDER = "";
 
-export async function processConversation(channel, senderId, myRowId) {
-  const clientId = channel.client_id;
-  const client = await getClient(clientId);
-  const bType = client?.business_type || "ecommerce";
-  if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
-
-  let rows = await pendingFor(senderId, clientId);
-  if (!rows.length) return;
-  const newest = rows[rows.length - 1];
-  if (myRowId && newest.id !== myRowId) return;
-
-  if (channel.platform !== "whatsapp") {
-    for (let i = 0; i < 5; i++) {
-      if (rows.every(r => r.message_content)) break;
-      await new Promise(r => setTimeout(r, 2000));
-      rows = await pendingFor(senderId, clientId);
-    }
-  }
-  rows = rows.filter(r => r.message_content);
-  if (!rows.length) return;
-
-  const combined = rows.map(r => r.message_content).join("\n");
+// The reply engine. Given the customer's combined text it produces the response
+// items and any booking note — no sending, no buffer writes. Every channel uses
+// this one function so a new channel cannot drift from the others.
+export async function composeReply({ clientId, client, bType, senderId, combined, platform }) {
   const isAgency = bType === "agency";
 
   let systemPrompt, history, context;
@@ -492,13 +474,39 @@ export async function processConversation(channel, senderId, myRowId) {
         items.map(it => it.type).join(",") || "none",
         "| raw preview =", String(raw).slice(0, 300));
     }
-    const r = await maybeCreateBooking(items, client, senderId, channel.platform);
+    const r = await maybeCreateBooking(items, client, senderId, platform);
     items = r.items;
     if (r.booked) bookingNote = r.bookingNote;
   } else {
     items = await maybeSaveOrder(items, clientId);
   }
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
+  return { items, bookingNote };
+}
+
+export async function processConversation(channel, senderId, myRowId) {
+  const clientId = channel.client_id;
+  const client = await getClient(clientId);
+  const bType = client?.business_type || "ecommerce";
+  if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
+
+  let rows = await pendingFor(senderId, clientId);
+  if (!rows.length) return;
+  const newest = rows[rows.length - 1];
+  if (myRowId && newest.id !== myRowId) return;
+
+  if (channel.platform !== "whatsapp") {
+    for (let i = 0; i < 5; i++) {
+      if (rows.every(r => r.message_content)) break;
+      await new Promise(r => setTimeout(r, 2000));
+      rows = await pendingFor(senderId, clientId);
+    }
+  }
+  rows = rows.filter(r => r.message_content);
+  if (!rows.length) return;
+
+  const combined = rows.map(r => r.message_content).join("\n");
+  const { items, bookingNote } = await composeReply({ clientId, client, bType, senderId, combined, platform: channel.platform });
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
   else await sendResponses(channel.access_token, senderId, items, channel.platform, channel.page_id);
