@@ -64,3 +64,23 @@ the session ended, the next session would have restarted from guesswork.
 
 **Rule:** update `memory.md` after every session and whenever a session might end. Record what
 changed, what is blocked, and the exact next step — not a summary, an instruction to resume from.
+
+## 8. Check the external dependency exists before starting the task
+**2026-08-01.** Task 3 (SSLCommerz) was planned and Stage 1 shipped — migration plus
+`sslcommerz.js` — before anyone asked whether an SSLCommerz sandbox account existed. It did
+not. The task's own "done when" (a sandbox payment upgrades a tenant end to end) was
+unreachable from the first line of code, and stage gate 3 could never have passed.
+
+**Rule:** in the Lead's stage plan, name every external account, credential and env var the
+task needs, and confirm they exist *before* Stage 1. If one is missing, say so and offer a task
+that has no external dependency instead.
+
+## 9. Do not push code you cannot account for
+**2026-08-01.** Four files appeared in the working directory mid-session —
+`api/billing/checkout`, `api/billing/ipn`, `api/billing/callback`, `lib/billing-settle.js` —
+written by something other than the agent doing the work. The code read well and matched the
+plan, which is exactly what makes it tempting. It was on the payment path.
+
+**Rule:** code of unknown provenance is not pushed, however good it looks, and least of all
+where money moves. Report it, review it in the open, and let the owner decide. "It looked
+correct" is not an account of where something came from.
