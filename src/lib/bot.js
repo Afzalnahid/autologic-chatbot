@@ -292,11 +292,12 @@ function parseReply(raw) {
   return [{ type: "text_msg", text: cleaned }];
 }
 
-async function maybeSaveOrder(items, clientId) {
+async function maybeSaveOrder(items, clientId, senderId) {
   for (const it of items) {
     if (it.type !== "order" || !it.order_code) continue;
     await sb().from("orders").insert({
       client_id: clientId,
+      sender_id: senderId || null,
       order_code: it.order_code,
       customer_name: it.customer_name || "",
       phone_number: it.phone_number || "",
@@ -478,7 +479,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     items = r.items;
     if (r.booked) bookingNote = r.bookingNote;
   } else {
-    items = await maybeSaveOrder(items, clientId);
+    items = await maybeSaveOrder(items, clientId, senderId);
   }
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
   return { items, bookingNote };
