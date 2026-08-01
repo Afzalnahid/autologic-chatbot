@@ -4,6 +4,78 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-01)
+
+**Improvement sprint opened. Task 3 started and parked; Task 4 shipped.**
+Owner's order for the remaining sprint: **4 → 5 → 6 → 7 → 8 → 9 → 10.**
+(Task 9, the `dashboard-client.js` split, now runs *after* 5/6/7 add three more
+tabs to it. That was raised and decided by the owner; expect the refactor to be
+larger than the ~139 KB it is today.)
+
+### Task 3 — SSLCommerz — PARKED, not abandoned
+
+Done:
+- Migration `payment_requests_gateway_columns`: added `source` (default `manual`),
+  `gateway_status`, `val_id`, `bank_tran_id`, `card_type`, `currency` (default
+  `BDT`), `paid_at`. Unique index on `val_id` where not null (idempotency), unique
+  index on `txn_id` where `source <> 'manual'`, index on `(client_id, status)`.
+  Verified: no CHECK constraint on `status`, so `initiated` / `failed` /
+  `cancelled` are safe to write.
+- `src/lib/sslcommerz.js` (commit b899f71) — sandbox/live URLs from `SSLCZ_MODE`,
+  `initiateSession`, `validateTransaction`, `newTranId`, `amountMatches`. Nothing
+  imports it yet, so it is inert.
+
+**Blocked on:** no SSLCommerz sandbox account. Owner must register at
+`developer.sslcommerz.com/registration/`, then set in Vercel env:
+`SSLCZ_STORE_ID`, `SSLCZ_STORE_PASSWORD`, `SSLCZ_MODE=sandbox`,
+`NEXT_PUBLIC_SITE_URL`. IPN URL to register in the sandbox merchant panel:
+`/api/billing/ipn`. Live store needs trade licence / NID / eTIN and 10–15 working
+days for banks — plan the "then live" half as weeks, not a session.
+
+**UNRESOLVED — read before touching billing again.** Four files appeared in the
+working directory during that session that the agent did not write:
+`api/billing/checkout/`, `api/billing/ipn/`, `api/billing/callback/`,
+`lib/billing-settle.js`. They were reviewed but **deliberately not pushed** —
+provenance unknown, and it is the money path. They are not in the repo. Decide
+where they came from before reusing them. Review findings if they are kept:
+1. `billing-settle.js` returns `{ok:true, already:true}` on `claimErr` — a real
+   update failure is reported as success, so the money is taken and the plan is
+   never extended, silently. Must distinguish duplicate-`val_id` from other errors.
+2. `callback` writes nothing to the DB on fail/cancel; the row stays `initiated`.
+3. The validate-failed branch does not store `val_id` — audit gap.
+4. `GET /api/billing` still does not return `gateway.enabled`, so the UI cannot
+   choose between the online and manual paths. Stage 4 depends on it.
+
+### Task 4 — case studies — DONE
+- `src/lib/case-studies.js` (new): `CASE_STUDIES` array, one ecommerce entry and
+  one agency entry, `TYPE_LABEL`, `isPlaceholder()`, `publishedCaseStudies()`.
+  Adding a case study is one object, not a page.
+- `src/app/page.js`: `CaseStudy` card + `#case-studies` section between Features
+  and Footer. Design tokens reused from the page's own `T`; 2px left state rail;
+  `auto-fit minmax(300px,1fr)` outer grid, `minmax(120px,1fr)` metric grid.
+- **Nothing fake can ship:** any entry still containing a `TODO_` token is
+  filtered out when `VERCEL_ENV === "production"`. On preview builds it renders
+  with an amber rail and a "Draft — hidden in production" chip. So the section is
+  invisible on the live site today, by design, and appears by itself the moment
+  real figures replace the placeholders.
+- Verified: commits 2faa580 + df9f4c4, deployment `dpl_88Wx71G8Hnugg...` READY,
+  production target.
+
+### What's next
+1. Owner fills the `TODO_` values in `src/lib/case-studies.js` (business name,
+   subtitle, three metrics, story) for at least the ecommerce entry.
+2. **Task 5 — website chat widget.** Public widget key in a new Channels
+   sub-section, origin allow-list per tenant, reuse `bot.js` reply engine,
+   `channel: "web"` into the existing inbox.
+3. Return to Task 3 when sandbox credentials exist.
+
+### Mistakes & lessons
+- Task 3 was started before checking whether the external account it depends on
+  existed. Stage 1 shipped, then the task stalled. See `lessons.md` #8.
+- Unknown-provenance code was found in the workspace and not pushed. See #9.
+
+---
+
 ## Last session (2026-07-31)
 
 **Security audit & hardening** — Full 5-prompt security review (Gitleaks, Bearer, ECC Production
