@@ -93,14 +93,56 @@ Stages 1–5 shipped; stage 6 is this write-up.
   a page served from `localhost` (a `file://` page sends no origin and will be
   refused), and confirm the reply appears and lands in Conversations.
 
+### Task 6 — broadcast / bulk messaging — CODE DONE, live test pending
+- Migrations: `broadcasts`, `broadcast_recipients` (+ `claimed_at`),
+  `contacts.broadcast_opt_out`, `orders.sender_id`, and indexes on
+  `message_buffer (client_id, sender_id, created_at)`.
+- **`orders` never stored who placed the order**, so the "has ordered" segment was
+  impossible. `maybeSaveOrder` now receives `senderId` and stores it. Only orders
+  from 2026-08-01 onward can be segmented; older ones cannot be linked at all.
+- `src/lib/broadcast.js` — `resolveAudience()` returns who is eligible and, for
+  everyone else, the reason: outside the 24-hour window, channel paused, contact
+  paused, opted out. `remainingQuota()` counts customer messages plus broadcast
+  sends against the plan.
+- `src/lib/broadcast-send.js` — batches of 20 per request, claim-before-send,
+  `sendBroadcastText` (`messaging_type: UPDATE`, not `RESPONSE`, because a broadcast
+  is not a reply), the platform's own error stored per recipient, a copy of the sent
+  message written into the inbox.
+- `/api/broadcast` — `preview`, `send`, `resume`, `recipients`, plus history.
+- Broadcast tab in `dashboard-client.js`: compose, preview with reasons, send with
+  progress, history with per-recipient outcome.
+- **Decided: 24-hour window only.** No message tags in v1. Tags may never carry
+  promotional content and misuse risks the Page — the platform's own survival is
+  not worth that. WhatsApp outside the window would need approved templates, which
+  do not exist yet.
+- **Correction to the last entry:** the earlier note that "the website channel has
+  no 24-hour concern" was the wrong framing. The real point is that a website
+  visitor cannot be broadcast to at all — there is no address once the tab closes.
+  `BROADCAST_CHANNELS` is facebook, instagram, whatsapp only.
+- Tag segments (Task 7) are wired but return `tags_available: false` until Task 7.
+- Verified: `/api/broadcast` → 401 unauthenticated; deployment
+  `dpl_6jtCNow3bvsjG…` READY; JSX check run and confirmed passing.
+- **NOT verified:** an actual send. Owner needs two people who messaged the Page in
+  the last 24 hours. Deliberate-failure test: pause the channel just before sending
+  and confirm the real reason appears per recipient.
+
 ### What's next
 1. Owner fills the `TODO_` values in `src/lib/case-studies.js` (business name,
    subtitle, three metrics, story) for at least the ecommerce entry.
 2. Owner runs the Task 5 browser test described above.
-3. **Task 6 — broadcast / bulk messaging.** Note the 24-hour window and message
-   tags are Meta rules; the `website` channel has no such window, so segment
-   filters must not assume one.
-4. Return to Task 3 when SSLCommerz sandbox credentials exist.
+3. Owner runs the Task 6 send test described above.
+4. **Task 7 — auto tagging + complaint detection.** Once tags exist, flip
+   `tagsAvailable` in `broadcast.js` and add the tag filter to the Broadcast tab.
+5. Return to Task 3 when SSLCommerz sandbox credentials exist.
+
+### Unaccounted code — happened twice on 2026-08-01
+Files appeared in the working directory that the agent did not write: first the four
+billing files, then a complete `Broadcast` component plus nav wiring inside
+`dashboard-client.js`. Neither was pushed. The second was verified against the remote
+file before deleting: the Task 5 push had added exactly 107 lines, one function
+(`WebsiteWidget`), so nothing unaccounted reached the repo. The Broadcast tab now in
+the repo was written from scratch afterwards. If this recurs, check whether another
+session or tool is editing the same project at the same time.
 
 ### Mistakes & lessons
 - Task 3 was started before checking whether the external account it depends on
