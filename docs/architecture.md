@@ -19,6 +19,7 @@ Live: https://autologic-chatbot.vercel.app
 | AI | Google Gemini | Chat, vision, audio transcription, embeddings |
 | Channels | Meta Graph API | Facebook, Instagram, WhatsApp |
 | Website chat | `public/widget.js` | One-line embed on the tenant's own site |
+| Broadcasts | `src/lib/broadcast.js` + `broadcast-send.js` | Segment → 24-hour window check → throttled batch send |
 | Calendar | Google Calendar API | Meeting booking with Meet links |
 | Email | Resend | Admin and billing notifications |
 
@@ -86,6 +87,8 @@ src/
 │   ├── auth.js                 requireClient(), plan checks
 │   ├── plans.js                Plan catalogue (single source of truth)
 │   ├── widget.js               Widget key + allowed-domain rules
+│   ├── broadcast.js            Who may receive a broadcast, and why not
+│   ├── broadcast-send.js       Claim-before-send batching, real platform errors
 │   ├── case-studies.js         Landing-page case studies (placeholder-guarded)
 │   ├── sslcommerz.js           Payment gateway init + validation
 │   ├── email.js                Resend notifications
@@ -153,3 +156,19 @@ production. There is no staging environment; changes are validated locally with
 `npm run build` before pushing.
 
 Environment variables are listed in [security.md §2](./security.md).
+
+## Broadcast rules
+
+A broadcast may only reach someone whose last inbound message is within Meta's
+24-hour standard messaging window. Outside it, only non-promotional tagged
+messages are permitted and misuse risks the Page, so this build simply never
+sends there — people outside the window appear in the preview with the reason,
+and are not sent to.
+
+The website channel cannot be broadcast to at all: once the visitor closes the
+tab there is no address to send to.
+
+Sending is done in batches of 20 per request. Each recipient row is claimed
+(`pending` → `sending`) before the send, so two overlapping requests cannot
+double-send, and the dashboard calls back until the broadcast is finished. No
+cron is involved.
