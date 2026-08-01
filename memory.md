@@ -61,13 +61,46 @@ where they came from before reusing them. Review findings if they are kept:
 - Verified: commits 2faa580 + df9f4c4, deployment `dpl_88Wx71G8Hnugg...` READY,
   production target.
 
+### Task 5 — website chat widget — CODE DONE, browser test pending
+Stages 1–5 shipped; stage 6 is this write-up.
+- Migration `channels_allowed_domains`: `channels.allowed_domains text[]` + index on
+  `page_id`. The `channels_platform_check` constraint already allowed `website`, so
+  the widget reuses the `channels` table: `platform='website'`, `page_id` = the public
+  widget key. Channel pause, contacts, contact pause and the inbox therefore work with
+  no new plumbing. **Vocabulary: the channel is `website`, not `web`** — the DB
+  constraint decides.
+- `src/lib/bot.js`: `composeReply()` extracted verbatim out of `processConversation()`
+  (only deliberate change: `channel.platform` → a `platform` parameter). `botAllowed`
+  and `saveMemory` are now exported. No call-site changed; push channels behave exactly
+  as before.
+- `src/app/api/widget/chat/route.js`: public endpoint. Bad key and disallowed origin
+  return the same 403 on purpose. Domain match is on hostname including subdomains.
+  Rate limit 20 messages / 5 min per session. Posts as `text/plain` so no preflight.
+- `src/lib/widget.js`: key generation + domain rules, used by both routes.
+- `src/app/api/channels/website/route.js`: create / rotate key / edit domains.
+- `public/widget.js`: the embed. Entirely inside a shadow root, so it cannot restyle
+  the host page and host CSS cannot break it. Double-load guarded. Session id in the
+  visitor's localStorage.
+- `dashboard-client.js`: `WebsiteWidget` card at the top of the Channels tab — create,
+  copy the one-line embed, manage domains, rotate the key.
+- **Deliberate behaviour difference from Messenger:** when the bot is not allowed to
+  answer (paused, quota, expired plan) the visitor still gets an honest line and the
+  message still lands in the inbox. Silence is fine on Messenger; on a website panel it
+  looks broken.
+- Verified: `/widget.js` → 200 `application/javascript`; `/api/widget/chat` → 405 on
+  GET; `/api/channels/website` → 401; deployment `dpl_7Gs6NfMtQoK3c…` READY.
+- **NOT verified:** the widget in a real browser. Owner will create a key, embed it on
+  a page served from `localhost` (a `file://` page sends no origin and will be
+  refused), and confirm the reply appears and lands in Conversations.
+
 ### What's next
 1. Owner fills the `TODO_` values in `src/lib/case-studies.js` (business name,
    subtitle, three metrics, story) for at least the ecommerce entry.
-2. **Task 5 — website chat widget.** Public widget key in a new Channels
-   sub-section, origin allow-list per tenant, reuse `bot.js` reply engine,
-   `channel: "web"` into the existing inbox.
-3. Return to Task 3 when sandbox credentials exist.
+2. Owner runs the Task 5 browser test described above.
+3. **Task 6 — broadcast / bulk messaging.** Note the 24-hour window and message
+   tags are Meta rules; the `website` channel has no such window, so segment
+   filters must not assume one.
+4. Return to Task 3 when SSLCommerz sandbox credentials exist.
 
 ### Mistakes & lessons
 - Task 3 was started before checking whether the external account it depends on
