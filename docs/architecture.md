@@ -18,6 +18,7 @@ Live: https://autologic-chatbot.vercel.app
 | Auth | Supabase Auth (email/password) | Session handling, JWT verification |
 | AI | Google Gemini | Chat, vision, audio transcription, embeddings |
 | Channels | Meta Graph API | Facebook, Instagram, WhatsApp |
+| Website chat | `public/widget.js` | One-line embed on the tenant's own site |
 | Calendar | Google Calendar API | Meeting booking with Meet links |
 | Email | Resend | Admin and billing notifications |
 
@@ -35,6 +36,7 @@ Customer (Messenger / Instagram / WhatsApp)
         │  webhook POST
         ▼
 /api/messenger  /api/whatsapp        ← channel webhooks
+/api/widget/chat                     ← website widget (request → response)
         │  writes to message_buffer, then calls the bot
         ▼
 src/lib/bot.js                        ← the core engine
@@ -45,6 +47,11 @@ src/lib/bot.js                        ← the core engine
         ├─ prompt assembly             (locked core + business profile)
         ├─ Gemini chat completion
         └─ send reply                  (messenger.js → Graph API)
+
+`composeReply()` is the part that produces the answer — retrieval, prompt assembly,
+Gemini, order/booking side effects. `processConversation()` wraps it for the push
+channels (batching, typing, Graph send); `/api/widget/chat` calls it directly and
+returns the items to the browser. Every channel therefore shares one engine.
 
 Business owner (browser)
         │
@@ -78,6 +85,9 @@ src/
 │   ├── gcal.js                 Google Calendar OAuth + events
 │   ├── auth.js                 requireClient(), plan checks
 │   ├── plans.js                Plan catalogue (single source of truth)
+│   ├── widget.js               Widget key + allowed-domain rules
+│   ├── case-studies.js         Landing-page case studies (placeholder-guarded)
+│   ├── sslcommerz.js           Payment gateway init + validation
 │   ├── email.js                Resend notifications
 │   └── supabase.js             Service-role client
 ├── utils/supabase/             Browser + middleware clients
