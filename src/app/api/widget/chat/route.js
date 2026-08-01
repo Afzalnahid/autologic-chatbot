@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase.js";
 import { composeReply, botAllowed, bufferInsert, saveMemory, getClient } from "@/lib/bot.js";
 import { rateLimit } from "@/lib/rate-limit.js";
 import { withErrors } from "@/lib/route-errors.js";
+import { originAllowed } from "@/lib/widget.js";
 
 const PLATFORM = "website";
 
@@ -18,25 +19,6 @@ function cors(origin) {
     "Vary": "Origin",
     "Cache-Control": "no-store",
   };
-}
-
-function hostOf(value) {
-  try {
-    return new URL(value).hostname.toLowerCase().replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
-
-// A domain matches when it is the host itself or any subdomain of it.
-function originAllowed(origin, allowed) {
-  const host = hostOf(origin);
-  if (!host) return false;
-  return (allowed || []).some((entry) => {
-    const d = String(entry || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
-    if (!d) return false;
-    return host === d || host.endsWith("." + d);
-  });
 }
 
 async function channelForKey(key) {
