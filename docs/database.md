@@ -31,11 +31,12 @@ Every tenant-owned table carries `client_id uuid` referencing `clients.id`.
 |---|---|---|
 | `id` | uuid | PK |
 | `client_id` | uuid | Owner |
-| `platform` | text | `facebook` / `instagram` / `whatsapp` |
-| `page_id` | text | Page id, IG business id, or WA phone number id — **the webhook lookup key** |
-| `access_token` | text | Page/permanent token used for sending |
+| `platform` | text | `facebook` / `instagram` / `whatsapp` / `website` |
+| `page_id` | text | Page id, IG business id, WA phone number id, or the public widget key — **the webhook / widget lookup key** |
+| `access_token` | text | Page/permanent token used for sending. Null for `website` |
 | `status` | text | `connected` / `paused` |
 | `bot_enabled` | boolean | Per-channel pause switch |
+| `allowed_domains` | text[] | `website` only. Origins allowed to use the widget; empty means nothing loads |
 | `connected_at`, `created_at` | timestamptz | |
 
 ### `message_buffer` — every message in and out
@@ -136,10 +137,19 @@ rolling window when building the prompt.
 | `settings` | jsonb | `botName`, `greeting`, `businessPrompt`, `questionnaire`, legacy `systemPrompt` |
 | `updated_at` | timestamptz | |
 
-### `payment_requests` — manual payment verification
+### `payment_requests` — payment verification
 `id`, `client_id`, `plan`, `billing_cycle`, `amount`, `method`, `sender_number`,
-`txn_id`, `status` (`pending` / `approved` / `rejected`), `admin_note`,
-`reviewed_at`, `reviewed_by`, `created_at`.
+`txn_id`, `status`, `admin_note`, `reviewed_at`, `reviewed_by`, `created_at`.
+
+Gateway columns: `source` (`manual` / `sslcommerz`), `gateway_status`, `val_id`,
+`bank_tran_id`, `card_type`, `currency`, `paid_at`.
+
+`status` is `pending` / `approved` / `rejected` for manual payments and
+`initiated` / `approved` / `failed` / `cancelled` for gateway payments. There is no
+CHECK constraint on the column.
+
+Idempotency: unique index on `val_id` (where not null) and on `txn_id` (where
+`source <> 'manual'`), so one transaction can never extend a plan twice.
 
 Only one `pending` row per client is allowed — enforced in the billing API.
 
