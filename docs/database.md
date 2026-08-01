@@ -39,6 +39,24 @@ Every tenant-owned table carries `client_id uuid` referencing `clients.id`.
 | `allowed_domains` | text[] | `website` only. Origins allowed to use the widget; empty means nothing loads |
 | `connected_at`, `created_at` | timestamptz | |
 
+### `broadcasts` — one composed message sent to a segment
+`id`, `client_id`, `channel` (`all` / `facebook` / `instagram` / `whatsapp`),
+`message`, `segment` jsonb, `status` (`sending` / `sent` / `failed`), `total`,
+`sent`, `failed`, `skipped`, `created_at`, `started_at`, `finished_at`.
+
+Only one broadcast per client may be `sending` at a time.
+
+### `broadcast_recipients` — one row per person, with the real outcome
+`id`, `broadcast_id`, `client_id`, `sender_id`, `platform`,
+`status` (`pending` / `sending` / `sent` / `failed` / `skipped`), `error`,
+`claimed_at`, `sent_at`, `created_at`.
+
+`unique (broadcast_id, sender_id)` means nobody can receive the same broadcast
+twice. `claimed_at` is set when a row is picked up for sending; a row still
+claimed after five minutes is returned to `pending`, so a request that died
+mid-send cannot strand the broadcast. `error` holds the platform's own wording,
+never a generic message.
+
 ### `message_buffer` — every message in and out
 | Column | Type | Notes |
 |---|---|---|
