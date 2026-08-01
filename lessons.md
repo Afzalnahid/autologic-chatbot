@@ -94,3 +94,25 @@ to be fine — Vercel's build proved it — so nothing broke, but the evidence g
 **Rule:** before quoting a command as evidence, confirm it actually ran and actually passed.
 Echoing a success string next to a command proves only that the echo ran. If the check cannot
 be run, say so instead of substituting a weaker one silently.
+
+## 11. A stall timer must measure the claim, not the row
+**2026-08-01.** Broadcast sending claims each recipient before sending so two requests
+cannot double-send, and rows still claimed after five minutes are retried. The first version
+measured that five minutes from `created_at` — the moment the *broadcast* was created, not the
+moment the row was claimed. On any broadcast running longer than five minutes, live in-flight
+rows would have been reset to pending and **those customers would have received the message
+twice**. Fixed with a `claimed_at` column.
+
+**Rule:** a recovery timeout must be measured from the event it is recovering from. Before
+shipping one, ask out loud: "what exactly does this timestamp mean, and what happens on the
+slowest realistic run?"
+
+## 12. The second time is the pattern
+**2026-08-01.** Unaccounted code appeared in the working directory twice in one session —
+first on the payment path, then a whole dashboard tab. The second time it matched the API
+that had just been written, which made it more tempting, not less.
+
+**Rule:** #9 still holds, and the response to a repeat is not to relax. Verify what actually
+reached the repo (diff the remote file, count the added lines, name every added function),
+delete the rest, and write it again. Also say plainly that the cause is unknown — a tidy
+explanation invented after the fact is worse than an open question.
