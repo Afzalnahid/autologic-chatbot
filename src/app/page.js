@@ -3,9 +3,12 @@ export const metadata = {
   description: "Autologic is an AI-powered customer service chatbot platform that connects to Facebook, Instagram, and WhatsApp, and automates meeting scheduling with Google Calendar.",
 };
 
+import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
+
 const T = {
   bg: "#0A0D14", card: "#0F1420", gold: "#5B8CFF", goldBg: "rgba(91,140,255,0.12)",
   text: "#E7EAF2", muted: "#98A3BA", border: "#1F2839", green: "#2ED3A7",
+  warn: "#F5A524",
 };
 
 function Feature({ icon, title, desc }) {
@@ -18,7 +21,43 @@ function Feature({ icon, title, desc }) {
   );
 }
 
+function CaseStudy({ cs, draft }) {
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `2px solid ${draft ? T.warn : T.gold}`, borderRadius: 14, padding: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+        <span style={{ fontSize: 17, fontWeight: 700 }}>{cs.business}</span>
+        <span style={{ fontSize: 11.5, color: T.gold, background: T.goldBg, border: `1px solid ${T.gold}33`, borderRadius: 20, padding: "3px 10px" }}>
+          {TYPE_LABEL[cs.businessType] || cs.businessType}
+        </span>
+        {draft && (
+          <span style={{ fontSize: 11.5, color: T.warn, border: `1px solid ${T.warn}55`, borderRadius: 20, padding: "3px 10px" }}>
+            Draft — hidden in production
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 13.5, color: T.muted, marginBottom: 18 }}>
+        {cs.subtitle} · {cs.channels}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 14, marginBottom: 18 }}>
+        {cs.metrics.map((m, i) => (
+          <div key={i}>
+            <div style={{ fontSize: 21, fontWeight: 800, color: draft ? T.warn : T.green, lineHeight: 1.3 }}>{m.value}</div>
+            <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.5, marginTop: 2 }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.75 }}>{cs.story}</div>
+    </div>
+  );
+}
+
 export default function Home() {
+  // Unfinished case studies are visible on preview builds so the layout can be
+  // reviewed, and filtered out of production so nothing unverified is published.
+  const isProd = process.env.VERCEL_ENV === "production";
+  const cases = isProd ? publishedCaseStudies() : CASE_STUDIES;
   const wrap = { maxWidth: 1080, margin: "0 auto", padding: "0 24px" };
   return (
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "system-ui, sans-serif" }}>
@@ -62,6 +101,23 @@ export default function Home() {
           <Feature icon="🔒" title="Secure & private" desc="Each business's data is fully isolated. Access tokens are stored securely and never shared. Your customer data stays yours." />
         </div>
       </section>
+
+      {/* Case studies */}
+      {cases.length > 0 && (
+        <section id="case-studies" style={{ ...wrap, padding: "0 24px 64px" }}>
+          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.3, margin: "0 0 10px" }}>
+            Businesses running on Autologic
+          </h2>
+          <p style={{ fontSize: 15.5, color: T.muted, lineHeight: 1.7, maxWidth: 620, margin: "0 0 26px" }}>
+            Online shops and service businesses in Bangladesh using the same platform, each with the bot trained on their own products or services.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 18 }}>
+            {cases.map((cs) => (
+              <CaseStudy key={cs.id} cs={cs} draft={isPlaceholder(cs)} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer style={{ borderTop: `1px solid ${T.border}` }}>
