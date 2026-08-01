@@ -153,10 +153,14 @@ automation looks natural to a reviewer.
 
 ## Start here every session
 
+0. Read `AGENTS.md` **first** — it defines how work is done here (roles, stage gates,
+   product invariants, platform gotchas, token discipline, session-close rules).
+   This file defines *state*; `AGENTS.md` defines *method*.
 1. Read this file.
 2. Read `lessons.md` — the running log of mistakes and the rule each produced. It exists so the
    same mistake is not repeated. Append to it whenever a new one is found.
 3. Pick up from **Next up** above.
+4. Report understanding in <=5 lines, then wait for GO before writing code.
 
 ## How I work here
 
