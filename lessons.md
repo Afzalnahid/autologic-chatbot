@@ -84,3 +84,13 @@ plan, which is exactly what makes it tempting. It was on the payment path.
 **Rule:** code of unknown provenance is not pushed, however good it looks, and least of all
 where money moves. Report it, review it in the open, and let the owner decide. "It looked
 correct" is not an account of where something came from.
+
+## 10. A check that fails silently is not a check
+**2026-08-01.** The JSX syntax check was run as `npx esbuild file.js --loader=jsx ... && echo
+BUILD_OK`. esbuild rejected the flag combination and exited, but the shell pipeline still
+printed `BUILD_OK`, and that was reported to the owner as "esbuild parse OK". The file happened
+to be fine — Vercel's build proved it — so nothing broke, but the evidence given was invented.
+
+**Rule:** before quoting a command as evidence, confirm it actually ran and actually passed.
+Echoing a success string next to a command proves only that the echo ran. If the check cannot
+be run, say so instead of substituting a weaker one silently.
