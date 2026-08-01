@@ -33,6 +33,12 @@ export const sendTextMessage = (token, id, text, platform, pageId) =>
 export const sendImageMessage = (token, id, url, platform, pageId) =>
   send(token, { recipient: { id }, message: { attachment: { type: "image", payload: { url, is_reusable: true } } } }, platform, pageId);
 
+// A broadcast is not a reply, so it is sent as an UPDATE rather than a RESPONSE.
+// Still only ever inside Meta's 24-hour window. Returns the raw platform response
+// so the caller can surface the real error instead of swallowing it.
+export const sendBroadcastText = (token, id, text, platform, pageId) =>
+  send(token, { recipient: { id }, messaging_type: "UPDATE", message: { text } }, platform, pageId);
+
 export async function sendResponses(token, id, items, platform, pageId) {
   for (const it of items) {
     if (it.type === "image_msg" && it.url) await sendImageMessage(token, id, it.url, platform, pageId);
