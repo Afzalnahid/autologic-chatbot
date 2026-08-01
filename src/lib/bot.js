@@ -38,7 +38,7 @@ export async function getClient(clientId) {
 //   { allowed: false, reason, silent }
 // `silent` marks a deliberate pause (human handling / admin suspension) where no
 // automatic message should be sent.
-async function botAllowed(channel, senderId) {
+export async function botAllowed(channel, senderId) {
   if (channel.bot_enabled === false) return { allowed: false, reason: "channel_paused", silent: true };
 
   const { data: contacts } = await sb().from("contacts").select("*").limit(1000);
@@ -154,7 +154,7 @@ async function getMemory(senderId, clientId) {
     }).filter(m => m.content);
 }
 
-async function saveMemory(senderId, clientId, userText, aiText) {
+export async function saveMemory(senderId, clientId, userText, aiText) {
   await sb().from("chat_memory").insert([
     { session_id: senderId, client_id: clientId, message: { type: "human", data: { content: userText } } },
     { session_id: senderId, client_id: clientId, message: { type: "ai", data: { content: aiText } } },
