@@ -9,6 +9,7 @@ import { withErrors } from "@/lib/route-errors.js";
 import { planActive } from "@/lib/plans.js";
 import { resolveAudience, sendableChannels, remainingQuota, WINDOW_HOURS } from "@/lib/broadcast.js";
 import { createBroadcast, processBroadcast, MAX_MESSAGE } from "@/lib/broadcast-send.js";
+import { tagsFor } from "@/lib/tags.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
 
@@ -28,6 +29,7 @@ export const GET = withErrors(async (request) => {
     plan_active: planActive(client),
     window_hours: WINDOW_HOURS,
     max_message: MAX_MESSAGE,
+    available_tags: tagsFor(client.business_type),
     channels: channels.map((c) => ({ platform: c.platform, page_id: c.page_id })),
     quota,
     broadcasts: listQ.data || [],
