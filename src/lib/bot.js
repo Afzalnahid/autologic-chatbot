@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase.js";
+import { applyAutoTag } from "@/lib/tags.js";
 import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
 import { PLANS, PAID_PLANS } from "@/lib/plans.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
@@ -14,17 +15,6 @@ function visionPrompt(businessType, itemLabel) {
 const DEFAULT_PROMPT = "You are a helpful sales assistant. Reply ONLY with a JSON array of objects like {\"type\":\"text_msg\",\"text\":\"...\"}.";
 
 const sb = () => supabase;
-
-// The script the customer wrote in decides the script we reply in. A rule in the
-// system prompt is not enough: once a conversation has a few Bangla turns, the
-// model follows the history and keeps writing Bangla even after the customer
-// switches to English. Appending the rule to the current message puts it where
-// the model is actually looking.
-export function languageRule(text) {
-  return /[\u0980-\u09FF]/.test(String(text || ""))
-    ? "\n\n[REPLY IN BANGLA — the customer wrote in Bangla script.]"
-    : "\n\n[REPLY IN ENGLISH ONLY — the customer wrote in Latin letters. Do not use Bangla script anywhere in this reply, regardless of earlier messages in this conversation.]";
-}
 
 export async function getChannelByPage(pageId) {
   const { data } = await sb().from("channels").select("*").eq("status", "connected").limit(200);
@@ -49,7 +39,7 @@ export async function getClient(clientId) {
 //   { allowed: false, reason, silent }
 // `silent` marks a deliberate pause (human handling / admin suspension) where no
 // automatic message should be sent.
-async function botAllowed(channel, senderId) {
+export async function botAllowed(channel, senderId) {
   if (channel.bot_enabled === false) return { allowed: false, reason: "channel_paused", silent: true };
 
   const { data: contacts } = await sb().from("contacts").select("*").limit(1000);
@@ -165,7 +155,7 @@ async function getMemory(senderId, clientId) {
     }).filter(m => m.content);
 }
 
-async function saveMemory(senderId, clientId, userText, aiText) {
+export async function saveMemory(senderId, clientId, userText, aiText) {
   await sb().from("chat_memory").insert([
     { session_id: senderId, client_id: clientId, message: { type: "human", data: { content: userText } } },
     { session_id: senderId, client_id: clientId, message: { type: "ai", data: { content: aiText } } },
@@ -185,7 +175,7 @@ OUTPUT FORMAT:
 4. Keep every message short, natural, warm and confident. Never robotic, never repetitive.
 
 LANGUAGE & GREETING:
-5. LANGUAGE (this overrides everything else, including the business profile): look at the script of the customer's latest message and reply in that script. If their message is written in Latin letters (a-z), reply in English only - not a single Bangla word, no Bangla script anywhere, even though this is a Bangladeshi business. If their message is written in Bangla script, reply in Bangla. If it is Banglish (Bangla words in Latin letters), reply in Banglish. Judge only their most recent message; never carry a language over from earlier turns and never mix two scripts in one reply.
+5. Detect and match the customer's exact language and script every time: pure Bangla, pure English, or Banglish (Bangla in English letters). Reply in the same style they used.
 6. Greet ONLY on the very first message of a new conversation. In an ongoing conversation, never greet again - answer directly.
 7. Address the customer politely and respectfully at all times, even if they are rude.
 
@@ -303,11 +293,12 @@ function parseReply(raw) {
   return [{ type: "text_msg", text: cleaned }];
 }
 
-async function maybeSaveOrder(items, clientId) {
+async function maybeSaveOrder(items, clientId, senderId) {
   for (const it of items) {
     if (it.type !== "order" || !it.order_code) continue;
     await sb().from("orders").insert({
       client_id: clientId,
+      sender_id: senderId || null,
       order_code: it.order_code,
       customer_name: it.customer_name || "",
       phone_number: it.phone_number || "",
@@ -430,28 +421,10 @@ function bookingRule() {
 }
 const BOOKING_RULE_PLACEHOLDER = "";
 
-export async function processConversation(channel, senderId, myRowId) {
-  const clientId = channel.client_id;
-  const client = await getClient(clientId);
-  const bType = client?.business_type || "ecommerce";
-  if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
-
-  let rows = await pendingFor(senderId, clientId);
-  if (!rows.length) return;
-  const newest = rows[rows.length - 1];
-  if (myRowId && newest.id !== myRowId) return;
-
-  if (channel.platform !== "whatsapp") {
-    for (let i = 0; i < 5; i++) {
-      if (rows.every(r => r.message_content)) break;
-      await new Promise(r => setTimeout(r, 2000));
-      rows = await pendingFor(senderId, clientId);
-    }
-  }
-  rows = rows.filter(r => r.message_content);
-  if (!rows.length) return;
-
-  const combined = rows.map(r => r.message_content).join("\n");
+// The reply engine. Given the customer's combined text it produces the response
+// items and any booking note — no sending, no buffer writes. Every channel uses
+// this one function so a new channel cannot drift from the others.
+export async function composeReply({ clientId, client, bType, senderId, combined, platform }) {
   const isAgency = bType === "agency";
 
   let systemPrompt, history, context;
@@ -489,8 +462,7 @@ export async function processConversation(channel, senderId, myRowId) {
   let raw;
   try {
     const rules = isAgency ? bookingRule() : orderRule;
-
-    raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined + languageRule(combined) }]);
+    raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
     raw = "";
@@ -504,13 +476,47 @@ export async function processConversation(channel, senderId, myRowId) {
         items.map(it => it.type).join(",") || "none",
         "| raw preview =", String(raw).slice(0, 300));
     }
-    const r = await maybeCreateBooking(items, client, senderId, channel.platform);
+    const r = await maybeCreateBooking(items, client, senderId, platform);
     items = r.items;
     if (r.booked) bookingNote = r.bookingNote;
   } else {
-    items = await maybeSaveOrder(items, clientId);
+    items = await maybeSaveOrder(items, clientId, senderId);
   }
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
+  // Tagging never blocks or breaks a reply: if it fails, the customer still gets
+  // their answer and the conversation simply keeps its previous tag.
+  try {
+    await applyAutoTag(clientId, senderId, combined, bType);
+  } catch (e) {
+    console.error("[tags] skipped:", e.message);
+  }
+
+  return { items, bookingNote };
+}
+
+export async function processConversation(channel, senderId, myRowId) {
+  const clientId = channel.client_id;
+  const client = await getClient(clientId);
+  const bType = client?.business_type || "ecommerce";
+  if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
+
+  let rows = await pendingFor(senderId, clientId);
+  if (!rows.length) return;
+  const newest = rows[rows.length - 1];
+  if (myRowId && newest.id !== myRowId) return;
+
+  if (channel.platform !== "whatsapp") {
+    for (let i = 0; i < 5; i++) {
+      if (rows.every(r => r.message_content)) break;
+      await new Promise(r => setTimeout(r, 2000));
+      rows = await pendingFor(senderId, clientId);
+    }
+  }
+  rows = rows.filter(r => r.message_content);
+  if (!rows.length) return;
+
+  const combined = rows.map(r => r.message_content).join("\n");
+  const { items, bookingNote } = await composeReply({ clientId, client, bType, senderId, combined, platform: channel.platform });
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
   else await sendResponses(channel.access_token, senderId, items, channel.platform, channel.page_id);
@@ -775,7 +781,7 @@ export async function handleComment(event) {
   try {
     reply = await chatWithGemini(
       commentInstruction + "\n\n" + persona + context,
-      [{ role: "user", content: `A customer commented on the post: "${text || "(no text, maybe a photo)"}"` + languageRule(text) }]
+      [{ role: "user", content: `A customer commented on the post: "${text || "(no text, maybe a photo)"}"\n\nReply in the same language as this comment.` }]
     );
     reply = String(reply || "").replace(/```/g, "").trim();
     // If the model returned a JSON array anyway, pull out the first text.
@@ -894,7 +900,7 @@ export async function runDemo(clientId, userText, history = []) {
 
   let raw;
   try {
-    raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText + languageRule(userText) }]);
+    raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText }]);
   } catch (e) {
     return { error: e.message, items: [] };
   }
