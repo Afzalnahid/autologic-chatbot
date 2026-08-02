@@ -7,19 +7,30 @@ import { handleIncoming, handleComment } from "@/lib/bot.js";
 
 const VERIFY_TOKENS = [process.env.FACEBOOK_VERIFY_TOKEN].filter(Boolean);
 
+// Facebook and Instagram are two separate Meta apps here, each signing its own
+// webhooks with its own secret. A delivery is genuine if it matches either one.
 function verifyFBSignature(rawBody, signatureHeader) {
-  const secret = process.env.FB_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
-  if (!secret) {
-    console.warn("[messenger] FB_APP_SECRET not set — skipping signature check");
+  const secrets = [
+    process.env.FB_APP_SECRET || process.env.FACEBOOK_APP_SECRET,
+    process.env.IG_APP_SECRET,
+  ].filter(Boolean);
+
+  if (!secrets.length) {
+    console.warn("[messenger] no app secret set — skipping signature check");
     return true;
   }
   if (!signatureHeader) return false;
   const parts = signatureHeader.split("=");
   if (parts[0] !== "sha256" || !parts[1]) return false;
-  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-  try {
-    return crypto.timingSafeEqual(Buffer.from(parts[1], "hex"), Buffer.from(expected, "hex"));
-  } catch { return false; }
+
+  let given;
+  try { given = Buffer.from(parts[1], "hex"); } catch { return false; }
+
+  return secrets.some((secret) => {
+    const expected = crypto.createHmac("sha256", secret).update(rawBody).digest();
+    if (given.length !== expected.length) return false;
+    try { return crypto.timingSafeEqual(given, expected); } catch { return false; }
+  });
 }
 
 export async function GET(request) {
