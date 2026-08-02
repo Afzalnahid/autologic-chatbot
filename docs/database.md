@@ -39,6 +39,16 @@ Every tenant-owned table carries `client_id uuid` referencing `clients.id`.
 | `allowed_domains` | text[] | `website` only. Origins allowed to use the widget; empty means nothing loads |
 | `connected_at`, `created_at` | timestamptz | |
 
+### `conversation_tags` — one classification per conversation
+`id`, `client_id`, `sender_id`, `tag`, `source` (`auto` / `manual`), `created_at`,
+`unique (client_id, sender_id, tag)`.
+
+Vocabularies are fixed and never merged — ecommerce: Order, Product Inquiry,
+Delivery, Complaint, Other. agency: Booking, Service Inquiry, Complaint,
+Follow-up, Other. Automatic tagging keeps a single tag and replaces its own
+previous guess; a `manual` row stops automatic tagging for that conversation
+entirely.
+
 ### `broadcasts` — one composed message sent to a segment
 `id`, `client_id`, `channel` (`all` / `facebook` / `instagram` / `whatsapp`),
 `message`, `segment` jsonb, `status` (`sending` / `sent` / `failed`), `total`,
