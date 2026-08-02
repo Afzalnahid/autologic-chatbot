@@ -116,3 +116,39 @@ that had just been written, which made it more tempting, not less.
 reached the repo (diff the remote file, count the added lines, name every added function),
 delete the rest, and write it again. Also say plainly that the cause is unknown — a tidy
 explanation invented after the fact is worse than an open question.
+
+## 8. A rule in the prompt is not a rule the model follows
+**2026-08-02.** The bot answered English questions in Bangla. The language rule was
+in the system prompt, and strengthening the wording there twice changed nothing —
+the conversation history had a dozen Bangla turns and the model followed those
+instead. It only worked once the rule was appended to the current message.
+
+**Rule:** when a model ignores an instruction, ask where the instruction sits
+relative to what the model is actually attending to. Rewriting the same
+instruction in a stronger voice, in the same place, is not a second attempt.
+
+## 9. Build for the second kind of user too
+**2026-08-02.** WhatsApp Embedded Signup was built and tested, then failed for the
+owner — because Embedded Signup only *creates* a new WhatsApp account, and he
+already had one. The design covered new businesses and silently assumed no one
+would arrive with an existing account.
+
+**Rule:** before building an onboarding path, name the states a user can arrive
+in — has nothing, has some of it, has all of it — and check which ones the path
+serves. "It works" usually means "it works for the case I imagined."
+
+## 10. A timeout is not evidence of failure
+**2026-08-02.** A diagnostic was added that declared "the Meta window did not open"
+after twelve seconds. Meta's signup legitimately takes minutes, so the message
+fired while the popup was working and sent the owner chasing a popup blocker.
+
+**Rule:** a timeout means "I have not heard back", not "it failed". Word waiting
+states as waiting, and offer a hint rather than a diagnosis.
+
+## 11. One secret, one name
+**2026-08-02.** Webhook signature verification read `FACEBOOK_APP_SECRET` while the
+rest of the codebase read `FB_APP_SECRET`. Setting the secret looked like it
+enabled verification; it stayed silently off.
+
+**Rule:** grep for every name a config value is read under before assuming it is
+set. A security check that fails open is worse than none, because it reports safe.
