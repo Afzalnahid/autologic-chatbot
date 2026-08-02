@@ -155,14 +155,36 @@ Meta app were ever both connected as channels, their bots could answer each othe
 - Facebook: replying normally after the `composeReply` extraction — no regression.
 - Instagram: replying normally after the signature fix.
 
+### Task 7 — auto tagging + complaint detection — CODE DONE, live test pending
+- Migration `conversation_tags`.
+- `src/lib/tags.js`: fixed vocabulary per business type, Bangla + English keyword
+  rules, Gemini only when the rules are inconclusive, `Other` on AI failure so a
+  conversation is never left untagged. Complaint is checked before every other
+  rule — "৫ দিন হয়ে গেল, এখনো পাইনি, টাকা ফেরত দিন" is a complaint, not a delivery
+  question. Rules were run against real sentences before shipping; the first
+  version missed "অর্ডারটা কোথায়" because only "অর্ডার কোথায়" was listed.
+- Hooked in once, at the end of `composeReply`, so all four channels are covered
+  by a single call. Wrapped in try/catch: tagging can never break a reply.
+- `/api/tags`: read with counts, manual add, manual remove. Manual always wins.
+- Conversations tab: tag filter chips with counts (Complaint in red), tag pills on
+  each conversation, manual tag dropdown in the chat header.
+- Broadcast tag segment is now live: `tagsAvailable` is true, `resolveAudience`
+  filters by `conversation_tags`, and the composer has a Tag dropdown.
+- **NOT verified:** no message has arrived since the hook shipped, so the tags
+  table is still empty. Owner should send "দাম কত?" and "টাকা ফেরত দিন" from FB or
+  IG and confirm the chips and pills appear.
+
 ### What's next
 1. Owner fills the `TODO_` values in `src/lib/case-studies.js` (business name,
    subtitle, three metrics, story) for at least the ecommerce entry.
 2. Owner runs the Task 5 browser test described above.
 3. Owner runs the Task 6 send test described above.
-4. **Task 7 — auto tagging + complaint detection.** Once tags exist, flip
-   `tagsAvailable` in `broadcast.js` and add the tag filter to the Broadcast tab.
-5. Return to Task 3 when SSLCommerz sandbox credentials exist.
+4. Owner runs the Task 7 test described above.
+5. **Task 8 — courier integration (ecommerce only).** Pathao and Steadfast first,
+   one adapter file per courier, and completely hidden for `business_type = agency`.
+6. Return to Task 3 when SSLCommerz sandbox credentials exist.
+7. Still untested from Task 6: batching past 20 recipients, and the deliberate
+   failure showing a real platform error.
 
 ### Unaccounted code — happened twice on 2026-08-01
 Files appeared in the working directory that the agent did not write: first the four
