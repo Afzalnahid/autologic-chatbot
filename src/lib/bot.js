@@ -478,7 +478,17 @@ export async function processConversation(channel, senderId, myRowId) {
   let raw;
   try {
     const rules = isAgency ? bookingRule() : orderRule;
-    raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined }]);
+
+    // A language instruction in the system prompt loses to the conversation
+    // itself: with several Bangla turns in the history, the model keeps writing
+    // Bangla even when the customer switches to English. Attaching the rule to
+    // the current message puts it where the model is actually looking.
+    const wantsBangla = /[\u0980-\u09FF]/.test(combined);
+    const langRule = wantsBangla
+      ? "\n\n[REPLY IN BANGLA — the customer wrote in Bangla script.]"
+      : "\n\n[REPLY IN ENGLISH ONLY — the customer wrote in Latin letters. Do not use Bangla script anywhere in this reply, regardless of earlier messages in this conversation.]";
+
+    raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined + langRule }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
     raw = "";
