@@ -1553,6 +1553,7 @@ function Broadcast(){
   const [msg,setMsg]=useState("");
   const [hours,setHours]=useState(24);
   const [conv,setConv]=useState("any");
+  const [tag,setTag]=useState("");
   const [prev,setPrev]=useState(null);
   const [busy,setBusy]=useState("");
   const [err,setErr]=useState("");
@@ -1579,7 +1580,7 @@ function Broadcast(){
   const convWords=bt==="agency"
     ?{any:"Everyone",yes:"Has booked before",no:"Never booked"}
     :{any:"Everyone",yes:"Has ordered before",no:"Never ordered"};
-  const segment=()=>({channel,activeWithinHours:hours,converted:conv});
+  const segment=()=>({channel,activeWithinHours:hours,converted:conv,tags:tag?[tag]:[]});
   const maxLen=d?.max_message||900;
 
   const preview=async()=>{
@@ -1663,6 +1664,13 @@ function Broadcast(){
             <option value="no">{convWords.no}</option>
           </select>
         </div>
+        {!!d?.available_tags?.length&&<div>
+          <label style={fieldLabel}>Tag</label>
+          <select value={tag} onChange={e=>{setTag(e.target.value);setPrev(null);}} style={selStyle}>
+            <option value="">Any tag</option>
+            {d.available_tags.map(t=><option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>}
       </div>
 
       <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
