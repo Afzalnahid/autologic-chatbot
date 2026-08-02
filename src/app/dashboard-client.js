@@ -1,70 +1,12 @@
 "use client";
-import { createClient as createSb } from "@/utils/supabase/client";
 import { useState, useEffect, useRef, useCallback } from "react";
 
-let _sbi=null;
-let AUTH_TOKEN="";
-let _sessionPromise=null;
-function getSb(){ if(!_sbi) _sbi=createSb(); return _sbi; }
+import { T, words, useIsMobile, Btn, Badge, Card, Inp } from "./dashboard/components/ui.js";
+import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 
-function getSessionOnce(){
-  if(!_sessionPromise){
-    _sessionPromise=getSb().auth.getSession().finally(()=>{ _sessionPromise=null; });
-  }
-  return _sessionPromise;
-}
-
-async function api(url,opts={}){
-  try{
-    const {data:{session}}=await getSessionOnce();
-    if(session) AUTH_TOKEN=session.access_token;
-  }catch{}
-  let res=await fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),"Cache-Control":"no-cache","Authorization":"Bearer "+AUTH_TOKEN}});
-  if(res.status===401){
-    try{
-      const {data:{session}}=await getSb().auth.refreshSession();
-      if(session){
-        AUTH_TOKEN=session.access_token;
-        res=await fetch(url,{...opts,cache:"no-store",headers:{...(opts.headers||{}),"Cache-Control":"no-cache","Authorization":"Bearer "+AUTH_TOKEN}});
-      }
-    }catch{}
-  }
-  return res;
-}
-
-// Design tokens. Every component reads from here, so the whole surface
-// re-skins by editing this object alone. Key names are kept from the previous
-// palette so no component needs touching; `gold` is now the periwinkle
-// primary, and the amber it used to hold lives on in `warn`.
-const T = {
-  bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420", cardAlt: "#151B2A", inset: "#1C2436",
-  gold: "#5B8CFF", goldDim: "#3D6FE0", goldBg: "rgba(91,140,255,0.12)",
-  text: "#E7EAF2", textMuted: "#98A3BA", textDim: "#5E6B85",
-  border: "#1F2839", borderStrong: "#2C374D",
-  danger: "#FF5A5F", success: "#2ED3A7", info: "#5B8CFF", warn: "#F0B429", purple: "#8b5cf6",
-  live: "#2ED3A7", liveBg: "rgba(46,211,167,0.11)", warnBg: "rgba(240,180,41,0.11)", dangerBg: "rgba(255,90,95,0.11)",
-};
 const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","demo"];
 const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-settings","ti-user","ti-robot"];
 const LABELS = ["Analytics","Conversations","Comments","Broadcast","Inventory","Orders","Channels","Billing","Settings","Profile","Demo"];
-const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
-function words(bt){ return ITEM_WORDS[bt] || ITEM_WORDS.other; }
-
-function useIsMobile(){
-  const [m,setM]=useState(false);
-  useEffect(()=>{
-    const check=()=>setM(window.innerWidth<768);
-    check();
-    window.addEventListener("resize",check);
-    return ()=>window.removeEventListener("resize",check);
-  },[]);
-  return m;
-}
-
-function Btn({children,gold,danger,small,style,...p}){ return <button {...p} style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:"rgba(240,192,64,0.12)",color:danger?"#fff":gold?"#0a0a0a":T.gold,...style}}>{children}</button>; }
-function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>; }
-function Card({children,style,...p}){ return <div {...p} style={{background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`,padding:"1.25rem",...style}}>{children}</div>; }
-function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
 function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
 const PLAN_META={
   trial:{name:"Free Trial",color:T.info},
@@ -1264,7 +1206,7 @@ function Profile() {
       <Row k="Orders" v={p.usage?.orders??0}/>
       <Row k="Channels" v={p.usage?.channels??0}/>
       <div style={{height:16}}/>
-      <Btn danger onClick={async()=>{await getSb().auth.signOut();AUTH_TOKEN="";location.reload();}} style={{width:"100%"}}><i className="ti ti-logout" style={{marginRight:6}}/>Logout</Btn>
+      <Btn danger onClick={async()=>{await getSb().auth.signOut();setAuthToken("");location.reload();}} style={{width:"100%"}}><i className="ti ti-logout" style={{marginRight:6}}/>Logout</Btn>
     </Card>
     {p.business_type==="agency"&&<Card>
       <div style={{fontSize:14,fontWeight:600,marginBottom:6}}><i className="ti ti-calendar-event" style={{marginRight:6,color:T.gold}}/>Google Calendar</div>
@@ -1936,7 +1878,7 @@ function AuthGate({onReady}) {
       if(res.error) throw res.error;
       const session=res.data.session;
       if(!session){setErr("Check your email to confirm, then sign in.");setBusy(false);return;}
-      AUTH_TOKEN=session.access_token;
+      setAuthToken(session.access_token);
       try { localStorage.setItem("autologic_visited","1"); } catch {}
       if(mode==="signup") await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:biz||email.split("@")[0]})});
       onReady();
@@ -2325,7 +2267,7 @@ export default function Dashboard() {
   useEffect(()=>{
     (async()=>{
       const { data:{ session } }=await getSb().auth.getSession();
-      if(session){AUTH_TOKEN=session.access_token;setAuthed(true);await loadMe();}
+      if(session){setAuthToken(session.access_token);setAuthed(true);await loadMe();}
       else setStage("auth");
       setAuthChecked(true);
     })();
