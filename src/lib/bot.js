@@ -15,6 +15,17 @@ const DEFAULT_PROMPT = "You are a helpful sales assistant. Reply ONLY with a JSO
 
 const sb = () => supabase;
 
+// The script the customer wrote in decides the script we reply in. A rule in the
+// system prompt is not enough: once a conversation has a few Bangla turns, the
+// model follows the history and keeps writing Bangla even after the customer
+// switches to English. Appending the rule to the current message puts it where
+// the model is actually looking.
+export function languageRule(text) {
+  return /[\u0980-\u09FF]/.test(String(text || ""))
+    ? "\n\n[REPLY IN BANGLA — the customer wrote in Bangla script.]"
+    : "\n\n[REPLY IN ENGLISH ONLY — the customer wrote in Latin letters. Do not use Bangla script anywhere in this reply, regardless of earlier messages in this conversation.]";
+}
+
 export async function getChannelByPage(pageId) {
   const { data } = await sb().from("channels").select("*").eq("status", "connected").limit(200);
   const match = (data || []).find(c => String(c.page_id) === String(pageId)) || null;
@@ -479,16 +490,7 @@ export async function processConversation(channel, senderId, myRowId) {
   try {
     const rules = isAgency ? bookingRule() : orderRule;
 
-    // A language instruction in the system prompt loses to the conversation
-    // itself: with several Bangla turns in the history, the model keeps writing
-    // Bangla even when the customer switches to English. Attaching the rule to
-    // the current message puts it where the model is actually looking.
-    const wantsBangla = /[\u0980-\u09FF]/.test(combined);
-    const langRule = wantsBangla
-      ? "\n\n[REPLY IN BANGLA — the customer wrote in Bangla script.]"
-      : "\n\n[REPLY IN ENGLISH ONLY — the customer wrote in Latin letters. Do not use Bangla script anywhere in this reply, regardless of earlier messages in this conversation.]";
-
-    raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined + langRule }]);
+    raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined + languageRule(combined) }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
     raw = "";
@@ -773,7 +775,7 @@ export async function handleComment(event) {
   try {
     reply = await chatWithGemini(
       commentInstruction + "\n\n" + persona + context,
-      [{ role: "user", content: `A customer commented on the post: "${text || "(no text, maybe a photo)"}"\n\nReply in the same language as this comment.` }]
+      [{ role: "user", content: `A customer commented on the post: "${text || "(no text, maybe a photo)"}"` + languageRule(text) }]
     );
     reply = String(reply || "").replace(/```/g, "").trim();
     // If the model returned a JSON array anyway, pull out the first text.
@@ -892,7 +894,7 @@ export async function runDemo(clientId, userText, history = []) {
 
   let raw;
   try {
-    raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText }]);
+    raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText + languageRule(userText) }]);
   } catch (e) {
     return { error: e.message, items: [] };
   }
