@@ -38,7 +38,7 @@ export async function getClient(clientId) {
 //   { allowed: false, reason, silent }
 // `silent` marks a deliberate pause (human handling / admin suspension) where no
 // automatic message should be sent.
-export async function botAllowed(channel, senderId) {
+async function botAllowed(channel, senderId) {
   if (channel.bot_enabled === false) return { allowed: false, reason: "channel_paused", silent: true };
 
   const { data: contacts } = await sb().from("contacts").select("*").limit(1000);
@@ -154,7 +154,7 @@ async function getMemory(senderId, clientId) {
     }).filter(m => m.content);
 }
 
-export async function saveMemory(senderId, clientId, userText, aiText) {
+async function saveMemory(senderId, clientId, userText, aiText) {
   await sb().from("chat_memory").insert([
     { session_id: senderId, client_id: clientId, message: { type: "human", data: { content: userText } } },
     { session_id: senderId, client_id: clientId, message: { type: "ai", data: { content: aiText } } },
@@ -174,7 +174,7 @@ OUTPUT FORMAT:
 4. Keep every message short, natural, warm and confident. Never robotic, never repetitive.
 
 LANGUAGE & GREETING:
-5. Detect and match the customer's exact language and script every time: pure Bangla, pure English, or Banglish (Bangla in English letters). Reply in the same style they used.
+5. LANGUAGE (this overrides everything else, including the business profile): look at the script of the customer's latest message and reply in that script. If their message is written in Latin letters (a-z), reply in English only - not a single Bangla word, no Bangla script anywhere, even though this is a Bangladeshi business. If their message is written in Bangla script, reply in Bangla. If it is Banglish (Bangla words in Latin letters), reply in Banglish. Judge only their most recent message; never carry a language over from earlier turns and never mix two scripts in one reply.
 6. Greet ONLY on the very first message of a new conversation. In an ongoing conversation, never greet again - answer directly.
 7. Address the customer politely and respectfully at all times, even if they are rude.
 
@@ -292,12 +292,11 @@ function parseReply(raw) {
   return [{ type: "text_msg", text: cleaned }];
 }
 
-async function maybeSaveOrder(items, clientId, senderId) {
+async function maybeSaveOrder(items, clientId) {
   for (const it of items) {
     if (it.type !== "order" || !it.order_code) continue;
     await sb().from("orders").insert({
       client_id: clientId,
-      sender_id: senderId || null,
       order_code: it.order_code,
       customer_name: it.customer_name || "",
       phone_number: it.phone_number || "",
@@ -420,10 +419,28 @@ function bookingRule() {
 }
 const BOOKING_RULE_PLACEHOLDER = "";
 
-// The reply engine. Given the customer's combined text it produces the response
-// items and any booking note — no sending, no buffer writes. Every channel uses
-// this one function so a new channel cannot drift from the others.
-export async function composeReply({ clientId, client, bType, senderId, combined, platform }) {
+export async function processConversation(channel, senderId, myRowId) {
+  const clientId = channel.client_id;
+  const client = await getClient(clientId);
+  const bType = client?.business_type || "ecommerce";
+  if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
+
+  let rows = await pendingFor(senderId, clientId);
+  if (!rows.length) return;
+  const newest = rows[rows.length - 1];
+  if (myRowId && newest.id !== myRowId) return;
+
+  if (channel.platform !== "whatsapp") {
+    for (let i = 0; i < 5; i++) {
+      if (rows.every(r => r.message_content)) break;
+      await new Promise(r => setTimeout(r, 2000));
+      rows = await pendingFor(senderId, clientId);
+    }
+  }
+  rows = rows.filter(r => r.message_content);
+  if (!rows.length) return;
+
+  const combined = rows.map(r => r.message_content).join("\n");
   const isAgency = bType === "agency";
 
   let systemPrompt, history, context;
@@ -475,39 +492,13 @@ export async function composeReply({ clientId, client, bType, senderId, combined
         items.map(it => it.type).join(",") || "none",
         "| raw preview =", String(raw).slice(0, 300));
     }
-    const r = await maybeCreateBooking(items, client, senderId, platform);
+    const r = await maybeCreateBooking(items, client, senderId, channel.platform);
     items = r.items;
     if (r.booked) bookingNote = r.bookingNote;
   } else {
-    items = await maybeSaveOrder(items, clientId, senderId);
+    items = await maybeSaveOrder(items, clientId);
   }
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
-  return { items, bookingNote };
-}
-
-export async function processConversation(channel, senderId, myRowId) {
-  const clientId = channel.client_id;
-  const client = await getClient(clientId);
-  const bType = client?.business_type || "ecommerce";
-  if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
-
-  let rows = await pendingFor(senderId, clientId);
-  if (!rows.length) return;
-  const newest = rows[rows.length - 1];
-  if (myRowId && newest.id !== myRowId) return;
-
-  if (channel.platform !== "whatsapp") {
-    for (let i = 0; i < 5; i++) {
-      if (rows.every(r => r.message_content)) break;
-      await new Promise(r => setTimeout(r, 2000));
-      rows = await pendingFor(senderId, clientId);
-    }
-  }
-  rows = rows.filter(r => r.message_content);
-  if (!rows.length) return;
-
-  const combined = rows.map(r => r.message_content).join("\n");
-  const { items, bookingNote } = await composeReply({ clientId, client, bType, senderId, combined, platform: channel.platform });
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
   else await sendResponses(channel.access_token, senderId, items, channel.platform, channel.page_id);
