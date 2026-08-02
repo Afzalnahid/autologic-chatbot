@@ -572,7 +572,19 @@ function Analytics({isAgency}) {
 
 function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
   const [chFilter,setChFilter]=useState("all");
-  const convos=chFilter==="all"?allConvos:allConvos.filter(c=>(c.platform||"facebook")===chFilter);
+  const [tagFilter,setTagFilter]=useState("all");
+  const [tagData,setTagData]=useState(null);
+  const loadTags=async()=>{
+    try{
+      const r=await api(`/api/tags?t=${Date.now()}`,{cache:"no-store"});
+      const j=await r.json();
+      if(!j.error) setTagData(j);
+    }catch{}
+  };
+  useEffect(()=>{loadTags();},[]);
+  const tagsOf=(id)=>(tagData?.tags?.[id]||[]).map(x=>x.tag);
+  const byChannel=chFilter==="all"?allConvos:allConvos.filter(c=>(c.platform||"facebook")===chFilter);
+  const convos=tagFilter==="all"?byChannel:byChannel.filter(c=>tagsOf(c.id).includes(tagFilter));
   const PICON={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp"};
   const avail=[...new Set([...channels.map(c=>c.platform),...allConvos.map(c=>c.platform||"facebook")].filter(Boolean))];
   const isMobile=useIsMobile();
@@ -685,6 +697,17 @@ function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
       {avail.length>1&&<div style={{display:"flex",gap:6,padding:"0 4px 10px"}}>
         {["all",...avail].map(f=><div key={f} onClick={()=>{setChFilter(f);}} style={{padding:"5px 12px",borderRadius:14,fontSize:11.5,cursor:"pointer",textTransform:"capitalize",background:chFilter===f?T.goldBg:T.bgAlt,color:chFilter===f?T.gold:T.textMuted,border:`0.5px solid ${chFilter===f?T.gold+"50":T.border}`}}>{f}</div>)}
       </div>}
+      {!!tagData?.available?.length&&<div style={{display:"flex",gap:6,padding:"0 4px 10px",flexWrap:"wrap"}}>
+        {["all",...tagData.available].map(f=>{
+          const n=f==="all"?null:(tagData.counts?.[f]||0);
+          const isComplaint=f===tagData.complaint_tag;
+          const on=tagFilter===f;
+          const c=isComplaint?T.danger:T.gold;
+          return <div key={f} onClick={()=>setTagFilter(f)} style={{padding:"5px 12px",borderRadius:14,fontSize:11.5,cursor:"pointer",background:on?(isComplaint?T.dangerBg:T.goldBg):T.bgAlt,color:on?c:(isComplaint&&n?c:T.textMuted),border:`0.5px solid ${on?c+"50":T.border}`}}>
+            {f==="all"?"All":f}{n?` (${n})`:""}
+          </div>;
+        })}
+      </div>}
       {convos.map((cv,i)=>{
         const cvt=contacts[cv.id]||{};
         return <div key={cv.id} onClick={()=>setSel(i)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:sel===i?T.goldBg:"transparent",borderLeft:sel===i?`3px solid ${T.gold}`:"3px solid transparent"}}>
@@ -693,6 +716,9 @@ function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
             <Badge color={cvt.bot_enabled===false?T.warn:T.success}>{cvt.bot_enabled===false?"manual":"bot"}</Badge>
           </div>
           <span style={{fontSize:12,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{cv.lastMsg}</span>
+          {!!tagsOf(cv.id).length&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6}}>
+            {tagsOf(cv.id).map(t=><span key={t} style={{fontSize:10.5,padding:"2px 8px",borderRadius:10,background:t===tagData?.complaint_tag?T.dangerBg:T.bgAlt,color:t===tagData?.complaint_tag?T.danger:T.textMuted,border:`0.5px solid ${t===tagData?.complaint_tag?T.danger+"40":T.border}`}}>{t}</span>)}
+          </div>}
         </div>;
       })}
     </Card>}
@@ -700,7 +726,17 @@ function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
       <div style={{padding:"14px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
           {isMobile&&<button onClick={()=>setSel(-1)} style={{background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:20,padding:0,flexShrink:0}}><i className="ti ti-chevron-left"/></button>}
-          <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}><i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:13}}/>{c.platform}</div></div>
+          <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}><i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:13}}/>{c.platform}
+            {!!tagData?.available?.length&&<select value={tagsOf(c.id)[0]||""} onChange={async e=>{
+              const t=e.target.value;
+              if(!t) return;
+              await api("/api/tags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,tag:t})});
+              loadTags();
+            }} onClick={e=>e.stopPropagation()} style={{marginLeft:6,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,color:T.textMuted,fontSize:11,padding:"2px 6px",outline:"none",fontFamily:"inherit"}}>
+              <option value="">Tag...</option>
+              {tagData.available.map(t=><option key={t} value={t}>{t}</option>)}
+            </select>}
+            </div></div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>
