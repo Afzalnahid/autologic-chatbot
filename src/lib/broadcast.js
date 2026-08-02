@@ -51,6 +51,13 @@ async function lastInboundBySender(clientId, lookbackHours) {
   return map;
 }
 
+async function taggedSenders(clientId, tags) {
+  const { data } = await supabase
+    .from("conversation_tags").select("sender_id")
+    .eq("client_id", clientId).in("tag", tags);
+  return new Set((data || []).map((r) => r.sender_id));
+}
+
 async function converted(clientId, businessType) {
   const table = businessType === "agency" ? "bookings" : "orders";
   const { data } = await supabase
@@ -73,6 +80,9 @@ export async function resolveAudience(clientId, businessType, segment = {}) {
   const channel = segment.channel && segment.channel !== "all" ? segment.channel : null;
   const activeWithin = Math.min(Math.max(Number(segment.activeWithinHours) || WINDOW_HOURS, 1), 720);
   const convertedFilter = ["yes", "no"].includes(segment.converted) ? segment.converted : "any";
+
+  const tags = Array.isArray(segment.tags) ? segment.tags.filter(Boolean) : [];
+  const tagged = tags.length ? await taggedSenders(clientId, tags) : null;
 
   const channels = await sendableChannels(clientId);
   const live = new Set(channels.map((c) => c.platform));
@@ -105,6 +115,7 @@ export async function resolveAudience(clientId, businessType, segment = {}) {
       last_at: person.last_at,
     };
 
+    if (tagged && !tagged.has(person.sender_id)) continue;
     if (convertedFilter === "yes" && !convertedSet.has(person.sender_id)) continue;
     if (convertedFilter === "no" && convertedSet.has(person.sender_id)) continue;
 
@@ -122,8 +133,7 @@ export async function resolveAudience(clientId, businessType, segment = {}) {
     eligible,
     skipped,
     counts: { eligible: eligible.length, skipped: skipped.length },
-    // Task 7 has not shipped yet, so tag filters cannot be honoured.
-    tagsAvailable: false,
+    tagsAvailable: true,
   };
 }
 
