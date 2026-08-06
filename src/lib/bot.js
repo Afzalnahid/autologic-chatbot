@@ -487,14 +487,20 @@ async function enforceLanguage(items, lang) {
   const out = [];
   for (const it of items) {
     if (!it.text) { out.push(it); continue; }
-    try {
-      const fixed = await chatWithGemini(system, [{ role: "user", content: it.text }]);
-      const clean = String(fixed || "").trim();
-      out.push(clean ? { ...it, text: clean } : it);
-    } catch (e) {
-      console.error("[language] rewrite failed:", e.message);
-      out.push(it);
+    let done = null;
+    // Two attempts: a single transient Gemini error should not put a reply out
+    // in the wrong language.
+    for (let attempt = 0; attempt < 2 && !done; attempt++) {
+      try {
+        const fixed = await chatWithGemini(system, [{ role: "user", content: it.text }]);
+        const clean = String(fixed || "").trim();
+        const stillWrong = lang === "Bangla" ? !hasBengali(clean) : hasBengali(clean);
+        if (clean && !stillWrong) done = clean;
+      } catch (e) {
+        console.error("[language] rewrite attempt", attempt + 1, "failed:", e.message);
+      }
     }
+    out.push(done ? { ...it, text: done } : it);
   }
   return out;
 }
