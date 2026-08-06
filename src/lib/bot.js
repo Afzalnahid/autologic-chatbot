@@ -29,8 +29,8 @@ export async function getChannelByPage(pageId) {
 }
 
 export async function getClient(clientId) {
-  const { data } = await sb().from("clients").select("*").limit(200);
-  return (data || []).find(c => c.id === clientId) || null;
+  const { data } = await sb().from("clients").select("*").eq("id", clientId).maybeSingle();
+  return data || null;
 }
 
 // Returns why the bot may not answer, so the caller can tell the owner and the
@@ -42,8 +42,9 @@ export async function getClient(clientId) {
 export async function botAllowed(channel, senderId) {
   if (channel.bot_enabled === false) return { allowed: false, reason: "channel_paused", silent: true };
 
-  const { data: contacts } = await sb().from("contacts").select("*").limit(1000);
-  const ct = (contacts || []).find(c => c.sender_id === senderId);
+  const { data: cts } = await sb().from("contacts").select("bot_enabled")
+    .eq("client_id", channel.client_id).eq("sender_id", senderId).limit(1);
+  const ct = cts && cts[0];
   if (ct && ct.bot_enabled === false) return { allowed: false, reason: "contact_paused", silent: true };
 
   const client = await getClient(channel.client_id);
@@ -141,13 +142,17 @@ export async function bufferInsert(row) {
 }
 
 async function pendingFor(senderId, clientId) {
-  const { data } = await sb().from("message_buffer").select("*").order("created_at", { ascending: true }).limit(500);
-  return (data || []).filter(m => m.sender_id === senderId && m.client_id === clientId && m.status === "Pending");
+  const { data } = await sb().from("message_buffer").select("*")
+    .eq("client_id", clientId).eq("sender_id", senderId).eq("status", "Pending")
+    .order("created_at", { ascending: true }).limit(500);
+  return data || [];
 }
 
 async function getMemory(senderId, clientId) {
-  const { data } = await sb().from("chat_memory").select("*").order("id", { ascending: false }).limit(300);
-  return (data || []).filter(m => m.session_id === senderId).slice(0, 10).reverse()
+  const { data } = await sb().from("chat_memory").select("*")
+    .eq("client_id", clientId).eq("session_id", senderId)
+    .order("id", { ascending: false }).limit(10);
+  return (data || []).reverse()
     .map(r => {
       const t = r.message?.type;
       const content = r.message?.data?.content || r.message?.content || "";
@@ -215,8 +220,7 @@ export const FIXED_AGENCY = `
 20. CLOSING: end with ONE short warm closing line in the customer's language. Never repeat the same line twice.`;
 
 async function getSystemPrompt(clientId, bType) {
-  const { data } = await sb().from("app_settings").select("*").limit(200);
-  const row = (data || []).find(r => r.id === String(clientId));
+  const { data: row } = await sb().from("app_settings").select("*").eq("id", String(clientId)).maybeSingle();
   const st = row?.settings || {};
   // A tenant who has not finished onboarding still needs a safe bot. Without a
   // profile it must not improvise about the business — it should defer to the
@@ -602,7 +606,7 @@ export async function handleIncoming(event) {
   // Facebook: fetch the person's real name once, the first time we see them.
   if (event.platform === "facebook") {
     try {
-      const { data: existing } = await sb().from("contacts").select("name").eq("sender_id", event.senderId).limit(1);
+      const { data: existing } = await sb().from("contacts").select("name").eq("client_id", clientId).eq("sender_id", event.senderId).limit(1);
       if (!existing || !existing[0] || !existing[0].name) {
         const prof = await fetch(
           `https://graph.facebook.com/v24.0/${event.senderId}?fields=first_name,last_name,name&access_token=${channel.access_token}`
@@ -621,7 +625,7 @@ export async function handleIncoming(event) {
   // Instagram: prefer the real name, fall back to @username.
   if (event.platform === "instagram") {
     try {
-      const { data: existing } = await sb().from("contacts").select("name").eq("sender_id", event.senderId).limit(1);
+      const { data: existing } = await sb().from("contacts").select("name").eq("client_id", clientId).eq("sender_id", event.senderId).limit(1);
       if (!existing || !existing[0] || !existing[0].name) {
         const prof = await fetch(
           `https://graph.instagram.com/v21.0/${event.senderId}?fields=name,username&access_token=${channel.access_token}`
@@ -744,7 +748,7 @@ export async function handleComment(event) {
   // The comment webhook carries the commenter's real name — save it for the inbox.
   if (event.senderName) {
     try {
-      const { data: ex } = await sb().from("contacts").select("name").eq("sender_id", event.senderId).limit(1);
+      const { data: ex } = await sb().from("contacts").select("name").eq("client_id", clientId).eq("sender_id", event.senderId).limit(1);
       if (!ex || !ex[0] || !ex[0].name) {
         await sb().from("contacts").upsert(
           { sender_id: event.senderId, client_id: clientId, name: event.senderName },
@@ -765,8 +769,8 @@ export async function handleComment(event) {
     context = prods.length ? "\n\nPRODUCTS:\n" + prods.map(p => JSON.stringify(p.metadata || {})).join("\n") : "";
   }
 
-  const { data: setRows } = await sb().from("app_settings").select("*").limit(200);
-  const settings = (setRows || []).find(r => r.id === String(clientId))?.settings || {};
+  const { data: setRow } = await sb().from("app_settings").select("settings").eq("id", String(clientId)).maybeSingle();
+  const settings = setRow?.settings || {};
   const persona = settings.businessPrompt || settings.systemPrompt || "";
   const commentInstruction =
     "You are replying to a PUBLIC comment on a social media post. Write ONE short, warm, human reply " +
