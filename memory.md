@@ -46,6 +46,49 @@ the `[channel-miss]` diagnostic that lists known page_ids runs only on a miss, s
 it costs nothing on the happy path. `node --check` OK; deployment
 `dpl_EseggqW…` **READY**, live SHA = HEAD `68b9515`.
 
+### Language rule — fixed and live-verified (2026-08-07)
+Symptom: with **English only** selected, English *and* Bangla questions both got Bangla
+replies. Also the reason two Meta App Review takes were rejected.
+
+Root cause: `Settings` saves the choice at `settings.questionnaire.languages`; the reply
+path was reading `settings.languages`, saw nothing, and defaulted to following the
+customer. Three earlier commits tried to strengthen the prompt instead and all failed —
+see `lessons.md` #15.
+
+What is in place now, in order of authority:
+1. `getLanguageMode(clientId)` reads `settings.questionnaire.languages` (falling back to
+   `answers.languages` and `languages`). `English only` / `Bangla only` force that
+   language; anything else means follow the customer.
+2. `detectLanguage(text)` decides per message when the owner chose to follow: Bengali
+   script → Bangla, Banglish word list → Banglish, otherwise English.
+3. The directive is appended to the system prompt **and** to the user turn — the system
+   prompt alone lost to the visible history, which the model was copying verbatim.
+4. `enforceLanguage(items, lang)` checks the reply's script afterwards and rewrites it
+   with a second Gemini call, retrying once. Prices, line breaks, URLs and
+   `{{PLACEHOLDER}}` tokens are preserved. If both attempts fail the original goes out —
+   a reply in the wrong language beats no reply.
+
+Settings now offers exactly three options: *Follow the customer's language* · *Bangla
+only* · *English only*.
+
+Verified live on WhatsApp: Bangla question + `English only` → English reply; the same
+question after switching to *Follow* → Bangla reply. Commits `f30cf43`, `1593c6f`,
+`c814e65`, `c8bed2c`, `402dc49`, `b6f1136`, `49f8788`, `6156d1c`.
+
+Note: `settings.businessPrompt` still contains a generated sentence saying the bot
+replies in the customer's language. It is now overridden at runtime, and `profile.js`
+generates the correct sentence for new profiles, but regenerating the prompt would
+clean up the stale text.
+
+### Tasks 6 and 7 — live-verified (2026-08-07)
+- Tagging: "What is the cost of your service package?" → `Service Inquiry`;
+  "I called three times and nobody answers. I want a refund." → `Complaint`. Both `auto`,
+  and the second replaced the first, so one tag per conversation holds.
+- Broadcast failure path: with the WhatsApp channel paused the preview showed
+  *0 will receive it · 1 cannot be messaged* with the real reason named per contact, and
+  flipped back to *1 will receive it* on resume. Task 6's "done when" is met.
+- Still unverified: broadcast batching past 20 recipients, and Task 10 follow-ups.
+
 ### What's next
 1. The two `bot.js` changes (`33f84b7`, `68b9515`) are live-verified on one
    channel (agency). Optional: if convenient, send one ecommerce-side test too —
