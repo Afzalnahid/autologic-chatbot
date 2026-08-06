@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
+import { runFollowups } from "@/lib/followup.js";
 
 export async function DELETE(request) {
   try {
@@ -20,6 +21,16 @@ export async function DELETE(request) {
 export async function GET(request) {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json([], { status: authErr ? 401 : 200 });
+
+  // Follow-ups are evaluated here rather than on a schedule. The function
+  // throttles itself, so most dashboard loads do nothing at all.
+  try {
+    const { data: st } = await supabase.from("app_settings").select("settings").eq("id", String(client.id)).maybeSingle();
+    await runFollowups(client, st?.settings || {});
+  } catch (e) {
+    console.error("[followup] run:", e.message);
+  }
+
   try {
     const { data: all } = await supabase.from("message_buffer").select("*").order("created_at", { ascending: false }).limit(500);
     const messages = (all || []).filter(m => m.client_id === client.id);
