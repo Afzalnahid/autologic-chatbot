@@ -118,3 +118,15 @@ export function BarList({items,color=T.gold,empty,money}) {
     <span style={{fontSize:12,fontWeight:500,minWidth:22,textAlign:"right",color:T.textMuted}}>{money?fmtMoney(it.count):it.count}</span>
   </div>);
 }
+
+// Sample questions shown in Settings and onboarding.
+export const SAMPLE_ECOM=[
+  {label:"Jewelry shop",text:"We sell imported jewelry — rings, necklaces and bracelets for both men and women. Prices are between 500 and 3000 taka. All rings are free size. We are online only, based in Savar. Delivery is 80 taka inside Dhaka (1-2 days) and 130 taka outside Dhaka (2-3 days). We take cash on delivery and bKash. Customers can check the product in front of the delivery rider."},
+  {label:"Cake & food",text:"We make homemade cakes and desserts to order in Dhaka. A half kg cake starts from 800 taka. Custom cakes need at least 2 days notice. We deliver inside Dhaka only for 100 taka. Payment is bKash advance. We are closed on Fridays."},
+  {label:"Clothing store",text:"We sell men's and women's clothing — shirts, panjabi, sarees and three-piece sets. Prices are 600 to 4000 taka. We have a size chart for every item, so always ask the customer for their size. Delivery all over Bangladesh: 70 taka in Dhaka, 130 taka outside. Cash on delivery is available. Exchange within 3 days if the size does not fit."},
+];
+export const SAMPLE_AGENCY=[
+  {label:"Marketing agency",text:"We are a digital marketing agency in Dhaka. We manage Facebook and Instagram ads, create content, and handle page management. Packages start from 8000 taka per month. We offer a free 30 minute consultation call before starting any work. We are open Saturday to Thursday, 10am to 7pm."},
+  {label:"Clinic / chamber",text:"We are a dental clinic in Chattogram. We do check-ups, scaling, filling and braces. The consultation fee is 500 taka. Patients need an appointment — we are open Saturday to Thursday, 5pm to 9pm. For emergencies they can call us directly."},
+  {label:"Coaching centre",text:"We run an IELTS coaching centre in Dhaka. New batches start every month. The course fee is 12000 taka for 3 months with classes 3 days a week. We offer one free trial class. Students can book a counselling session to learn more before enrolling."},
+];
