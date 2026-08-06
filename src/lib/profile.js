@@ -15,8 +15,13 @@ export function composeProfile(answers = {}, businessType = "ecommerce") {
 
   out.push("IDENTITY & TONE:");
   const tone = clean(a.tone) || "Friendly and helpful";
-  const langs = clean(a.languages) || "Bangla and English";
-  out.push(`Speak in a ${tone.toLowerCase()} tone. Customers write in ${langs} — always reply in whichever language the customer used.`);
+  const langs = clean(a.languages) || "Follow the customer's language";
+  const langRule = /english only/i.test(langs)
+    ? "Always reply in English, even when the customer writes in Bangla."
+    : /bangla only/i.test(langs)
+      ? "Always reply in Bangla, even when the customer writes in English."
+      : "Reply in whichever language the customer used — Bangla, English or Banglish.";
+  out.push(`Speak in a ${tone.toLowerCase()} tone. ${langRule}`);
   if (clean(a.special)) out.push(`Brand rules from the owner: ${clean(a.special)}`);
   out.push("");
 
