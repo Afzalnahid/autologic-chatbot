@@ -11,7 +11,7 @@ export async function DELETE(request) {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     await supabase.from("message_buffer").delete().eq("sender_id", sender_id).eq("client_id", client.id);
-    await supabase.from("chat_memory").delete().eq("session_id", sender_id);
+    await supabase.from("chat_memory").delete().eq("session_id", sender_id).eq("client_id", client.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -32,14 +32,21 @@ export async function GET(request) {
   }
 
   try {
-    const { data: all } = await supabase.from("message_buffer").select("*").order("created_at", { ascending: false }).limit(500);
-    const messages = (all || []).filter(m => m.client_id === client.id);
+    // Scoped at the database, not afterwards in JavaScript: the 500-row limit must
+    // apply to this tenant's messages, or a busy platform pushes their own
+    // conversations out of the window and their inbox looks empty.
+    const { data: all } = await supabase.from("message_buffer")
+      .select("*")
+      .eq("client_id", client.id)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    const messages = all || [];
 
-    const { data: contactRows } = await supabase.from("contacts").select("sender_id,name,client_id");
+    const { data: contactRows } = await supabase.from("contacts")
+      .select("sender_id,name")
+      .eq("client_id", client.id);
     const nameOf = Object.fromEntries(
-      (contactRows || [])
-        .filter(c => c.client_id === client.id && c.name)
-        .map(c => [c.sender_id, c.name])
+      (contactRows || []).filter(c => c.name).map(c => [c.sender_id, c.name])
     );
     const displayName = (sid, platform) => {
       if (nameOf[sid]) return nameOf[sid];
