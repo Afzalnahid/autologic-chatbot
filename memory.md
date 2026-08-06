@@ -34,17 +34,19 @@ exists (Task 6), so no migration.
   sent through the new build yet. Rollback candidate if needed: `dpl_EApdafX6…`
   (commit `b52480c`).
 
-**Follow-up filed and being done next, separate commit:** `getChannelByPage`
-(`bot.js:20`) still does `channels select("*").limit(200)` + JS `.find(page_id)`.
-It resolves *which* channel/client a webhook belongs to, so it has no `client_id`
-to filter — a different (scaling) bug, not the invariant. At 200+ connected
-channels tenant #201 silently breaks. Fix: `.eq("page_id", pageId)`, keep the
-`[channel-miss]` diagnostic on a miss.
+**Follow-up — DONE (separate commit `68b9515`).** `getChannelByPage` (`bot.js:20`)
+was `channels select("*").limit(200)` + JS `.find(page_id)`, so tenant #201 would
+silently never resolve. It resolves *which* channel a webhook belongs to, so it
+has no `client_id` to filter — a scaling bug, not the invariant, which is why it
+was its own commit. Now `.eq("status","connected").eq("page_id", pageId).limit(1)`;
+the `[channel-miss]` diagnostic that lists known page_ids runs only on a miss, so
+it costs nothing on the happy path. `node --check` OK; deployment
+`dpl_EseggqW…` **READY**, live SHA = HEAD `68b9515`.
 
 ### What's next
-1. Finish `getChannelByPage` DB-scoping (in progress this session).
-2. Owner sends a live test message on FB/IG/WA to confirm no reply regression.
-3. Everything under the 2026-08-01 "What's next" below still stands (case-study
+1. Owner sends a live test message on FB/IG/WA to confirm no reply regression
+   from the two `bot.js` changes (`33f84b7`, `68b9515`).
+2. Everything under the 2026-08-01 "What's next" below still stands (case-study
    TODO values, Task 5/6/7 live tests, Task 8 courier, Task 3 when SSLCommerz
    sandbox exists).
 
