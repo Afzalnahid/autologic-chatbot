@@ -435,7 +435,12 @@ const BOOKING_RULE_PLACEHOLDER = "";
 export async function getLanguageMode(clientId) {
   const { data } = await sb().from("app_settings").select("settings")
     .eq("id", String(clientId)).maybeSingle();
-  const v = String(data?.settings?.languages || "").toLowerCase();
+  // The Settings tab saves this inside `questionnaire`. The other two spellings
+  // are read as a fallback so an older or hand-edited row still works.
+  const st = data?.settings || {};
+  const v = String(
+    st.questionnaire?.languages ?? st.answers?.languages ?? st.languages ?? ""
+  ).toLowerCase();
   if (v.includes("english only")) return "English";
   if (v.includes("bangla only")) return "Bangla";
   return null;
