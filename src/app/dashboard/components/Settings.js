@@ -123,6 +123,40 @@ export default function Settings({settings,setSettings}) {
       {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
     </Card>
 
+    <Card style={{marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:6}}>
+        <div style={{fontSize:15,fontWeight:500}}>Follow-up message</div>
+        <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,color:T.textMuted,cursor:"pointer"}}>
+          <input type="checkbox" checked={!!s.followup?.enabled} onChange={e=>setS(v=>({...v,followup:{...(v.followup||{}),enabled:e.target.checked}}))}/>
+          {s.followup?.enabled?"On":"Off"}
+        </label>
+      </div>
+      <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,marginBottom:14}}>
+        {isEcom
+          ?"Someone asked about a product but never ordered — send them one reminder."
+          :"Someone asked about a service but never booked — send them one reminder."}
+        {" "}They get it once, and it stops immediately if they reply.
+      </div>
+
+      {s.followup?.enabled&&<>
+        <div style={{maxWidth:220,marginBottom:14}}>
+          <Inp label="Send after (hours)" type="number" min={1} max={23}
+            value={s.followup?.delay_hours??20}
+            onChange={e=>setS(v=>({...v,followup:{...(v.followup||{}),delay_hours:Number(e.target.value)}}))}/>
+          <div style={{fontSize:11.5,color:T.textDim,marginTop:6,lineHeight:1.6}}>
+            Maximum 23. Facebook, Instagram and WhatsApp close the messaging window 24 hours after the customer's last message, so anything later cannot be delivered.
+          </div>
+        </div>
+        <Inp label="Message" textarea maxLength={600}
+          value={isEcom?(s.followup?.message_ecommerce??""):(s.followup?.message_agency??"")}
+          placeholder={isEcom
+            ?"আসসালামু আলাইকুম! আপনি আমাদের পণ্য নিয়ে জানতে চেয়েছিলেন..."
+            :"আসসালামু আলাইকুম! আপনি আমাদের সার্ভিস নিয়ে জানতে চেয়েছিলেন..."}
+          onChange={e=>setS(v=>({...v,followup:{...(v.followup||{}),[isEcom?"message_ecommerce":"message_agency"]:e.target.value}}))}/>
+        <div style={{fontSize:11.5,color:T.textDim,marginTop:6}}>Leave empty to use the default message.</div>
+      </>}
+    </Card>
+
     <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:6}}>Business prompt (editable)</div>
       <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>This is your bot's business knowledge. Edit freely — the locked core rules above are added automatically on top.</div>
       <Inp textarea value={s.businessPrompt||s.systemPrompt||""} onChange={e=>setS({...s,businessPrompt:e.target.value})} style={{marginBottom:0}}/>
