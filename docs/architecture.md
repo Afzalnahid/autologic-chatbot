@@ -192,3 +192,20 @@ Two modules are shared by all of them:
   `useIsMobile`, the stat and chart building blocks, the plan catalogue and the
   money and date formatters. **This is the single source of truth for the design
   system**; tabs must not redefine colours locally.
+
+## Follow-ups
+
+A follow-up goes to someone who showed interest and never converted, once, and only
+while Meta's window is still open. Because the window closes 24 hours after the
+customer's last message, the delay is capped at 23 hours — a literal "24 hour"
+follow-up could never be delivered.
+
+Eligibility is deterministic: the conversation must carry an intent tag from Task 7
+(ecommerce: Product Inquiry or Order · agency: Service Inquiry or Booking), have no
+matching order or booking, no follow-up in the last 30 days, no contact pause, no
+opt-out, and a live channel. No tag means no evidence of interest, and nothing is
+sent.
+
+Evaluation is lazy: `runFollowups` is called from `GET /api/conversations`, claims
+its run by stamping `last_run_at` before doing any work, and does nothing if it ran
+within the last 15 minutes. No cron is involved.
