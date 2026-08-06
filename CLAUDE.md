@@ -5,6 +5,18 @@ programmer** and cannot debug or repair broken code. Explain in plain language, 
 every change small and reversible, and never report something as done without
 verifying it.
 
+## Language
+
+**Always reply in Bangla**, unless I explicitly ask for English. This applies to
+every explanation, summary, question and error report.
+
+Keep in English regardless: code, file names, commit messages, commands I have to
+type, and anything written into the repository (`memory.md`, `lessons.md`, `docs/`,
+code comments).
+
+Explain in plain language. I am not a programmer — no jargon without a plain-Bangla
+explanation beside it.
+
 ## Read these before doing anything
 1. `AGENTS.md` — how work is done here: the roles, the four stage gates, the rules.
 2. `memory.md` — what happened last session, what is next, what is unverified.
