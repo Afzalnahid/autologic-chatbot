@@ -49,6 +49,14 @@ Follow-up, Other. Automatic tagging keeps a single tag and replaces its own
 previous guess; a `manual` row stops automatic tagging for that conversation
 entirely.
 
+### `followups` — one reminder per quiet conversation
+`id`, `client_id`, `sender_id`, `platform`, `status` (`sent` / `failed`), `error`,
+`sent_at`. A contact is eligible again only after 30 days.
+
+Configuration lives in `app_settings.settings.followup`:
+`enabled`, `delay_hours` (1–23), `message_ecommerce`, `message_agency`,
+`last_run_at` (the throttle stamp).
+
 ### `broadcasts` — one composed message sent to a segment
 `id`, `client_id`, `channel` (`all` / `facebook` / `instagram` / `whatsapp`),
 `message`, `segment` jsonb, `status` (`sending` / `sent` / `failed`), `total`,
