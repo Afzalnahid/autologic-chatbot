@@ -149,3 +149,21 @@ of you (this is #5 applied to data-scoping). A rule written in `AGENTS.md` is no
 a stated invariant as unenforced until something greps for it. And a read that returns another
 tenant's rows but "happens to work" because ids rarely collide is a latent leak, not a
 non-issue — scope it now.
+
+## 15. When a setting has no effect, find out where it is stored before touching the prompt
+**2026-08-07.** The owner chose "English only" and the bot kept answering Bangla questions in
+Bangla. Three fixes were shipped on the theory that the instruction was not forceful enough:
+moved to the end of the system prompt, added to the user turn, then a verify-and-rewrite pass.
+None of them worked, because none of them was the problem. The Settings tab saves the value at
+`settings.questionnaire.languages` and the code was reading `settings.languages`, so it always
+saw "not set" and fell back to following the customer. One query against `app_settings` at the
+start would have shown this in seconds.
+
+**Rules:**
+- A setting that appears to be ignored is a plumbing question first — *where is this actually
+  written, and is anything reading it?* — and a prompt question only after that is ruled out.
+- Do not ship a second fix on the same theory the first one failed on. A failed fix is evidence
+  the diagnosis is wrong, not that the medicine was too weak.
+- The layered work was still worth keeping (code decides the language, the reply is checked and
+  rewritten when wrong), but it was built on a guess and only started working once the real
+  cause was found.
