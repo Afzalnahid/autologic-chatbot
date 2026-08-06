@@ -54,3 +54,67 @@ export const PLAN_LIST=[
 ];
 export const taka=n=>"\u09F3"+Number(n||0).toLocaleString("en-IN");
 export const shortDate=d=>d?new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
+
+// Chart and stat building blocks shared by the tabs.
+export function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
+
+export const fmtNum=n=>{const v=Number(n)||0;if(Math.abs(v)>=1e6)return (v/1e6).toFixed(v%1e6===0?0:1)+"M";if(Math.abs(v)>=1000)return (v/1000).toFixed(v%1000===0?0:1)+"K";return String(v);};
+export const fmtMoney=n=>"\u09F3"+(Number(n)||0).toLocaleString("en-IN");
+
+export function Trend({value,unit="%",invert}) {
+  if(value===null||value===undefined) return <span style={{fontSize:11,color:T.textDim}}>new</span>;
+  const up=value>0, flat=value===0;
+  const good=invert?!up:up;
+  const color=flat?T.textDim:good?T.success:T.danger;
+  return <span style={{fontSize:11,color,fontWeight:600,display:"inline-flex",alignItems:"center",gap:2}}>
+    {!flat&&<i className={`ti ti-${up?"arrow-up-right":"arrow-down-right"}`} style={{fontSize:12}}/>}
+    {flat?"0":`${Math.abs(value)}`}{unit}
+  </span>;
+}
+
+export function KStat({icon,label,value,sub,color=T.gold,trend,trendUnit,invert}) {
+  return <Card style={{flex:1,minWidth:150}}>
+    <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:10}}>
+      <div style={{width:30,height:30,borderRadius:9,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        <i className={`ti ${icon}`} style={{fontSize:15,color}}/>
+      </div>
+      <span style={{fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:.7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</span>
+    </div>
+    <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap"}}>
+      <span style={{fontSize:24,fontWeight:600,color:T.text,lineHeight:1.1}}>{value}</span>
+      {trend!==undefined&&<Trend value={trend} unit={trendUnit} invert={invert}/>}
+    </div>
+    {sub&&<div style={{fontSize:11.5,color:T.textMuted,marginTop:4}}>{sub}</div>}
+  </Card>;
+}
+
+export function Spark({data,keys,colors,height=120,labels}) {
+  const max=Math.max(1,...data.flatMap(d=>keys.map(k=>d[k]||0)));
+  const W=320,H=height,P=6;
+  const x=i=>data.length<=1?W/2:(i/(data.length-1))*(W-P*2)+P;
+  const y=v=>H-P-(v/max)*(H-P*2-10);
+  const line=k=>data.map((d,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(d[k]||0).toFixed(1)}`).join(" ");
+  const area=k=>data.length<2?"":`${line(k)} L${x(data.length-1).toFixed(1)},${H-P} L${x(0).toFixed(1)},${H-P} Z`;
+  return <div>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height,display:"block",overflow:"visible"}}>
+      {[0,max/2,max].map((t,i)=><line key={i} x1={P} x2={W-P} y1={y(t)} y2={y(t)} stroke={T.border} strokeWidth="0.5" strokeDasharray="2 3"/>)}
+      {keys.map((k,ki)=><g key={k}>
+        <path d={area(k)} fill={colors[ki]} opacity="0.10"/>
+        <path d={line(k)} fill="none" stroke={colors[ki]} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"/>
+      </g>)}
+    </svg>
+    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.textDim,marginTop:4}}>
+      <span>{labels?.[0]}</span><span style={{color:T.textMuted}}>peak {fmtNum(max)}</span><span>{labels?.[1]}</span>
+    </div>
+  </div>;
+}
+
+export function BarList({items,color=T.gold,empty,money}) {
+  if(!items?.length) return <div style={{fontSize:12.5,color:T.textDim}}>{empty}</div>;
+  const max=Math.max(1,...items.map(i=>i.count));
+  return items.map((it,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+    <span style={{fontSize:12.5,width:112,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={it.name||it.term}>{it.name||it.term}</span>
+    <div style={{flex:1,height:5,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${(it.count/max)*100}%`,background:color,borderRadius:3}}/></div>
+    <span style={{fontSize:12,fontWeight:500,minWidth:22,textAlign:"right",color:T.textMuted}}>{money?fmtMoney(it.count):it.count}</span>
+  </div>);
+}
