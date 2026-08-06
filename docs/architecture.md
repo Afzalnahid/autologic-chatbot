@@ -172,3 +172,23 @@ Sending is done in batches of 20 per request. Each recipient row is claimed
 (`pending` → `sending`) before the send, so two overlapping requests cannot
 double-send, and the dashboard calls back until the broadcast is finished. No
 cron is involved.
+
+## Dashboard structure
+
+`src/app/dashboard-client.js` holds only the shell: `AuthGate`, `Onboarding`,
+`ConnectChannel`, `ConnectCalendar` and the `Dashboard` component that owns the
+shared state and routes between tabs.
+
+Every tab lives in `src/app/dashboard/components/`:
+`Analytics`, `Billing`, `Bookings`, `Broadcast`, `Channels`, `Comments`,
+`Conversations`, `Demo`, `Inventory`, `KnowledgeBase`, `Orders`, `Profile`,
+`Settings`, `WebsiteWidget`.
+
+Two modules are shared by all of them:
+- `session.js` — the supabase client, the auth token and the `api()` fetch helper.
+  The token is written through `setAuthToken()` because an exported `let` cannot be
+  assigned from another module.
+- `ui.js` — design tokens `T`, the `Card` / `Btn` / `Inp` / `Badge` primitives,
+  `useIsMobile`, the stat and chart building blocks, the plan catalogue and the
+  money and date formatters. **This is the single source of truth for the design
+  system**; tabs must not redefine colours locally.
