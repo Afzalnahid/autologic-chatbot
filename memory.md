@@ -174,7 +174,33 @@ Meta app were ever both connected as channels, their bots could answer each othe
   table is still empty. Owner should send "দাম কত?" and "টাকা ফেরত দিন" from FB or
   IG and confirm the chips and pills appear.
 
-### Task 9 — dashboard-client split — IN PROGRESS
+### Task 9 — dashboard-client split — DONE (2026-08-06)
+**196 KB / 2428 lines → 35 KB / 546 lines.** Target was ~40 KB.
+
+`dashboard-client.js` now holds only the shell: `AuthGate`, `Onboarding`,
+`ConnectChannel`, `ConnectCalendar`, `Dashboard`. Fourteen tabs plus `session.js`
+and `ui.js` live in `src/app/dashboard/components/`.
+
+Each tab was moved verbatim in its own commit, with the JSX parse check run and the
+live deployment's commit SHA confirmed before starting the next one. Owner confirmed
+login and every tab still work.
+
+Dependencies found while moving, each caught before pushing:
+- Analytics needed the chart helpers (`KStat`, `Spark`, `BarList`, `fmtNum`,
+  `fmtMoney`) → moved to `ui.js`.
+- Billing needed `PLAN_META`, `PLAN_LIST`, `taka`, `shortDate` → `ui.js`.
+- Profile needed the small `Row` helper → moved into `Profile.js`.
+- Settings' `SAMPLE_ECOM` / `SAMPLE_AGENCY` are **also used by Onboarding** → kept in
+  `ui.js` rather than moved into `Settings.js`.
+- Channels renders `WebsiteWidget` → given its own import.
+- Broadcast was missing `Badge` in its imports on the first attempt.
+
+Not done: replacing hex literals with `var(--…)`. The tokens now have one home in
+`ui.js`, which was the point of that item, but the values are still JS constants
+rather than CSS variables. `Btn`'s secondary background is still the old gold
+literal `rgba(240,192,64,0.12)` — a leftover from before the periwinkle change.
+
+### Superseded progress notes
 Refactor only, zero behaviour change. One tab per commit.
 
 Done so far: 196 KB / 2428 lines → 126 KB / 1839 lines.
