@@ -228,6 +228,31 @@ starting any step.
 newest commit's build may be CANCELED, leaving an older tree live. After a burst of
 pushes, check that the latest READY deployment's SHA is actually HEAD.
 
+### Task 10 — follow-up sequences — CODE DONE, live test pending
+- Migration `followups`. Config in `app_settings.settings.followup`.
+- `src/lib/followup.js`: `runFollowups()` — throttled to once per 15 minutes,
+  claims the run by stamping `last_run_at` *before* working so two dashboard loads
+  cannot both send, sends at most 20 per run.
+- **The spec said "follow up at 24h", which is not deliverable.** Meta's window
+  closes exactly 24 hours after the customer's last message, so a follow-up sent at
+  24h always fails. The delay is capped at 23 hours and defaults to 20, anchored on
+  the customer's last inbound message.
+- Requires an intent tag from Task 7. No tag → nothing sent, deliberately.
+- Stops on its own: a newer customer message removes the candidate, a matching order
+  or booking removes them, and a `followups` row blocks repeats for 30 days.
+- Hooked into `GET /api/conversations`. Settings tab has on/off, delay and a message
+  box per business type.
+- **NOT verified:** no follow-up has been sent yet. To test: send an inquiry from a
+  test account, tag it Product Inquiry, set the delay to 1 hour, wait, then open the
+  dashboard.
+
+**Defect found while working here, deliberately not fixed:** `GET /api/conversations`
+reads `message_buffer` with no `client_id` filter at the database level and filters
+in JavaScript afterwards, taking only the newest 500 rows across *all* tenants. That
+breaks the client_id invariant and, once the platform is busy, a tenant's own
+conversations can fall outside the 500 and vanish from their inbox. Needs its own
+commit.
+
 ### What's next
 1. Owner fills the `TODO_` values in `src/lib/case-studies.js` (business name,
    subtitle, three metrics, story) for at least the ecommerce entry.
