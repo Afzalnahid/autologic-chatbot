@@ -1,0 +1,54 @@
+# Autologic — read this first
+
+Multi-tenant SaaS chatbot platform for Bangladeshi businesses. Owner is **not a
+programmer** and cannot debug or repair broken code. Explain in plain language, keep
+every change small and reversible, and never report something as done without
+verifying it.
+
+## Read these before doing anything
+1. `AGENTS.md` — how work is done here: the roles, the four stage gates, the rules.
+2. `memory.md` — what happened last session, what is next, what is unverified.
+3. `lessons.md` — mistakes already made. Do not repeat them.
+
+Update `memory.md` at the end of every session, and add to `lessons.md` whenever
+something goes wrong.
+
+## Stack
+Next.js 14 App Router · Supabase (project `cchvsgouqqxibhubioch`, pgvector) ·
+Google Gemini (`gemini-embedding-001`, 768 dimensions) · Meta Graph API · Resend ·
+Google Calendar · Vercel (`autologic-chatbot.vercel.app`)
+
+## Invariants — never break these
+- Every database query filters `client_id` at the database with `.eq()`. Never filter
+  in JavaScript afterwards.
+- Locked prompts (`FIXED_BASE`, `FIXED_ECOM`, `FIXED_AGENCY`) are enforced on the
+  server and stay there.
+- Every feature answers for **both** `ecommerce` and `agency` business types.
+- Periwinkle `#5B8CFF` is the brand colour. Gold was removed and never returns.
+  Mint `#2ED3A7` means "bot is live" and nothing else.
+- Embeddings stay 768-dimensional.
+- Client setup is one click. Never ask a business owner to find an ID or paste a token.
+- Broadcasts and follow-ups only ever send inside Meta's 24-hour window.
+
+## Where things live
+- `src/lib/bot.js` — the reply engine. `composeReply()` produces the answer and every
+  channel uses it; `processConversation()` wraps it for Facebook, Instagram and
+  WhatsApp; `/api/widget/chat` calls it directly for the website widget.
+- `src/lib/` — `plans.js` (plan catalogue, single source of truth), `broadcast.js`,
+  `broadcast-send.js`, `followup.js`, `tags.js`, `widget.js`, `messenger.js`,
+  `gemini.js`, `knowledge.js`, `sslcommerz.js`.
+- `src/app/dashboard-client.js` — the dashboard shell only.
+- `src/app/dashboard/components/` — one file per tab, plus `ui.js` (design tokens and
+  shared components — **the** source of truth for styling) and `session.js` (auth
+  token and the `api()` helper).
+- `docs/` — architecture, database, security, error handling, phases, prompts.
+
+## Working rules
+- Verify before asserting. Read the logs, query the database, call the API. Never
+  give a confident diagnosis from assumption.
+- Fix the system, not the symptom. If a bug appears for one tenant, check whether
+  every tenant has it.
+- One task at a time. Refactors never share a commit with a feature.
+- If you find a bug while doing something else, write it down and say so. Do not fix
+  it in the same commit.
+- Never commit secrets. `.env*` is gitignored and **this repository is public**.
