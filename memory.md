@@ -30,9 +30,12 @@ exists (Task 6), so no migration.
   fetch-all-then-JS-filter remains; commit `33f84b7` (author + committer
   `Afzalnahid`); deployment `dpl_2jxeECgFmdiuqjXigyqJL1SxaJFq` **READY**, live
   SHA = HEAD.
-- **NOT verified:** live behaviour on either business type — no message has been
-  sent through the new build yet. Rollback candidate if needed: `dpl_EApdafX6…`
-  (commit `b52480c`).
+- **Live verified 2026-08-07:** owner sent a real message through the new build;
+  the bot replied normally and remembered the earlier message — so `getMemory`
+  history and `pendingFor` debouncing both work after the DB-scoping. This was one
+  channel / the owner's own business type (agency); the other channels and
+  ecommerce were not separately re-tested, but they share the same functions.
+  Rollback candidate if a problem shows up later: `dpl_EApdafX6…` (commit `b52480c`).
 
 **Follow-up — DONE (separate commit `68b9515`).** `getChannelByPage` (`bot.js:20`)
 was `channels select("*").limit(200)` + JS `.find(page_id)`, so tenant #201 would
@@ -44,11 +47,13 @@ it costs nothing on the happy path. `node --check` OK; deployment
 `dpl_EseggqW…` **READY**, live SHA = HEAD `68b9515`.
 
 ### What's next
-1. Owner sends a live test message on FB/IG/WA to confirm no reply regression
-   from the two `bot.js` changes (`33f84b7`, `68b9515`).
+1. The two `bot.js` changes (`33f84b7`, `68b9515`) are live-verified on one
+   channel (agency). Optional: if convenient, send one ecommerce-side test too —
+   not required, same code path.
 2. Everything under the 2026-08-01 "What's next" below still stands (case-study
    TODO values, Task 5/6/7 live tests, Task 8 courier, Task 3 when SSLCommerz
-   sandbox exists).
+   sandbox exists). Task 8 (Pathao/Steadfast courier, ecommerce only) is the next
+   feature with no external blocker.
 
 ---
 
