@@ -35,3 +35,22 @@ export function Btn({children,gold,danger,small,style,...p}){ return <button {..
 export function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>; }
 export function Card({children,style,...p}){ return <div {...p} style={{background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`,padding:"1.25rem",...style}}>{children}</div>; }
 export function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
+
+// Plan catalogue and formatting used by several tabs.
+export const PLAN_META={
+  trial:{name:"Free Trial",color:T.info},
+  starter:{name:"Starter",color:T.success},
+  pro:{name:"Pro",color:T.gold},
+  agency:{name:"Agency",color:T.purple},
+  none:{name:"No plan",color:T.textDim},
+};
+export const PLAN_LIST=[
+  {id:"starter",name:"Starter",monthly:1500,yearly:15000,tagline:"For small shops getting started",
+   features:["3,000 messages / month","1 channel","AI replies in Bangla & English","Product catalogue & orders","Analytics dashboard"]},
+  {id:"pro",name:"Pro",monthly:3500,yearly:35000,highlight:true,tagline:"For growing businesses",
+   features:["15,000 messages / month","All 3 channels","Photo product matching","Knowledge Base upload","Voice messages","Everything in Starter"]},
+  {id:"agency",name:"Agency",monthly:6000,yearly:60000,tagline:"For service providers & agencies",
+   features:["Unlimited messages","Google Calendar booking","Automatic Meet links","Priority support","Everything in Pro"]},
+];
+export const taka=n=>"\u09F3"+Number(n||0).toLocaleString("en-IN");
+export const shortDate=d=>d?new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
