@@ -101,8 +101,8 @@ export default function Settings({settings,setSettings}) {
           </div>
           <div style={{marginBottom:16}}>
             <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
-            <select value={q.languages||"Bangla and English"} onChange={e=>setQ({languages:e.target.value})} style={selStyle}>
-              {["Bangla and English","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
+            <select value={q.languages||"Follow the customer's language"} onChange={e=>setQ({languages:e.target.value})} style={selStyle}>
+              {["Follow the customer's language","Bangla and English","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
             </select>
           </div>
         </div>
