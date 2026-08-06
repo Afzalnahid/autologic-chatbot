@@ -430,6 +430,30 @@ function bookingRule() {
 }
 const BOOKING_RULE_PLACEHOLDER = "";
 
+// Deterministic language lock. Rule 5 inside FIXED_BASE asked the model to match
+// the customer's language, and it kept losing to a Bangla business profile: English
+// questions were getting Bangla answers every time. So the decision is made in code
+// and stated last, where it carries the most weight — the same approach the comment
+// path already uses.
+const BANGLISH_WORDS = /\b(ami|amar|amake|apni|apnar|apnara|tumi|koto|kemon|kivabe|kothay|lagbe|jonno|bhai|apu|taka|ache|achhe|korbo|korte|bolen|janan|hobe)\b/i;
+
+export function detectLanguage(text) {
+  const t = String(text || "");
+  if (/[\u0980-\u09FF]/.test(t)) return "Bangla";
+  if (BANGLISH_WORDS.test(t)) return "Banglish";
+  return "English";
+}
+
+function languageLock(lang) {
+  const how = {
+    Bangla: "The customer wrote in Bangla. Write your entire reply in Bangla script only.",
+    Banglish: "The customer wrote Banglish (Bangla words in English letters). Write your entire reply the same way — Bangla words spelled in English letters, no Bengali script.",
+    English: "The customer wrote in English. Write your entire reply in English only. Do not use Bengali script anywhere — not in the greeting, not in prices, not in the closing line.",
+  }[lang];
+  return "\n\n[LANGUAGE — THIS OVERRIDES EVERY OTHER INSTRUCTION] " + how +
+    " Never send a bilingual reply with both languages separated by a slash. This applies even when the business profile, greeting, knowledge base or product data is written in another language: translate that content into the customer's language before answering.";
+}
+
 // The reply engine. Given the customer's combined text it produces the response
 // items and any booking note — no sending, no buffer writes. Every channel uses
 // this one function so a new channel cannot drift from the others.
@@ -471,7 +495,8 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   let raw;
   try {
     const rules = isAgency ? bookingRule() : orderRule;
-    raw = await chatWithGemini(systemPrompt + context + rules, [...history, { role: "user", content: combined }]);
+    const lock = languageLock(detectLanguage(combined));
+    raw = await chatWithGemini(systemPrompt + context + rules + lock, [...history, { role: "user", content: combined }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
     raw = "";
