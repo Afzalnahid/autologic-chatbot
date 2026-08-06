@@ -13,6 +13,8 @@ import Comments from "./dashboard/components/Comments.js";
 import Profile from "./dashboard/components/Profile.js";
 import Settings from "./dashboard/components/Settings.js";
 import Demo from "./dashboard/components/Demo.js";
+import KnowledgeBase from "./dashboard/components/KnowledgeBase.js";
+import Bookings from "./dashboard/components/Bookings.js";
 
 const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","demo"];
 const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-settings","ti-user","ti-robot"];
@@ -225,111 +227,6 @@ function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
   </div>;
 }
 
-function KnowledgeBase() {
-  const [files,setFiles]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [uploading,setUploading]=useState(false);
-  const [msg,setMsg]=useState("");
-  const fileRef=useRef(null);
-
-  const load=async()=>{
-    setLoading(true);
-    const d=await api("/api/knowledge").then(r=>r.json()).catch(()=>[]);
-    if(Array.isArray(d)) setFiles(d);
-    setLoading(false);
-  };
-  useEffect(()=>{load();},[]);
-
-  const upload=async(file)=>{
-    if(!file) return;
-    setUploading(true); setMsg("Uploading and analyzing "+file.name+"...");
-    const fd=new FormData(); fd.append("file",file);
-    const r=await api("/api/knowledge",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
-    setUploading(false);
-    if(r.error){setMsg("Failed: "+r.error);}
-    else {setMsg(`Added ${file.name} — ${r.chunks} chunks indexed`); load();}
-    if(fileRef.current) fileRef.current.value="";
-  };
-
-  const del=async(file_id)=>{
-    await api("/api/knowledge",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({file_id})});
-    load();
-  };
-
-  return <div>
-    <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
-      <input ref={fileRef} type="file" accept=".pdf,.docx,.doc,.txt,.md,.csv" hidden onChange={e=>{upload(e.target.files[0]);}}/>
-      <Btn gold onClick={()=>fileRef.current?.click()} disabled={uploading}><i className="ti ti-upload" style={{marginRight:6}}/>{uploading?"Uploading...":"Upload document"}</Btn>
-      <Btn onClick={load}><i className="ti ti-refresh" style={{marginRight:6}}/>Refresh</Btn>
-    </div>
-    <div style={{fontSize:11.5,color:T.textMuted,marginBottom:12}}>Upload PDF, Word (DOCX) or text files. Their content becomes your bot's knowledge base — the bot answers customer questions using only this information.</div>
-    {msg&&<div style={{fontSize:12,color:msg.startsWith("Failed")?T.danger:T.success,marginBottom:12}}>{msg}</div>}
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:files.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No documents yet. Upload your first file to build the knowledge base.</Card>:files.map(f=><Card key={f.file_id} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
-          <i className={`ti ${/pdf/i.test(f.file_type||"")?"ti-file-type-pdf":/word|docx?/i.test(f.file_type||f.file_name||"")?"ti-file-type-docx":"ti-file-text"}`} style={{fontSize:24,color:T.gold,flexShrink:0}}/>
-          <div style={{minWidth:0}}><div style={{fontSize:14,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.file_name}</div><div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{f.chunks||0} chunks indexed</div></div>
-        </div>
-        <button onClick={()=>del(f.file_id)} title="Delete" style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:18,padding:4,flexShrink:0}}><i className="ti ti-trash"/></button>
-      </Card>)}
-    </div>
-  </div>;
-}
-
-
-function Bookings({calConnected,clientId}) {
-  const [bookings,setBookings]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [filter,setFilter]=useState("All");
-  const [calOk,setCalOk]=useState(!!calConnected);
-  const sts=["All","Confirmed","Completed","Cancelled"];
-
-  const load=async()=>{
-    setLoading(true);
-    const d=await api("/api/bookings").then(r=>r.json()).catch(()=>[]);
-    if(Array.isArray(d)) setBookings(d);
-    setLoading(false);
-  };
-  useEffect(()=>{load();},[]);
-  useEffect(()=>{setCalOk(!!calConnected);},[calConnected]);
-  const update=async(id,status)=>{await api("/api/bookings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})}); load();};
-
-  const connectCal=()=>{
-    const w=window.open(`/api/gcal/login?client_id=${clientId}`,"gcal","width=520,height=640");
-    if(!w) window.location.href=`/api/gcal/login?client_id=${clientId}`;
-    const h=e=>{if(e.data==="gcal-connected"){window.removeEventListener("message",h);setCalOk(true);}};
-    window.addEventListener("message",h);
-  };
-
-  const filtered = filter==="All"?bookings:bookings.filter(b=>b.status===filter);
-  return <div>
-    {!calOk&&<Card style={{background:`${T.gold}0d`,border:`1px solid ${T.gold}35`,marginBottom:16,display:"flex",alignItems:"center",gap:12,padding:"12px 16px",flexWrap:"wrap"}}>
-      <i className="ti ti-calendar-exclamation" style={{fontSize:22,color:T.gold,flexShrink:0}}/>
-      <div style={{flex:1,minWidth:180}}>
-        <div style={{fontSize:13,fontWeight:600,color:T.gold}}>Google Calendar not connected</div>
-        <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Bookings are saved but Meet links won't be generated until you connect.</div>
-      </div>
-      <Btn gold small onClick={connectCal}><i className="ti ti-brand-google" style={{marginRight:5}}/>Connect now</Btn>
-    </Card>}
-    <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{sts.map(s=><button key={s} onClick={()=>setFilter(s)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===s?T.gold:"rgba(240,192,64,0.08)",color:filter===s?"#0a0a0a":T.textMuted}}>{s}</button>)}</div>
-    <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:filtered.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No bookings yet</Card>:filtered.map(b=><Card key={b.id}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:14,fontWeight:600}}>{b.customer_name||"—"} <span style={{fontSize:12,color:T.textMuted,fontWeight:400}}>· {b.service_want||""}</span></div>
-            <div style={{fontSize:12,color:T.textMuted,marginTop:4}}><i className="ti ti-calendar" style={{marginRight:4}}/>{b.meeting_date} {b.meeting_time}</div>
-            <div style={{fontSize:12,color:T.textMuted,marginTop:2}}><i className="ti ti-mail" style={{marginRight:4}}/>{b.email||"—"} · <i className="ti ti-phone" style={{margin:"0 4px"}}/>{b.phone||"—"}</div>
-            {b.meeting_link&&<a href={b.meeting_link} target="_blank" rel="noreferrer" style={{fontSize:12,color:T.gold,marginTop:4,display:"inline-block"}}><i className="ti ti-video" style={{marginRight:4}}/>Join Meet</a>}
-          </div>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,flexShrink:0}}>
-            <Badge color={b.status==="Confirmed"?T.success:b.status==="Completed"?T.info:T.danger}>{b.status}</Badge>
-            {b.status==="Confirmed"&&<Btn small onClick={()=>update(b.id,"Completed")}>Mark done</Btn>}
-          </div>
-        </div>
-      </Card>)}
-    </div>
-  </div>;
-}
 
 
 
