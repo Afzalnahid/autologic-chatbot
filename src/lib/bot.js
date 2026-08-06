@@ -430,6 +430,17 @@ function bookingRule() {
 }
 const BOOKING_RULE_PLACEHOLDER = "";
 
+// The owner's choice in Settings → Customer languages. "Follow the customer"
+// returns null, which lets detectLanguage decide per message.
+export async function getLanguageMode(clientId) {
+  const { data } = await sb().from("app_settings").select("settings")
+    .eq("id", String(clientId)).maybeSingle();
+  const v = String(data?.settings?.languages || "").toLowerCase();
+  if (v.includes("english only")) return "English";
+  if (v.includes("bangla only")) return "Bangla";
+  return null;
+}
+
 // Deterministic language lock. Rule 5 inside FIXED_BASE asked the model to match
 // the customer's language, and it kept losing to a Bangla business profile: English
 // questions were getting Bangla answers every time. So the decision is made in code
@@ -494,14 +505,15 @@ async function enforceLanguage(items, lang) {
 export async function composeReply({ clientId, client, bType, senderId, combined, platform }) {
   const isAgency = bType === "agency";
 
-  let systemPrompt, history, context;
+  let systemPrompt, history, context, forcedLang = null;
   try {
     if (isAgency) {
       let snippets;
-      [systemPrompt, history, snippets] = await Promise.all([
+      [systemPrompt, history, snippets, forcedLang] = await Promise.all([
         getSystemPrompt(clientId, bType),
         getMemory(senderId, clientId),
         searchKnowledge(clientId, combined, 6),
+        getLanguageMode(clientId),
       ]);
       context = snippets.length
         ? "\n\nKNOWLEDGE BASE (answer ONLY from this retrieved context; if the answer is not here, say you'll connect them with the team):\n" +
@@ -509,10 +521,11 @@ export async function composeReply({ clientId, client, bType, senderId, combined
         : "\n\nKNOWLEDGE BASE: no relevant information found.";
     } else {
       let products;
-      [systemPrompt, history, products] = await Promise.all([
+      [systemPrompt, history, products, forcedLang] = await Promise.all([
         getSystemPrompt(clientId, bType),
         getMemory(senderId, clientId),
         searchProducts(clientId, combined, combined.includes("--- ITEM") ? 4 : 3),
+        getLanguageMode(clientId),
       ]);
       context = products.length
         ? "\n\nSEARCH RESULTS (source of truth, pick from these only; each has match_score 0-1 — if the best match_score is below 0.5, do NOT guess: tell the customer you couldn't find that exact item and ask for a clearer photo or more details):\n" +
@@ -529,7 +542,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   let raw;
   try {
     const rules = isAgency ? bookingRule() : orderRule;
-    const lang = detectLanguage(combined);
+    const lang = forcedLang || detectLanguage(combined);
     const lock = languageLock(lang);
     // Also on the user turn. A system instruction loses to the visible pattern of
     // the conversation: with a history of Bangla replies the model simply copies
@@ -555,7 +568,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   } else {
     items = await maybeSaveOrder(items, clientId, senderId);
   }
-  items = await enforceLanguage(items, detectLanguage(combined));
+  items = await enforceLanguage(items, forcedLang || detectLanguage(combined));
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
   // Tagging never blocks or breaks a reply: if it fails, the customer still gets
   // their answer and the conversation simply keeps its previous tag.
