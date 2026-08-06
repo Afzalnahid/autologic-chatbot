@@ -454,6 +454,40 @@ function languageLock(lang) {
     " Never send a bilingual reply with both languages separated by a slash. This applies even when the business profile, greeting, knowledge base or product data is written in another language: translate that content into the customer's language before answering.";
 }
 
+// Asking the model nicely does not hold: with a Bangla conversation history it
+// answers an English question in Bangla anyway. So the reply is checked, and
+// rewritten when it came back in the wrong language. A failed rewrite keeps the
+// original — a reply in the wrong language still beats no reply at all.
+async function enforceLanguage(items, lang) {
+  const hasBengali = (t) => /[\u0980-\u09FF]/.test(String(t || ""));
+  const wrong = items.some(it =>
+    it.text && (lang === "Bangla" ? !hasBengali(it.text) : hasBengali(it.text))
+  );
+  if (!wrong) return items;
+
+  console.log("[language] reply came back in the wrong language, rewriting to", lang);
+  const system =
+    `Rewrite the customer-facing message below in ${lang}` +
+    (lang === "Banglish" ? " (Bangla words written in English letters, no Bengali script)." : ".") +
+    " Keep the meaning, the prices, the numbers, the line breaks and the tone exactly the same." +
+    " Leave any URL, any {{PLACEHOLDER}} and any product code exactly as it is." +
+    " Reply with the rewritten message only — no preamble, no quotes, no explanation.";
+
+  const out = [];
+  for (const it of items) {
+    if (!it.text) { out.push(it); continue; }
+    try {
+      const fixed = await chatWithGemini(system, [{ role: "user", content: it.text }]);
+      const clean = String(fixed || "").trim();
+      out.push(clean ? { ...it, text: clean } : it);
+    } catch (e) {
+      console.error("[language] rewrite failed:", e.message);
+      out.push(it);
+    }
+  }
+  return out;
+}
+
 // The reply engine. Given the customer's combined text it produces the response
 // items and any booking note — no sending, no buffer writes. Every channel uses
 // this one function so a new channel cannot drift from the others.
@@ -495,8 +529,13 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   let raw;
   try {
     const rules = isAgency ? bookingRule() : orderRule;
-    const lock = languageLock(detectLanguage(combined));
-    raw = await chatWithGemini(systemPrompt + context + rules + lock, [...history, { role: "user", content: combined }]);
+    const lang = detectLanguage(combined);
+    const lock = languageLock(lang);
+    // Also on the user turn. A system instruction loses to the visible pattern of
+    // the conversation: with a history of Bangla replies the model simply copies
+    // the previous answer, whatever the system prompt says.
+    raw = await chatWithGemini(systemPrompt + context + rules + lock,
+      [...history, { role: "user", content: combined + `\n\n[Reply in ${lang} only.]` }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
     raw = "";
@@ -516,6 +555,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   } else {
     items = await maybeSaveOrder(items, clientId, senderId);
   }
+  items = await enforceLanguage(items, detectLanguage(combined));
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
   // Tagging never blocks or breaks a reply: if it fails, the customer still gets
   // their answer and the conversation simply keeps its previous tag.
