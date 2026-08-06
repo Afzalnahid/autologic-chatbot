@@ -17,12 +17,17 @@ const DEFAULT_PROMPT = "You are a helpful sales assistant. Reply ONLY with a JSO
 const sb = () => supabase;
 
 export async function getChannelByPage(pageId) {
-  const { data } = await sb().from("channels").select("*").eq("status", "connected").limit(200);
-  const match = (data || []).find(c => String(c.page_id) === String(pageId)) || null;
+  const { data } = await sb().from("channels").select("*")
+    .eq("status", "connected").eq("page_id", pageId).limit(1);
+  const match = (data && data[0]) || null;
   if (!match) {
+    // Only on a miss do we list what is connected — this is a rare diagnostic,
+    // so it never runs on the normal reply path.
+    const { data: known } = await sb().from("channels").select("platform,page_id")
+      .eq("status", "connected").limit(200);
     console.error(
       `[channel-miss] no connected channel for pageId="${pageId}". Known page_ids:`,
-      (data || []).map(c => `${c.platform}:${c.page_id}`).join(", ")
+      (known || []).map(c => `${c.platform}:${c.page_id}`).join(", ")
     );
   }
   return match;
