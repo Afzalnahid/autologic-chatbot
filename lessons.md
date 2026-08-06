@@ -131,3 +131,21 @@ the channel simply looked silent.
   "the bot is not replying" has no trail to follow.
 - The diagnosis came from reading the runtime logs and the database, not from reasoning about
   what was likely. Ten minutes of evidence beat a confident guess (see #1).
+
+## 14. Fix an invariant everywhere it is broken, not only where you noticed it
+**2026-08-07.** `GET /api/conversations` was reading `message_buffer` with no `client_id`
+filter and slicing in JavaScript; that was spotted, fixed at the DB (`d7ac431`), and even
+written into `memory.md`. But the *same* anti-pattern was living in seven reads inside
+`src/lib/bot.js` — the shared reply engine, the busiest code in the project — and two of them
+(`botAllowed`'s contacts read, `getMemory`) filtered no `client_id` at all, a silent
+cross-tenant read. The stated invariant ("every query filters `client_id` at the DB with
+`.eq()`") had existed the whole time; nothing enforced it, so it rotted in the one file that
+mattered most. `pendingFor` was on the critical path: a busy platform could push a tenant's own
+pending rows past a shared 500-row cap and the bot would go silent with no error.
+
+**Rule:** when you fix an invariant violation in one place, immediately grep the whole repo for
+the same shape before calling it done — especially the core engine, not just the route in front
+of you (this is #5 applied to data-scoping). A rule written in `AGENTS.md` is not a check; treat
+a stated invariant as unenforced until something greps for it. And a read that returns another
+tenant's rows but "happens to work" because ids rarely collide is a latent leak, not a
+non-issue — scope it now.

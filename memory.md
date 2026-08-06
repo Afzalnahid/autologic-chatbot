@@ -4,6 +4,52 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-07)
+
+**`bot.js` client_id invariant — DONE (one commit `33f84b7`).**
+
+The core reply engine read broadly and filtered in JavaScript, breaking the
+"every query filters `client_id` at the DB with `.eq()`" invariant in seven
+places. The same defect had been fixed in `GET /api/conversations` in an earlier
+session (`d7ac431`), but the shared reply path — the busiest code — was never
+grepped, so it kept the anti-pattern. Now fixed in `src/lib/bot.js`:
+
+- `getClient` — was `select("*").limit(200)` + JS `.find(id)` → `.eq("id", clientId).maybeSingle()`.
+- `botAllowed` contacts — was `select("*").limit(1000)` + JS `.find(sender_id)`, **no client_id filter at all** → `.eq("client_id", channel.client_id).eq("sender_id", senderId).limit(1)`. Latent cross-tenant read closed.
+- `pendingFor` — **critical path.** Was newest 500 rows across *all* tenants, filtered in JS. On a busy platform a tenant's own pending messages could fall outside the 500 and the bot would silently stop replying. Now `.eq("client_id").eq("sender_id").eq("status","Pending")` at the DB. Order/limit semantics unchanged.
+- `getMemory` — was 300 rows global, filtered by `session_id` only, **no client_id** → `.eq("client_id").eq("session_id").limit(10)`. Second latent cross-tenant read closed; also fixes memory going blank when a session's rows fell outside the global newest-300.
+- `getSystemPrompt` and `handleComment`'s settings read — `app_settings select("*").limit(200)` + JS find → `.eq("id", String(clientId)).maybeSingle()`.
+- Three `contacts` name-reads (FB, IG, comment) — added `.eq("client_id", clientId)` alongside the existing `sender_id` filter.
+
+Return shapes unchanged, so the only external caller (`/api/widget/chat`) is
+unaffected. Both business types share these functions; no type-specific branch
+touched. `message_buffer (client_id, sender_id, created_at)` index already
+exists (Task 6), so no migration.
+
+- Verified: `node --check src/lib/bot.js` OK; grep confirms no client_id
+  fetch-all-then-JS-filter remains; commit `33f84b7` (author + committer
+  `Afzalnahid`); deployment `dpl_2jxeECgFmdiuqjXigyqJL1SxaJFq` **READY**, live
+  SHA = HEAD.
+- **NOT verified:** live behaviour on either business type — no message has been
+  sent through the new build yet. Rollback candidate if needed: `dpl_EApdafX6…`
+  (commit `b52480c`).
+
+**Follow-up filed and being done next, separate commit:** `getChannelByPage`
+(`bot.js:20`) still does `channels select("*").limit(200)` + JS `.find(page_id)`.
+It resolves *which* channel/client a webhook belongs to, so it has no `client_id`
+to filter — a different (scaling) bug, not the invariant. At 200+ connected
+channels tenant #201 silently breaks. Fix: `.eq("page_id", pageId)`, keep the
+`[channel-miss]` diagnostic on a miss.
+
+### What's next
+1. Finish `getChannelByPage` DB-scoping (in progress this session).
+2. Owner sends a live test message on FB/IG/WA to confirm no reply regression.
+3. Everything under the 2026-08-01 "What's next" below still stands (case-study
+   TODO values, Task 5/6/7 live tests, Task 8 courier, Task 3 when SSLCommerz
+   sandbox exists).
+
+---
+
 ## Last session (2026-08-01)
 
 **Improvement sprint opened. Task 3 started and parked; Task 4 shipped.**
