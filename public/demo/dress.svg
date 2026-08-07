@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400" role="img" aria-label="Product photo placeholder">
+  <!-- Drawn here rather than taken from a stock library: this ships on a commercial
+       site, and an original illustration carries no licence to get wrong. Swap in a
+       real product photograph whenever one exists. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#20283A"/>
+      <stop offset="1" stop-color="#141A27"/>
+    </linearGradient>
+    <linearGradient id="cloth" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#7FA5FF"/>
+      <stop offset="0.55" stop-color="#5B8CFF"/>
+      <stop offset="1" stop-color="#3E6BD8"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="spot" cx="0.5" cy="0.28" r="0.62">
+      <stop offset="0" stop-color="#5B8CFF" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#5B8CFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="300" height="400" fill="url(#bg)"/>
+  <rect width="300" height="400" fill="url(#spot)"/>
+
+  <!-- soft floor shadow -->
+  <ellipse cx="150" cy="352" rx="74" ry="11" fill="#000" opacity="0.32"/>
+
+  <!-- hanger -->
+  <path d="M150 44c-7 0-12 5-12 11 0 5 3 8 7 10" fill="none" stroke="#8A97AE" stroke-width="3" stroke-linecap="round"/>
+  <path d="M150 66 92 96h116L150 66z" fill="#8A97AE" opacity="0.55"/>
+
+  <!-- kurti -->
+  <path d="M150 74c-13 0-24 5-33 12l-31 24 17 26 20-13v139c0 5 4 9 9 9h72c5 0 9-4 9-9V123l20 13 17-26-31-24c-9-7-20-12-33-12h-36z"
+        fill="url(#cloth)"/>
+  <path d="M150 74c-13 0-24 5-33 12l-31 24 17 26 20-13v139c0 5 4 9 9 9h27V74h-9z"
+        fill="url(#sheen)"/>
+
+  <!-- neckline and placket -->
+  <path d="M132 78c5 9 12 14 18 14s13-5 18-14" fill="none" stroke="#0F1420" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+  <line x1="150" y1="94" x2="150" y2="160" stroke="#0F1420" stroke-width="2" opacity="0.35"/>
+  <circle cx="150" cy="112" r="2.6" fill="#0F1420" opacity="0.45"/>
+  <circle cx="150" cy="132" r="2.6" fill="#0F1420" opacity="0.45"/>
+  <circle cx="150" cy="152" r="2.6" fill="#0F1420" opacity="0.45"/>
+
+  <!-- hem embroidery, kept simple so it reads at thumbnail size -->
+  <g stroke="#DCE6FF" stroke-width="2" opacity="0.5" stroke-linecap="round">
+    <line x1="104" y1="252" x2="196" y2="252"/>
+    <line x1="104" y1="262" x2="196" y2="262"/>
+  </g>
+  <g fill="#DCE6FF" opacity="0.45">
+    <circle cx="120" cy="277" r="3"/><circle cx="140" cy="285" r="3"/>
+    <circle cx="160" cy="277" r="3"/><circle cx="180" cy="285" r="3"/>
+  </g>
+</svg>
