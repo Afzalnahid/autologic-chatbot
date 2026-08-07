@@ -67,7 +67,7 @@ export const COPY = {
 export const CONVOS = [
   { ch: "messenger", kind: "shop", note: "order",
     lines: [["me","এই শাড়িটার দাম কত? স্টকে আছে?"],["bot","জি আছে। জামদানি শাড়ি — ৩,২০০৳, ফ্রি ডেলিভারি। কোন রঙটা নেবেন?"],["me","লাল। নাম রাহেলা, কুমিল্লা।"],["bot","অর্ডার কনফার্ম হলো — কোড #AL2481। ক্যাশ অন ডেলিভারি, ২ দিনে পৌঁছাবে।"]] },
-  { ch: "instagram", kind: "shop", note: "photo",
+  { ch: "instagram", kind: "shop", note: "photo", photo: "/demo/dress.jpg",
     lines: [["me","📷 এই ড্রেসটা আপনাদের আছে?"],["bot","হ্যাঁ, ছবির সাথে মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। সাইজ M ও L আছে।"],["me","Do you deliver outside Dhaka?"],["bot","Yes, we deliver nationwide. Delivery outside Dhaka takes 2–3 days."]] },
   { ch: "whatsapp", kind: "service", note: "docs",
     lines: [["me","আপনাদের সার্ভিস প্যাকেজ কত?"],["bot","স্টার্টার ১,৫০০৳, প্রো ৩,৫০০৳ এবং এজেন্সি ৬,০০০৳ প্রতি মাসে।"],["me","বৃহস্পতিবার একটা মিটিং করা যাবে?"],["bot","বৃহস্পতিবার বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়ে দিয়েছি। ✅"]] },
@@ -114,32 +114,56 @@ export const MOTION = {
     @keyframes al-mask { from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(10px) } to { opacity: 1; clip-path: inset(0 0 0 0); transform: none } }` },
 };
 
-export const BASE_CSS = `
-  /* ---- signature motion ----------------------------------------------------
-     The hero runs a conversation on a loop: the customer writes, the typing dots
-     appear, the bot answers. It is the product doing its job, not a screenshot of
-     it. Pure CSS on a 15s cycle, so there is nothing to load and nothing to break. */
-  .al-live { position: relative }
-  .al-msg { opacity: 0 }
-  .al-msg.m1 { animation: al-m1 15s cubic-bezier(.22,.61,.36,1) infinite }
-  .al-msg.m2 { animation: al-m2 15s cubic-bezier(.22,.61,.36,1) infinite }
-  .al-msg.m3 { animation: al-m3 15s cubic-bezier(.22,.61,.36,1) infinite }
-  .al-msg.m4 { animation: al-m4 15s cubic-bezier(.22,.61,.36,1) infinite }
-  @keyframes al-m1 { 0%,2% { opacity:0; transform: translateY(8px) } 6%,90% { opacity:1; transform:none } 95%,100% { opacity:0 } }
-  @keyframes al-m2 { 0%,17% { opacity:0; transform: translateY(8px) } 21%,90% { opacity:1; transform:none } 95%,100% { opacity:0 } }
-  @keyframes al-m3 { 0%,36% { opacity:0; transform: translateY(8px) } 40%,90% { opacity:1; transform:none } 95%,100% { opacity:0 } }
-  @keyframes al-m4 { 0%,55% { opacity:0; transform: translateY(8px) } 59%,90% { opacity:1; transform:none } 95%,100% { opacity:0 } }
 
+// Four slides on one 44-second clock. Generated rather than hand-written so the
+// timings cannot drift out of step with each other.
+const SLIDES = 4, CYCLE = 44;
+function boardCss() {
+  const w = 100 / SLIDES;            // 25% of the cycle per conversation
+  let out = "";
+  for (let k = 0; k < SLIDES; k++) {
+    const s0 = k * w;
+    const at = (o) => (s0 + o).toFixed(2) + "%";
+    out += `
+      .al-slide.s${k} { animation: al-s${k} ${CYCLE}s linear infinite }
+      @keyframes al-s${k} { 0%,${at(0)} { opacity:0 } ${at(1)},${at(w - 2)} { opacity:1 } ${at(w - 0.5)},100% { opacity:0 } }
+      .s${k} .al-msg.b0 { animation: al-b${k}0 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
+      .s${k} .al-msg.b1 { animation: al-b${k}1 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
+      .s${k} .al-msg.b2 { animation: al-b${k}2 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
+      .s${k} .al-msg.b3 { animation: al-b${k}3 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
+      @keyframes al-b${k}0 { 0%,${at(1)} { opacity:0; transform:translateY(7px) } ${at(2.6)},${at(w - 1)} { opacity:1; transform:none } ${at(w - 0.4)},100% { opacity:0 } }
+      @keyframes al-b${k}1 { 0%,${at(6.2)} { opacity:0; transform:translateY(7px) } ${at(7.8)},${at(w - 1)} { opacity:1; transform:none } ${at(w - 0.4)},100% { opacity:0 } }
+      @keyframes al-b${k}2 { 0%,${at(11.4)} { opacity:0; transform:translateY(7px) } ${at(13)},${at(w - 1)} { opacity:1; transform:none } ${at(w - 0.4)},100% { opacity:0 } }
+      @keyframes al-b${k}3 { 0%,${at(16.6)} { opacity:0; transform:translateY(7px) } ${at(18.2)},${at(w - 1)} { opacity:1; transform:none } ${at(w - 0.4)},100% { opacity:0 } }
+      .s${k} .al-typing.t0 { animation: al-tp${k}0 ${CYCLE}s linear infinite }
+      .s${k} .al-typing.t1 { animation: al-tp${k}1 ${CYCLE}s linear infinite }
+      @keyframes al-tp${k}0 { 0%,${at(3.2)} { opacity:0 } ${at(3.8)},${at(6)} { opacity:1 } ${at(6.2)},100% { opacity:0 } }
+      @keyframes al-tp${k}1 { 0%,${at(13.6)} { opacity:0 } ${at(14.2)},${at(16.4)} { opacity:1 } ${at(16.6)},100% { opacity:0 } }
+      .al-bars span:nth-child(${k + 1})::after { animation: al-bar${k} ${CYCLE}s linear infinite }
+      @keyframes al-bar${k} { 0%,${at(0)} { transform:scaleX(0) } ${at(w - 1)},${at(w - 0.5)} { transform:scaleX(1) } ${at(w - 0.4)},100% { transform:scaleX(0) } }`;
+  }
+  return out;
+}
+export const BOARD_CSS = boardCss();
+
+export const BASE_CSS = `
+  /* ---- the board ------------------------------------------------------------
+     Four conversations play one after another, on a loop, like a board outside a
+     shop. Each one types, answers, holds, and hands over to the next. The whole
+     thing is CSS on a single shared clock, so the slides can never drift apart. */
+  .al-board { position: relative; overflow: hidden }
+  .al-slide { position: absolute; inset: 0; opacity: 0 }
+  .al-msg { opacity: 0 }
   .al-typing { display: inline-flex; gap: 4px; padding: 10px 13px; border-radius: 13px;
-    background: #151B29; border: 1px solid ${T.border}; opacity: 0 }
-  .al-typing.t1 { animation: al-t1 15s linear infinite }
-  .al-typing.t2 { animation: al-t2 15s linear infinite }
-  @keyframes al-t1 { 0%,7% { opacity:0 } 9%,16% { opacity:1 } 18%,100% { opacity:0 } }
-  @keyframes al-t2 { 0%,45% { opacity:0 } 47%,54% { opacity:1 } 56%,100% { opacity:0 } }
+    background: #151B29; border: 1px solid ${T.border}; opacity: 0; align-self: flex-start }
   .al-typing b { width: 5px; height: 5px; border-radius: 50%; background: ${T.muted};
     animation: al-bounce 1.3s ease-in-out infinite }
   .al-typing b:nth-child(2) { animation-delay: .18s } .al-typing b:nth-child(3) { animation-delay: .36s }
   @keyframes al-bounce { 0%,60%,100% { opacity:.35; transform: translateY(0) } 30% { opacity:1; transform: translateY(-3px) } }
+  .al-bars { display: flex; gap: 5px; margin-bottom: 13px }
+  .al-bars span { flex: 1; height: 3px; border-radius: 2px; background: ${T.border}; overflow: hidden; position: relative }
+  .al-bars span::after { content: ""; position: absolute; inset: 0; background: ${T.gold}; transform: scaleX(0);
+    transform-origin: left }
 
   /* A slow wash of brand light behind the hero. Barely there on purpose — it should
      read as depth, not as a light show. */
@@ -209,7 +233,10 @@ export const BASE_CSS = `
     .al-dot, .al-hint i, .al-chip, .al-aurora, .al-typing, .al-typing b { animation: none !important }
     .al-cta::after { display: none }
     .al-msg { opacity: 1 !important; animation: none !important }
+    .al-slide { animation: none !important }
+    .al-slide.s0 { opacity: 1 !important } .al-slide.s1, .al-slide.s2, .al-slide.s3 { display: none }
     .al-typing { display: none }
+    .al-bars span::after { animation: none !important }
   }
 `;
 
