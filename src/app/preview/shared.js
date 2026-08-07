@@ -7,7 +7,7 @@ export const T = {
 };
 
 export const FEATURES = [
-  { icon: "ti-messages", title: "Multi-channel messaging", desc: "Facebook Messenger, Instagram Direct and WhatsApp Business in one inbox, answered by one assistant." },
+  { icon: "ti-messages", title: "Multi-channel messaging", desc: "Facebook Messenger, Instagram Direct, WhatsApp Business and your own website — one inbox, one assistant." },
   { icon: "ti-brain", title: "Smart AI replies", desc: "Answers come from your own products or uploaded documents — accurate, on-brand, around the clock." },
   { icon: "ti-calendar-check", title: "Calendar booking", desc: "Checks your Google Calendar, creates the meeting, generates the Meet link and sends it to the customer." },
   { icon: "ti-shopping-bag", title: "Products and orders", desc: "Recommends products, matches customer photos to your inventory and records the order as it is confirmed." },
@@ -19,7 +19,7 @@ export const COPY = {
   eyebrow: "Answering customers right now",
   h1a: "One AI chatbot for",
   h1b: "all your customer channels",
-  lead: "Connects to Facebook, Instagram and WhatsApp, answers in Bangla or English, and books meetings straight into your Google Calendar.",
+  lead: "Connects to Facebook, Instagram, WhatsApp and your own website, answers in Bangla or English, and books meetings straight into your Google Calendar.",
   cta: "Start free trial",
   cta2: "See pricing",
   proof: ["3-day free trial", "No card required", "Bangla and English"],
@@ -63,11 +63,22 @@ export const BASE_CSS = `
   .al-switch a.on { color: #0A0D14; background: ${T.gold}; border-color: ${T.gold} }
   .al-pad { height: 78px }
 
+  /* Swipeable on a phone, plain row on a desktop. No JavaScript: the browser's
+     own scroll snapping does it, so it cannot break the way the reveal did. */
+  .al-rail { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch; padding: 2px 22px 6px; margin: 0 -22px;
+    scrollbar-width: none }
+  .al-rail::-webkit-scrollbar { display: none }
+  .al-rail > * { flex: 0 0 min(86vw, 340px); scroll-snap-align: center }
+  .al-hint { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: ${T.dim}; margin-top: 14px }
+  @keyframes al-nudge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(5px) } }
+  .al-hint i { animation: al-nudge 1.8s ease-in-out infinite }
+
   @media (max-width: 620px) { .al-grid { grid-template-columns: 1fr !important } }
   @media (prefers-reduced-motion: reduce) {
     .al-rise, .al-card, .al-cta, .al-btn, .al-link { animation: none !important; transition: none !important; transform: none !important }
     .al-obs { opacity: 1 !important; transform: none !important }
-    .al-dot { animation: none !important }
+    .al-dot, .al-hint i { animation: none !important }
   }
 `;
 
