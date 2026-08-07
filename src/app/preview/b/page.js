@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function P() { redirect("/preview/m2"); }
+export default function P() { redirect("/preview/m3"); }
