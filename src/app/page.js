@@ -13,7 +13,7 @@ const T = {
 
 function Feature({ icon, title, desc, i = 0 }) {
   return (
-    <div className="al-rise al-card" style={{ animationDelay: `${0.34 + i * 0.05}s`, background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 24 }}>
+    <div className="al-card" data-reveal={(i % 3) * 90} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 24 }}>
       <div style={{ fontSize: 28, marginBottom: 10 }}>{icon}</div>
       <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{title}</div>
       <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.7 }}>{desc}</div>
@@ -23,7 +23,7 @@ function Feature({ icon, title, desc, i = 0 }) {
 
 function CaseStudy({ cs, draft }) {
   return (
-    <div className="al-card" style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `2px solid ${draft ? T.warn : T.gold}`, borderRadius: 14, padding: 24 }}>
+    <div className="al-card" data-reveal="0" style={{ background: T.card, border: `1px solid ${T.border}`, borderLeft: `2px solid ${draft ? T.warn : T.gold}`, borderRadius: 14, padding: 24 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
         <span style={{ fontSize: 17, fontWeight: 700 }}>{cs.business}</span>
         <span style={{ fontSize: 11.5, color: T.gold, background: T.goldBg, border: `1px solid ${T.gold}33`, borderRadius: 20, padding: "3px 10px" }}>
@@ -70,6 +70,13 @@ export default function Home() {
 
         .al-card { transition: transform .18s ease, border-color .18s ease, background .18s ease; }
         .al-card:hover { transform: translateY(-3px); border-color: ${T.gold}55; }
+        /* Touch has no hover, so the press itself has to answer. */
+        .al-card:active { transform: scale(.985); border-color: ${T.gold}55; }
+
+        /* Reveal on scroll. The class is only added by the script below, so with
+           JavaScript off every card is simply visible from the start. */
+        .al-obs { opacity: 0; transform: translateY(18px); }
+        .al-obs.al-in { opacity: 1; transform: none; transition: opacity .5s ease, transform .5s cubic-bezier(.22,.61,.36,1); }
 
         .al-link { transition: color .15s ease; }
         .al-link:hover { color: ${T.text}; }
@@ -80,15 +87,37 @@ export default function Home() {
 
         .al-cta { transition: transform .15s ease, box-shadow .25s ease, filter .15s ease; }
         .al-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 28px ${T.gold}33; filter: brightness(1.06); }
-        .al-cta:active { transform: translateY(0); box-shadow: none; }
+        .al-cta:active { transform: scale(.97); box-shadow: none; }
+        .al-btn:active { transform: scale(.97); }
 
         a:focus-visible, .al-card:focus-visible { outline: 2px solid ${T.gold}; outline-offset: 3px; border-radius: 8px; }
 
         @media (prefers-reduced-motion: reduce) {
           .al-rise, .al-card, .al-link, .al-btn, .al-cta { animation: none !important; transition: none !important; transform: none !important; }
+          .al-obs { opacity: 1 !important; transform: none !important; }
         }
       `}</style>
 
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){
+            if (!("IntersectionObserver" in window)) return;
+            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+            var els = document.querySelectorAll("[data-reveal]");
+            for (var i = 0; i < els.length; i++) els[i].classList.add("al-obs");
+            var io = new IntersectionObserver(function(entries){
+              entries.forEach(function(e){
+                if (!e.isIntersecting) return;
+                e.target.style.transitionDelay = (e.target.dataset.reveal || 0) + "ms";
+                e.target.classList.add("al-in");
+                io.unobserve(e.target);
+              });
+            }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+            for (var j = 0; j < els.length; j++) io.observe(els[j]);
+          })();`,
+        }}
+      />
       {/* Nav */}
       <nav style={{ borderBottom: `1px solid ${T.border}` }}>
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px" }}>
@@ -133,7 +162,7 @@ export default function Home() {
       {/* Case studies */}
       {cases.length > 0 && (
         <section id="case-studies" style={{ ...wrap, padding: "0 24px 64px" }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.3, margin: "0 0 10px" }}>
+          <h2 data-reveal="0" style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.3, margin: "0 0 10px" }}>
             Businesses running on Autologic
           </h2>
           <p style={{ fontSize: 15.5, color: T.muted, lineHeight: 1.7, maxWidth: 620, margin: "0 0 26px" }}>
