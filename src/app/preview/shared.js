@@ -115,6 +115,57 @@ export const MOTION = {
 };
 
 export const BASE_CSS = `
+  /* ---- signature motion ----------------------------------------------------
+     The hero runs a conversation on a loop: the customer writes, the typing dots
+     appear, the bot answers. It is the product doing its job, not a screenshot of
+     it. Pure CSS on a 15s cycle, so there is nothing to load and nothing to break. */
+  .al-live { position: relative }
+  .al-msg { opacity: 0 }
+  .al-msg.m1 { animation: al-m1 15s cubic-bezier(.22,.61,.36,1) infinite }
+  .al-msg.m2 { animation: al-m2 15s cubic-bezier(.22,.61,.36,1) infinite }
+  .al-msg.m3 { animation: al-m3 15s cubic-bezier(.22,.61,.36,1) infinite }
+  .al-msg.m4 { animation: al-m4 15s cubic-bezier(.22,.61,.36,1) infinite }
+  @keyframes al-m1 { 0%,2% { opacity:0; transform: translateY(8px) } 6%,90% { opacity:1; transform:none } 95%,100% { opacity:0 } }
+  @keyframes al-m2 { 0%,17% { opacity:0; transform: translateY(8px) } 21%,90% { opacity:1; transform:none } 95%,100% { opacity:0 } }
+  @keyframes al-m3 { 0%,36% { opacity:0; transform: translateY(8px) } 40%,90% { opacity:1; transform:none } 95%,100% { opacity:0 } }
+  @keyframes al-m4 { 0%,55% { opacity:0; transform: translateY(8px) } 59%,90% { opacity:1; transform:none } 95%,100% { opacity:0 } }
+
+  .al-typing { display: inline-flex; gap: 4px; padding: 10px 13px; border-radius: 13px;
+    background: #151B29; border: 1px solid ${T.border}; opacity: 0 }
+  .al-typing.t1 { animation: al-t1 15s linear infinite }
+  .al-typing.t2 { animation: al-t2 15s linear infinite }
+  @keyframes al-t1 { 0%,7% { opacity:0 } 9%,16% { opacity:1 } 18%,100% { opacity:0 } }
+  @keyframes al-t2 { 0%,45% { opacity:0 } 47%,54% { opacity:1 } 56%,100% { opacity:0 } }
+  .al-typing b { width: 5px; height: 5px; border-radius: 50%; background: ${T.muted};
+    animation: al-bounce 1.3s ease-in-out infinite }
+  .al-typing b:nth-child(2) { animation-delay: .18s } .al-typing b:nth-child(3) { animation-delay: .36s }
+  @keyframes al-bounce { 0%,60%,100% { opacity:.35; transform: translateY(0) } 30% { opacity:1; transform: translateY(-3px) } }
+
+  /* A slow wash of brand light behind the hero. Barely there on purpose — it should
+     read as depth, not as a light show. */
+  .al-aurora { position: absolute; inset: -20% -10% auto -10%; height: 460px; pointer-events: none;
+    background: radial-gradient(50% 60% at 50% 40%, ${T.gold}22, transparent 70%);
+    filter: blur(50px); animation: al-drift 18s ease-in-out infinite; z-index: 0 }
+  @keyframes al-drift { 0%,100% { transform: translateX(-4%) scale(1) } 50% { transform: translateX(4%) scale(1.08) } }
+
+  /* Light passes across the main button, the way it does on a real surface. */
+  .al-cta { position: relative; overflow: hidden }
+  .al-cta::after { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.42), transparent);
+    transform: skewX(-18deg); animation: al-sheen 4.5s ease-in-out infinite }
+  @keyframes al-sheen { 0%,72% { left: -60% } 88%,100% { left: 120% } }
+
+  /* Each channel lights up in turn: four channels, one after another. */
+  .al-chip { transition: border-color .3s ease-out, color .3s ease-out }
+  .al-chip.c0 { animation: al-chip 7s ease-in-out infinite }
+  .al-chip.c1 { animation: al-chip 7s ease-in-out infinite 1.75s }
+  .al-chip.c2 { animation: al-chip 7s ease-in-out infinite 3.5s }
+  .al-chip.c3 { animation: al-chip 7s ease-in-out infinite 5.25s }
+  @keyframes al-chip {
+    0%,88%,100% { border-color: ${T.border}; box-shadow: none }
+    10%,20% { border-color: ${T.gold}66; box-shadow: 0 0 0 3px ${T.gold}12 }
+  }
+
   .al-card { transition: transform .2s ease-out, border-color .2s ease-out, box-shadow .2s ease-out }
   /* On a dark surface a wider glow reads better than a deeper shadow. */
   .al-card:hover { transform: translateY(-3px); border-color: ${T.gold}44; box-shadow: 0 14px 40px ${T.gold}1F }
@@ -155,7 +206,10 @@ export const BASE_CSS = `
   @media (prefers-reduced-motion: reduce) {
     .al-rise, .al-card, .al-cta, .al-btn, .al-link { animation: none !important; transition: none !important; transform: none !important }
     .al-obs { opacity: 1 !important; transform: none !important; filter: none !important; clip-path: none !important }
-    .al-dot, .al-hint i { animation: none !important }
+    .al-dot, .al-hint i, .al-chip, .al-aurora, .al-typing, .al-typing b { animation: none !important }
+    .al-cta::after { display: none }
+    .al-msg { opacity: 1 !important; animation: none !important }
+    .al-typing { display: none }
   }
 `;
 
