@@ -1,86 +1,160 @@
-// Shared by the three preview variants so the comparison is fair: same colours,
-// same copy, same motion. Only the layout and typography differ.
+// Shared base for the preview variants. Same layout, same copy, same colours —
+// only the motion system changes, so comparing them is a fair test.
 
 export const T = {
   bg: "#0A0D14", card: "#0F1420", gold: "#5B8CFF", goldBg: "rgba(91,140,255,0.10)",
   text: "#E7EAF2", muted: "#98A3BA", dim: "#6B7689", border: "#1F2839", green: "#2ED3A7",
 };
 
-export const FEATURES = [
-  { icon: "ti-messages", title: "Multi-channel messaging", desc: "Facebook Messenger, Instagram Direct, WhatsApp Business and your own website — one inbox, one assistant." },
-  { icon: "ti-brain", title: "Smart AI replies", desc: "Answers come from your own products or uploaded documents — accurate, on-brand, around the clock." },
-  { icon: "ti-calendar-check", title: "Calendar booking", desc: "Checks your Google Calendar, creates the meeting, generates the Meet link and sends it to the customer." },
-  { icon: "ti-shopping-bag", title: "Products and orders", desc: "Recommends products, matches customer photos to your inventory and records the order as it is confirmed." },
-  { icon: "ti-books", title: "Knowledge base", desc: "Upload PDFs, Word files or text. Your documents become an instant, searchable source the bot answers from." },
-  { icon: "ti-lock", title: "Isolated and private", desc: "Every business's data is separated at the database. Access tokens are stored securely and never shared." },
-];
-
-export const COPY = {
-  eyebrow: "Answering customers right now",
-  h1a: "One AI chatbot for",
-  h1b: "all your customer channels",
-  lead: "Connects to Facebook, Instagram, WhatsApp and your own website, answers in Bangla or English, and books meetings straight into your Google Calendar.",
-  cta: "Start free trial",
-  cta2: "See pricing",
-  proof: ["3-day free trial", "No card required", "Bangla and English"],
-  sectionLabel: "What it does",
-  sectionTitle: "Everything a customer conversation needs",
-  sectionLead: "Set it up once. The bot handles the questions you answer a hundred times a week.",
+export const CH = {
+  whatsapp:  { icon: "ti-brand-whatsapp",  name: "WhatsApp Business",  short: "WhatsApp",  tint: "#25D366" },
+  messenger: { icon: "ti-brand-messenger", name: "Facebook Messenger", short: "Messenger", tint: "#0084FF" },
+  instagram: { icon: "ti-brand-instagram", name: "Instagram Business", short: "Instagram", tint: "#E1306C" },
+  website:   { icon: "ti-world",           name: "Your website",       short: "Website",   tint: "#5B8CFF" },
 };
 
+// Both languages, written rather than machine-translated, because the customer
+// this page has to convince is a shop owner in Cumilla.
+export const COPY = {
+  en: {
+    eyebrow: "Answering customers right now",
+    h1: "One AI chatbot for all your customer channels",
+    lead: "Connects to Facebook, Instagram, WhatsApp and your own website, answers in Bangla or English, and books meetings straight into your Google Calendar.",
+    cta: "Start free trial", cta2: "See pricing",
+    proof: ["3-day free trial", "No card required", "Bangla and English"],
+    convLabel: "Real conversations",
+    convTitle: "Whether you sell products or services",
+    convLead: "The same assistant, trained on your own catalogue or your own documents. It replies in the language the customer wrote in.",
+    swipe: "Swipe to see every channel",
+    featLabel: "What it does",
+    featTitle: "Everything a customer conversation needs",
+    shop: "Online shop", service: "Service business",
+    features: [
+      { icon: "ti-messages", title: "Multi-channel messaging", desc: "Messenger, Instagram, WhatsApp and your own website — one inbox, one assistant." },
+      { icon: "ti-brain", title: "Smart AI replies", desc: "Answers come from your own products or uploaded documents — accurate, on-brand, around the clock." },
+      { icon: "ti-calendar-check", title: "Calendar booking", desc: "Checks your Google Calendar, creates the meeting, generates the Meet link and sends it to the customer." },
+      { icon: "ti-shopping-bag", title: "Products and orders", desc: "Recommends products, matches customer photos to your inventory and records the order as it is confirmed." },
+      { icon: "ti-books", title: "Knowledge base", desc: "Upload PDFs, Word files or text. Your documents become an instant, searchable source the bot answers from." },
+      { icon: "ti-lock", title: "Isolated and private", desc: "Every business's data is separated at the database. Access tokens are stored securely and never shared." },
+    ],
+    notes: { order: "Order saved to your dashboard", photo: "Matched the customer's photo to your inventory", docs: "Answered from your uploaded documents", code: "One line of code on your own website" },
+  },
+  bn: {
+    eyebrow: "এখনই গ্রাহকদের উত্তর দিচ্ছে",
+    h1: "আপনার সব চ্যানেলের জন্য একটাই এআই চ্যাটবট",
+    lead: "ফেসবুক, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর আপনার নিজের ওয়েবসাইটে যুক্ত হয়, বাংলা বা ইংরেজিতে উত্তর দেয়, আর মিটিং সরাসরি আপনার গুগল ক্যালেন্ডারে বুক করে।",
+    cta: "ফ্রি ট্রায়াল শুরু করুন", cta2: "দাম দেখুন",
+    proof: ["৩ দিনের ফ্রি ট্রায়াল", "কার্ড লাগবে না", "বাংলা ও ইংরেজি"],
+    convLabel: "সত্যিকারের কথোপকথন",
+    convTitle: "পণ্য বিক্রি করুন বা সেবা — দুটোতেই",
+    convLead: "একই সহকারী, আপনার নিজের পণ্য বা নিজের ডকুমেন্ট থেকে শেখা। গ্রাহক যে ভাষায় লেখেন, সেই ভাষাতেই উত্তর দেয়।",
+    swipe: "সব চ্যানেল দেখতে সোয়াইপ করুন",
+    featLabel: "যা যা করে",
+    featTitle: "একটি কথোপকথনে যা যা লাগে, সব",
+    shop: "অনলাইন শপ", service: "সার্ভিস ব্যবসা",
+    features: [
+      { icon: "ti-messages", title: "সব চ্যানেল এক জায়গায়", desc: "মেসেঞ্জার, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর আপনার ওয়েবসাইট — এক ইনবক্স, এক সহকারী।" },
+      { icon: "ti-brain", title: "বুদ্ধিমান উত্তর", desc: "উত্তর আসে আপনার নিজের পণ্য বা আপলোড করা ডকুমেন্ট থেকে — সঠিক, আপনার ভাষায়, দিনরাত।" },
+      { icon: "ti-calendar-check", title: "ক্যালেন্ডারে বুকিং", desc: "গুগল ক্যালেন্ডার দেখে খালি সময় বের করে, মিটিং তৈরি করে, মিট লিংক বানিয়ে গ্রাহককে পাঠায়।" },
+      { icon: "ti-shopping-bag", title: "পণ্য ও অর্ডার", desc: "পণ্য সাজেস্ট করে, গ্রাহকের পাঠানো ছবি আপনার স্টকের সাথে মেলায়, আর অর্ডার কনফার্ম হলেই লিখে রাখে।" },
+      { icon: "ti-books", title: "নলেজ বেস", desc: "পিডিএফ, ওয়ার্ড বা টেক্সট ফাইল আপলোড করুন। আপনার ডকুমেন্টই হয়ে যায় বটের উত্তরের উৎস।" },
+      { icon: "ti-lock", title: "আলাদা ও নিরাপদ", desc: "প্রতিটি ব্যবসার তথ্য ডাটাবেসেই আলাদা। অ্যাক্সেস টোকেন নিরাপদে থাকে, কখনো শেয়ার হয় না।" },
+    ],
+    notes: { order: "অর্ডার আপনার ড্যাশবোর্ডে সেভ হলো", photo: "গ্রাহকের ছবি আপনার স্টকের সাথে মিলিয়েছে", docs: "আপনার আপলোড করা ডকুমেন্ট থেকে উত্তর", code: "আপনার ওয়েবসাইটে এক লাইন কোড" },
+  },
+};
+
+export const CONVOS = [
+  { ch: "messenger", kind: "shop", note: "order",
+    lines: [["me","এই শাড়িটার দাম কত? স্টকে আছে?"],["bot","জি আছে। জামদানি শাড়ি — ৩,২০০৳, ফ্রি ডেলিভারি। কোন রঙটা নেবেন?"],["me","লাল। নাম রাহেলা, কুমিল্লা।"],["bot","অর্ডার কনফার্ম হলো — কোড #AL2481। ক্যাশ অন ডেলিভারি, ২ দিনে পৌঁছাবে।"]] },
+  { ch: "instagram", kind: "shop", note: "photo",
+    lines: [["me","📷 এই ড্রেসটা আপনাদের আছে?"],["bot","হ্যাঁ, ছবির সাথে মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। সাইজ M ও L আছে।"],["me","Do you deliver outside Dhaka?"],["bot","Yes, we deliver nationwide. Delivery outside Dhaka takes 2–3 days."]] },
+  { ch: "whatsapp", kind: "service", note: "docs",
+    lines: [["me","আপনাদের সার্ভিস প্যাকেজ কত?"],["bot","স্টার্টার ১,৫০০৳, প্রো ৩,৫০০৳ এবং এজেন্সি ৬,০০০৳ প্রতি মাসে।"],["me","বৃহস্পতিবার একটা মিটিং করা যাবে?"],["bot","বৃহস্পতিবার বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়ে দিয়েছি। ✅"]] },
+  { ch: "website", kind: "service", note: "code",
+    lines: [["me","Hi, I run a small clothing store. Can this handle my Facebook page?"],["bot","Yes — Messenger, Instagram, WhatsApp and this website widget, all from one dashboard."],["me","How do I add it to my site?"],["bot","One line of code, copied from your dashboard. It takes about a minute."]] },
+];
+
 export const wrap = { maxWidth: 1120, margin: "0 auto", padding: "0 22px" };
+export const shell = { background: T.bg, minHeight: "100vh", color: T.text,
+  fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif" };
+
+// ---- the five motion systems -------------------------------------------------
+// Entering elements use ease-out curves, never linear. Each one is a different
+// idea about how the page should arrive, not five speeds of the same idea.
+export const MOTION = {
+  m1: { name: "Quiet", note: "Opacity only. Nothing moves.", css: `
+    .al-rise { animation: al-fade .3s ease-out both }
+    .al-obs { opacity: 0 }
+    .al-obs.al-in { opacity: 1; transition: opacity .4s ease-out }
+    @keyframes al-fade { from { opacity: 0 } to { opacity: 1 } }` },
+
+  m2: { name: "Lift", note: "Rises and settles. Expo easing.", css: `
+    .al-rise { animation: al-lift .55s cubic-bezier(.16,1,.3,1) both }
+    .al-obs { opacity: 0; transform: translateY(16px) scale(.985) }
+    .al-obs.al-in { opacity: 1; transform: none; transition: opacity .5s ease-out, transform .6s cubic-bezier(.16,1,.3,1) }
+    @keyframes al-lift { from { opacity: 0; transform: translateY(16px) scale(.985) } to { opacity: 1; transform: none } }` },
+
+  m3: { name: "Cascade", note: "Arrives line by line, like a chat.", css: `
+    .al-rise { animation: al-casc .5s cubic-bezier(.22,.61,.36,1) both }
+    .al-obs { opacity: 0; transform: translateY(22px) }
+    .al-obs.al-in { opacity: 1; transform: none; transition: opacity .5s ease-out, transform .65s cubic-bezier(.22,.61,.36,1) }
+    @keyframes al-casc { from { opacity: 0; transform: translateY(22px) } to { opacity: 1; transform: none } }` },
+
+  m4: { name: "Focus", note: "Resolves from soft blur.", css: `
+    .al-rise { animation: al-blur .65s cubic-bezier(.16,1,.3,1) both }
+    .al-obs { opacity: 0; filter: blur(9px); transform: translateY(8px) }
+    .al-obs.al-in { opacity: 1; filter: blur(0); transform: none; transition: opacity .6s ease-out, filter .7s ease-out, transform .7s cubic-bezier(.16,1,.3,1) }
+    @keyframes al-blur { from { opacity: 0; filter: blur(9px); transform: translateY(8px) } to { opacity: 1; filter: blur(0); transform: none } }` },
+
+  m5: { name: "Reveal", note: "Wipes up behind a mask.", css: `
+    .al-rise { animation: al-mask .7s cubic-bezier(.16,1,.3,1) both }
+    .al-obs { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(10px) }
+    .al-obs.al-in { opacity: 1; clip-path: inset(0 0 0 0); transform: none; transition: opacity .45s ease-out, clip-path .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1) }
+    @keyframes al-mask { from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(10px) } to { opacity: 1; clip-path: inset(0 0 0 0); transform: none } }` },
+};
 
 export const BASE_CSS = `
-  @keyframes al-rise { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
-  .al-rise { animation: al-rise .45s cubic-bezier(.22,.61,.36,1) both }
-  .al-obs { opacity: 0; transform: translateY(16px) }
-  .al-obs.al-in { opacity: 1; transform: none; transition: opacity .55s ease, transform .55s cubic-bezier(.22,.61,.36,1) }
-
-  .al-card { transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease }
-  .al-card:hover { transform: translateY(-3px); border-color: ${T.gold}44; box-shadow: 0 12px 32px rgba(0,0,0,.35) }
+  .al-card { transition: transform .2s ease-out, border-color .2s ease-out, box-shadow .2s ease-out }
+  /* On a dark surface a wider glow reads better than a deeper shadow. */
+  .al-card:hover { transform: translateY(-3px); border-color: ${T.gold}44; box-shadow: 0 14px 40px ${T.gold}1F }
   .al-card:active { transform: scale(.99); border-color: ${T.gold}44 }
 
   @keyframes al-pulse { 0%,100% { box-shadow: 0 0 0 0 ${T.green}55 } 50% { box-shadow: 0 0 0 5px ${T.green}00 } }
   .al-dot { width: 6px; height: 6px; border-radius: 50%; background: ${T.green}; display: inline-block;
             margin-right: 9px; vertical-align: middle; animation: al-pulse 2.6s ease-in-out infinite }
 
-  .al-link { color: ${T.muted}; text-decoration: none; transition: color .15s ease }
+  .al-link { color: ${T.muted}; text-decoration: none; transition: color .15s ease-out }
   .al-link:hover { color: ${T.text} }
-  .al-btn { transition: transform .15s ease, border-color .15s ease }
+  .al-btn { transition: transform .15s ease-out, border-color .15s ease-out }
   .al-btn:hover { border-color: ${T.gold}55 } .al-btn:active { transform: scale(.97) }
-  .al-cta { transition: transform .15s ease, box-shadow .25s ease, filter .15s ease }
-  .al-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 30px ${T.gold}33; filter: brightness(1.05) }
+  .al-cta { transition: transform .15s ease-out, box-shadow .25s ease-out, filter .15s ease-out }
+  .al-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 30px ${T.gold}44; filter: brightness(1.05) }
   .al-cta:active { transform: scale(.97); box-shadow: none }
-
   a:focus-visible { outline: 2px solid ${T.gold}; outline-offset: 3px; border-radius: 8px }
 
-  .al-switch { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; gap: 8px;
-    justify-content: center; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    background: rgba(10,13,20,.9); backdrop-filter: blur(14px); border-top: 1px solid ${T.border} }
-  .al-switch a { flex: 1; max-width: 150px; text-align: center; padding: 11px 8px; border-radius: 10px;
-    font-size: 13px; font-weight: 600; text-decoration: none; color: ${T.muted};
-    border: 1px solid ${T.border}; transition: all .15s ease }
-  .al-switch a.on { color: #0A0D14; background: ${T.gold}; border-color: ${T.gold} }
-  .al-pad { height: 78px }
-
-  /* Swipeable on a phone, plain row on a desktop. No JavaScript: the browser's
-     own scroll snapping does it, so it cannot break the way the reveal did. */
   .al-rail { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch; padding: 2px 22px 6px; margin: 0 -22px;
-    scrollbar-width: none }
+    -webkit-overflow-scrolling: touch; padding: 2px 22px 6px; margin: 0 -22px; scrollbar-width: none }
   .al-rail::-webkit-scrollbar { display: none }
-  /* One card fills the rail, so a swipe moves to exactly one next card.
-     scroll-snap-stop: always is what stops a fast flick skipping past two or three. */
   .al-rail > * { flex: 0 0 calc(100% - 2px); scroll-snap-align: center; scroll-snap-stop: always }
   @media (min-width: 900px) { .al-rail > * { flex-basis: 330px } }
   .al-hint { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: ${T.dim}; margin-top: 14px }
   @keyframes al-nudge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(5px) } }
   .al-hint i { animation: al-nudge 1.8s ease-in-out infinite }
 
+  .al-switch { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; gap: 6px;
+    justify-content: center; padding: 9px 10px calc(9px + env(safe-area-inset-bottom));
+    background: rgba(10,13,20,.92); backdrop-filter: blur(14px); border-top: 1px solid ${T.border}; overflow-x: auto }
+  .al-switch a { flex: 0 0 auto; padding: 9px 12px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+    text-decoration: none; color: ${T.muted}; border: 1px solid ${T.border}; white-space: nowrap; transition: all .15s ease-out }
+  .al-switch a.on { color: #0A0D14; background: ${T.gold}; border-color: ${T.gold} }
+  .al-pad { height: 74px }
+
   @media (max-width: 620px) { .al-grid { grid-template-columns: 1fr !important } }
+  @media (max-width: 860px) { .al-two { grid-template-columns: 1fr !important } }
   @media (prefers-reduced-motion: reduce) {
     .al-rise, .al-card, .al-cta, .al-btn, .al-link { animation: none !important; transition: none !important; transform: none !important }
-    .al-obs { opacity: 1 !important; transform: none !important }
+    .al-obs { opacity: 1 !important; transform: none !important; filter: none !important; clip-path: none !important }
     .al-dot, .al-hint i { animation: none !important }
   }
 `;
@@ -103,93 +177,16 @@ export const REVEAL_JS = `(function(){
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
 })();`;
 
-// Always reachable, so switching between the three is one tap on a phone.
-export function Switch({ active }) {
-  const items = [["A", "/preview"], ["B", "/preview/b"], ["C", "/preview/c"]];
+export function Switch({ active, lang }) {
+  const q = lang === "bn" ? "?lang=bn" : "";
   return (
     <>
       <div className="al-pad" />
       <div className="al-switch">
-        {items.map(([k, href]) => (
-          <a key={k} href={href} className={active === k ? "on" : ""}>
-            {k === "A" ? "A · Calm" : k === "B" ? "B · Editorial" : "C · Product"}
-          </a>
+        {Object.entries(MOTION).map(([k, m], i) => (
+          <a key={k} href={`/preview/${k}${q}`} className={active === k ? "on" : ""}>{i + 1} · {m.name}</a>
         ))}
       </div>
     </>
   );
 }
-
-export function Eyebrow({ style }) {
-  return (
-    <div className="al-rise" style={{ display: "inline-flex", alignItems: "center", fontSize: 11.5, fontWeight: 600,
-      letterSpacing: "0.09em", textTransform: "uppercase", color: T.green, background: "rgba(46,211,167,.08)",
-      border: `1px solid ${T.green}2A`, borderRadius: 999, padding: "6px 14px", ...style }}>
-      <span className="al-dot" /> {COPY.eyebrow}
-    </div>
-  );
-}
-
-export function Proof({ align = "center" }) {
-  return (
-    <div className="al-rise" style={{ animationDelay: ".32s", marginTop: 30, display: "flex", gap: 20,
-      justifyContent: align, flexWrap: "wrap", fontSize: 13, color: T.dim }}>
-      {COPY.proof.map((p) => (
-        <span key={p}><i className="ti ti-check" style={{ color: T.green, marginRight: 6 }} />{p}</span>
-      ))}
-    </div>
-  );
-}
-
-export function Nav() {
-  return (
-    <nav style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10,
-      background: "rgba(10,13,20,.82)", backdropFilter: "blur(12px)" }}>
-      <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 22px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, background: T.goldBg, border: `1px solid ${T.gold}33`,
-            display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <i className="ti ti-robot" style={{ fontSize: 17, color: T.gold }} />
-          </div>
-          <span style={{ fontSize: 17.5, fontWeight: 700, letterSpacing: "-0.01em" }}>Autologic</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <a href="/pricing" className="al-link" style={{ padding: "9px 12px", fontWeight: 600, fontSize: 14 }}>Pricing</a>
-          <a href="/dashboard?auth=signup" className="al-cta" style={{ padding: "9px 18px", background: T.gold,
-            color: "#0A0D14", borderRadius: 9, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Sign up</a>
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-export function Footer() {
-  return (
-    <footer style={{ borderTop: `1px solid ${T.border}` }}>
-      <div style={{ ...wrap, padding: "28px 22px", display: "flex", justifyContent: "space-between",
-        alignItems: "center", flexWrap: "wrap", gap: 14, fontSize: 13, color: T.dim }}>
-        <div>© 2026 Autologic · Kandirpar, Cumilla, Bangladesh</div>
-        <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-          <a href="/pricing" className="al-link">Pricing</a>
-          <a href="/privacy" className="al-link">Privacy</a>
-          <a href="/terms" className="al-link">Terms</a>
-          <a href="/contact" className="al-link">Contact</a>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-export function Head() {
-  return (
-    <>
-      <style>{BASE_CSS}</style>
-      <script dangerouslySetInnerHTML={{ __html: REVEAL_JS }} />
-    </>
-  );
-}
-
-export const shell = {
-  background: T.bg, minHeight: "100vh", color: T.text,
-  fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif",
-};
