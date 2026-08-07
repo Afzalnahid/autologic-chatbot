@@ -8,9 +8,10 @@ export const metadata = { title: "C · Product — Autologic preview", robots: {
 // colour comes from outside the palette, because a Messenger blue that is not
 // Messenger blue stops being recognisable — which is the entire point of showing it.
 const CH = {
-  whatsapp:  { icon: "ti-brand-whatsapp",  name: "WhatsApp Business", tint: "#25D366" },
-  messenger: { icon: "ti-brand-messenger", name: "Facebook Messenger", tint: "#0084FF" },
-  instagram: { icon: "ti-brand-instagram", name: "Instagram Business", tint: "#E1306C" },
+  whatsapp:  { icon: "ti-brand-whatsapp",  name: "WhatsApp Business", tint: "#25D366", short: "WhatsApp" },
+  messenger: { icon: "ti-brand-messenger", name: "Facebook Messenger", tint: "#0084FF", short: "Messenger" },
+  instagram: { icon: "ti-brand-instagram", name: "Instagram Business", tint: "#E1306C", short: "Instagram" },
+  website:   { icon: "ti-world",             name: "Your website",       tint: "#5B8CFF", short: "Website" },
 };
 
 function Bubble({ me, text }) {
@@ -75,7 +76,7 @@ export default function C() {
                 <span key={c.name} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5,
                   color: T.muted, background: T.card, border: `1px solid ${T.border}`, borderRadius: 999, padding: "7px 13px" }}>
                   <i className={`ti ${c.icon}`} style={{ fontSize: 15, color: c.tint }} />
-                  {c.name.replace(" Business", "").replace("Facebook ", "")}
+                  {c.short}
                 </span>
               ))}
             </div>
@@ -114,7 +115,7 @@ export default function C() {
           </p>
         </div>
 
-        <div className="al-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+        <div className="al-rail">
           <Chat channel="messenger" kind="Online shop" delay={0}
             lines={[
               ["me", "এই শাড়িটার দাম কত? স্টকে আছে?"],
@@ -141,6 +142,19 @@ export default function C() {
               ["bot", "আমাদের টিমের সাথে একটা ফ্রি কনসালটেশন কলে বসতে পারেন — কোন দিন সুবিধা হবে?"],
             ]}
             note={["ti-file-text", "Answered from your uploaded documents"]} />
+
+          <Chat channel="website" kind="Service business" delay={240}
+            lines={[
+              ["me", "Hi, I run a small clothing store. Can this handle my Facebook page?"],
+              ["bot", "Yes — Messenger, Instagram, WhatsApp and this website widget, all from one dashboard."],
+              ["me", "How do I add it to my site?"],
+              ["bot", "One line of code, copied from your dashboard. It takes about a minute."],
+            ]}
+            note={["ti-code", "One line of code on your own website"]} />
+        </div>
+
+        <div className="al-hint">
+          <i className="ti ti-arrow-right" /> Swipe to see every channel
         </div>
       </section>
 
