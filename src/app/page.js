@@ -78,6 +78,19 @@ export default function Home() {
         .al-obs { opacity: 0; transform: translateY(18px); }
         .al-obs.al-in { opacity: 1; transform: none; transition: opacity .5s ease, transform .5s cubic-bezier(.22,.61,.36,1); }
 
+        /* The one piece of motion that never stops: proof of life. Mint is the
+           system's "bot is live" colour, so a slow pulse here says something true
+           rather than decorating. */
+        @keyframes al-pulse {
+          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 ${T.green}66; }
+          50%      { opacity: .75; box-shadow: 0 0 0 5px ${T.green}00; }
+        }
+        .al-dot {
+          width: 7px; height: 7px; border-radius: 50%; background: ${T.green};
+          display: inline-block; margin-right: 8px; vertical-align: middle;
+          animation: al-pulse 2.4s ease-in-out infinite;
+        }
+
         .al-link { transition: color .15s ease; }
         .al-link:hover { color: ${T.text}; }
 
@@ -95,6 +108,7 @@ export default function Home() {
         @media (prefers-reduced-motion: reduce) {
           .al-rise, .al-card, .al-link, .al-btn, .al-cta { animation: none !important; transition: none !important; transform: none !important; }
           .al-obs { opacity: 1 !important; transform: none !important; }
+          .al-dot { animation: none !important; }
         }
       `}</style>
 
@@ -136,7 +150,7 @@ export default function Home() {
       {/* Hero */}
       <section style={{ ...wrap, textAlign: "center", padding: "72px 24px 56px" }}>
         <div className="al-rise" style={{ display: "inline-block", fontSize: 12.5, color: T.gold, background: T.goldBg, border: `1px solid ${T.gold}33`, borderRadius: 20, padding: "5px 14px", marginBottom: 22 }}>
-          AI Customer Service Automation
+          <span className="al-dot" /> Answering customers right now
         </div>
         <h1 className="al-rise" style={{ animationDelay: ".09s", fontSize: 42, fontWeight: 800, lineHeight: 1.2, margin: "0 0 18px", letterSpacing: -0.5 }}>
           One AI chatbot for<br />all your customer channels
