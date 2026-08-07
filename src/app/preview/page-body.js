@@ -34,6 +34,13 @@ function Chat({ conv, c, delay }) {
   );
 }
 
+const bub = (me) => ({
+  maxWidth: "84%", fontSize: 13, lineHeight: 1.62, padding: "9px 12px", borderRadius: 13,
+  background: me ? T.gold : "#151B29", color: me ? "#0A0D14" : T.text,
+  borderBottomRightRadius: me ? 4 : 13, borderBottomLeftRadius: me ? 13 : 4,
+  border: me ? "none" : `1px solid ${T.border}`,
+});
+
 const label = { fontSize: 11.5, fontWeight: 600, letterSpacing: "0.09em", textTransform: "uppercase" };
 
 export default function Body({ motion = "m2", lang = "en" }) {
@@ -65,15 +72,20 @@ export default function Body({ motion = "m2", lang = "en" }) {
               <i className="ti ti-language" style={{ fontSize: 15, color: T.gold }} />
               {other === "bn" ? "বাংলা" : "English"}
             </a>
+            <a href="/dashboard?auth=signin" className="al-btn" style={{ padding: "8px 14px", color: T.text,
+              border: `1px solid ${T.border}`, borderRadius: 9, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
+              {lang === "bn" ? "লগ ইন" : "Log in"}
+            </a>
             <a href="/dashboard?auth=signup" className="al-cta" style={{ padding: "9px 16px", background: T.gold,
               color: "#0A0D14", borderRadius: 9, fontWeight: 700, fontSize: 13.5, textDecoration: "none" }}>
-              {lang === "bn" ? "শুরু করুন" : "Sign up"}
+              {lang === "bn" ? "সাইন আপ" : "Sign up"}
             </a>
           </div>
         </div>
       </nav>
 
-      <section style={{ ...wrap, padding: "clamp(52px, 10vw, 92px) 22px clamp(30px, 5vw, 44px)", textAlign: "center" }}>
+      <section style={{ ...wrap, padding: "clamp(52px, 10vw, 92px) 22px clamp(30px, 5vw, 44px)", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        <div className="al-aurora" />
         <div className="al-rise" style={{ display: "inline-flex", alignItems: "center", ...label, color: T.green,
           background: "rgba(46,211,167,.08)", border: `1px solid ${T.green}2A`, borderRadius: 999,
           padding: "6px 14px", marginBottom: 24 }}>
@@ -88,8 +100,8 @@ export default function Body({ motion = "m2", lang = "en" }) {
 
         <div className="al-rise" style={{ animationDelay: ".22s", display: "flex", gap: 9, flexWrap: "wrap",
           justifyContent: "center", marginBottom: 28 }}>
-          {Object.values(CH).map((x) => (
-            <span key={x.name} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5,
+          {Object.values(CH).map((x, i) => (
+            <span key={x.name} className={`al-chip c${i}`} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5,
               color: T.muted, background: T.card, border: `1px solid ${T.border}`, borderRadius: 999, padding: "7px 13px" }}>
               <i className={`ti ${x.icon}`} style={{ fontSize: 15, color: x.tint }} />{x.short}
             </span>
@@ -106,6 +118,35 @@ export default function Body({ motion = "m2", lang = "en" }) {
         <div className="al-rise" style={{ animationDelay: ".34s", marginTop: 26, display: "flex", gap: 18,
           justifyContent: "center", flexWrap: "wrap", fontSize: 13, color: T.dim }}>
           {c.proof.map((p) => <span key={p}><i className="ti ti-check" style={{ color: T.green, marginRight: 6 }} />{p}</span>)}
+        </div>
+        {/* The product, doing the thing, on a loop. */}
+        <div className="al-rise al-live" style={{ animationDelay: ".4s", maxWidth: 430, margin: "38px auto 0",
+          background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 16, textAlign: "left",
+          boxShadow: "0 24px 60px rgba(0,0,0,.45)", position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 12, marginBottom: 14,
+            borderBottom: `1px solid ${T.border}` }}>
+            <i className="ti ti-brand-whatsapp" style={{ fontSize: 17, color: CH.whatsapp.tint }} />
+            <span style={{ fontSize: 13, fontWeight: 600 }}>WhatsApp Business</span>
+            <span style={{ marginLeft: "auto", fontSize: 11, color: T.green, display: "inline-flex", alignItems: "center" }}>
+              <span className="al-dot" />{lang === "bn" ? "বট চালু" : "Bot live"}
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 9, minHeight: 208 }}>
+            <div className="al-msg m1" style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ ...bub(true) }}>আপনাদের সার্ভিস প্যাকেজ কত?</div>
+            </div>
+            <div className="al-typing t1"><b /><b /><b /></div>
+            <div className="al-msg m2" style={{ display: "flex", justifyContent: "flex-start" }}>
+              <div style={{ ...bub(false) }}>স্টার্টার ১,৫০০৳, প্রো ৩,৫০০৳ এবং এজেন্সি ৬,০০০৳ প্রতি মাসে।</div>
+            </div>
+            <div className="al-msg m3" style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ ...bub(true) }}>বৃহস্পতিবার একটা মিটিং করা যাবে?</div>
+            </div>
+            <div className="al-typing t2"><b /><b /><b /></div>
+            <div className="al-msg m4" style={{ display: "flex", justifyContent: "flex-start" }}>
+              <div style={{ ...bub(false) }}>বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়েছি ✅</div>
+            </div>
+          </div>
         </div>
       </section>
 
