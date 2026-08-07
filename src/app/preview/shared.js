@@ -67,7 +67,7 @@ export const COPY = {
 export const CONVOS = [
   { ch: "messenger", kind: "shop", note: "order",
     lines: [["me","এই শাড়িটার দাম কত? স্টকে আছে?"],["bot","জি আছে। জামদানি শাড়ি — ৩,২০০৳, ফ্রি ডেলিভারি। কোন রঙটা নেবেন?"],["me","লাল। নাম রাহেলা, কুমিল্লা।"],["bot","অর্ডার কনফার্ম হলো — কোড #AL2481। ক্যাশ অন ডেলিভারি, ২ দিনে পৌঁছাবে।"]] },
-  { ch: "instagram", kind: "shop", note: "photo", photo: "/demo/dress.jpg",
+  { ch: "instagram", kind: "shop", note: "photo", photo: "/demo/dress.svg",
     lines: [["me","📷 এই ড্রেসটা আপনাদের আছে?"],["bot","হ্যাঁ, ছবির সাথে মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। সাইজ M ও L আছে।"],["me","Do you deliver outside Dhaka?"],["bot","Yes, we deliver nationwide. Delivery outside Dhaka takes 2–3 days."]] },
   { ch: "whatsapp", kind: "service", note: "docs",
     lines: [["me","আপনাদের সার্ভিস প্যাকেজ কত?"],["bot","স্টার্টার ১,৫০০৳, প্রো ৩,৫০০৳ এবং এজেন্সি ৬,০০০৳ প্রতি মাসে।"],["me","বৃহস্পতিবার একটা মিটিং করা যাবে?"],["bot","বৃহস্পতিবার বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়ে দিয়েছি। ✅"]] },
