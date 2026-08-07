@@ -116,6 +116,10 @@ export default function Home() {
       <script
         dangerouslySetInnerHTML={{
           __html: `(function(){
+            // This script sits above the cards in the document, so at parse time
+            // they do not exist yet. Waiting for DOMContentLoaded is the whole fix —
+            // without it querySelectorAll returns nothing and no card ever reveals.
+            function start(){
             if (!("IntersectionObserver" in window)) return;
             if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
             var els = document.querySelectorAll("[data-reveal]");
@@ -129,6 +133,12 @@ export default function Home() {
               });
             }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
             for (var j = 0; j < els.length; j++) io.observe(els[j]);
+            }
+            if (document.readyState === "loading") {
+              document.addEventListener("DOMContentLoaded", start);
+            } else {
+              start();
+            }
           })();`,
         }}
       />
