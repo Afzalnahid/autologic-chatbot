@@ -69,7 +69,10 @@ export const BASE_CSS = `
     -webkit-overflow-scrolling: touch; padding: 2px 22px 6px; margin: 0 -22px;
     scrollbar-width: none }
   .al-rail::-webkit-scrollbar { display: none }
-  .al-rail > * { flex: 0 0 min(86vw, 340px); scroll-snap-align: center }
+  /* One card fills the rail, so a swipe moves to exactly one next card.
+     scroll-snap-stop: always is what stops a fast flick skipping past two or three. */
+  .al-rail > * { flex: 0 0 calc(100% - 2px); scroll-snap-align: center; scroll-snap-stop: always }
+  @media (min-width: 900px) { .al-rail > * { flex-basis: 330px } }
   .al-hint { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: ${T.dim}; margin-top: 14px }
   @keyframes al-nudge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(5px) } }
   .al-hint i { animation: al-nudge 1.8s ease-in-out infinite }
