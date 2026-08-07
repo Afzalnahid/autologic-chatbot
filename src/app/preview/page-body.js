@@ -1,4 +1,4 @@
-import { T, CH, COPY, CONVOS, MOTION, wrap, shell, BASE_CSS, REVEAL_JS, Switch } from "./shared.js";
+import { T, CH, COPY, CONVOS, MOTION, wrap, shell, BASE_CSS, BOARD_CSS, REVEAL_JS, Switch } from "./shared.js";
 
 function Bubble({ me, text }) {
   return (
@@ -41,6 +41,58 @@ const bub = (me) => ({
   border: me ? "none" : `1px solid ${T.border}`,
 });
 
+
+function Slide({ conv, c, k }) {
+  const ch = CH[conv.ch];
+  return (
+    <div className={`al-slide s${k}`} style={{ padding: 16, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 11, marginBottom: 12,
+        borderBottom: `1px solid ${T.border}` }}>
+        <i className={`ti ${ch.icon}`} style={{ fontSize: 17, color: ch.tint }} />
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{ch.name}</span>
+        <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.dim, border: `1px solid ${T.border}`,
+          borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c[conv.kind]}</span>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+        <div className="al-msg b0" style={{ display: "flex", justifyContent: "flex-end" }}>
+          {conv.photo ? (
+            // A real photo, because "customer sends a picture" is the whole point of
+            // this one. Drop your own product shot at public/demo/dress.jpg and it
+            // appears here; until then the frame below carries the meaning.
+            <div style={{ ...bub(true), padding: 6, width: 156 }}>
+              <div style={{ position: "relative", width: "100%", aspectRatio: "3 / 4", borderRadius: 9,
+                overflow: "hidden", background: "linear-gradient(140deg, #2A3247, #151B29)",
+                display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <i className="ti ti-photo" style={{ fontSize: 26, color: "#5B6478" }} />
+                <img src={conv.photo} alt="" style={{ position: "absolute", inset: 0, width: "100%",
+                  height: "100%", objectFit: "cover" }} />
+              </div>
+              <div style={{ fontSize: 11.5, padding: "6px 4px 2px", opacity: .75 }}>{"এই ড্রেসটা আপনাদের আছে?"}</div>
+            </div>
+          ) : <div style={bub(true)}>{conv.lines[0][1]}</div>}
+        </div>
+        <div className="al-typing t0"><b /><b /><b /></div>
+        <div className="al-msg b1" style={{ display: "flex", justifyContent: "flex-start" }}>
+          <div style={bub(false)}>{conv.lines[1][1]}</div>
+        </div>
+        <div className="al-msg b2" style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div style={bub(true)}>{conv.lines[2][1]}</div>
+        </div>
+        <div className="al-typing t1"><b /><b /><b /></div>
+        <div className="al-msg b3" style={{ display: "flex", justifyContent: "flex-start" }}>
+          <div style={bub(false)}>{conv.lines[3][1]}</div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}`, fontSize: 11.5,
+        color: T.dim, display: "flex", alignItems: "center", gap: 7 }}>
+        <i className="ti ti-check" style={{ color: T.green, fontSize: 14 }} />{c.notes[conv.note]}
+      </div>
+    </div>
+  );
+}
+
 const label = { fontSize: 11.5, fontWeight: 600, letterSpacing: "0.09em", textTransform: "uppercase" };
 
 export default function Body({ motion = "m2", lang = "en" }) {
@@ -51,7 +103,7 @@ export default function Body({ motion = "m2", lang = "en" }) {
 
   return (
     <div style={shell}>
-      <style>{BASE_CSS + m.css}</style>
+      <style>{BASE_CSS + BOARD_CSS + m.css}</style>
       <script dangerouslySetInnerHTML={{ __html: REVEAL_JS }} />
 
       <nav style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10,
@@ -119,35 +171,6 @@ export default function Body({ motion = "m2", lang = "en" }) {
           justifyContent: "center", flexWrap: "wrap", fontSize: 13, color: T.dim }}>
           {c.proof.map((p) => <span key={p}><i className="ti ti-check" style={{ color: T.green, marginRight: 6 }} />{p}</span>)}
         </div>
-        {/* The product, doing the thing, on a loop. */}
-        <div className="al-rise al-live" style={{ animationDelay: ".4s", maxWidth: 430, margin: "38px auto 0",
-          background: T.card, border: `1px solid ${T.border}`, borderRadius: 18, padding: 16, textAlign: "left",
-          boxShadow: "0 24px 60px rgba(0,0,0,.45)", position: "relative", zIndex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 12, marginBottom: 14,
-            borderBottom: `1px solid ${T.border}` }}>
-            <i className="ti ti-brand-whatsapp" style={{ fontSize: 17, color: CH.whatsapp.tint }} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>WhatsApp Business</span>
-            <span style={{ marginLeft: "auto", fontSize: 11, color: T.green, display: "inline-flex", alignItems: "center" }}>
-              <span className="al-dot" />{lang === "bn" ? "বট চালু" : "Bot live"}
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 9, minHeight: 208 }}>
-            <div className="al-msg m1" style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div style={{ ...bub(true) }}>আপনাদের সার্ভিস প্যাকেজ কত?</div>
-            </div>
-            <div className="al-typing t1"><b /><b /><b /></div>
-            <div className="al-msg m2" style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div style={{ ...bub(false) }}>স্টার্টার ১,৫০০৳, প্রো ৩,৫০০৳ এবং এজেন্সি ৬,০০০৳ প্রতি মাসে।</div>
-            </div>
-            <div className="al-msg m3" style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div style={{ ...bub(true) }}>বৃহস্পতিবার একটা মিটিং করা যাবে?</div>
-            </div>
-            <div className="al-typing t2"><b /><b /><b /></div>
-            <div className="al-msg m4" style={{ display: "flex", justifyContent: "flex-start" }}>
-              <div style={{ ...bub(false) }}>বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়েছি ✅</div>
-            </div>
-          </div>
-        </div>
       </section>
 
       <section style={{ ...wrap, padding: "clamp(20px, 4vw, 36px) 22px clamp(48px, 8vw, 72px)" }}>
@@ -158,10 +181,14 @@ export default function Body({ motion = "m2", lang = "en" }) {
           <p style={{ fontSize: 15.5, lineHeight: 1.65, color: T.muted, margin: 0 }}>{c.convLead}</p>
         </div>
 
-        <div className="al-rail">
-          {CONVOS.map((cv, i) => <Chat key={cv.ch} conv={cv} c={c} delay={i * 70} />)}
+        {/* One frame, four conversations, playing in turn. */}
+        <div style={{ maxWidth: 440, margin: "0 auto" }}>
+          <div className="al-bars"><span /><span /><span /><span /></div>
+          <div className="al-board" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
+            padding: 16, height: 340, boxShadow: "0 24px 60px rgba(0,0,0,.45)" }}>
+            {CONVOS.map((cv, k) => <Slide key={cv.ch} conv={cv} c={c} k={k} />)}
+          </div>
         </div>
-        <div className="al-hint"><i className="ti ti-arrow-right" /> {c.swipe}</div>
       </section>
 
       <section style={{ ...wrap, padding: "0 22px clamp(56px, 9vw, 88px)" }}>
