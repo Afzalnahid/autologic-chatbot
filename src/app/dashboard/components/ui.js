@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // Shared presentational building blocks. Each tab imports from here, so the
 // design tokens have exactly one definition.
@@ -9,12 +9,18 @@ import { useState, useEffect } from "react";
 // palette so no component needs touching; `gold` is now the periwinkle
 // primary, and the amber it used to hold lives on in `warn`.
 export const T = {
-  bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420", cardAlt: "#151B2A", inset: "#1C2436",
-  gold: "#5B8CFF", goldDim: "#3D6FE0", goldBg: "rgba(91,140,255,0.12)",
-  text: "#E7EAF2", textMuted: "#98A3BA", textDim: "#5E6B85",
-  border: "#1F2839", borderStrong: "#2C374D",
-  danger: "#FF5A5F", success: "#2ED3A7", info: "#5B8CFF", warn: "#F0B429", purple: "#8b5cf6",
-  live: "#2ED3A7", liveBg: "rgba(46,211,167,0.11)", warnBg: "rgba(240,180,41,0.11)", dangerBg: "rgba(255,90,95,0.11)",
+  // Light workspace, dark rail. The rail keeps the product's near-black; the
+  // workspace goes light because this is where people spend hours, and the tabs
+  // all read their colours from here — so this object is the only switch.
+  bg: "#F5F6F8", bgAlt: "#F1F3F7", card: "#FFFFFF", cardAlt: "#F8F9FB", inset: "#EFF1F5",
+  rail: "#0D111A", railHover: "#161C2A", railText: "#98A3BA", railTextOn: "#FFFFFF",
+  gold: "#5B8CFF", goldDim: "#3D6FE0", goldBg: "rgba(91,140,255,0.10)",
+  text: "#131722", textMuted: "#5A6478", textDim: "#8A93A6",
+  border: "#E4E8EF", borderStrong: "#D3D9E4",
+  // Mint still means "the bot is live". `success` is a darker sibling used for
+  // text and bars, because #2ED3A7 on white is too pale to read.
+  danger: "#E8556D", success: "#12A97F", info: "#5B8CFF", warn: "#D2891F", purple: "#7C5CF0",
+  live: "#2ED3A7", liveBg: "rgba(46,211,167,0.12)", warnBg: "rgba(210,137,31,0.12)", dangerBg: "rgba(232,85,109,0.10)",
 };
 
 export const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
@@ -31,10 +37,10 @@ export function useIsMobile(){
   return m;
 }
 
-export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:"rgba(240,192,64,0.12)",color:danger?"#fff":gold?"#0a0a0a":T.gold,...style}}>{children}</button>; }
+export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:T.goldBg,color:danger?"#fff":gold?"#0A0D14":T.gold,...style}}>{children}</button>; }
 export function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>; }
-export function Card({children,style,...p}){ return <div {...p} style={{background:T.card,borderRadius:12,border:`0.5px solid ${T.border}`,padding:"1.25rem",...style}}>{children}</div>; }
-export function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
+export function Card({children,style,...p}){ return <div {...p} className="ui-card" style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,boxShadow:"0 1px 2px rgba(19,23,34,.04)",padding:"1.25rem",...style}}>{children}</div>; }
+export function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} className="ui-inp" style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} className="ui-inp" style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
 
 // Plan catalogue and formatting used by several tabs.
 export const PLAN_META={
@@ -130,3 +136,98 @@ export const SAMPLE_AGENCY=[
   {label:"Clinic / chamber",text:"We are a dental clinic in Chattogram. We do check-ups, scaling, filling and braces. The consultation fee is 500 taka. Patients need an appointment — we are open Saturday to Thursday, 5pm to 9pm. For emergencies they can call us directly."},
   {label:"Coaching centre",text:"We run an IELTS coaching centre in Dhaka. New batches start every month. The course fee is 12000 taka for 3 months with classes 3 days a week. We offer one free trial class. Students can book a counselling session to learn more before enrolling."},
 ];
+
+
+// A dropdown that behaves like one: opens with a short spring, closes on Escape,
+// on outside click, and on choosing. Native <select> could not be styled to match
+// the rest of the surface, and this is used in enough places to be worth owning.
+export function Select({ value, options, onChange, placeholder = "Select", style, wide }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
+
+  const current = options.find((o) => (o.value ?? o) === value);
+  const label = current ? (current.label ?? current) : placeholder;
+
+  return (
+    <div ref={box} style={{ position: "relative", ...style }}>
+      <button type="button" className="ui-btn" onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox" aria-expanded={open}
+        style={{ display: "flex", alignItems: "center", gap: 8, width: wide ? "100%" : "auto",
+          padding: "9px 12px", borderRadius: 9, border: `1px solid ${open ? T.gold : T.border}`,
+          background: T.card, color: T.text, fontSize: 13.5, fontWeight: 500, cursor: "pointer",
+          boxShadow: open ? `0 0 0 3px ${T.gold}22` : "none" }}>
+        {current?.icon && <i className={`ti ${current.icon}`} style={{ fontSize: 15, color: T.gold }} />}
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <i className="ti ti-chevron-down" style={{ marginLeft: "auto", fontSize: 15, color: T.textDim,
+          transform: open ? "rotate(180deg)" : "none", transition: "transform .22s cubic-bezier(.16,1,.3,1)" }} />
+      </button>
+
+      {open && (
+        <div role="listbox" className="ui-menu"
+          style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, minWidth: "100%", zIndex: 60,
+            background: T.card, border: `1px solid ${T.border}`, borderRadius: 11, padding: 5,
+            boxShadow: "0 12px 32px rgba(19,23,34,.14)", maxHeight: 280, overflowY: "auto" }}>
+          {options.map((o, i) => {
+            const v = o.value ?? o, l = o.label ?? o, on = v === value;
+            return (
+              <button key={v} type="button" role="option" aria-selected={on} className="ui-opt"
+                onClick={() => { onChange && onChange(v); setOpen(false); }}
+                style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left",
+                  padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13.5,
+                  background: on ? T.goldBg : "transparent", color: on ? T.gold : T.text,
+                  fontWeight: on ? 600 : 400, animationDelay: `${i * 14}ms` }}>
+                {o.icon && <i className={`ti ${o.icon}`} style={{ fontSize: 15 }} />}
+                {l}
+                {on && <i className="ti ti-check" style={{ marginLeft: "auto", fontSize: 15 }} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One stylesheet for the whole dashboard's motion. Every duration sits between
+// 120 and 300ms: long enough to be noticed, short enough never to be waited on.
+export function Motion() {
+  return (
+    <style>{`
+      .ui-btn { transition: filter .15s ease-out, transform .12s ease-out, border-color .18s ease-out, box-shadow .18s ease-out }
+      .ui-btn:hover:not(:disabled) { filter: brightness(.97) }
+      .ui-btn:active:not(:disabled) { transform: scale(.97) }
+      .ui-card { transition: box-shadow .2s ease-out, transform .2s ease-out, border-color .2s ease-out }
+      .ui-inp { transition: border-color .16s ease-out, box-shadow .16s ease-out }
+      .ui-inp:focus { outline: none; border-color: ${T.gold}; box-shadow: 0 0 0 3px ${T.gold}22 }
+
+      @keyframes ui-menu { from { opacity: 0; transform: translateY(-6px) scale(.98) } to { opacity: 1; transform: none } }
+      .ui-menu { animation: ui-menu .18s cubic-bezier(.16,1,.3,1) both; transform-origin: top }
+      @keyframes ui-opt { from { opacity: 0; transform: translateY(-3px) } to { opacity: 1; transform: none } }
+      .ui-opt { animation: ui-opt .16s ease-out both }
+      .ui-opt:hover { background: ${T.inset} !important }
+
+      @keyframes ui-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+      .ui-page { animation: ui-in .28s cubic-bezier(.16,1,.3,1) both }
+
+      .ui-row { transition: background .14s ease-out }
+      .ui-row:hover { background: ${T.bgAlt} }
+      .ui-nav { transition: background .15s ease-out, color .15s ease-out }
+
+      @keyframes ui-pulse { 0%,100% { box-shadow: 0 0 0 0 ${T.live}66 } 50% { box-shadow: 0 0 0 5px ${T.live}00 } }
+      .ui-live { animation: ui-pulse 2.6s ease-in-out infinite }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ui-btn, .ui-card, .ui-inp, .ui-menu, .ui-opt, .ui-page, .ui-row, .ui-nav, .ui-live,
+        .ui-btn *, .ui-menu * { animation: none !important; transition: none !important; transform: none !important }
+      }
+    `}</style>
+  );
+}
