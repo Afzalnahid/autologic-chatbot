@@ -53,7 +53,7 @@ export default function Comments() {
       <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:5}}/>Refresh</Btn>
     </div>
 
-    {dmFailed>0&&<Card style={{marginBottom:14,borderColor:`${T.danger}40`,background:`${T.danger}0d`}}>
+    {dmFailed>0&&<Card style={{marginBottom:14,borderColor:`color-mix(in srgb, ${T.danger} 25%, transparent)`,background:`color-mix(in srgb, ${T.danger} 5%, transparent)`}}>
       <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
         <i className="ti ti-alert-triangle" style={{fontSize:17,color:T.danger,flexShrink:0,marginTop:1}}/>
         <div style={{fontSize:12.5,lineHeight:1.6}}>
@@ -91,7 +91,7 @@ export default function Comments() {
           <div style={{fontSize:13.5,lineHeight:1.55}}>{c.comment_text||<span style={{color:T.textDim}}>(no text — photo or sticker)</span>}</div>
         </div>
 
-        {c.reply_text&&<div style={{background:`${T.gold}0d`,borderRadius:9,padding:"10px 12px",border:`0.5px solid ${T.gold}25`}}>
+        {c.reply_text&&<div style={{background:`color-mix(in srgb, ${T.gold} 5%, transparent)`,borderRadius:9,padding:"10px 12px",border:`0.5px solid color-mix(in srgb, ${T.gold} 15%, transparent)`}}>
           <div style={{fontSize:11,color:T.gold,marginBottom:3,textTransform:"uppercase",letterSpacing:0.8}}>Bot reply</div>
           <div style={{fontSize:13.5,lineHeight:1.55}}>{c.reply_text}</div>
         </div>}
