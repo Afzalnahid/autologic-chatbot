@@ -31,7 +31,7 @@ export default function Bookings({calConnected,clientId}) {
 
   const filtered = filter==="All"?bookings:bookings.filter(b=>b.status===filter);
   return <div>
-    {!calOk&&<Card style={{background:`${T.gold}0d`,border:`1px solid ${T.gold}35`,marginBottom:16,display:"flex",alignItems:"center",gap:12,padding:"12px 16px",flexWrap:"wrap"}}>
+    {!calOk&&<Card style={{background:`color-mix(in srgb, ${T.gold} 5%, transparent)`,border:`1px solid color-mix(in srgb, ${T.gold} 21%, transparent)`,marginBottom:16,display:"flex",alignItems:"center",gap:12,padding:"12px 16px",flexWrap:"wrap"}}>
       <i className="ti ti-calendar-exclamation" style={{fontSize:22,color:T.gold,flexShrink:0}}/>
       <div style={{flex:1,minWidth:180}}>
         <div style={{fontSize:13,fontWeight:600,color:T.gold}}>Google Calendar not connected</div>
