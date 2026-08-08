@@ -45,16 +45,16 @@ const bub = (me) => ({
 function Slide({ conv, c, k }) {
   const ch = CH[conv.ch];
   return (
-    <div className={`al-slide s${k}`} style={{ padding: 14, display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 11, marginBottom: 12,
-        borderBottom: `1px solid ${T.border}` }}>
+    <div className={`al-slide s${k}`}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "34px 14px 11px",
+        borderBottom: `1px solid ${T.border}`, background: T.card }}>
         <i className={`ti ${ch.icon}`} style={{ fontSize: 17, color: ch.tint }} />
         <span style={{ fontSize: 13, fontWeight: 600 }}>{ch.name}</span>
         <span style={{ marginLeft: "auto", fontSize: 10.5, color: T.dim, border: `1px solid ${T.border}`,
           borderRadius: 999, padding: "3px 9px", whiteSpace: "nowrap" }}>{c[conv.kind]}</span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+      <div className="al-stack">
         <div className="al-msg b0" style={{ display: "flex", justifyContent: "flex-end" }}>
           {conv.photo ? (
             <div style={{ ...bub(true), padding: 5, width: 118 }}>
@@ -84,8 +84,8 @@ function Slide({ conv, c, k }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}`, fontSize: 11.5,
-        color: T.dim, display: "flex", alignItems: "center", gap: 7 }}>
+      <div style={{ padding: "9px 14px", borderTop: `1px solid ${T.border}`, fontSize: 11,
+        color: T.dim, display: "flex", alignItems: "center", gap: 7, background: T.card }}>
         <i className="ti ti-check" style={{ color: T.green, fontSize: 14 }} />{c.notes[conv.note]}
       </div>
     </div>
@@ -181,11 +181,21 @@ export default function Body({ motion = "m2", lang = "en" }) {
         </div>
 
         {/* One frame, four conversations, playing in turn. */}
-        <div style={{ maxWidth: 440, margin: "0 auto" }}>
+        <div style={{ maxWidth: 340, margin: "0 auto" }}>
           <div className="al-bars"><span /><span /><span /><span /></div>
-          <div className="al-board" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
-            padding: 0, height: 332, boxShadow: "0 24px 60px rgba(0,0,0,.45)" }}>
-            {CONVOS.map((cv, k) => <Slide key={cv.ch} conv={cv} c={c} k={k} />)}
+          <div className="al-phone">
+            <div className="al-screen">
+              <div className="al-notch" />
+              <div className="al-status">
+                <span>9:41</span>
+                <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}>
+                  <i className="ti ti-signal-4g" style={{ fontSize: 13 }} />
+                  <i className="ti ti-wifi" style={{ fontSize: 13 }} />
+                  <i className="ti ti-battery-3" style={{ fontSize: 13 }} />
+                </span>
+              </div>
+              {CONVOS.map((cv, k) => <Slide key={cv.ch} conv={cv} c={c} k={k} />)}
+            </div>
           </div>
         </div>
       </section>
