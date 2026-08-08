@@ -2,9 +2,21 @@
 // copy can be edited without touching layout, and so both languages sit side by
 // side where a mismatch is obvious.
 
+// The product's palette, not the reference's. A visitor who signs up lands in a
+// dashboard painted these colours; a cream-and-orange landing page made the two
+// look like different companies. The reference's *structure* is what was worth
+// keeping — the serif display, the technical microtype, the hairline grid.
 export const P = {
-  paper: "#E9E0CC", paper2: "#F2EBDB", ink: "#14171F", inkSoft: "#4A4E5A",
-  blue: "#2447C9", blueLite: "#5B8CFF", accent: "#E85A2A", line: "#14171F1F",
+  paper: "#0A0D14",        // page
+  paper2: "#0F1420",       // raised surface
+  ink: "#E7EAF2",          // text
+  inkSoft: "#98A3BA",      // secondary text
+  blue: "#5B8CFF",         // the brand accent, everywhere
+  blueSoft: "rgba(91,140,255,0.10)",
+  accent: "#5B8CFF",       // was orange; one accent is enough
+  live: "#2ED3A7",         // mint, and only ever "the bot is live"
+  line: "#1F2839",
+  onAccent: "#0A0D14",     // text sitting on a periwinkle fill
 };
 
 export const CH = {
