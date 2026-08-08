@@ -242,6 +242,14 @@ export default function Paper({ searchParams }) {
         .al-obs { opacity: 0; transform: translateY(22px) }
         .al-obs.al-in { opacity: 1; transform: none; transition: opacity .5s ease-out, transform .65s cubic-bezier(.22,.61,.36,1) }
 
+        .navbtn { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .09em;
+          text-transform: uppercase; text-decoration: none; color: ${P.ink}; border: 1px solid ${P.line};
+          padding: 8px 11px; white-space: nowrap; line-height: 1; transition: all .15s ease-out }
+        .navbtn:hover { border-color: ${P.ink} }
+        .navcta { background: ${P.accent}; border-color: ${P.accent}; color: #fff }
+        .navcta:hover { filter: brightness(1.06) }
+        @media (max-width: 400px) { .navbtn { font-size: 9.5px; padding: 7px 9px; letter-spacing: .06em } }
+
         .btn { transition: transform .15s ease-out, background .15s ease-out }
         .btn:hover { transform: translateY(-2px) } .btn:active { transform: scale(.97) }
         .card { background: ${P.paper2}; border: 1px solid ${P.line}; transition: transform .2s ease-out, background .2s ease-out }
@@ -288,19 +296,24 @@ export default function Paper({ searchParams }) {
       <div className="sheet"><i /><i /><i /><i /></div>
 
       <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 4, background: P.paper }}>
-        <div style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 26px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <div style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "11px 26px", gap: 12 }}>
+          <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0 }}>
             <div style={{ width: 26, height: 26, background: P.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <i className="ti ti-robot" style={{ fontSize: 15, color: "#fff" }} />
             </div>
             <span className="fr" style={{ fontSize: 19 }}>Autologic</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <a href="/pricing" className="hide-sm" style={{ ...mono, color: P.inkSoft, textDecoration: "none" }}>Pricing</a>
-            <a href={`/preview/p${other}`} style={{ ...mono, color: P.inkSoft, textDecoration: "none" }}>{lang === "bn" ? "EN" : "বাংলা"}</a>
-            <a href="/dashboard?auth=signin" style={{ ...mono, color: P.ink, textDecoration: "none" }}>{lang === "bn" ? "লগ ইন" : "Log in"}</a>
-            <a href="/dashboard?auth=signup" className="btn" style={{ ...mono, background: P.accent, color: "#fff",
-              padding: "9px 15px", textDecoration: "none" }}>{lang === "bn" ? "ফ্রি ট্রায়াল" : "Try for free"}</a>
+          </a>
+
+          {/* Three buttons that stay buttons: nothing wraps, nothing collides. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+            <a href="/pricing" className="navbtn hide-sm">Pricing</a>
+            <a href={`/preview/p${other}`} className="navbtn" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <i className="ti ti-language" style={{ fontSize: 13 }} />
+              {lang === "bn" ? "EN" : "বাং"}
+            </a>
+            <a href="/dashboard?auth=signin" className="navbtn">{lang === "bn" ? "লগ ইন" : "Log in"}</a>
+            <a href="/dashboard?auth=signup" className="navbtn navcta">{lang === "bn" ? "ট্রায়াল" : "Try free"}</a>
           </div>
         </div>
       </nav>
