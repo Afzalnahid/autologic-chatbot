@@ -286,7 +286,7 @@ export default function Paper({ searchParams }) {
         .al-status { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px 4px;
           font-size: 10.5px; position: relative; z-index: 4 }
         .al-slide { position: absolute; inset: 0; opacity: 0; display: flex; flex-direction: column }
-        .al-stack { margin-top: auto; display: flex; flex-direction: column; gap: 7px; padding: 10px 12px 12px }
+        .al-stack { margin-top: auto; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; padding: 10px 12px 12px; flex: 1 }
         .al-msg { opacity: 0 } .al-msgwrap { position: relative }
         .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 12px; background: #fff;
           border: 1px solid ${P.line}; opacity: 0; position: absolute; top: 0; left: 0 }
@@ -350,13 +350,19 @@ export default function Paper({ searchParams }) {
 
           {/* Three buttons that stay buttons: nothing wraps, nothing collides. */}
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
-            <a href="/pricing" className="navbtn hide-sm">Pricing</a>
-            <a href={`/preview/p${other}`} className="navbtn" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <a href="/pricing" className="navbtn hide-sm">{lang === "bn" ? "দাম" : "Pricing"}</a>
+
+            {/* Three buttons, three different jobs: change language, come back, or
+                start. "Sign up" and "Try free" were the same door twice, so one went. */}
+            <a href={`/preview/p${other}`} className="navbtn" aria-label="Change language"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               <i className="ti ti-language" style={{ fontSize: 13 }} />
               {lang === "bn" ? "EN" : "বাং"}
             </a>
             <a href="/dashboard?auth=signin" className="navbtn">{lang === "bn" ? "লগ ইন" : "Log in"}</a>
-            <a href="/dashboard?auth=signup" className="navbtn navcta">{lang === "bn" ? "ট্রায়াল" : "Try free"}</a>
+            <a href="/dashboard?auth=signup" className="navbtn navcta">
+              {lang === "bn" ? "ফ্রি ট্রায়াল" : "Start free"}
+            </a>
           </div>
         </div>
       </nav>
