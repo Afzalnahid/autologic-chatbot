@@ -4,7 +4,7 @@ export const metadata = {
 };
 
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
-import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS } from "@/lib/landing.js";
+import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS } from "@/lib/landing.js";
 
 const mono = { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 10.5,
   letterSpacing: "0.13em", textTransform: "uppercase" };
