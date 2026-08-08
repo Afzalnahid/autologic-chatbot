@@ -18,7 +18,7 @@ export const CH = {
 export const COPY = {
   en: {
     eyebrow: "Answering customers right now",
-    h1: "One AI chatbot for all your customer channels",
+    h1: "One AI chatbot for <em>all</em> your customer channels",
     lead: "Connects to Facebook, Instagram, WhatsApp and your own website, answers in Bangla or English, and books meetings straight into your Google Calendar.",
     cta: "Start free trial", cta2: "See pricing",
     proof: ["3-day free trial", "No card required", "Bangla and English"],
@@ -41,7 +41,7 @@ export const COPY = {
   },
   bn: {
     eyebrow: "এখনই গ্রাহকদের উত্তর দিচ্ছে",
-    h1: "আপনার সব চ্যানেলের জন্য একটাই এআই চ্যাটবট",
+    h1: "আপনার <em>সব</em> চ্যানেলের জন্য একটাই এআই চ্যাটবট",
     lead: "ফেসবুক, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর আপনার নিজের ওয়েবসাইটে যুক্ত হয়, বাংলা বা ইংরেজিতে উত্তর দেয়, আর মিটিং সরাসরি আপনার গুগল ক্যালেন্ডারে বুক করে।",
     cta: "ফ্রি ট্রায়াল শুরু করুন", cta2: "দাম দেখুন",
     proof: ["৩ দিনের ফ্রি ট্রায়াল", "কার্ড লাগবে না", "বাংলা ও ইংরেজি"],
@@ -149,6 +149,36 @@ function boardCss() {
 export const BOARD_CSS = boardCss();
 
 export const BASE_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Anek+Bangla:wght@400;500;600;700&display=swap');
+
+  /* Typography does most of the work here. A serif display face against a technical
+     sans is what separates a considered page from a template — system-ui in a
+     headline reads as a settings screen, whatever else is done around it. */
+  .al-display { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -0.012em }
+  .al-display em { font-style: italic; color: ${T.gold} }
+  .bn .al-display, .bn { font-family: 'Anek Bangla', system-ui, sans-serif }
+  .bn .al-display { font-weight: 600; letter-spacing: -0.02em }
+  .al-mono { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' }
+
+  /* A fine grid, a vignette, and a whisper of grain. Dark surfaces look empty
+     without texture; these three are individually invisible and jointly the
+     difference between "flat black" and "a material". */
+  .al-tex { position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .5;
+    background-image:
+      linear-gradient(${T.border}55 1px, transparent 1px),
+      linear-gradient(90deg, ${T.border}55 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(120% 80% at 50% 0%, #000 20%, transparent 75%);
+    -webkit-mask-image: radial-gradient(120% 80% at 50% 0%, #000 20%, transparent 75%) }
+  .al-vig { position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    background: radial-gradient(110% 70% at 50% 0%, transparent 55%, rgba(0,0,0,.55) 100%) }
+
+  /* Cards get a lit top edge, the way a real panel catches light from above. */
+  .al-surface { background: linear-gradient(180deg, #121829, #0D1220);
+    border: 1px solid ${T.border}; position: relative }
+  .al-surface::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent) }
+
   /* ---- the board ------------------------------------------------------------
      Four conversations play one after another, on a loop, like a board outside a
      shop. Each one types, answers, holds, and hands over to the next. The whole
@@ -210,7 +240,7 @@ export const BASE_CSS = `
 
   .al-card { transition: transform .2s ease-out, border-color .2s ease-out, box-shadow .2s ease-out }
   /* On a dark surface a wider glow reads better than a deeper shadow. */
-  .al-card:hover { transform: translateY(-3px); border-color: ${T.gold}44; box-shadow: 0 14px 40px ${T.gold}1F }
+  .al-card:hover { transform: translateY(-3px); border-color: ${T.gold}55; box-shadow: 0 16px 44px ${T.gold}22 }
   .al-card:active { transform: scale(.99); border-color: ${T.gold}44 }
 
   @keyframes al-pulse { 0%,100% { box-shadow: 0 0 0 0 ${T.green}55 } 50% { box-shadow: 0 0 0 5px ${T.green}00 } }
