@@ -68,7 +68,7 @@ export const CONVOS = [
   { ch: "messenger", kind: "shop", note: "order",
     lines: [["me","এই শাড়িটার দাম কত? স্টকে আছে?"],["bot","জি আছে। জামদানি শাড়ি — ৩,২০০৳, ফ্রি ডেলিভারি। কোন রঙটা নেবেন?"],["me","লাল। নাম রাহেলা, কুমিল্লা।"],["bot","অর্ডার কনফার্ম হলো — কোড #AL2481। ক্যাশ অন ডেলিভারি, ২ দিনে পৌঁছাবে।"]] },
   { ch: "instagram", kind: "shop", note: "photo", photo: "/demo/dress.svg",
-    lines: [["me","📷 এই ড্রেসটা আপনাদের আছে?"],["bot","হ্যাঁ, ছবির সাথে মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। সাইজ M ও L আছে।"],["me","Do you deliver outside Dhaka?"],["bot","Yes, we deliver nationwide. Delivery outside Dhaka takes 2–3 days."]] },
+    lines: [["me","📷 এই ড্রেসটা আপনাদের আছে?"],["bot","ছবির সাথে মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। M ও L আছে।"],["me","Do you deliver outside Dhaka?"],["bot","Yes — nationwide, 2–3 days outside Dhaka."]] },
   { ch: "whatsapp", kind: "service", note: "docs",
     lines: [["me","আপনাদের সার্ভিস প্যাকেজ কত?"],["bot","স্টার্টার ১,৫০০৳, প্রো ৩,৫০০৳ এবং এজেন্সি ৬,০০০৳ প্রতি মাসে।"],["me","বৃহস্পতিবার একটা মিটিং করা যাবে?"],["bot","বৃহস্পতিবার বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়ে দিয়েছি। ✅"]] },
   { ch: "website", kind: "service", note: "code",
@@ -117,30 +117,32 @@ export const MOTION = {
 
 // Four slides on one 44-second clock. Generated rather than hand-written so the
 // timings cannot drift out of step with each other.
-const SLIDES = 4, CYCLE = 44;
+// Four slides, 7 seconds each, on one 28-second clock. The schedule below is in
+// seconds within a slide, converted to percentages of the whole cycle — written
+// this way so changing the pace is one number, not thirty.
+const SLIDES = 4, PER = 7, CYCLE = SLIDES * PER;
 function boardCss() {
-  const w = 100 / SLIDES;            // 25% of the cycle per conversation
   let out = "";
   for (let k = 0; k < SLIDES; k++) {
-    const s0 = k * w;
-    const at = (o) => (s0 + o).toFixed(2) + "%";
+    const at = (sec) => (((k * PER + sec) / CYCLE) * 100).toFixed(2) + "%";
+    const hold = PER - 0.4;          // visible until the handover
     out += `
       .al-slide.s${k} { animation: al-s${k} ${CYCLE}s linear infinite }
-      @keyframes al-s${k} { 0%,${at(0)} { opacity:0 } ${at(1)},${at(w - 2)} { opacity:1 } ${at(w - 0.5)},100% { opacity:0 } }
+      @keyframes al-s${k} { 0%,${at(0)} { opacity:0 } ${at(0.25)},${at(hold)} { opacity:1 } ${at(PER)},100% { opacity:0 } }
       .s${k} .al-msg.b0 { animation: al-b${k}0 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
       .s${k} .al-msg.b1 { animation: al-b${k}1 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
       .s${k} .al-msg.b2 { animation: al-b${k}2 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
       .s${k} .al-msg.b3 { animation: al-b${k}3 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
-      @keyframes al-b${k}0 { 0%,${at(1)} { opacity:0; transform:translateY(7px) } ${at(2.6)},${at(w - 1)} { opacity:1; transform:none } ${at(w - 0.4)},100% { opacity:0 } }
-      @keyframes al-b${k}1 { 0%,${at(6.2)} { opacity:0; transform:translateY(7px) } ${at(7.8)},${at(w - 1)} { opacity:1; transform:none } ${at(w - 0.4)},100% { opacity:0 } }
-      @keyframes al-b${k}2 { 0%,${at(11.4)} { opacity:0; transform:translateY(7px) } ${at(13)},${at(w - 1)} { opacity:1; transform:none } ${at(w - 0.4)},100% { opacity:0 } }
-      @keyframes al-b${k}3 { 0%,${at(16.6)} { opacity:0; transform:translateY(7px) } ${at(18.2)},${at(w - 1)} { opacity:1; transform:none } ${at(w - 0.4)},100% { opacity:0 } }
+      @keyframes al-b${k}0 { 0%,${at(0.3)} { opacity:0; transform:translateY(7px) } ${at(0.7)},${at(hold)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
+      @keyframes al-b${k}1 { 0%,${at(1.7)} { opacity:0; transform:translateY(7px) } ${at(2.1)},${at(hold)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
+      @keyframes al-b${k}2 { 0%,${at(3.0)} { opacity:0; transform:translateY(7px) } ${at(3.4)},${at(hold)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
+      @keyframes al-b${k}3 { 0%,${at(4.6)} { opacity:0; transform:translateY(7px) } ${at(5.0)},${at(hold)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
       .s${k} .al-typing.t0 { animation: al-tp${k}0 ${CYCLE}s linear infinite }
       .s${k} .al-typing.t1 { animation: al-tp${k}1 ${CYCLE}s linear infinite }
-      @keyframes al-tp${k}0 { 0%,${at(3.2)} { opacity:0 } ${at(3.8)},${at(6)} { opacity:1 } ${at(6.2)},100% { opacity:0 } }
-      @keyframes al-tp${k}1 { 0%,${at(13.6)} { opacity:0 } ${at(14.2)},${at(16.4)} { opacity:1 } ${at(16.6)},100% { opacity:0 } }
+      @keyframes al-tp${k}0 { 0%,${at(0.8)} { opacity:0 } ${at(1.0)},${at(1.6)} { opacity:1 } ${at(1.7)},100% { opacity:0 } }
+      @keyframes al-tp${k}1 { 0%,${at(3.6)} { opacity:0 } ${at(3.8)},${at(4.5)} { opacity:1 } ${at(4.6)},100% { opacity:0 } }
       .al-bars span:nth-child(${k + 1})::after { animation: al-bar${k} ${CYCLE}s linear infinite }
-      @keyframes al-bar${k} { 0%,${at(0)} { transform:scaleX(0) } ${at(w - 1)},${at(w - 0.5)} { transform:scaleX(1) } ${at(w - 0.4)},100% { transform:scaleX(0) } }`;
+      @keyframes al-bar${k} { 0%,${at(0)} { transform:scaleX(0) } ${at(PER - 0.3)},${at(PER - 0.1)} { transform:scaleX(1) } ${at(PER)},100% { transform:scaleX(0) } }`;
   }
   return out;
 }
@@ -154,8 +156,10 @@ export const BASE_CSS = `
   .al-board { position: relative; overflow: hidden }
   .al-slide { position: absolute; inset: 0; opacity: 0 }
   .al-msg { opacity: 0 }
-  .al-typing { display: inline-flex; gap: 4px; padding: 10px 13px; border-radius: 13px;
-    background: #151B29; border: 1px solid ${T.border}; opacity: 0; align-self: flex-start }
+  .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 13px;
+    background: #151B29; border: 1px solid ${T.border}; opacity: 0;
+    position: absolute; top: 0; left: 0 }
+  .al-msgwrap { position: relative }
   .al-typing b { width: 5px; height: 5px; border-radius: 50%; background: ${T.muted};
     animation: al-bounce 1.3s ease-in-out infinite }
   .al-typing b:nth-child(2) { animation-delay: .18s } .al-typing b:nth-child(3) { animation-delay: .36s }
