@@ -29,7 +29,7 @@ function Slide({ conv, c, k }) {
           {conv.photo ? (
             <div style={{ background: P.blue, borderRadius: 12, borderBottomRightRadius: 4, padding: 5, width: 116 }}>
               <img src={conv.photo} alt="" style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", borderRadius: 8, display: "block" }} />
-              <div style={{ fontSize: 10.5, color: "#fff", padding: "5px 3px 1px", opacity: .9 }}>এই ড্রেসটা আপনাদের আছে?</div>
+              <div style={{ fontSize: 10.5, color: P.onAccent, padding: "5px 3px 1px", opacity: .9 }}>এই ড্রেসটা আপনাদের আছে?</div>
             </div>
           ) : <Bub me>{conv.lines[0][1]}</Bub>}
         </div>
@@ -45,7 +45,7 @@ function Slide({ conv, c, k }) {
       </div>
       <div style={{ padding: "9px 16px", borderTop: `1px solid ${P.line}`, ...mono, fontSize: 9,
         color: P.inkSoft, display: "flex", alignItems: "center", gap: 7, background: P.paper2 }}>
-        <i className="ti ti-check" style={{ fontSize: 12, color: P.accent }} />{c.notes[conv.note]}
+        <i className="ti ti-check" style={{ fontSize: 12, color: P.live }} />{c.notes[conv.note]}
       </div>
     </div>
   );
@@ -54,7 +54,7 @@ function Slide({ conv, c, k }) {
 function Bub({ me, children }) {
   return (
     <div style={{ maxWidth: "84%", fontSize: 12.5, lineHeight: 1.6, padding: "8px 11px", borderRadius: 12,
-      background: me ? P.blue : "#FFFFFF", color: me ? "#fff" : P.ink,
+      background: me ? P.blue : "#151B29", color: me ? P.onAccent : P.ink,
       borderBottomRightRadius: me ? 4 : 12, borderBottomLeftRadius: me ? 12 : 4,
       border: me ? "none" : `1px solid ${P.line}` }}>{children}</div>
   );
@@ -85,7 +85,7 @@ function Flow({ lang }) {
             <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "গ্রাহক লেখেন" : "Customer writes"}</div>
             {STAGES.map((s2, k) => (
               <div key={k} className={`fch${k}`} style={{ display: "flex", gap: 9, padding: "10px 11px",
-                background: "#fff", border: `1px solid ${P.line}`, marginBottom: 6 }}>
+                background: P.paper2, border: `1px solid ${P.line}`, marginBottom: 6 }}>
                 <i className={`ti ${CH[s2.ch].icon}`} style={{ fontSize: 15, color: P.blue, flexShrink: 0, marginTop: 1 }} />
                 <span style={{ fontSize: 11.5, lineHeight: 1.4, color: P.ink }}>{bn ? s2.inn : s2.inEn}</span>
               </div>
@@ -103,7 +103,7 @@ function Flow({ lang }) {
               <div className="core-arc" /><div className="core-ring" /><div className="core-ring" />
               <div style={{ position: "absolute", inset: 7, borderRadius: "50%", background: P.blue,
                 display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <i className="ti ti-robot" style={{ fontSize: 23, color: "#fff" }} />
+                <i className="ti ti-robot" style={{ fontSize: 23, color: P.onAccent }} />
               </div>
             </div>
             <div style={{ textAlign: "center", width: "100%" }}>
@@ -122,14 +122,14 @@ function Flow({ lang }) {
             <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "বট যা বলে" : "The bot replies"}</div>
             <div className="stk" style={{ marginBottom: 10 }}>
               {STAGES.map((s2, k) => (
-                <div key={k} className={`fsay${k}`} style={{ padding: "10px 12px", background: P.blue, color: "#fff",
+                <div key={k} className={`fsay${k}`} style={{ padding: "10px 12px", background: P.blue, color: P.onAccent,
                   fontSize: 11.5, lineHeight: 1.5, borderRadius: 3, alignSelf: "start" }}>{bn ? s2.say : s2.sayEn}</div>
               ))}
             </div>
             <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "আর যা করে" : "And does"}</div>
             {STAGES.map((s2, k) => (
               <div key={k} className={`fout${k}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 11px",
-                background: "#fff", border: `1px solid ${P.line}`, borderLeft: `2px solid ${P.accent}`, marginBottom: 6 }}>
+                background: P.paper2, border: `1px solid ${P.line}`, borderLeft: `2px solid ${P.accent}`, marginBottom: 6 }}>
                 <i className={`ti ${s2.icon}`} style={{ fontSize: 14, color: P.accent, flexShrink: 0 }} />
                 <span style={{ fontSize: 11, lineHeight: 1.35, color: P.ink }}>{bn ? s2.didBn : s2.did}</span>
               </div>
@@ -183,7 +183,7 @@ export default function Home({ searchParams }) {
 
         /* The sheet: hairline rules and crop marks, so the page reads as a drawing. */
         .sheet { position: fixed; inset: 14px; pointer-events: none; border: 1px solid ${P.line}; z-index: 3 }
-        .sheet i { position: absolute; width: 9px; height: 9px; border: 1px solid #14171F55 }
+        .sheet i { position: absolute; width: 9px; height: 9px; border: 1px solid ${P.blue}44 }
         .sheet i:nth-child(1) { top: -5px; left: -5px } .sheet i:nth-child(2) { top: -5px; right: -5px }
         .sheet i:nth-child(3) { bottom: -5px; left: -5px } .sheet i:nth-child(4) { bottom: -5px; right: -5px }
 
@@ -197,9 +197,9 @@ export default function Home({ searchParams }) {
         .navbtn { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .09em;
           text-transform: uppercase; text-decoration: none; color: ${P.ink}; border: 1px solid ${P.line};
           padding: 8px 11px; white-space: nowrap; line-height: 1; transition: all .15s ease-out }
-        .navbtn:hover { border-color: ${P.ink} }
-        .navcta { background: ${P.accent}; border-color: ${P.accent}; color: #fff }
-        .navcta:hover { filter: brightness(1.06) }
+        .navbtn:hover { border-color: ${P.blue}66; color: ${P.ink} }
+        .navcta { background: ${P.accent}; border-color: ${P.accent}; color: ${P.onAccent} }
+        .navcta:hover { filter: brightness(1.06); box-shadow: 0 8px 24px ${P.blue}33 }
         @media (max-width: 400px) { .navbtn { font-size: 9.5px; padding: 7px 9px; letter-spacing: .06em } }
 
         .flink { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .1em;
@@ -208,8 +208,8 @@ export default function Home({ searchParams }) {
 
         .btn { transition: transform .15s ease-out, background .15s ease-out }
         .btn:hover { transform: translateY(-2px) } .btn:active { transform: scale(.97) }
-        .card { background: ${P.paper2}; border: 1px solid ${P.line}; transition: transform .2s ease-out, background .2s ease-out }
-        .card:hover { transform: translateY(-3px); background: #FFF }
+        .card { background: ${P.paper2}; border: 1px solid ${P.line}; transition: transform .2s ease-out, border-color .2s ease-out, box-shadow .2s ease-out }
+        .card:hover { transform: translateY(-3px); border-color: ${P.blue}55; box-shadow: 0 14px 40px ${P.blue}1F }
         a:focus-visible { outline: 2px solid ${P.accent}; outline-offset: 3px }
         @media (max-width: 900px) { .two { grid-template-columns: 1fr !important } .hide-sm { display: none } }
         @media (prefers-reduced-motion: reduce) { .r, .card, .btn { animation: none !important; transition: none !important } .al-obs { opacity: 1 !important; transform: none !important } }
@@ -217,13 +217,13 @@ export default function Home({ searchParams }) {
         .al-phone { width: 100%; max-width: 300px; margin: 0 auto; border-radius: 38px; padding: 9px }
         .al-screen { border-radius: 30px; overflow: hidden; position: relative; height: 460px; display: block }
         .al-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 80px; height: 18px;
-          border-radius: 11px; background: #14171F; z-index: 5 }
+          border-radius: 11px; background: #05070C; z-index: 5 }
         .al-status { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px 4px;
           font-size: 10.5px; position: relative; z-index: 4 }
         .al-slide { position: absolute; inset: 0; opacity: 0; display: flex; flex-direction: column }
         .al-stack { margin-top: auto; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; padding: 10px 12px 12px; flex: 1 }
         .al-msg { opacity: 0 } .al-msgwrap { position: relative }
-        .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 12px; background: #fff;
+        .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 12px; background: #151B29;
           border: 1px solid ${P.line}; opacity: 0; position: absolute; top: 0; left: 0 }
         .al-typing b { width: 5px; height: 5px; border-radius: 50%; background: ${P.inkSoft};
           animation: bnc 1.3s ease-in-out infinite }
@@ -273,7 +273,7 @@ export default function Home({ searchParams }) {
           padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0 }}>
             <div style={{ width: 26, height: 26, background: P.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <i className="ti ti-robot" style={{ fontSize: 15, color: "#fff" }} />
+              <i className="ti ti-robot" style={{ fontSize: 15, color: P.onAccent }} />
             </div>
             <span className="fr" style={{ fontSize: 19 }}>Autologic</span>
           </a>
@@ -306,8 +306,8 @@ export default function Home({ searchParams }) {
             <p className="r" style={{ animationDelay: ".14s", fontSize: 17, lineHeight: 1.6, color: P.inkSoft, maxWidth: 560, margin: "0 0 28px" }}>{c.lead}</p>
             <div className="r" style={{ animationDelay: ".2s", display: "flex", gap: 10, flexWrap: "wrap" }}>
               <a href="/dashboard?auth=signup" className="btn" style={{ ...mono, fontSize: 11.5, background: P.accent,
-                color: "#fff", padding: "14px 26px", textDecoration: "none" }}>{c.cta}</a>
-              <a href="/pricing" className="btn" style={{ ...mono, fontSize: 11.5, border: `1px solid ${P.ink}`,
+                color: P.onAccent, padding: "14px 26px", textDecoration: "none" }}>{c.cta}</a>
+              <a href="/pricing" className="btn" style={{ ...mono, fontSize: 11.5, border: `1px solid ${P.line}`,
                 color: P.ink, padding: "14px 26px", textDecoration: "none" }}>{c.cta2}</a>
             </div>
             <div className="r" style={{ animationDelay: ".26s", marginTop: 26, display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -334,7 +334,7 @@ export default function Home({ searchParams }) {
             </div>
             <div className="board-wrap" style={{ maxWidth: 330, margin: "0 auto", width: "100%" }}>
               <div className="al-bars"><span /><span /><span /><span /></div>
-              <div className="al-phone" style={{ background: P.ink }}>
+              <div className="al-phone" style={{ background: "linear-gradient(160deg, #232B3D, #10151F)" }}>
                 <div className="al-screen" style={{ background: P.paper2 }}>
                   <div className="al-notch" />
                   <div className="al-status" style={{ color: P.inkSoft }}>
