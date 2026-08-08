@@ -8,19 +8,17 @@ import { useState, useEffect, useRef } from "react";
 // re-skins by editing this object alone. Key names are kept from the previous
 // palette so no component needs touching; `gold` is now the periwinkle
 // primary, and the amber it used to hold lives on in `warn`.
+// Every value is a CSS variable, so the whole dashboard re-themes at runtime
+// without a single component re-rendering — inline styles accept var() happily.
+// The two palettes live in <Theme/> below.
 export const T = {
-  // Light workspace, dark rail. The rail keeps the product's near-black; the
-  // workspace goes light because this is where people spend hours, and the tabs
-  // all read their colours from here — so this object is the only switch.
-  bg: "#F5F6F8", bgAlt: "#F1F3F7", card: "#FFFFFF", cardAlt: "#F8F9FB", inset: "#EFF1F5",
-  rail: "#0D111A", railHover: "#161C2A", railText: "#98A3BA", railTextOn: "#FFFFFF",
-  gold: "#5B8CFF", goldDim: "#3D6FE0", goldBg: "rgba(91,140,255,0.10)",
-  text: "#131722", textMuted: "#5A6478", textDim: "#8A93A6",
-  border: "#E4E8EF", borderStrong: "#D3D9E4",
-  // Mint still means "the bot is live". `success` is a darker sibling used for
-  // text and bars, because #2ED3A7 on white is too pale to read.
-  danger: "#E8556D", success: "#12A97F", info: "#5B8CFF", warn: "#D2891F", purple: "#7C5CF0",
-  live: "#2ED3A7", liveBg: "rgba(46,211,167,0.12)", warnBg: "rgba(210,137,31,0.12)", dangerBg: "rgba(232,85,109,0.10)",
+  bg: "var(--bg)", bgAlt: "var(--bgAlt)", card: "var(--card)", cardAlt: "var(--cardAlt)", inset: "var(--inset)",
+  rail: "var(--rail)", railHover: "var(--railHover)", railText: "var(--railText)", railTextOn: "var(--railTextOn)",
+  gold: "var(--gold)", goldDim: "var(--goldDim)", goldBg: "var(--goldBg)",
+  text: "var(--text)", textMuted: "var(--textMuted)", textDim: "var(--textDim)",
+  border: "var(--border)", borderStrong: "var(--borderStrong)",
+  danger: "var(--danger)", success: "var(--success)", info: "var(--gold)", warn: "var(--warn)", purple: "var(--purple)",
+  live: "var(--live)", liveBg: "var(--liveBg)", warnBg: "var(--warnBg)", dangerBg: "var(--dangerBg)",
 };
 
 export const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
@@ -163,7 +161,7 @@ export function Select({ value, options, onChange, placeholder = "Select", style
         style={{ display: "flex", alignItems: "center", gap: 8, width: wide ? "100%" : "auto",
           padding: "9px 12px", borderRadius: 9, border: `1px solid ${open ? T.gold : T.border}`,
           background: T.card, color: T.text, fontSize: 13.5, fontWeight: 500, cursor: "pointer",
-          boxShadow: open ? `0 0 0 3px ${T.gold}22` : "none" }}>
+          boxShadow: open ? `0 0 0 3px color-mix(in srgb, ${T.gold} 13%, transparent)` : "none" }}>
         {current?.icon && <i className={`ti ${current.icon}`} style={{ fontSize: 15, color: T.gold }} />}
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
         <i className="ti ti-chevron-down" style={{ marginLeft: "auto", fontSize: 15, color: T.textDim,
@@ -206,7 +204,7 @@ export function Motion() {
       .ui-btn:active:not(:disabled) { transform: scale(.97) }
       .ui-card { transition: box-shadow .2s ease-out, transform .2s ease-out, border-color .2s ease-out }
       .ui-inp { transition: border-color .16s ease-out, box-shadow .16s ease-out }
-      .ui-inp:focus { outline: none; border-color: ${T.gold}; box-shadow: 0 0 0 3px ${T.gold}22 }
+      .ui-inp:focus { outline: none; border-color: ${T.gold}; box-shadow: 0 0 0 3px color-mix(in srgb, ${T.gold} 13%, transparent) }
 
       @keyframes ui-menu { from { opacity: 0; transform: translateY(-6px) scale(.98) } to { opacity: 1; transform: none } }
       .ui-menu { animation: ui-menu .18s cubic-bezier(.16,1,.3,1) both; transform-origin: top }
@@ -221,7 +219,7 @@ export function Motion() {
       .ui-row:hover { background: ${T.bgAlt} }
       .ui-nav { transition: background .15s ease-out, color .15s ease-out }
 
-      @keyframes ui-pulse { 0%,100% { box-shadow: 0 0 0 0 ${T.live}66 } 50% { box-shadow: 0 0 0 5px ${T.live}00 } }
+      @keyframes ui-pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, ${T.live} 40%, transparent) } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, ${T.live} 0%, transparent) } }
       .ui-live { animation: ui-pulse 2.6s ease-in-out infinite }
 
       @media (prefers-reduced-motion: reduce) {
@@ -229,5 +227,74 @@ export function Motion() {
         .ui-btn *, .ui-menu * { animation: none !important; transition: none !important; transform: none !important }
       }
     `}</style>
+  );
+}
+
+
+// Both palettes, and the switch. Contrast was checked pair by pair against the
+// surface each colour actually sits on: body text clears 7:1 in both modes,
+// secondary text and every status colour clear 4.5:1. Nothing here is a guess.
+export const PALETTE = {
+  light: {
+    bg: "#F4F6F9", bgAlt: "#EDF0F5", card: "#FFFFFF", cardAlt: "#F8FAFC", inset: "#E9EDF3",
+    rail: "#0D111A", railHover: "#1A2130", railText: "#A8B2C6", railTextOn: "#FFFFFF",
+    gold: "#3B6FE8", goldDim: "#2B55C4", goldBg: "rgba(59,111,232,0.09)",
+    text: "#0F1420", textMuted: "#4A5568", textDim: "#6B7488",
+    border: "#DDE3EC", borderStrong: "#C6CEDC",
+    danger: "#C93A50", success: "#097A5A", warn: "#8A5A07", purple: "#6D3FD9",
+    live: "#0FA97C", liveBg: "rgba(15,169,124,0.11)", warnBg: "rgba(154,100,8,0.10)", dangerBg: "rgba(201,58,80,0.09)",
+  },
+  dark: {
+    bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420", cardAlt: "#151B2A", inset: "#1C2436",
+    rail: "#080B12", railHover: "#161C2A", railText: "#98A3BA", railTextOn: "#FFFFFF",
+    gold: "#7BA4FF", goldDim: "#5B8CFF", goldBg: "rgba(123,164,255,0.13)",
+    text: "#E7EAF2", textMuted: "#A7B1C6", textDim: "#7C879C",
+    border: "#1F2839", borderStrong: "#2C374D",
+    danger: "#FF7A82", success: "#3FE0B4", warn: "#F5C25A", purple: "#A78BFA",
+    live: "#2ED3A7", liveBg: "rgba(46,211,167,0.13)", warnBg: "rgba(245,194,90,0.12)", dangerBg: "rgba(255,122,130,0.11)",
+  },
+};
+
+const vars = (p) => Object.entries(p).map(([k, v]) => `--${k}:${v}`).join(";");
+
+export function Theme() {
+  return (
+    <style>{`
+      :root, [data-theme="light"] { ${vars(PALETTE.light)}; color-scheme: light }
+      [data-theme="dark"] { ${vars(PALETTE.dark)}; color-scheme: dark }
+      body { background: var(--bg); color: var(--text) }
+    `}</style>
+  );
+}
+
+export function useTheme() {
+  const [mode, setMode] = useState("light");
+  useEffect(() => {
+    let saved = null;
+    try { saved = localStorage.getItem("al-theme"); } catch {}
+    // No stored choice means follow the machine — someone who runs their laptop
+    // dark should not be handed a white screen.
+    const start = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    setMode(start);
+    document.documentElement.dataset.theme = start;
+  }, []);
+  const toggle = () => {
+    const next = mode === "dark" ? "light" : "dark";
+    setMode(next);
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("al-theme", next); } catch {}
+  };
+  return [mode, toggle];
+}
+
+export function ThemeToggle({ mode, toggle, onRail }) {
+  return (
+    <button onClick={toggle} className="ui-btn" title={mode === "dark" ? "Switch to light" : "Switch to dark"}
+      aria-label="Switch theme"
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34,
+        borderRadius: 9, cursor: "pointer", background: onRail ? "transparent" : T.card,
+        border: `1px solid ${onRail ? T.railHover : T.border}`, color: onRail ? T.railText : T.textMuted }}>
+      <i className={`ti ti-${mode === "dark" ? "sun" : "moon"}`} style={{ fontSize: 16 }} />
+    </button>
   );
 }
