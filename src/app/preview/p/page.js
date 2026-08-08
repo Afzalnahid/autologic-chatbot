@@ -114,8 +114,10 @@ function flowCss() {
   for (let k = 0; k < N; k++) {
     const at = (sec) => (((k * PER + sec) / (N * PER)) * 100).toFixed(2) + "%";
     out += `
-      .fch${k}, .fsrc${k}, .fout${k} { opacity: .28; transition: none }
-      .fcap${k}, .fsay${k}, .fnum${k} { opacity: 0 }
+      /* Rows sit side by side, so a dim inactive state reads as "later". Stacked
+         items share one cell, so anything but 0 is two texts on top of each other. */
+      .fch${k}, .fout${k} { opacity: .28 }
+      .fsrc${k}, .fcap${k}, .fsay${k}, .fnum${k} { opacity: 0 }
       .fch${k} { animation: fa${k} ${CY}s linear infinite }
       .fsrc${k} { animation: fb${k} ${CY}s linear infinite }
       .fsay${k} { animation: fs${k} ${CY}s linear infinite }
@@ -123,7 +125,7 @@ function flowCss() {
       .fcap${k}, .fnum${k} { animation: fd${k} ${CY}s linear infinite }
       .fdot${k} { animation: fe${k} ${CY}s ease-in-out infinite; opacity: 0 }
       @keyframes fa${k} { 0%,${at(0)} { opacity:.28 } ${at(.3)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:.28 } }
-      @keyframes fb${k} { 0%,${at(1.1)} { opacity:.28 } ${at(1.4)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:.28 } }
+      @keyframes fb${k} { 0%,${at(1.1)} { opacity:0 } ${at(1.4)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:0 } }
       @keyframes fs${k} { 0%,${at(1.9)} { opacity:0; transform: translateY(5px) } ${at(2.2)},${at(PER - .35)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
       @keyframes fc${k} { 0%,${at(2.7)} { opacity:.28 } ${at(3.0)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:.28 } }
       @keyframes fd${k} { 0%,${at(.05)} { opacity:0 } ${at(.4)},${at(PER - .3)} { opacity:1 } ${at(PER)},100% { opacity:0 } }
@@ -136,7 +138,7 @@ function flowCss() {
 function Flow({ lang }) {
   const bn = lang === "bn";
   return (
-    <div style={{ border: `1px solid ${P.line}`, background: P.paper2 }}>
+    <div className="flow-wrap" style={{ border: `1px solid ${P.line}`, background: P.paper2 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 18px 12px", borderBottom: `1px solid ${P.line}` }}>
         <span style={{ ...mono, fontSize: 9.5, color: P.inkSoft }}>⌗ {bn ? "যেভাবে কাজ করে" : "How it works"}</span>
@@ -236,6 +238,11 @@ export default function Paper({ searchParams }) {
         /* Stacked states share one grid cell, so the box is always as tall as its
            tallest child. Absolute positioning with a guessed min-height was what
            made things overlap once a translation ran long. */
+        /* Paused until the section is in view: motion off screen is wasted battery, and
+   the loop should start from the beginning when someone arrives at it. */
+        .flow-wrap *, .board-wrap * { animation-play-state: paused }
+        .flow-wrap.play *, .board-wrap.play * { animation-play-state: running }
+
         .stk { display: grid }
         .stk > * { grid-area: 1 / 1 }
 
@@ -311,6 +318,24 @@ export default function Paper({ searchParams }) {
         }
       ` + BOARD_CSS + flowCss()}</style>
       <script dangerouslySetInnerHTML={{ __html: REVEAL_JS }} />
+
+      <script dangerouslySetInnerHTML={{ __html: `(function(){
+        function start(){
+          if (!("IntersectionObserver" in window)) {
+            document.querySelectorAll(".flow-wrap,.board-wrap").forEach(function(el){ el.classList.add("play"); });
+            return;
+          }
+          var io = new IntersectionObserver(function(es){
+            es.forEach(function(e){
+              // Restarting on re-entry means the story always begins at stage one.
+              if (e.isIntersecting) { e.target.classList.add("play"); }
+              else { e.target.classList.remove("play"); }
+            });
+          }, { threshold: 0.25 });
+          document.querySelectorAll(".flow-wrap,.board-wrap").forEach(function(el){ io.observe(el); });
+        }
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+      })();` }} />
       <div className="sheet"><i /><i /><i /><i /></div>
 
       <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 4, background: P.paper }}>
@@ -371,7 +396,7 @@ export default function Paper({ searchParams }) {
               <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: "0 0 16px" }}>{c.convTitle}</h2>
               <p style={{ fontSize: 15.5, lineHeight: 1.65, color: P.inkSoft, margin: 0, maxWidth: 420 }}>{c.convLead}</p>
             </div>
-            <div style={{ maxWidth: 330, margin: "0 auto", width: "100%" }}>
+            <div className="board-wrap" style={{ maxWidth: 330, margin: "0 auto", width: "100%" }}>
               <div className="al-bars"><span /><span /><span /><span /></div>
               <div className="al-phone" style={{ background: P.ink }}>
                 <div className="al-screen" style={{ background: P.paper2 }}>
