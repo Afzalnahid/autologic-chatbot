@@ -11,7 +11,7 @@ const P = {
 
 const mono = { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 10.5,
   letterSpacing: "0.13em", textTransform: "uppercase" };
-const wrap = { maxWidth: 1240, margin: "0 auto", padding: "0 26px" };
+const wrap = { maxWidth: 1240, margin: "0 auto", padding: "0 clamp(16px, 4vw, 26px)" };
 
 function Label({ children }) {
   return <div style={{ ...mono, color: P.inkSoft, marginBottom: 18 }}>⌗ {children}</div>;
@@ -140,11 +140,9 @@ function Flow({ lang }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 18px 12px", borderBottom: `1px solid ${P.line}` }}>
         <span style={{ ...mono, fontSize: 9.5, color: P.inkSoft }}>⌗ {bn ? "যেভাবে কাজ করে" : "How it works"}</span>
-        <span style={{ ...mono, fontSize: 9.5, color: P.ink, position: "relative", minWidth: 46, textAlign: "right" }}>
+        <span className="stk" style={{ ...mono, fontSize: 9.5, color: P.ink, justifyItems: "end" }}>
           {STAGES.map((s2, k) => (
-            <span key={k} className={`fnum${k}`} style={{ position: k ? "absolute" : "static", right: 0, top: 0 }}>
-              {String(k + 1).padStart(2, "0")}/0{STAGES.length}
-            </span>
+            <span key={k} className={`fnum${k}`}>{String(k + 1).padStart(2, "0")}/0{STAGES.length}</span>
           ))}
         </span>
       </div>
@@ -163,7 +161,7 @@ function Flow({ lang }) {
             ))}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingTop: 22 }}>
+          <div className="flow-mid" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingTop: 22 }}>
             <div className="fwire" style={{ position: "relative", width: "100%", height: 2, background: P.line }}>
               {STAGES.map((s2, k) => (
                 <span key={k} className={`fdot${k}`} style={{ position: "absolute", top: -2.5, left: 0, width: 6, height: 6,
@@ -177,22 +175,24 @@ function Flow({ lang }) {
                 <i className="ti ti-robot" style={{ fontSize: 23, color: "#fff" }} />
               </div>
             </div>
-            <div style={{ textAlign: "center", position: "relative", minHeight: 34, width: "100%" }}>
-              <div style={{ ...mono, fontSize: 8, color: P.inkSoft, marginBottom: 4 }}>{bn ? "যা দেখে" : "Reads"}</div>
-              {STAGES.map((s2, k) => (
-                <div key={k} className={`fsrc${k}`} style={{ ...mono, fontSize: 8.5, color: P.blue, lineHeight: 1.4,
-                  position: k ? "absolute" : "static", left: 0, right: 0, top: 16 }}>{bn ? s2.srcBn : s2.src}</div>
-              ))}
+            <div style={{ textAlign: "center", width: "100%" }}>
+              <div style={{ ...mono, fontSize: 8, color: P.inkSoft, marginBottom: 5 }}>{bn ? "যা দেখে" : "Reads"}</div>
+              <div className="stk">
+                {STAGES.map((s2, k) => (
+                  <div key={k} className={`fsrc${k}`} style={{ ...mono, fontSize: 8.5, color: P.blue, lineHeight: 1.4 }}>
+                    {bn ? s2.srcBn : s2.src}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           <div>
             <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "বট যা বলে" : "The bot replies"}</div>
-            <div style={{ position: "relative", minHeight: 86, marginBottom: 8 }}>
+            <div className="stk" style={{ marginBottom: 10 }}>
               {STAGES.map((s2, k) => (
-                <div key={k} className={`fsay${k}`} style={{ position: k ? "absolute" : "static", inset: k ? 0 : "auto",
-                  padding: "10px 12px", background: P.blue, color: "#fff", fontSize: 11.5, lineHeight: 1.5,
-                  borderRadius: 3 }}>{bn ? s2.say : s2.sayEn}</div>
+                <div key={k} className={`fsay${k}`} style={{ padding: "10px 12px", background: P.blue, color: "#fff",
+                  fontSize: 11.5, lineHeight: 1.5, borderRadius: 3, alignSelf: "start" }}>{bn ? s2.say : s2.sayEn}</div>
               ))}
             </div>
             <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "আর যা করে" : "And does"}</div>
@@ -207,10 +207,10 @@ function Flow({ lang }) {
         </div>
 
         {/* The caption names the feature the stage just demonstrated. */}
-        <div style={{ position: "relative", minHeight: 62, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${P.line}` }}>
+        <div className="stk" style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${P.line}` }}>
           {STAGES.map((s2, k) => (
-            <p key={k} className={`fcap${k}`} style={{ position: k ? "absolute" : "static", inset: k ? "16px 0 0" : "auto",
-              margin: 0, fontSize: 13, lineHeight: 1.6, color: P.inkSoft, maxWidth: 620 }}>{bn ? s2.capBn : s2.cap}</p>
+            <p key={k} className={`fcap${k}`} style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: P.inkSoft,
+              maxWidth: 640, alignSelf: "start" }}>{bn ? s2.capBn : s2.cap}</p>
           ))}
         </div>
       </div>
@@ -228,7 +228,18 @@ export default function Paper({ searchParams }) {
       fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
-        .fr { font-family: 'Fraunces', Georgia, serif; font-weight: 700; letter-spacing: -0.02em }
+        html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
+        * { -webkit-tap-highlight-color: transparent }
+        /* Long Bangla compounds and URLs must never push the layout sideways. */
+        p, span, div { overflow-wrap: anywhere }
+
+        /* Stacked states share one grid cell, so the box is always as tall as its
+           tallest child. Absolute positioning with a guessed min-height was what
+           made things overlap once a translation ran long. */
+        .stk { display: grid }
+        .stk > * { grid-area: 1 / 1 }
+
+        .fr { font-family: 'Fraunces', Georgia, serif; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: normal; hyphens: none }
         .bn .fr { font-family: 'Anek Bangla', sans-serif; font-weight: 700 }
 
         /* The sheet: hairline rules and crop marks, so the page reads as a drawing. */
@@ -236,6 +247,9 @@ export default function Paper({ searchParams }) {
         .sheet i { position: absolute; width: 9px; height: 9px; border: 1px solid #14171F55 }
         .sheet i:nth-child(1) { top: -5px; left: -5px } .sheet i:nth-child(2) { top: -5px; right: -5px }
         .sheet i:nth-child(3) { bottom: -5px; left: -5px } .sheet i:nth-child(4) { bottom: -5px; right: -5px }
+
+        @media (max-width: 620px) { .sheet { inset: 7px } }
+        @supports (-webkit-touch-callout: none) { .al-switch { padding-bottom: max(10px, env(safe-area-inset-bottom)) } }
 
         @keyframes rise { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
         .r { animation: rise .55s cubic-bezier(.22,.61,.36,1) both }
@@ -285,7 +299,11 @@ export default function Paper({ searchParams }) {
 
         .flow-grid { display: grid; grid-template-columns: 1fr 150px 1.15fr; gap: 20px; align-items: start }
         .fwire { --run: 140px }
-        @media (max-width:560px){ .fwire { --run: 0px; display: none } }
+        @media (max-width: 880px) {
+          .flow-grid { grid-template-columns: 1fr; gap: 22px }
+          .fwire { display: none }
+          .flow-mid { flex-direction: row !important; justify-content: center; padding-top: 0 !important; gap: 16px !important }
+        }
         @media (max-width: 560px) { .flow-grid { grid-template-columns: 1fr; gap: 18px }
           .flow-grid > div:nth-child(3) > div:first-child { text-align: left } }
         @media (prefers-reduced-motion: reduce) {
@@ -297,7 +315,7 @@ export default function Paper({ searchParams }) {
 
       <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 4, background: P.paper }}>
         <div style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "11px 26px", gap: 12 }}>
+          padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0 }}>
             <div style={{ width: 26, height: 26, background: P.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <i className="ti ti-robot" style={{ fontSize: 15, color: "#fff" }} />
@@ -318,11 +336,11 @@ export default function Paper({ searchParams }) {
         </div>
       </nav>
 
-      <section style={{ ...wrap, padding: "clamp(48px,8vw,86px) 26px clamp(30px,5vw,50px)" }}>
+      <section style={{ ...wrap, padding: "clamp(40px,8vw,86px) clamp(16px,4vw,26px) clamp(30px,5vw,50px)" }}>
         <div className="two" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "clamp(28px,5vw,44px)" }}>
           <div>
             <div className="r"><Label>{lang === "bn" ? "চার চ্যানেল, এক সহকারী" : "Four channels, one assistant"}</Label></div>
-            <h1 className="r fr" style={{ animationDelay: ".07s", fontSize: "clamp(40px,7.6vw,82px)", lineHeight: 0.98, margin: "0 0 22px" }}
+            <h1 className="r fr" style={{ animationDelay: ".07s", fontSize: "clamp(34px, 7.4vw, 78px)", lineHeight: 0.98, margin: "0 0 22px" }}
               dangerouslySetInnerHTML={{ __html: c.h1.replace(/<em>|<\/em>/g, "") }} />
             <p className="r" style={{ animationDelay: ".14s", fontSize: 17, lineHeight: 1.6, color: P.inkSoft, maxWidth: 560, margin: "0 0 28px" }}>{c.lead}</p>
             <div className="r" style={{ animationDelay: ".2s", display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -346,7 +364,7 @@ export default function Paper({ searchParams }) {
       </section>
 
       <section style={{ borderTop: `1px solid ${P.line}`, borderBottom: `1px solid ${P.line}`, background: P.paper2 }}>
-        <div style={{ ...wrap, padding: "clamp(44px,7vw,80px) 26px" }}>
+        <div style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
           <div className="two" style={{ display: "grid", gridTemplateColumns: "0.85fr 1.15fr", gap: "clamp(28px,5vw,56px)", alignItems: "center" }}>
             <div data-reveal="0">
               <Label>{c.convLabel}</Label>
@@ -372,12 +390,12 @@ export default function Paper({ searchParams }) {
         </div>
       </section>
 
-      <section style={{ ...wrap, padding: "clamp(44px,7vw,80px) 26px" }}>
+      <section style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
         <div data-reveal="0" style={{ marginBottom: 34, maxWidth: 620 }}>
           <Label>{c.featLabel}</Label>
           <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>{c.featTitle}</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px,1fr))", gap: 0, borderTop: `1px solid ${P.line}`, borderLeft: `1px solid ${P.line}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 0, borderTop: `1px solid ${P.line}`, borderLeft: `1px solid ${P.line}` }}>
           {c.features.map((f, i) => (
             <div key={f.title} className="card" data-reveal={(i % 3) * 70}
               style={{ borderTop: "none", borderLeft: "none", padding: 28, background: "transparent" }}>
@@ -391,7 +409,7 @@ export default function Paper({ searchParams }) {
       </section>
 
       <footer style={{ borderTop: `1px solid ${P.line}` }}>
-        <div style={{ ...wrap, padding: "26px", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, ...mono, fontSize: 9.5, color: P.inkSoft }}>
+        <div style={{ ...wrap, padding: "24px clamp(16px,4vw,26px)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, ...mono, fontSize: 9.5, color: P.inkSoft }}>
           <span>© 2026 Autologic</span><span>Kandirpar, Cumilla, Bangladesh</span>
         </div>
       </footer>
