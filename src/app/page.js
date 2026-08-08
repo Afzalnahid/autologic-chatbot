@@ -202,6 +202,10 @@ export default function Home({ searchParams }) {
         .navcta:hover { filter: brightness(1.06) }
         @media (max-width: 400px) { .navbtn { font-size: 9.5px; padding: 7px 9px; letter-spacing: .06em } }
 
+        .flink { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .1em;
+          text-transform: uppercase; color: ${P.inkSoft}; text-decoration: none; transition: color .15s ease-out }
+        .flink:hover { color: ${P.ink}; text-decoration: underline; text-underline-offset: 4px }
+
         .btn { transition: transform .15s ease-out, background .15s ease-out }
         .btn:hover { transform: translateY(-2px) } .btn:active { transform: scale(.97) }
         .card { background: ${P.paper2}; border: 1px solid ${P.line}; transition: transform .2s ease-out, background .2s ease-out }
@@ -401,8 +405,22 @@ export default function Home({ searchParams }) {
       )}
 
       <footer style={{ borderTop: `1px solid ${P.line}` }}>
-        <div style={{ ...wrap, padding: "24px clamp(16px,4vw,26px)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, ...mono, fontSize: 9.5, color: P.inkSoft }}>
-          <span>© 2026 Autologic</span><span>Kandirpar, Cumilla, Bangladesh</span>
+        <div style={{ ...wrap, padding: "26px clamp(16px,4vw,26px) 30px" }}>
+          {/* These are not decoration: Meta's review requires the privacy and terms
+              URLs to be reachable, and dropping them once already nearly cost a
+              submission. */}
+          <div style={{ display: "flex", gap: "14px 26px", flexWrap: "wrap", marginBottom: 18 }}>
+            <a href="/pricing" className="flink">{bn ? "দাম" : "Pricing"}</a>
+            <a href="/google-calendar" className="flink">Google Calendar</a>
+            <a href="/privacy" className="flink">{bn ? "প্রাইভেসি পলিসি" : "Privacy Policy"}</a>
+            <a href="/terms" className="flink">{bn ? "শর্তাবলি" : "Terms of Service"}</a>
+            <a href="/contact" className="flink">{bn ? "যোগাযোগ" : "Contact"}</a>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
+            ...mono, fontSize: 9.5, color: P.inkSoft, borderTop: `1px solid ${P.line}`, paddingTop: 18 }}>
+            <span>© 2026 Autologic</span>
+            <span>Kandirpar, Cumilla, Bangladesh</span>
+          </div>
         </div>
       </footer>
 
