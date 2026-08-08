@@ -89,6 +89,46 @@ clean up the stale text.
   flipped back to *1 will receive it* on resume. Task 6's "done when" is met.
 - Still unverified: broadcast batching past 20 recipients, and Task 10 follow-ups.
 
+### Landing page rebuilt (2026-08-08)
+The dark, card-based page was replaced with a new visual language borrowed from a
+reference the owner supplied: heavy serif display (Fraunces), technical monospace
+microtype (IBM Plex Mono), hairline rules and corner crop marks, a numbered feature
+grid instead of boxes. Rendered in the **product's own palette** — the reference's
+cream and orange shipped first and were corrected, see `lessons.md` #18.
+
+What the page now does:
+- **How-it-works diagram** — four stages on a 16.8s clock. Each shows the incoming
+  message, what the bot reads, the reply it actually sends, what it records, and a
+  sentence naming the feature. Paused until scrolled into view.
+- **Phone board** — four conversations (Messenger order, Instagram photo match,
+  WhatsApp booking, website widget) playing in turn on a 28s clock inside a phone
+  frame, chat anchored to the bottom, with typing indicators and story-style
+  progress bars.
+- **Bangla / English** — the whole page, via `?lang=bn`. Copy for both lives in
+  `src/lib/landing.js` alongside the animation timings.
+- **Nav** — Pricing · language · Log in · Start free trial. "Sign up" was removed as
+  a duplicate door.
+
+Files: `src/app/page.js` (the page) and `src/lib/landing.js` (copy, conversations,
+generated CSS). The `src/app/preview/` scaffolding and its five motion variants were
+deleted once the design was chosen.
+
+Two defects introduced and fixed during this work, both worth remembering: the reveal
+script ran before the cards existed (`lessons.md` #16), and the footer's privacy and
+terms links were dropped in the rewrite (`lessons.md` #17).
+
+Still open on the landing page: the `TODO_` case-study values are the owner's to
+fill, and `public/demo/dress.svg` is an original illustration standing in for a real
+product photograph.
+
+### Next, and blocked
+- Onboarding after signup is the real gap now: trial terms on the signup screen, a
+  first-run path (connect a channel → add products → test), and asking the business
+  type up front. Nothing exists for any of it.
+- Chat widget and dashboard visual polish were planned after the landing page.
+- Task 10 follow-ups and broadcast batching past 20 remain unverified.
+- Task 8 (courier) and Task 3 (SSLCommerz) still need accounts.
+
 ### What's next
 1. The two `bot.js` changes (`33f84b7`, `68b9515`) are live-verified on one
    channel (agency). Optional: if convenient, send one ecommerce-side test too —
