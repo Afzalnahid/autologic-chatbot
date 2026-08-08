@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 
-import { T, words, useIsMobile, Btn, Card, Inp, Motion, SAMPLE_ECOM, SAMPLE_AGENCY } from "./dashboard/components/ui.js";
+import { T, words, useIsMobile, Btn, Card, Inp, Motion, Theme, useTheme, ThemeToggle, Select, SAMPLE_ECOM, SAMPLE_AGENCY } from "./dashboard/components/ui.js";
 import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 import Broadcast from "./dashboard/components/Broadcast.js";
 import WebsiteWidget from "./dashboard/components/WebsiteWidget.js";
@@ -70,7 +70,7 @@ function AuthGate({onReady}) {
   };
   return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <Card style={{width:340,textAlign:"center",padding:"2.5rem 2rem"}}>
-      <div style={{width:56,height:56,borderRadius:16,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:`1px solid ${T.gold}30`}}><i className="ti ti-robot" style={{fontSize:26,color:T.gold}}/></div>
+      <div style={{width:56,height:56,borderRadius:16,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`}}><i className="ti ti-robot" style={{fontSize:26,color:T.gold}}/></div>
       <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Chatbot Platform</div>
       <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>{mode==="signin"?"Sign in to your dashboard":"Create your account"}</div>
       {mode==="signup"&&<Inp value={biz} onChange={e=>setBiz(e.target.value)} placeholder="Business name"/>}
@@ -158,7 +158,7 @@ function Onboarding({me,onTrial,onDemo}) {
   if(step==="profile") return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <Card style={{maxWidth:440,width:"100%",padding:"2rem 1.6rem"}}>
       <div style={{textAlign:"center",marginBottom:20}}>
-        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid ${T.gold}30`}}><i className="ti ti-building-store" style={{fontSize:24,color:T.gold}}/></div>
+        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`}}><i className="ti ti-building-store" style={{fontSize:24,color:T.gold}}/></div>
         <div style={{fontSize:18,fontWeight:600}}>Set up your business profile</div>
         <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>Step 1 of 2 — this helps your AI assistant represent your business</div>
       </div>
@@ -182,7 +182,7 @@ function Onboarding({me,onTrial,onDemo}) {
   if(step==="train") return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <Card style={{maxWidth:560,width:"100%",padding:"1.8rem 1.6rem",maxHeight:"92dvh",overflowY:"auto"}}>
       <div style={{textAlign:"center",marginBottom:20}}>
-        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid ${T.gold}30`}}><i className="ti ti-wand" style={{fontSize:24,color:T.gold}}/></div>
+        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`}}><i className="ti ti-wand" style={{fontSize:24,color:T.gold}}/></div>
         <div style={{fontSize:18,fontWeight:600}}>Teach your bot about your business</div>
         <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>Step 2 of 3 — write it in your own words and AI does the rest</div>
       </div>
@@ -242,7 +242,7 @@ function Onboarding({me,onTrial,onDemo}) {
   if(step==="preview") return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <Card style={{maxWidth:620,width:"100%",padding:"1.8rem 1.6rem",maxHeight:"92dvh",overflowY:"auto"}}>
       <div style={{textAlign:"center",marginBottom:18}}>
-        <div style={{width:52,height:52,borderRadius:14,background:`${T.success}15`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid ${T.success}35`}}><i className="ti ti-check" style={{fontSize:26,color:T.success}}/></div>
+        <div style={{width:52,height:52,borderRadius:14,background:`color-mix(in srgb, ${T.success} 8%, transparent)`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",border:`1px solid color-mix(in srgb, ${T.success} 21%, transparent)`}}><i className="ti ti-check" style={{fontSize:26,color:T.success}}/></div>
         <div style={{fontSize:18,fontWeight:600}}>Your bot is trained</div>
         <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>This is what it now knows about your business. Change anything that is not right.</div>
       </div>
@@ -276,7 +276,7 @@ function Onboarding({me,onTrial,onDemo}) {
           <div style={{fontSize:16,fontWeight:600,margin:"12px 0 6px"}}>Try Demo</div>
           <div style={{fontSize:12.5,color:T.textMuted}}>Chat with the Autologic Demo Bot — learn every feature instantly. No setup needed.</div>
         </Card>
-        <Card style={{textAlign:"center",padding:"2rem 1.5rem",cursor:"pointer",border:`1px solid ${T.gold}50`}} onClick={startTrial}>
+        <Card style={{textAlign:"center",padding:"2rem 1.5rem",cursor:"pointer",border:`1px solid color-mix(in srgb, ${T.gold} 31%, transparent)`}} onClick={startTrial}>
           <i className="ti ti-rocket" style={{fontSize:34,color:T.gold}}/>
           <div style={{fontSize:16,fontWeight:600,margin:"12px 0 6px"}}>{busy?"Starting...":"Start 3-Day Free Trial"}</div>
           <div style={{fontSize:12.5,color:T.textMuted}}>All features unlocked. 30 messages/day. Connect Facebook, Instagram or WhatsApp.</div>
@@ -310,7 +310,7 @@ function ConnectChannel({onDone,clientId}) {
   return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{maxWidth:520,width:"100%"}}>
       <div style={{textAlign:"center",marginBottom:24}}>
-        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",border:`1px solid ${T.gold}30`}}>
+        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`}}>
           <i className="ti ti-plug" style={{fontSize:24,color:T.gold}}/>
         </div>
         <div style={{fontSize:18,fontWeight:600}}>Connect a channel</div>
@@ -347,14 +347,14 @@ function ConnectCalendar({clientId,onDone}) {
   return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{maxWidth:480,width:"100%"}}>
       <div style={{textAlign:"center",marginBottom:24}}>
-        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",border:`1px solid ${T.gold}30`}}>
+        <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`}}>
           <i className="ti ti-calendar-event" style={{fontSize:24,color:T.gold}}/>
         </div>
         <div style={{fontSize:18,fontWeight:600}}>Connect Google Calendar</div>
         <div style={{fontSize:12.5,color:T.textMuted,marginTop:4}}>Your bot books appointments and sends automatic Google Meet links to customers</div>
       </div>
       {calOk
-        ?<Card style={{textAlign:"center",padding:"2rem",border:`1px solid ${T.success}40`}}>
+        ?<Card style={{textAlign:"center",padding:"2rem",border:`1px solid color-mix(in srgb, ${T.success} 25%, transparent)`}}>
             <i className="ti ti-circle-check" style={{fontSize:38,color:T.success}}/>
             <div style={{fontSize:15,fontWeight:600,marginTop:12,marginBottom:6}}>Google Calendar connected!</div>
             <div style={{fontSize:12.5,color:T.textMuted,marginBottom:20}}>Your bot will now create Meet links automatically for every booking.</div>
@@ -410,6 +410,7 @@ export default function Dashboard() {
   const [bookingCount,setBookingCount]=useState(0);
   const [settings,setSettings]=useState({botName:"Autologic Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
   const [sidebarOpen,setSidebarOpen]=useState(false);
+  const [mode,toggleTheme]=useTheme();
   const [loading,setLoading]=useState(true);
   const [authed,setAuthed]=useState(false);
   const [authChecked,setAuthChecked]=useState(false);
@@ -500,11 +501,11 @@ export default function Dashboard() {
   if(stage==="connect-cal") return <ConnectCalendar clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;  
 
   return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden",background:T.bg}}>
-    <Motion/>
+    <Theme/><Motion/>
     {sidebarOpen&&isMobile&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:40}}/>}
     <div style={{position:"fixed",zIndex:50,height:"100%",width:240,background:T.rail,borderRight:"none",display:"flex",flexDirection:"column",flexShrink:0,transform:sidebarOpen?"translateX(0)":"translateX(-100%)",transition:"transform 0.25s ease",left:0,top:0}}>
       <div style={{padding:"20px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${T.railHover}`}}>
-        <div style={{width:36,height:36,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid ${T.gold}30`,overflow:"hidden"}}>{me?.client?.logo_url?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<i className="ti ti-bolt" style={{fontSize:18,color:T.gold}}/>}</div>
+        <div style={{width:36,height:36,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`,overflow:"hidden"}}>{me?.client?.logo_url?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<i className="ti ti-bolt" style={{fontSize:18,color:T.gold}}/>}</div>
         <div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:600,color:T.railTextOn,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name||"Autologic"}</div><div style={{fontSize:10,color:T.railText,textTransform:"uppercase",letterSpacing:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{settings?.botName||"chatbot"}</div></div>
         <i onClick={()=>setSidebarOpen(false)} className="ti ti-x" style={{fontSize:18,color:T.railText,cursor:"pointer"}}/>
       </div>
@@ -521,8 +522,11 @@ export default function Dashboard() {
       {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"14px 24px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:14,minWidth:0}}>
           <i onClick={()=>setSidebarOpen(true)} className="ti ti-menu-2" style={{fontSize:22,color:T.text,cursor:"pointer",flexShrink:0}}/>
-          <div style={{minWidth:0}}><div style={{fontSize:isMobile?16:18,fontWeight:600}}>{navLabel(PAGES.indexOf(page))}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today`:`${products.length} ${words(bt).item.toLowerCase()}s`}</div>}</div>
+          <div style={{minWidth:0}}><Select value={page} onChange={setPage}
+            options={PAGES.map((p,i)=>({value:p,label:navLabel(i),icon:isAgency&&p==="inventory"?"ti-database":isAgency&&p==="orders"?"ti-calendar-event":ICONS[i]}))}
+            style={{minWidth:isMobile?160:210}}/><div style={{display:"none"}}>{navLabel(PAGES.indexOf(page))}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today`:`${products.length} ${words(bt).item.toLowerCase()}s`}</div>}</div>
         </div>
+        <ThemeToggle mode={mode} toggle={toggleTheme}/>
         <Btn small onClick={()=>load(false)} disabled={loading}><i className="ti ti-refresh" style={{marginRight:4,display:"inline-block",animation:loading?"spin 0.8s linear infinite":"none"}}/>{loading?"Syncing":"Sync"}</Btn>
       </div>
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
