@@ -112,7 +112,7 @@ export default function Inventory({products,refresh}) {
         <thead><tr style={{borderBottom:`0.5px solid ${T.border}`}}>
           {["ID","Product","Category","Price","Stock",""].map(h=><th key={h} style={{padding:"12px 16px",textAlign:"left",color:T.textMuted,fontWeight:500,fontSize:11,textTransform:"uppercase",letterSpacing:.8}}>{h}</th>)}
         </tr></thead>
-        <tbody>{filtered.map(p=><tr key={p.id} style={{borderBottom:`0.5px solid ${T.border}08`}}>
+        <tbody>{filtered.map(p=><tr key={p.id} style={{borderBottom:`0.5px solid color-mix(in srgb, ${T.border} 3%, transparent)`}}>
           <td style={{padding:"12px 16px",color:T.textDim,fontFamily:"monospace",fontSize:12}}>{p.product_id||p.id}</td>
           <td style={{padding:"12px 16px",fontWeight:500}}>{p.product_name||p.name||"Unnamed"}</td>
           <td style={{padding:"12px 16px"}}><Badge>{p.category||"N/A"}</Badge></td>
