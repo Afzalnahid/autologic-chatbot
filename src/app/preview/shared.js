@@ -153,8 +153,22 @@ export const BASE_CSS = `
      Four conversations play one after another, on a loop, like a board outside a
      shop. Each one types, answers, holds, and hands over to the next. The whole
      thing is CSS on a single shared clock, so the slides can never drift apart. */
-  .al-board { position: relative; overflow: hidden }
-  .al-slide { position: absolute; inset: 0; opacity: 0 }
+  /* A phone, because that is where every one of these conversations actually
+     happens. The screen clips, so the chat sits on the bottom and older messages
+     ride up out of view exactly as they would on a real handset. */
+  .al-phone { width: 300px; margin: 0 auto; border-radius: 40px; padding: 10px;
+    background: linear-gradient(160deg, #232B3D, #10151F);
+    box-shadow: 0 30px 70px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06) }
+  .al-screen { border-radius: 31px; overflow: hidden; background: ${T.bg}; position: relative; height: 470px }
+  .al-notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 86px; height: 20px;
+    border-radius: 12px; background: #05070C; z-index: 5 }
+  .al-status { display: flex; justify-content: space-between; align-items: center; padding: 11px 18px 6px;
+    font-size: 11px; color: ${T.muted}; position: relative; z-index: 4 }
+
+  .al-board { position: relative; overflow: hidden; flex: 1 }
+  .al-slide { position: absolute; inset: 0; opacity: 0; display: flex; flex-direction: column }
+  /* Bottom-anchored: the newest message sits at the bottom, the rest move up. */
+  .al-stack { margin-top: auto; display: flex; flex-direction: column; gap: 7px; padding: 10px 12px 12px }
   .al-msg { opacity: 0 }
   .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 13px;
     background: #151B29; border: 1px solid ${T.border}; opacity: 0;
