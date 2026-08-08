@@ -101,7 +101,9 @@ export default function Body({ motion = "m2", lang = "en" }) {
   const here = `/preview/${motion}`;
 
   return (
-    <div style={shell}>
+    <div className={lang === "bn" ? "bn" : ""} style={{ ...shell, fontFamily: lang === "bn"
+      ? "'Anek Bangla', system-ui, sans-serif" : "Inter, system-ui, -apple-system, sans-serif" }}>
+      <div className="al-tex" /><div className="al-vig" />
       <style>{BASE_CSS + BOARD_CSS + m.css}</style>
       <script dangerouslySetInnerHTML={{ __html: REVEAL_JS }} />
 
@@ -143,11 +145,12 @@ export default function Body({ motion = "m2", lang = "en" }) {
           <span className="al-dot" /> {c.eyebrow}
         </div>
 
-        <h1 className="al-rise" style={{ animationDelay: ".08s", fontSize: "clamp(30px, 6.8vw, 48px)", fontWeight: 800,
-          lineHeight: 1.12, letterSpacing: "-0.024em", margin: "0 auto 18px", maxWidth: 820 }}>{c.h1}</h1>
+        <h1 className="al-rise al-display" style={{ animationDelay: ".08s", fontSize: "clamp(34px, 8vw, 62px)",
+          lineHeight: 1.06, margin: "0 auto 20px", maxWidth: 860, position: "relative", zIndex: 2 }}
+          dangerouslySetInnerHTML={{ __html: c.h1 }} />
 
         <p className="al-rise" style={{ animationDelay: ".16s", fontSize: "clamp(15.5px, 2.6vw, 17.5px)",
-          lineHeight: 1.68, color: T.muted, maxWidth: 620, margin: "0 auto 26px" }}>{c.lead}</p>
+          lineHeight: 1.68, color: T.muted, maxWidth: 620, margin: "0 auto 26px", position: "relative", zIndex: 2 }}>{c.lead}</p>
 
         <div className="al-rise" style={{ animationDelay: ".22s", display: "flex", gap: 9, flexWrap: "wrap",
           justifyContent: "center", marginBottom: 28 }}>
@@ -175,8 +178,8 @@ export default function Body({ motion = "m2", lang = "en" }) {
       <section style={{ ...wrap, padding: "clamp(20px, 4vw, 36px) 22px clamp(48px, 8vw, 72px)" }}>
         <div data-reveal="0" style={{ marginBottom: 24, maxWidth: 640 }}>
           <div style={{ ...label, color: T.gold, marginBottom: 12 }}>{c.convLabel}</div>
-          <h2 style={{ fontSize: "clamp(22px, 4.6vw, 30px)", fontWeight: 700, lineHeight: 1.25,
-            letterSpacing: "-0.015em", margin: "0 0 12px" }}>{c.convTitle}</h2>
+          <h2 className="al-display" style={{ fontSize: "clamp(26px, 5.4vw, 38px)", lineHeight: 1.14,
+            margin: "0 0 12px" }}>{c.convTitle}</h2>
           <p style={{ fontSize: 15.5, lineHeight: 1.65, color: T.muted, margin: 0 }}>{c.convLead}</p>
         </div>
 
@@ -187,7 +190,7 @@ export default function Body({ motion = "m2", lang = "en" }) {
             <div className="al-screen">
               <div className="al-notch" />
               <div className="al-status">
-                <span>9:41</span>
+                <span className="al-mono">9:41</span>
                 <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}>
                   <i className="ti ti-signal-4g" style={{ fontSize: 13 }} />
                   <i className="ti ti-wifi" style={{ fontSize: 13 }} />
@@ -203,13 +206,12 @@ export default function Body({ motion = "m2", lang = "en" }) {
       <section style={{ ...wrap, padding: "0 22px clamp(56px, 9vw, 88px)" }}>
         <div data-reveal="0" style={{ marginBottom: 24, maxWidth: 560 }}>
           <div style={{ ...label, color: T.gold, marginBottom: 12 }}>{c.featLabel}</div>
-          <h2 style={{ fontSize: "clamp(22px, 4.6vw, 30px)", fontWeight: 700, lineHeight: 1.25,
-            letterSpacing: "-0.015em", margin: 0 }}>{c.featTitle}</h2>
+          <h2 className="al-display" style={{ fontSize: "clamp(26px, 5.4vw, 38px)", lineHeight: 1.14, margin: 0 }}>{c.featTitle}</h2>
         </div>
         <div className="al-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))", gap: 14 }}>
           {c.features.map((f, i) => (
-            <div key={f.title} className="al-card" data-reveal={(i % 3) * 80}
-              style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, display: "flex", gap: 14 }}>
+            <div key={f.title} className="al-card al-surface" data-reveal={(i % 3) * 80}
+              style={{ borderRadius: 16, padding: 24, display: "flex", gap: 14 }}>
               <i className={`ti ${f.icon}`} style={{ fontSize: 19, color: T.gold, marginTop: 2 }} />
               <div>
                 <div style={{ fontSize: 15, fontWeight: 650, marginBottom: 6, letterSpacing: "-0.01em" }}>{f.title}</div>
