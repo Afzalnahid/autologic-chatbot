@@ -176,3 +176,22 @@ export function flowCss() {
 
 
 export const FLOW_CSS = flowCss();
+
+export const REVEAL_JS = `(function(){
+  function start(){
+    if (!("IntersectionObserver" in window)) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var els = document.querySelectorAll("[data-reveal]");
+    for (var i=0;i<els.length;i++) els[i].classList.add("al-obs");
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if (!e.isIntersecting) return;
+        e.target.style.transitionDelay = (e.target.dataset.reveal||0) + "ms";
+        e.target.classList.add("al-in"); io.unobserve(e.target);
+      });
+    }, { threshold: .12, rootMargin: "0px 0px -6% 0px" });
+    for (var j=0;j<els.length;j++) io.observe(els[j]);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();`;
+
