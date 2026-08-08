@@ -167,3 +167,41 @@ start would have shown this in seconds.
 - The layered work was still worth keeping (code decides the language, the reply is checked and
   rewritten when wrong), but it was built on a guess and only started working once the real
   cause was found.
+
+## 16. A screenshot cannot show motion — ask for a recording
+**2026-08-07.** The owner reported the landing page animations were not visible. Three
+replies were spent explaining why he might not be seeing them — hover does not exist on
+touch, entrance animations finish in half a second — instead of looking. He sent a screen
+recording; extracting 65 frames showed the cards fully opaque in every single one. The
+animation genuinely never ran: the reveal script sat above the cards in the document, so
+at parse time `querySelectorAll` found nothing and the observer was never attached. No
+error, no warning, just silence.
+
+**Rules:**
+- When someone says "it does not work" about anything visual or timed, ask for a screen
+  recording before explaining. A still frame cannot contain motion.
+- A script that queries the DOM must wait for `DOMContentLoaded` unless it sits below what
+  it queries. A silent no-op is the worst kind of failure — nothing looks wrong.
+- Design for the device the customer actually holds. Hover-only polish is invisible to a
+  market that is almost entirely mobile.
+
+## 17. Rebuilding a page means inventorying the old one first
+**2026-08-08.** The landing page was rewritten in a new visual language. The case-study
+section was carried over because it was remembered; the footer links — Privacy Policy,
+Terms of Service, Contact, Google Calendar — were not, and quietly disappeared. Meta's
+App Review requires those URLs to be reachable from the site. The owner caught it.
+
+**Rules:**
+- Before replacing a page, list what it contains and tick each item off after the rewrite.
+  Memory is not an inventory.
+- Compliance-required links are not decoration. Privacy and terms leave a page only by an
+  explicit decision, never by omission.
+
+## 18. Borrow structure from a reference, never its palette
+**2026-08-08.** A reference site was used to redesign the landing page, and its colours
+came along with its layout: cream paper, orange CTA. The result looked accomplished and
+belonged to a different company than the dashboard a visitor lands in one click later.
+
+**Rule:** a reference contributes typography, rhythm, hierarchy and ideas. Colour comes
+from the product's own tokens — here, the same seven values `ui.js` uses — or the seams
+show the moment a customer signs up.
