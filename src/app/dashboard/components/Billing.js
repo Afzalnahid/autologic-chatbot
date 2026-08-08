@@ -93,7 +93,7 @@ export default function Billing({initialPlan,initialCycle}) {
     </Card>
 
     {/* Pending review */}
-    {d.pending_request&&<Card style={{marginBottom:16,border:`1px solid ${T.warn}44`}}>
+    {d.pending_request&&<Card style={{marginBottom:16,border:`1px solid color-mix(in srgb, ${T.warn} 27%, transparent)`}}>
       <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
         <i className="ti ti-clock-hour-4" style={{fontSize:20,color:T.warn,marginTop:2}}/>
         <div style={{flex:1}}>
@@ -137,7 +137,7 @@ export default function Billing({initialPlan,initialCycle}) {
 
       {/* how to pay */}
       {d.methods.length===0
-        ? <div style={{fontSize:13,color:T.warn,background:`${T.warn}12`,border:`1px solid ${T.warn}33`,borderRadius:10,padding:"14px 16px"}}>
+        ? <div style={{fontSize:13,color:T.warn,background:`color-mix(in srgb, ${T.warn} 7%, transparent)`,border:`1px solid color-mix(in srgb, ${T.warn} 20%, transparent)`,borderRadius:10,padding:"14px 16px"}}>
             <i className="ti ti-alert-circle" style={{marginRight:6}}/>Payment numbers are not configured yet. Please contact support at nahidafzal97@gmail.com to complete your upgrade.
           </div>
         : <>
@@ -178,7 +178,7 @@ export default function Billing({initialPlan,initialCycle}) {
 
     {/* Plan cards */}
     {step==="plans"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:14,marginBottom:16}}>
-      {PLAN_LIST.map(p=><Card key={p.id} style={{border:p.highlight?`1px solid ${T.gold}55`:undefined,display:"flex",flexDirection:"column"}}>
+      {PLAN_LIST.map(p=><Card key={p.id} style={{border:p.highlight?`1px solid color-mix(in srgb, ${T.gold} 33%, transparent)`:undefined,display:"flex",flexDirection:"column"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{fontSize:16,fontWeight:600}}>{p.name}</span>
           {d.plan===p.id?<Badge color={T.success}>Current</Badge>:p.highlight?<Badge>Popular</Badge>:null}
