@@ -81,7 +81,7 @@ export default function Demo({onBack}) {
     {/* Header */}
     <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderBottom:`0.5px solid ${T.border}`,background:T.card,flexShrink:0}}>
       <button onClick={onBack} style={{background:"none",border:"none",cursor:"pointer",color:T.text,fontSize:20,padding:6}}><i className="ti ti-arrow-left"/></button>
-      <div style={{width:38,height:38,borderRadius:11,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid ${T.gold}30`,flexShrink:0}}><i className="ti ti-robot" style={{fontSize:20,color:T.gold}}/></div>
+      <div style={{width:38,height:38,borderRadius:11,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`,flexShrink:0}}><i className="ti ti-robot" style={{fontSize:20,color:T.gold}}/></div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:14.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{DEMO_NAME}</div>
         <div style={{fontSize:11,color:T.success,display:"flex",alignItems:"center",gap:5}}><span style={{width:6,height:6,borderRadius:"50%",background:T.success,display:"inline-block"}}/>Product expert · online</div>
