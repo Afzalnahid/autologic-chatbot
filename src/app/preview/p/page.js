@@ -68,89 +68,149 @@ function Bub({ me, children }) {
 // arrives on one channel, the bot reads the right source, and something concrete
 // comes out the other side. Four stages on one 13-second clock.
 const STAGES = [
-  { ch: "messenger", inn: "এই শাড়িটার দাম কত?",        src: "Your product catalogue", out: "Order #AL2481 saved",  icon: "ti-shopping-bag",
-    inEn: "How much is this saree?",                     outEn: "Order #AL2481 saved" },
-  { ch: "instagram", inn: "📷 এই ড্রেসটা আছে?",          src: "Photo matched to stock",  out: "Product found, size M", icon: "ti-photo",
-    inEn: "📷 Do you have this dress?",                   outEn: "Product found, size M" },
-  { ch: "whatsapp",  inn: "বৃহস্পতিবার মিটিং হবে?",      src: "Your Google Calendar",    out: "Meeting booked, 4 PM", icon: "ti-calendar-check",
-    inEn: "Can we meet on Thursday?",                     outEn: "Meeting booked, 4 PM" },
-  { ch: "website",   inn: "How do I add this to my site?", src: "Your uploaded documents", out: "Answered in English",  icon: "ti-file-text",
-    inEn: "How do I add this to my site?",                outEn: "Answered in English" },
+  { ch: "messenger", icon: "ti-shopping-bag",
+    inn: "এই শাড়িটার দাম কত? স্টকে আছে?", inEn: "How much is this saree? In stock?",
+    src: "Product catalogue", srcBn: "পণ্যের তালিকা",
+    say: "জামদানি শাড়ি — ৩,২০০৳, ফ্রি ডেলিভারি।", sayEn: "Jamdani saree — 3,200৳, free delivery.",
+    did: "Order #AL2481 saved", didBn: "অর্ডার #AL2481 সেভ",
+    cap: "Reads your own catalogue. No scripts, no keyword lists — it recognises the product and quotes your real price.",
+    capBn: "আপনার নিজের পণ্যের তালিকা থেকে পড়ে। কোনো স্ক্রিপ্ট নেই — পণ্য চিনে আপনার আসল দামটাই বলে।" },
+  { ch: "instagram", icon: "ti-photo",
+    inn: "📷 এই ড্রেসটা আপনাদের আছে?", inEn: "📷 Do you have this dress?",
+    src: "Photo → stock match", srcBn: "ছবি → স্টক মেলানো",
+    say: "মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। M ও L আছে।", sayEn: "Matched — cotton kurti, 1,450৳. M and L in stock.",
+    did: "Product found, size M", didBn: "পণ্য পাওয়া গেল, সাইজ M",
+    cap: "Customers send pictures, not product codes. The bot matches the photo against your inventory and answers with the item.",
+    capBn: "গ্রাহক ছবি পাঠান, পণ্যের কোড নয়। বট ছবিটা আপনার স্টকের সাথে মিলিয়ে পণ্যটা বের করে দেয়।" },
+  { ch: "whatsapp", icon: "ti-calendar-check",
+    inn: "বৃহস্পতিবার একটা মিটিং হবে?", inEn: "Can we meet on Thursday?",
+    src: "Google Calendar", srcBn: "গুগল ক্যালেন্ডার",
+    say: "বিকেল ৪টা খালি আছে — বুক করে দিলাম, লিংক পাঠিয়েছি।", sayEn: "4 PM is free — booked, link sent.",
+    did: "Meeting booked, 4 PM", didBn: "মিটিং বুক, বিকেল ৪টা",
+    cap: "Checks your real availability, creates the meeting, generates the Meet link and sends it — while you are asleep.",
+    capBn: "আপনার আসল খালি সময় দেখে মিটিং তৈরি করে, মিট লিংক বানিয়ে পাঠিয়ে দেয় — আপনি ঘুমিয়ে থাকলেও।" },
+  { ch: "website", icon: "ti-language",
+    inn: "How do I add this to my site?", inEn: "How do I add this to my site?",
+    src: "Your documents", srcBn: "আপনার ডকুমেন্ট",
+    say: "One line of code from your dashboard. Takes a minute.", sayEn: "One line of code from your dashboard. Takes a minute.",
+    did: "Answered in English", didBn: "ইংরেজিতে উত্তর",
+    cap: "Written in English, answered in English. Ask in Bangla and the reply comes back in Bangla — you choose, or let the customer decide.",
+    capBn: "ইংরেজিতে প্রশ্ন, ইংরেজিতে উত্তর। বাংলায় লিখলে বাংলায়। আপনি ঠিক করবেন, নাকি গ্রাহক — দুটোই সম্ভব।" },
 ];
 
 function flowCss() {
-  const N = STAGES.length, PER = 3.25, CY = (N * PER).toFixed(2);
-  let out = `.flow-wrap { position: relative }
-    @keyframes fpulse { 0%,100% { transform: scale(1); opacity:.28 } 50% { transform: scale(1.5); opacity:0 } }
-    .core-ring { position:absolute; inset:0; border-radius:50%; border:1px solid ${P.blue}; animation: fpulse 2.6s ease-out infinite }
-    .core-ring:nth-child(2) { animation-delay: 1.3s }
-    @keyframes dash { to { stroke-dashoffset: -22 } }
-    .wire { stroke: ${P.blue}; stroke-width: 1.5; stroke-dasharray: 4 7; opacity:.45; animation: dash 1.1s linear infinite }`;
+  const N = STAGES.length, PER = 4.2, CY = (N * PER).toFixed(2);
+  let out = `
+    @keyframes fpulse { 0%,100% { transform: scale(1); opacity:.3 } 50% { transform: scale(1.55); opacity:0 } }
+    .core-ring { position:absolute; inset:0; border-radius:50%; border:1px solid ${P.blue}; animation: fpulse 2.4s ease-out infinite }
+    .core-ring:nth-child(2) { animation-delay: 1.2s }
+    @keyframes spin { to { transform: rotate(360deg) } }
+    .core-arc { position:absolute; inset:-6px; border-radius:50%; border:1.5px dashed ${P.blue}55;
+      border-top-color: ${P.accent}; animation: spin 6s linear infinite }
+    .fprog { height: 2px; background: ${P.line}; position: relative; overflow: hidden }
+    .fprog i { position:absolute; inset:0; background: ${P.accent}; transform-origin: left; transform: scaleX(0);
+      animation: fpr ${CY}s linear infinite }
+    @keyframes fpr { from { transform: scaleX(0) } to { transform: scaleX(1) } }`;
   for (let k = 0; k < N; k++) {
     const at = (sec) => (((k * PER + sec) / (N * PER)) * 100).toFixed(2) + "%";
     out += `
-      .fch${k}, .fsrc${k}, .fout${k}, .fcap${k} { opacity: .3 }
+      .fch${k}, .fsrc${k}, .fout${k} { opacity: .28; transition: none }
+      .fcap${k}, .fsay${k}, .fnum${k} { opacity: 0 }
       .fch${k} { animation: fa${k} ${CY}s linear infinite }
       .fsrc${k} { animation: fb${k} ${CY}s linear infinite }
+      .fsay${k} { animation: fs${k} ${CY}s linear infinite }
       .fout${k} { animation: fc${k} ${CY}s linear infinite }
-      .fcap${k} { animation: fd${k} ${CY}s linear infinite }
-      .fdot${k} { animation: fe${k} ${CY}s cubic-bezier(.4,0,.2,1) infinite; opacity: 0 }
-      @keyframes fa${k} { 0%,${at(0)} { opacity:.3; transform:none } ${at(.25)},${at(PER - .3)} { opacity:1; transform: translateX(4px) } ${at(PER)},100% { opacity:.3; transform:none } }
-      @keyframes fb${k} { 0%,${at(.9)} { opacity:.3 } ${at(1.15)},${at(PER - .3)} { opacity:1 } ${at(PER)},100% { opacity:.3 } }
-      @keyframes fc${k} { 0%,${at(1.8)} { opacity:.3; transform:none } ${at(2.05)},${at(PER - .3)} { opacity:1; transform: translateX(-4px) } ${at(PER)},100% { opacity:.3; transform:none } }
-      @keyframes fd${k} { 0%,${at(0)} { opacity:0 } ${at(.3)},${at(PER - .25)} { opacity:1 } ${at(PER)},100% { opacity:0 } }
-      @keyframes fe${k} { 0%,${at(.35)} { opacity:0; offset-distance: 0% } ${at(.5)} { opacity:1 } ${at(1.7)} { opacity:1; offset-distance: 100% } ${at(1.85)},100% { opacity:0; offset-distance: 100% } }`;
+      .fcap${k}, .fnum${k} { animation: fd${k} ${CY}s linear infinite }
+      .fdot${k} { animation: fe${k} ${CY}s ease-in-out infinite; opacity: 0 }
+      @keyframes fa${k} { 0%,${at(0)} { opacity:.28 } ${at(.3)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:.28 } }
+      @keyframes fb${k} { 0%,${at(1.1)} { opacity:.28 } ${at(1.4)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:.28 } }
+      @keyframes fs${k} { 0%,${at(1.9)} { opacity:0; transform: translateY(5px) } ${at(2.2)},${at(PER - .35)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
+      @keyframes fc${k} { 0%,${at(2.7)} { opacity:.28 } ${at(3.0)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:.28 } }
+      @keyframes fd${k} { 0%,${at(.05)} { opacity:0 } ${at(.4)},${at(PER - .3)} { opacity:1 } ${at(PER)},100% { opacity:0 } }
+      @keyframes fe${k} { 0%,${at(.5)} { opacity:0; transform: translateX(0) } ${at(.7)} { opacity:1 }
+        ${at(1.7)} { opacity:1; transform: translateX(var(--run)) } ${at(1.9)},100% { opacity:0; transform: translateX(var(--run)) } }`;
   }
   return out;
 }
 
-function Flow({ lang, c }) {
+function Flow({ lang }) {
   const bn = lang === "bn";
   return (
-    <div className="flow-wrap" style={{ border: `1px solid ${P.line}`, background: P.paper2, padding: "26px 20px" }}>
-      <div style={{ ...mono, fontSize: 9.5, color: P.inkSoft, marginBottom: 20 }}>
-        ⌗ {bn ? "যেভাবে কাজ করে" : "How it works"}
+    <div style={{ border: `1px solid ${P.line}`, background: P.paper2 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 18px 12px", borderBottom: `1px solid ${P.line}` }}>
+        <span style={{ ...mono, fontSize: 9.5, color: P.inkSoft }}>⌗ {bn ? "যেভাবে কাজ করে" : "How it works"}</span>
+        <span style={{ ...mono, fontSize: 9.5, color: P.ink, position: "relative", minWidth: 46, textAlign: "right" }}>
+          {STAGES.map((s2, k) => (
+            <span key={k} className={`fnum${k}`} style={{ position: k ? "absolute" : "static", right: 0, top: 0 }}>
+              {String(k + 1).padStart(2, "0")}/0{STAGES.length}
+            </span>
+          ))}
+        </span>
       </div>
+      <div className="fprog"><i /></div>
 
-      <div className="flow-grid">
-        <div>
-          <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 10 }}>{bn ? "গ্রাহক লেখেন" : "Customer writes"}</div>
-          {STAGES.map((s, k) => (
-            <div key={k} className={`fch${k}`} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px",
-              background: "#fff", border: `1px solid ${P.line}`, marginBottom: 7 }}>
-              <i className={`ti ${CH[s.ch].icon}`} style={{ fontSize: 15, color: P.blue, flexShrink: 0 }} />
-              <span style={{ fontSize: 11.5, lineHeight: 1.35, color: P.ink }}>{bn ? s.inn : s.inEn}</span>
+      <div style={{ padding: "20px 18px" }}>
+        <div className="flow-grid">
+          <div>
+            <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "গ্রাহক লেখেন" : "Customer writes"}</div>
+            {STAGES.map((s2, k) => (
+              <div key={k} className={`fch${k}`} style={{ display: "flex", gap: 9, padding: "10px 11px",
+                background: "#fff", border: `1px solid ${P.line}`, marginBottom: 6 }}>
+                <i className={`ti ${CH[s2.ch].icon}`} style={{ fontSize: 15, color: P.blue, flexShrink: 0, marginTop: 1 }} />
+                <span style={{ fontSize: 11.5, lineHeight: 1.4, color: P.ink }}>{bn ? s2.inn : s2.inEn}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingTop: 22 }}>
+            <div className="fwire" style={{ position: "relative", width: "100%", height: 2, background: P.line }}>
+              {STAGES.map((s2, k) => (
+                <span key={k} className={`fdot${k}`} style={{ position: "absolute", top: -2.5, left: 0, width: 6, height: 6,
+                  borderRadius: "50%", background: P.accent }} />
+              ))}
             </div>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
-          <svg viewBox="0 0 120 40" className="wire-box" style={{ width: "100%", height: 40 }}>
-            <path id="w1" className="wire" d="M2 20 H118" fill="none" />
-          </svg>
-          <div style={{ position: "relative", width: 66, height: 66 }}>
-            <div className="core-ring" /><div className="core-ring" />
-            <div style={{ position: "absolute", inset: 8, borderRadius: "50%", background: P.blue,
-              display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <i className="ti ti-robot" style={{ fontSize: 24, color: "#fff" }} />
+            <div style={{ position: "relative", width: 62, height: 62 }}>
+              <div className="core-arc" /><div className="core-ring" /><div className="core-ring" />
+              <div style={{ position: "absolute", inset: 7, borderRadius: "50%", background: P.blue,
+                display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <i className="ti ti-robot" style={{ fontSize: 23, color: "#fff" }} />
+              </div>
+            </div>
+            <div style={{ textAlign: "center", position: "relative", minHeight: 34, width: "100%" }}>
+              <div style={{ ...mono, fontSize: 8, color: P.inkSoft, marginBottom: 4 }}>{bn ? "যা দেখে" : "Reads"}</div>
+              {STAGES.map((s2, k) => (
+                <div key={k} className={`fsrc${k}`} style={{ ...mono, fontSize: 8.5, color: P.blue, lineHeight: 1.4,
+                  position: k ? "absolute" : "static", left: 0, right: 0, top: 16 }}>{bn ? s2.srcBn : s2.src}</div>
+              ))}
             </div>
           </div>
-          <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, textAlign: "center" }}>
-            {bn ? "যা পড়ে" : "Reads"}
+
+          <div>
+            <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "বট যা বলে" : "The bot replies"}</div>
+            <div style={{ position: "relative", minHeight: 86, marginBottom: 8 }}>
+              {STAGES.map((s2, k) => (
+                <div key={k} className={`fsay${k}`} style={{ position: k ? "absolute" : "static", inset: k ? 0 : "auto",
+                  padding: "10px 12px", background: P.blue, color: "#fff", fontSize: 11.5, lineHeight: 1.5,
+                  borderRadius: 3 }}>{bn ? s2.say : s2.sayEn}</div>
+              ))}
+            </div>
+            <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "আর যা করে" : "And does"}</div>
+            {STAGES.map((s2, k) => (
+              <div key={k} className={`fout${k}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 11px",
+                background: "#fff", border: `1px solid ${P.line}`, borderLeft: `2px solid ${P.accent}`, marginBottom: 6 }}>
+                <i className={`ti ${s2.icon}`} style={{ fontSize: 14, color: P.accent, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, lineHeight: 1.35, color: P.ink }}>{bn ? s2.didBn : s2.did}</span>
+              </div>
+            ))}
           </div>
-          {STAGES.map((s, k) => (
-            <div key={k} className={`fsrc${k}`} style={{ ...mono, fontSize: 9, color: P.blue, marginTop: -8 }}>{s.src}</div>
-          ))}
         </div>
 
-        <div>
-          <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 10, textAlign: "right" }}>{bn ? "যা ঘটে" : "What happens"}</div>
-          {STAGES.map((s, k) => (
-            <div key={k} className={`fout${k}`} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px",
-              background: "#fff", border: `1px solid ${P.line}`, borderLeft: `2px solid ${P.accent}`, marginBottom: 7 }}>
-              <i className={`ti ${s.icon}`} style={{ fontSize: 15, color: P.accent, flexShrink: 0 }} />
-              <span style={{ fontSize: 11.5, lineHeight: 1.35, color: P.ink }}>{bn ? s.out : s.outEn}</span>
-            </div>
+        {/* The caption names the feature the stage just demonstrated. */}
+        <div style={{ position: "relative", minHeight: 62, marginTop: 18, paddingTop: 16, borderTop: `1px solid ${P.line}` }}>
+          {STAGES.map((s2, k) => (
+            <p key={k} className={`fcap${k}`} style={{ position: k ? "absolute" : "static", inset: k ? "16px 0 0" : "auto",
+              margin: 0, fontSize: 13, lineHeight: 1.6, color: P.inkSoft, maxWidth: 620 }}>{bn ? s2.capBn : s2.cap}</p>
           ))}
         </div>
       </div>
@@ -215,7 +275,9 @@ export default function Paper({ searchParams }) {
         .al-pad { height: 70px }
         .al-mono { font-variant-numeric: tabular-nums }
 
-        .flow-grid { display: grid; grid-template-columns: 1fr 132px 1fr; gap: 14px; align-items: start }
+        .flow-grid { display: grid; grid-template-columns: 1fr 150px 1.15fr; gap: 20px; align-items: start }
+        .fwire { --run: 140px }
+        @media (max-width:560px){ .fwire { --run: 0px; display: none } }
         @media (max-width: 560px) { .flow-grid { grid-template-columns: 1fr; gap: 18px }
           .flow-grid > div:nth-child(3) > div:first-child { text-align: left } }
         @media (prefers-reduced-motion: reduce) {
@@ -244,12 +306,12 @@ export default function Paper({ searchParams }) {
       </nav>
 
       <section style={{ ...wrap, padding: "clamp(48px,8vw,86px) 26px clamp(30px,5vw,50px)" }}>
-        <div className="two" style={{ display: "grid", gridTemplateColumns: "0.9fr 1.1fr", gap: "clamp(28px,5vw,60px)", alignItems: "center" }}>
+        <div className="two" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "clamp(28px,5vw,44px)" }}>
           <div>
             <div className="r"><Label>{lang === "bn" ? "চার চ্যানেল, এক সহকারী" : "Four channels, one assistant"}</Label></div>
-            <h1 className="r fr" style={{ animationDelay: ".07s", fontSize: "clamp(40px,7.2vw,74px)", lineHeight: 0.98, margin: "0 0 22px" }}
+            <h1 className="r fr" style={{ animationDelay: ".07s", fontSize: "clamp(40px,7.6vw,82px)", lineHeight: 0.98, margin: "0 0 22px" }}
               dangerouslySetInnerHTML={{ __html: c.h1.replace(/<em>|<\/em>/g, "") }} />
-            <p className="r" style={{ animationDelay: ".14s", fontSize: 16.5, lineHeight: 1.6, color: P.inkSoft, maxWidth: 460, margin: "0 0 28px" }}>{c.lead}</p>
+            <p className="r" style={{ animationDelay: ".14s", fontSize: 17, lineHeight: 1.6, color: P.inkSoft, maxWidth: 560, margin: "0 0 28px" }}>{c.lead}</p>
             <div className="r" style={{ animationDelay: ".2s", display: "flex", gap: 10, flexWrap: "wrap" }}>
               <a href="/dashboard?auth=signup" className="btn" style={{ ...mono, fontSize: 11.5, background: P.accent,
                 color: "#fff", padding: "14px 26px", textDecoration: "none" }}>{c.cta}</a>
@@ -265,7 +327,7 @@ export default function Paper({ searchParams }) {
             </div>
           </div>
           <div className="r" style={{ animationDelay: ".1s" }}>
-            <Flow lang={lang} c={c} />
+            <Flow lang={lang} />
           </div>
         </div>
       </section>
