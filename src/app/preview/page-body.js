@@ -45,7 +45,7 @@ const bub = (me) => ({
 function Slide({ conv, c, k }) {
   const ch = CH[conv.ch];
   return (
-    <div className={`al-slide s${k}`} style={{ padding: 16, display: "flex", flexDirection: "column" }}>
+    <div className={`al-slide s${k}`} style={{ padding: 14, display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 11, marginBottom: 12,
         borderBottom: `1px solid ${T.border}` }}>
         <i className={`ti ${ch.icon}`} style={{ fontSize: 17, color: ch.tint }} />
@@ -57,31 +57,30 @@ function Slide({ conv, c, k }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
         <div className="al-msg b0" style={{ display: "flex", justifyContent: "flex-end" }}>
           {conv.photo ? (
-            // A real photo, because "customer sends a picture" is the whole point of
-            // this one. Drop your own product shot at public/demo/dress.jpg and it
-            // appears here; until then the frame below carries the meaning.
-            <div style={{ ...bub(true), padding: 6, width: 156 }}>
-              <div style={{ position: "relative", width: "100%", aspectRatio: "3 / 4", borderRadius: 9,
-                overflow: "hidden", background: "linear-gradient(140deg, #2A3247, #151B29)",
-                display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <i className="ti ti-photo" style={{ fontSize: 26, color: "#5B6478" }} />
+            <div style={{ ...bub(true), padding: 5, width: 118 }}>
+              <div style={{ position: "relative", width: "100%", aspectRatio: "3 / 4", borderRadius: 8,
+                overflow: "hidden", background: "linear-gradient(140deg, #2A3247, #151B29)" }}>
                 <img src={conv.photo} alt="" style={{ position: "absolute", inset: 0, width: "100%",
                   height: "100%", objectFit: "cover" }} />
               </div>
-              <div style={{ fontSize: 11.5, padding: "6px 4px 2px", opacity: .75 }}>{"এই ড্রেসটা আপনাদের আছে?"}</div>
+              <div style={{ fontSize: 11, padding: "5px 3px 1px", opacity: .8 }}>{conv.lines[0][1].replace("📷 ", "")}</div>
             </div>
           ) : <div style={bub(true)}>{conv.lines[0][1]}</div>}
         </div>
-        <div className="al-typing t0"><b /><b /><b /></div>
-        <div className="al-msg b1" style={{ display: "flex", justifyContent: "flex-start" }}>
-          <div style={bub(false)}>{conv.lines[1][1]}</div>
+        <div className="al-msgwrap">
+          <div className="al-typing t0"><b /><b /><b /></div>
+          <div className="al-msg b1" style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={bub(false)}>{conv.lines[1][1]}</div>
+          </div>
         </div>
         <div className="al-msg b2" style={{ display: "flex", justifyContent: "flex-end" }}>
           <div style={bub(true)}>{conv.lines[2][1]}</div>
         </div>
-        <div className="al-typing t1"><b /><b /><b /></div>
-        <div className="al-msg b3" style={{ display: "flex", justifyContent: "flex-start" }}>
-          <div style={bub(false)}>{conv.lines[3][1]}</div>
+        <div className="al-msgwrap">
+          <div className="al-typing t1"><b /><b /><b /></div>
+          <div className="al-msg b3" style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={bub(false)}>{conv.lines[3][1]}</div>
+          </div>
         </div>
       </div>
 
@@ -185,7 +184,7 @@ export default function Body({ motion = "m2", lang = "en" }) {
         <div style={{ maxWidth: 440, margin: "0 auto" }}>
           <div className="al-bars"><span /><span /><span /><span /></div>
           <div className="al-board" style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 18,
-            padding: 16, height: 340, boxShadow: "0 24px 60px rgba(0,0,0,.45)" }}>
+            padding: 0, height: 332, boxShadow: "0 24px 60px rgba(0,0,0,.45)" }}>
             {CONVOS.map((cv, k) => <Slide key={cv.ch} conv={cv} c={c} k={k} />)}
           </div>
         </div>
