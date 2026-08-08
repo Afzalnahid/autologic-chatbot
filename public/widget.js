@@ -65,35 +65,56 @@
     "background:#5B8CFF;color:#0A0D14;border:none;cursor:pointer;display:flex;align-items:center;" +
     "justify-content:center;box-shadow:0 6px 24px rgba(10,13,20,.35);transition:transform .15s ease}" +
     ".btn:hover{transform:scale(1.05)}" +
+    ".btn:active{transform:scale(.94)}" +
+    ".btn svg{transition:transform .26s cubic-bezier(.16,1,.3,1)}" +
+    ".btn.on svg{transform:rotate(90deg) scale(.9)}" +
+    // One quiet ring, twice, then it stops. A permanently pulsing button is nagging.
+    "@keyframes ring{0%{box-shadow:0 6px 24px rgba(10,13,20,.35),0 0 0 0 rgba(91,140,255,.45)}" +
+    "70%{box-shadow:0 6px 24px rgba(10,13,20,.35),0 0 0 14px rgba(91,140,255,0)}" +
+    "100%{box-shadow:0 6px 24px rgba(10,13,20,.35),0 0 0 0 rgba(91,140,255,0)}}" +
+    ".btn.hint{animation:ring 2.2s ease-out 1.2s 2}" +
     ".btn svg{width:26px;height:26px}" +
     ".panel{position:fixed;bottom:88px;" + SIDE + ":20px;width:360px;max-width:calc(100vw - 32px);" +
     "height:520px;max-height:calc(100vh - 120px);background:#0A0D14;border:1px solid #1F2839;" +
-    "border-radius:16px;display:none;flex-direction:column;overflow:hidden;color:#E7EAF2;" +
-    "box-shadow:0 18px 50px rgba(10,13,20,.5)}" +
-    ".panel.open{display:flex}" +
+    "border-radius:16px;display:flex;flex-direction:column;overflow:hidden;color:#E7EAF2;" +
+    "box-shadow:0 18px 50px rgba(10,13,20,.5);" +
+    // Hidden with opacity rather than display, because display cannot be animated.
+    // pointer-events keeps the invisible panel from swallowing clicks on the page.
+    "opacity:0;visibility:hidden;pointer-events:none;transform:translateY(12px) scale(.97);" +
+    "transform-origin:bottom " + SIDE + ";" +
+    "transition:opacity .2s ease-out,transform .26s cubic-bezier(.16,1,.3,1),visibility .26s}" +
+    ".panel.open{opacity:1;visibility:visible;pointer-events:auto;transform:none}" +
     ".hd{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;" +
     "border-bottom:1px solid #1F2839;background:#0F1420}" +
     ".hd b{font-size:15px;font-weight:600}" +
     ".hd small{display:block;font-size:11.5px;color:#98A3BA;font-weight:400;margin-top:2px}" +
     ".x{background:none;border:none;color:#98A3BA;cursor:pointer;font-size:20px;line-height:1;padding:4px}" +
     ".body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}" +
-    ".m{max-width:82%;font-size:14px;line-height:1.6;padding:10px 13px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}" +
+    ".m{max-width:82%;font-size:14px;line-height:1.6;padding:10px 13px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word;" +
+    "animation:in .3s cubic-bezier(.16,1,.3,1) both}" +
+    "@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}" +
+    ".dots{animation:in .25s ease-out both}" +
     ".bot{align-self:flex-start;background:#0F1420;border:1px solid #1F2839;border-left:2px solid #5B8CFF}" +
     ".me{align-self:flex-end;background:#5B8CFF;color:#0A0D14}" +
     ".m img{max-width:100%;border-radius:8px;display:block}" +
     ".dots{align-self:flex-start;display:flex;gap:4px;padding:12px 13px}" +
     ".dots i{width:6px;height:6px;border-radius:50%;background:#98A3BA;animation:b 1.2s infinite}" +
     ".dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}" +
-    "@keyframes b{0%,60%,100%{opacity:.3}30%{opacity:1}}" +
+    "@keyframes b{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}" +
     ".ft{display:flex;gap:8px;padding:12px;border-top:1px solid #1F2839;background:#0F1420}" +
     ".ft input{flex:1;background:#0A0D14;border:1px solid #1F2839;border-radius:9px;padding:10px 12px;" +
     "color:#E7EAF2;font-size:14px;outline:none}" +
     ".ft input:focus{border-color:#5B8CFF}" +
     ".ft button{background:#5B8CFF;color:#0A0D14;border:none;border-radius:9px;padding:0 16px;" +
-    "font-weight:600;font-size:14px;cursor:pointer}" +
+    "font-weight:600;font-size:14px;cursor:pointer;transition:filter .15s ease-out,transform .15s ease-out}" +
+    ".ft button:hover:not(:disabled){filter:brightness(1.08)}" +
+    ".ft button:active:not(:disabled){transform:scale(.96)}" +
+    ".ft input{transition:border-color .15s ease-out}" +
     ".ft button:disabled{opacity:.5;cursor:default}" +
     ".cr{text-align:center;font-size:10.5px;color:#98A3BA;padding:0 0 8px}" +
-    "@media(max-width:420px){.panel{width:calc(100vw - 24px);height:calc(100vh - 110px);" + SIDE + ":12px;bottom:80px}}";
+    "@media(max-width:420px){.panel{width:calc(100vw - 24px);height:calc(100vh - 110px);" + SIDE + ":12px;bottom:80px}}" +
+    "@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}" +
+    ".panel{transform:none}}";
 
   var wrap = document.createElement("div");
   wrap.innerHTML =
@@ -167,6 +188,9 @@
 
   function open() {
     panel.classList.add("open");
+    // The icon turns into a close mark, and the attention ring stops for good.
+    btn.classList.add("on");
+    btn.classList.remove("hint");
     if (!greeted) {
       greeted = true;
       bubble(GREETING, "bot");
@@ -178,6 +202,7 @@
 
   function close() {
     panel.classList.remove("open");
+    btn.classList.remove("on");
   }
 
   function submit() {
@@ -229,6 +254,8 @@
         input.focus();
       });
   }
+
+  btn.classList.add("hint");
 
   btn.addEventListener("click", function () {
     panel.classList.contains("open") ? close() : open();
