@@ -36,6 +36,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     return ()=>{ if(window.__alBack) window.__alBack=null; };
   },[sel]);
   useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&sel>=0);},[sel,isMobile]);
+  // Changing a filter can drop the conversation that was open; let it go rather
+  // than leaving an index pointing at nothing.
+  useEffect(()=>{ if(sel>=convos.length) setSel(convos.length?0:-1); },[convos.length]);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
   const [contacts,setContacts]=useState({});
@@ -118,11 +121,13 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     </div>
   </Card>;
   const idx=sel<0?0:sel;
-  const c=convos[idx]||convos[0];
-  const ct=contacts[c.id]||{};
-  const cname=ct.name||c.sender;
+  // `c` is empty whenever a filter matches nothing. Everything below has to
+  // survive that: the crash was reading c.sender on an empty list.
+  const c=convos[idx]||convos[0]||null;
+  const ct=(c&&contacts[c.id])||{};
+  const cname=ct.name||c?.sender||"";
   const showList=!isMobile||sel<0;
-  const showChat=!isMobile||sel>=0;
+  const showChat=(!isMobile||sel>=0)&&!!c;
 
   const send=async()=>{
     const text=input.trim();
