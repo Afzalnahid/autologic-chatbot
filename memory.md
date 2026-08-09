@@ -154,6 +154,23 @@ directly, the same source Profile uses, and shows which account is linked.
    so it needs a domain verified in Search Console, a privacy policy on it, scope
    justification and a demo video. Google's manual review takes 4–6 weeks.
 
+   **Before submitting, the owner will change the email addresses.** The Google
+   Cloud project currently uses `nahidafzal97@gmail.com` as the user support
+   email, which is his personal account. At verification time he wants a proper
+   business address on the consent screen and a separate support address —
+   something like `hello@` and `support@` on the custom domain. Raise this with
+   him before anything is submitted: the consent-screen email is what every
+   client sees when granting access, and changing branding fields after approval
+   forces the app back through review.
+
+**Current state of the Google project (checked 2026-08-09):** Publishing status
+*In production*, user type *External*, so any client can connect today and refresh
+tokens do not expire — the 7-day problem does not apply. App name "Autologic",
+logo and support email are all filled in, but Google shows *"Your branding is not
+being shown to users"*: uploading a logo requires verification, so until then
+clients still see the plain unverified-app screen. Lifetime cap is 100 users.
+Do not press "Back to testing" — it would reintroduce the 7-day token expiry.
+
 ### What's next
 1. The two `bot.js` changes (`33f84b7`, `68b9515`) are live-verified on one
    channel (agency). Optional: if convenient, send one ecommerce-side test too —
