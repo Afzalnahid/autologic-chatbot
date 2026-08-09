@@ -44,6 +44,9 @@ function AuthGate({onReady}) {
   const [err,setErr]=useState("");
   const [msg,setMsg]=useState("");
   const [busy,setBusy]=useState(false);
+  // Terms are agreed to at signup, and the links have to work — Meta's review
+  // checks them, and this is the only place a customer is asked to accept them.
+  const [agreed,setAgreed]=useState(false);
   const go=async()=>{
     if(!email||!pw||busy) return;
     setBusy(true); setErr("");
@@ -68,25 +71,138 @@ function AuthGate({onReady}) {
     if(error) setErr(error.message);
     else setMsg("Password reset link sent — check your email.");
   };
-  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-    <Card style={{width:340,textAlign:"center",padding:"2.5rem 2rem"}}>
-      <div style={{width:56,height:56,borderRadius:16,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`}}><i className="ti ti-robot" style={{fontSize:26,color:T.gold}}/></div>
-      <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Chatbot Platform</div>
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:20}}>{mode==="signin"?"Sign in to your dashboard":"Create your account"}</div>
-      {mode==="signup"&&<Inp value={biz} onChange={e=>setBiz(e.target.value)} placeholder="Business name"/>}
-      <Inp type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email"/>
-      <div style={{position:"relative",marginBottom:10}}>
-        <Inp type={showPw?"text":"password"} value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Password" style={{marginBottom:0}} inputStyle={{paddingRight:44}}/>
-        <button type="button" onClick={()=>setShowPw(s=>!s)} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:12,padding:4}}>{showPw?"Hide":"Show"}</button>
+  const canSubmit = email && pw && (mode==="signin" || agreed) && !busy;
+  const signup = mode==="signup";
+
+  return <div className="auth-wrap">
+    <Theme/><Motion/>
+    <div className="auth-card">
+
+      {/* The blue half: one sentence, and the way across to the other mode. */}
+      <div className="auth-side">
+        <div className="auth-pill">{signup?"Welcome back":"New here"}</div>
+        <div className="auth-hello">{signup?"Hello, friend!":"Start free"}</div>
+        <p className="auth-copy">
+          {signup
+            ? "Already have an account? Sign in and pick up where your customers left off."
+            : "Three days free, no card needed. Connect Facebook, Instagram, WhatsApp and your own site."}
+        </p>
+        <button type="button" className="auth-ghost"
+          onClick={()=>{setMode(m=>m==="signin"?"signup":"signin");setErr("");setMsg("");}}>
+          {signup?"Sign in":"Create account"}
+        </button>
       </div>
-      {mode==="signin"&&<div style={{textAlign:"right",marginBottom:12}}><span onClick={forgot} style={{fontSize:11.5,color:T.gold,cursor:"pointer"}}>Forgot password?</span></div>}
-      <Btn gold onClick={go} style={{width:"100%"}}>{busy?"Please wait...":(mode==="signin"?"Sign In":"Sign Up")}</Btn>
-      {err&&<div style={{fontSize:12,color:T.danger,marginTop:10}}>{err}</div>}
-      {msg&&<div style={{fontSize:12,color:T.success,marginTop:10}}>{msg}</div>}
-      <div style={{fontSize:12,color:T.textMuted,marginTop:16,cursor:"pointer"}} onClick={()=>{setMode(m=>m==="signin"?"signup":"signin");setErr("");setMsg("");}}>
-        {mode==="signin"?"New here? Create account":"Already have an account? Sign in"}
+
+      {/* The form half. */}
+      <div className="auth-form">
+        <div className="auth-brand">
+          <span className="auth-mark"><i className="ti ti-robot"/></span> Autologic
+        </div>
+        <h1 className="auth-title">{signup?"Create account":"Welcome back"}</h1>
+        <p className="auth-sub">{signup?"Sign up and begin your experience":"Sign in to your dashboard"}</p>
+
+        {signup&&<div className="emb"><input value={biz} onChange={e=>setBiz(e.target.value)} placeholder="Business name"/></div>}
+        <div className="emb"><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address"/></div>
+        <div className="emb">
+          <input type={showPw?"text":"password"} value={pw} onChange={e=>setPw(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&canSubmit&&go()} placeholder={signup?"Create password":"Password"} style={{paddingRight:52}}/>
+          <button type="button" className="emb-eye" onClick={()=>setShowPw(v=>!v)}>{showPw?"Hide":"Show"}</button>
+        </div>
+
+        {signup
+          ? <label className="auth-terms">
+              <input type="checkbox" checked={agreed} onChange={e=>setAgreed(e.target.checked)}/>
+              <span>I agree to the <a href="/terms" target="_blank" rel="noopener">terms</a> and <a href="/privacy" target="_blank" rel="noopener">privacy policy</a></span>
+            </label>
+          : <div className="auth-forgot"><span onClick={forgot}>Forgot password?</span></div>}
+
+        <button className="auth-go" onClick={go} disabled={!canSubmit}>
+          {busy?"Please wait…":(signup?"Create account":"Sign in")}
+        </button>
+
+        {err&&<div className="auth-err">{err}</div>}
+        {msg&&<div className="auth-msg">{msg}</div>}
+
+        <div className="auth-swap" onClick={()=>{setMode(m=>m==="signin"?"signup":"signin");setErr("");setMsg("");}}>
+          {signup?"Already have an account? Sign in":"New here? Create account"}
+        </div>
       </div>
-    </Card>
+    </div>
+
+    <style>{`
+      .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        padding: 20px; background: ${T.bg} }
+      .auth-card { display: grid; grid-template-columns: 1fr 1fr; width: min(880px, 100%);
+        border-radius: 26px; overflow: hidden; background: ${T.card};
+        border: 1px solid ${T.border}; box-shadow: 0 28px 70px color-mix(in srgb, ${T.text} 12%, transparent) }
+
+      .auth-side { background: linear-gradient(160deg, ${T.gold}, ${T.goldDim}); color: #fff;
+        padding: 46px 38px; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; text-align: center; gap: 14px }
+      .auth-pill { font-size: 11.5px; font-weight: 600; padding: 6px 14px; border-radius: 999px;
+        background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.28) }
+      .auth-hello { font-size: 30px; font-weight: 700; letter-spacing: -.02em }
+      .auth-copy { font-size: 14px; line-height: 1.65; opacity: .92; max-width: 300px; margin: 0 }
+      .auth-ghost { margin-top: 8px; padding: 12px 30px; border-radius: 12px; cursor: pointer;
+        font-size: 14px; font-weight: 600; color: #fff; background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.42);
+        transition: background .18s ease-out, transform .14s ease-out }
+      .auth-ghost:hover { background: rgba(255,255,255,.24) }
+      .auth-ghost:active { transform: scale(.97) }
+
+      .auth-form { padding: 44px 40px; text-align: center }
+      .auth-brand { display: inline-flex; align-items: center; gap: 9px; font-size: 15px;
+        font-weight: 700; color: ${T.text}; margin-bottom: 22px }
+      .auth-mark { width: 28px; height: 28px; border-radius: 9px; background: ${T.goldBg};
+        color: ${T.gold}; display: inline-flex; align-items: center; justify-content: center; font-size: 16px }
+      .auth-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: ${T.text} }
+      .auth-sub { margin: 0 0 26px; font-size: 13.5px; color: ${T.textMuted} }
+
+      /* The embossed field from the reference: pressed into the surface rather
+         than drawn on top of it. Both themes get their own shadow pair. */
+      .emb { position: relative; margin-bottom: 14px }
+      .emb input { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid ${T.border};
+        background: ${T.bgAlt}; color: ${T.text}; font-size: 14px; font-family: inherit;
+        box-shadow: inset 2px 2px 6px color-mix(in srgb, ${T.text} 8%, transparent),
+                    inset -2px -2px 6px color-mix(in srgb, ${T.card} 90%, transparent);
+        transition: border-color .16s ease-out, box-shadow .18s ease-out }
+      .emb input::placeholder { color: ${T.textDim} }
+      .emb input:focus { outline: none; border-color: ${T.gold};
+        box-shadow: 0 0 0 3px color-mix(in srgb, ${T.gold} 22%, transparent) }
+      .emb-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+        background: none; border: none; cursor: pointer; color: ${T.textMuted}; font-size: 12px; padding: 6px }
+
+      .auth-terms { display: flex; align-items: flex-start; gap: 9px; text-align: left;
+        font-size: 12.5px; color: ${T.textMuted}; margin: 4px 0 18px; cursor: pointer; line-height: 1.5 }
+      .auth-terms input { width: 16px; height: 16px; accent-color: ${T.gold}; margin-top: 1px; cursor: pointer }
+      .auth-terms a { color: ${T.gold} }
+      .auth-forgot { text-align: right; margin: 2px 0 18px }
+      .auth-forgot span { font-size: 12.5px; color: ${T.gold}; cursor: pointer }
+
+      .auth-go { width: 100%; padding: 15px; border-radius: 14px; border: none; cursor: pointer;
+        font-size: 15px; font-weight: 700; color: #fff; font-family: inherit;
+        background: linear-gradient(160deg, ${T.gold}, ${T.goldDim});
+        box-shadow: 0 10px 24px color-mix(in srgb, ${T.gold} 34%, transparent);
+        transition: transform .14s ease-out, box-shadow .2s ease-out, filter .15s ease-out }
+      .auth-go:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05) }
+      .auth-go:active:not(:disabled) { transform: scale(.98); box-shadow: none }
+      .auth-go:disabled { opacity: .5; cursor: not-allowed; box-shadow: none }
+
+      .auth-err { font-size: 12.5px; color: ${T.danger}; margin-top: 12px }
+      .auth-msg { font-size: 12.5px; color: ${T.success}; margin-top: 12px }
+      .auth-swap { font-size: 12.5px; color: ${T.textMuted}; margin-top: 18px; cursor: pointer }
+      .auth-swap:hover { color: ${T.text} }
+
+      /* On a phone the blue panel would push the form below the fold, so it goes. */
+      @media (max-width: 720px) {
+        .auth-card { grid-template-columns: 1fr }
+        .auth-side { display: none }
+        .auth-form { padding: 34px 24px }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .auth-ghost, .auth-go, .emb input { transition: none !important; transform: none !important }
+      }
+    `}</style>
   </div>;
 }
 
