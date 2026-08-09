@@ -35,7 +35,9 @@ export const GET = withErrors(async (request) => {
     }
   }
 
-  return NextResponse.json(data || []);
+  return NextResponse.json(data || [], {
+    headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "CDN-Cache-Control": "no-store" },
+  });
 }, "bookings");
 
 export const PUT = withErrors(async (request) => {
