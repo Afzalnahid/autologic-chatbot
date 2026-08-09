@@ -271,6 +271,72 @@ export function Motion() {
   );
 }
 
+export const PALETTE = {
+  light: {
+    bg: "#F4F6F9", bgAlt: "#EDF0F5", card: "#FFFFFF", cardAlt: "#F8FAFC", inset: "#E9EDF3",
+    rail: "#0D111A", railHover: "#1A2130", railText: "#A8B2C6", railTextOn: "#FFFFFF",
+    gold: "#3B6FE8", goldDim: "#2B55C4", goldBg: "rgba(59,111,232,0.09)",
+    text: "#0F1420", textMuted: "#4A5568", textDim: "#6B7488",
+    border: "#DDE3EC", borderStrong: "#C6CEDC",
+    danger: "#C93A50", success: "#097A5A", warn: "#8A5A07", purple: "#6D3FD9",
+    live: "#0FA97C", liveBg: "rgba(15,169,124,0.11)", warnBg: "rgba(154,100,8,0.10)", dangerBg: "rgba(201,58,80,0.09)",
+  },
+  dark: {
+    bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420", cardAlt: "#151B2A", inset: "#1C2436",
+    rail: "#080B12", railHover: "#161C2A", railText: "#98A3BA", railTextOn: "#FFFFFF",
+    gold: "#7BA4FF", goldDim: "#5B8CFF", goldBg: "rgba(123,164,255,0.13)",
+    text: "#E7EAF2", textMuted: "#A7B1C6", textDim: "#7C879C",
+    border: "#1F2839", borderStrong: "#2C374D",
+    danger: "#FF7A82", success: "#3FE0B4", warn: "#F5C25A", purple: "#A78BFA",
+    live: "#2ED3A7", liveBg: "rgba(46,211,167,0.13)", warnBg: "rgba(245,194,90,0.12)", dangerBg: "rgba(255,122,130,0.11)",
+  },
+};
+
+const vars = (p) => Object.entries(p).map(([k, v]) => `--${k}:${v}`).join(";");
+
+export function Theme() {
+  return (
+    <style>{`
+      :root, [data-theme="light"] { ${vars(PALETTE.light)}; color-scheme: light }
+      [data-theme="dark"] { ${vars(PALETTE.dark)}; color-scheme: dark }
+      body { background: var(--bg); color: var(--text) }
+    `}</style>
+  );
+}
+
+export function useTheme() {
+  const [mode, setMode] = useState("light");
+  useEffect(() => {
+    let saved = null;
+    try { saved = localStorage.getItem("al-theme"); } catch {}
+    // No stored choice means follow the machine — someone who runs their laptop
+    // dark should not be handed a white screen.
+    const start = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    setMode(start);
+    document.documentElement.dataset.theme = start;
+  }, []);
+  const toggle = () => {
+    const next = mode === "dark" ? "light" : "dark";
+    setMode(next);
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("al-theme", next); } catch {}
+  };
+  return [mode, toggle];
+}
+
+export function ThemeToggle({ mode, toggle, onRail }) {
+  return (
+    <button onClick={toggle} className="ui-btn" title={mode === "dark" ? "Switch to light" : "Switch to dark"}
+      aria-label="Switch theme"
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34,
+        borderRadius: 9, cursor: "pointer", background: onRail ? "transparent" : T.card,
+        border: `1px solid ${onRail ? T.railHover : T.border}`, color: onRail ? T.railText : T.textMuted }}>
+      <i className={`ti ti-${mode === "dark" ? "sun" : "moon"}`} style={{ fontSize: 16 }} />
+    </button>
+  );
+}
+
+
 // A folding section. Height is animated from a measured value rather than to
 // `auto`, which browsers refuse to animate — the alternative, a fixed max-height,
 // either clips long content or makes short content open slowly.
