@@ -28,6 +28,13 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   const avail=[...new Set([...channels.map(c=>c.platform),...allConvos.map(c=>c.platform||"facebook")].filter(Boolean))];
   const isMobile=useIsMobile();
   const [sel,setSel]=useState(-1);
+  // The open conversation answers the back press before the tab does, so one
+  // press closes the chat and the next leaves the tab.
+  useEffect(()=>{
+    if(typeof window==="undefined") return;
+    window.__alBack = () => { if(sel>=0){ setSel(-1); return true; } return false; };
+    return ()=>{ if(window.__alBack) window.__alBack=null; };
+  },[sel]);
   useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&sel>=0);},[sel,isMobile]);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
@@ -152,6 +159,19 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
                 })]}/>}
         </div>}
 
+      {!convos.length&&<div style={{padding:"38px 20px",textAlign:"center"}}>
+        <i className="ti ti-inbox" style={{fontSize:30,color:T.textDim}}/>
+        <div style={{fontSize:14,fontWeight:600,color:T.text,margin:"12px 0 6px"}}>Nothing here yet</div>
+        <div style={{fontSize:13,color:T.textMuted,lineHeight:1.6,maxWidth:300,margin:"0 auto 16px"}}>
+          {chFilter!=="all"||tagFilter!=="all"
+            ? "No conversation matches these filters."
+            : "Conversations will appear here as soon as a customer writes to you."}
+        </div>
+        {(chFilter!=="all"||tagFilter!=="all")&&
+          <button onClick={()=>{setChFilter("all");setTagFilter("all");}} className="ui-btn"
+            style={{padding:"9px 16px",borderRadius:9,border:`1px solid ${T.border}`,background:T.card,
+              color:T.text,fontSize:13.5,fontWeight:600,cursor:"pointer"}}>Clear filters</button>}
+      </div>}
       {convos.map((cv,i)=>{
         const cvt=contacts[cv.id]||{};
         return <div key={cv.id} onClick={()=>setSel(i)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:sel===i?T.goldBg:"transparent",borderLeft:sel===i?`3px solid ${T.gold}`:"3px solid transparent"}}>
