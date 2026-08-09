@@ -109,7 +109,14 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     await api("/api/contacts",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isGlobal?{global:true,bot_enabled:val}:{sender_id,bot_enabled:val})});
   };
 
-  if(!convos.length) return <Card style={{textAlign:"center",color:T.textDim,padding:60}}>No conversations yet</Card>;
+  const filtered = chFilter!=="all"||tagFilter!=="all";
+  if(!convos.length&&!filtered) return <Card style={{textAlign:"center",padding:"48px 24px"}}>
+    <i className="ti ti-inbox" style={{fontSize:32,color:T.textDim}}/>
+    <div style={{fontSize:15,fontWeight:600,color:T.text,margin:"14px 0 7px"}}>No conversations yet</div>
+    <div style={{fontSize:13.5,color:T.textMuted,lineHeight:1.65,maxWidth:320,margin:"0 auto"}}>
+      As soon as someone writes to your Facebook, Instagram, WhatsApp or website, the chat appears here.
+    </div>
+  </Card>;
   const idx=sel<0?0:sel;
   const c=convos[idx]||convos[0];
   const ct=contacts[c.id]||{};
