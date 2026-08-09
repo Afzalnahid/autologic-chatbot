@@ -514,24 +514,37 @@ export default function Dashboard() {
   const [chatOpen,setChatOpen]=useState(false);
   const [page,setPageRaw]=useState("analytics");
   const [upgradeIntent,setUpgradeIntent]=useState({plan:null,cycle:"monthly"});
+  // One history entry for "inside a tab", not one per tab visited. Hopping
+  // between six tabs used to leave six entries, so getting out took six presses.
+  const HOME="analytics";
   const setPage=(p)=>{
-    setPageRaw(p);
-    if(typeof window!=="undefined") window.history.pushState({page:p},"","#"+p);
+    setPageRaw(prev=>{
+      if(typeof window!=="undefined"){
+        const s={page:p,level:p===HOME?0:1};
+        if(prev===HOME&&p!==HOME) window.history.pushState(s,"","#"+p);
+        else window.history.replaceState(s,"","#"+p);
+      }
+      return p;
+    });
   };
   useEffect(()=>{
-    const onPop=(e)=>{ if(e.state?.page) setPageRaw(e.state.page); };
+    const onPop=(e)=>{
+      // A sub-view claims the press first; only then does the tab give way.
+      if(window.__alBack&&window.__alBack()) { window.history.pushState({page:page,level:1},"","#"+page); return; }
+      setPageRaw(e.state?.page||HOME);
+    };
     window.addEventListener("popstate",onPop);
     const params=new URLSearchParams(window.location.search);
     const up=params.get("upgrade");
     if(up&&["starter","pro","agency"].includes(up)){
       setUpgradeIntent({plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly"});
       setPageRaw("billing");
-      window.history.replaceState({page:"billing"},"","#billing");
+      window.history.replaceState({page:"billing",level:1},"","#billing");
       return;
     }
     const h=window.location.hash.replace("#","");
     if(h) setPageRaw(h);
-    window.history.replaceState({page:window.location.hash.replace("#","")||"analytics"},"","");
+    window.history.replaceState({page:window.location.hash.replace("#","")||HOME,level:0},"","");
     return ()=>window.removeEventListener("popstate",onPop);
   },[]);
   const [products,setProducts]=useState([]);
@@ -651,6 +664,10 @@ export default function Dashboard() {
 
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0,marginLeft:(!isMobile&&sidebarOpen)?240:0,transition:"margin-left 0.25s ease"}}>
       {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"14px 24px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+        {isMobile&&page!==HOME&&<button onClick={()=>setPage(HOME)} className="ui-btn" aria-label="Back to dashboard"
+          style={{width:34,height:34,borderRadius:9,flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",
+            background:T.card,border:`1px solid ${T.border}`,color:T.textMuted,cursor:"pointer"}}>
+          <i className="ti ti-arrow-left" style={{fontSize:17}}/></button>}
         <div style={{display:"flex",alignItems:"center",gap:14,minWidth:0}}>
           <i onClick={()=>setSidebarOpen(true)} className="ti ti-menu-2" style={{fontSize:22,color:T.text,cursor:"pointer",flexShrink:0}}/>
           <div style={{minWidth:0}}><Select value={page} onChange={setPage}
