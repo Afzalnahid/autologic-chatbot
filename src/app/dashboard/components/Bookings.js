@@ -73,6 +73,20 @@ export default function Bookings({calConnected,clientId}) {
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
+  // The list used to load once and then sit there, so a booking made while the
+  // tab was open never appeared — it looked like the booking had failed. Reload
+  // whenever the tab comes back into view, and every couple of minutes.
+  useEffect(()=>{
+    const onFocus=()=>{ if(document.visibilityState==="visible") load(); };
+    document.addEventListener("visibilitychange",onFocus);
+    window.addEventListener("focus",onFocus);
+    const t=setInterval(()=>{ if(document.visibilityState==="visible") load(); },120000);
+    return ()=>{
+      document.removeEventListener("visibilitychange",onFocus);
+      window.removeEventListener("focus",onFocus);
+      clearInterval(t);
+    };
+  },[]);
   useEffect(()=>{
     let alive=true;
     (async()=>{
@@ -152,6 +166,12 @@ export default function Bookings({calConnected,clientId}) {
     </Accordion>}
     {note&&<div style={{marginBottom:14,padding:"11px 14px",borderRadius:10,fontSize:13,
       background:T.goldBg,border:`1px solid ${T.gold}`,color:T.text}}>{note}</div>}
+    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,flexWrap:"wrap"}}>
+      <Btn small onClick={load} disabled={loading}>
+        <i className="ti ti-refresh" style={{marginRight:5}}/>{loading?"Refreshing":"Refresh"}
+      </Btn>
+      <span style={{fontSize:12,color:T.textDim}}>{bookings.length} booking{bookings.length===1?"":"s"}</span>
+    </div>
     {bookings.length>0&&<div style={{marginBottom:14,maxWidth:260}}>
       <Select value={chFilter} onChange={setChFilter}
         options={[{value:"all",label:`All channels (${bookings.length})`,icon:"ti-inbox"},
