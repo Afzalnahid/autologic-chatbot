@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
-import { getValidAccessToken, deleteEvent } from "@/lib/gcal.js";
+import { getValidAccessToken, deleteEvent, getEventMeetLink } from "@/lib/gcal.js";
 
 export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
@@ -14,6 +14,27 @@ export const GET = withErrors(async (request) => {
     .eq("client_id", client.id)
     .order("created_at", { ascending: false })
     .limit(500);
+  // Some events were created before the Meet link had finished building, so the
+  // link is missing while the event itself exists. Fill those in once, quietly.
+  const orphans = (data || []).filter(
+    (b) => b.calendar_event_id && !b.meeting_link && b.status !== "Cancelled"
+  ).slice(0, 5);
+
+  if (orphans.length && client.gcal_connected) {
+    try {
+      const token = await getValidAccessToken(client);
+      await Promise.all(orphans.map(async (b) => {
+        const link = await getEventMeetLink(token, b.calendar_event_id);
+        if (!link) return;
+        await supabase.from("bookings").update({ meeting_link: link })
+          .eq("id", b.id).eq("client_id", client.id);
+        b.meeting_link = link;
+      }));
+    } catch (e) {
+      console.error("[bookings] meet link backfill:", e.message);
+    }
+  }
+
   return NextResponse.json(data || []);
 }, "bookings");
 
