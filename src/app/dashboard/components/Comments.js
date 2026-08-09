@@ -5,10 +5,19 @@ import { api } from "./session.js";
 
 // The Comments tab, moved out of dashboard-client.js unchanged.
 
+// platform, page_id and post_id are all stored — the tab just never showed them.
+// With four channels connected, "which page did this land on" is the first thing
+// the owner needs to know.
+const CH = {
+  facebook:  { icon: "ti-brand-messenger", label: "Facebook" },
+  instagram: { icon: "ti-brand-instagram", label: "Instagram" },
+};
+
 export default function Comments() {
   const [rows,setRows]=useState([]);
   const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState("All");
+  const [chFilter,setChFilter]=useState("all");
 
   const load=async()=>{
     setLoading(true);
@@ -77,7 +86,18 @@ export default function Comments() {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:10}}>
           <div style={{minWidth:0}}>
             <div style={{fontSize:14,fontWeight:600}}>{c.commenter_name||"Someone"}</div>
-            <div style={{fontSize:11.5,color:T.textDim,marginTop:1}}><i className="ti ti-brand-facebook" style={{marginRight:4}}/>{ago(c.created_at)}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:4}}>
+              <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:600,
+                padding:"3px 8px",borderRadius:6,background:T.goldBg,color:T.gold}}>
+                <i className={`ti ${CH[c.platform]?.icon||"ti-message-circle"}`} style={{fontSize:13}}/>
+                {CH[c.platform]?.label||c.platform||"Facebook"}
+              </span>
+              <span style={{fontSize:11.5,color:T.textDim}}>{ago(c.created_at)}</span>
+              {c.post_id&&<a href={`https://facebook.com/${c.post_id}`} target="_blank" rel="noreferrer"
+                style={{fontSize:11.5,color:T.gold,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}>
+                <i className="ti ti-external-link" style={{fontSize:13}}/>Open the post
+              </a>}
+            </div>
           </div>
           <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
             <Badge color={c.replied?T.success:T.textDim}>{c.replied?"Replied":"Not replied"}</Badge>
