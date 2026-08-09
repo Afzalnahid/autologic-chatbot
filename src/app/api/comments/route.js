@@ -17,7 +17,10 @@ export const GET = withErrors(async (request) => {
     .limit(300);
 
   return NextResponse.json(data || [], {
-    headers: { "Cache-Control": "no-store" },
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "CDN-Cache-Control": "no-store",
+    },
   });
 }, "comments");
 
