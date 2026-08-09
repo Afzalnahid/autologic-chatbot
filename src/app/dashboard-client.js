@@ -110,7 +110,7 @@ function AuthGate({onReady}) {
         <div className="emb"><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address"/></div>
         <div className="emb">
           <input type={showPw?"text":"password"} value={pw} onChange={e=>setPw(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&canSubmit&&go()} placeholder={signup?"Create password":"Password"} style={{paddingRight:52}}/>
+            onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); e.currentTarget.blur(); } }} placeholder={signup?"Create password":"Password"} style={{paddingRight:52}}/>
           <button type="button" className="emb-eye" onClick={()=>setShowPw(v=>!v)}>{showPw?"Hide":"Show"}</button>
         </div>
 
