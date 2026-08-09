@@ -136,11 +136,44 @@ export async function createEvent(accessToken, { summary, description, startISO,
   ).then((r) => r.json());
   if (res.error) throw new Error(res.error.message || "event create failed");
 
-  const meetLink =
-    res.hangoutLink ||
-    res.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ||
-    "";
+  let meetLink = pickMeetLink(res);
+
+  // Google builds the Meet room asynchronously. The create response often comes
+  // back with conferenceData.createRequest.status = "pending" and no link yet —
+  // which is why the same code produced a link on one booking and not the next.
+  // Ask again a couple of times before giving up.
+  const pending = res.conferenceData?.createRequest?.status?.statusCode === "pending";
+  if (!meetLink && (pending || res.conferenceData)) {
+    for (let attempt = 0; attempt < 3 && !meetLink; attempt++) {
+      await new Promise((r) => setTimeout(r, 600 + attempt * 500));
+      const again = await fetch(
+        `${CAL_BASE}/calendars/primary/events/${encodeURIComponent(res.id)}?conferenceDataVersion=1`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      ).then((r) => r.json()).catch(() => null);
+      if (again && !again.error) meetLink = pickMeetLink(again);
+    }
+    if (!meetLink) console.error("[gcal] event created but Meet link never arrived:", res.id);
+  }
+
   return { eventId: res.id, meetLink, htmlLink: res.htmlLink };
+}
+
+function pickMeetLink(ev) {
+  return (
+    ev?.hangoutLink ||
+    ev?.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")?.uri ||
+    ""
+  );
+}
+
+// Used to repair bookings whose event exists but whose link never arrived.
+export async function getEventMeetLink(accessToken, eventId) {
+  const ev = await fetch(
+    `${CAL_BASE}/calendars/primary/events/${encodeURIComponent(eventId)}?conferenceDataVersion=1`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  ).then((r) => r.json()).catch(() => null);
+  if (!ev || ev.error) return "";
+  return pickMeetLink(ev);
 }
 
 // Cancelling in the dashboard has to reach Google too. sendUpdates=all is the
