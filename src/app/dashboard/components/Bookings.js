@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Badge, Accordion } from "./ui.js";
+import { T, Card, Btn, Badge, Accordion, Select } from "./ui.js";
 import { api } from "./session.js";
 
 // The Bookings tab, moved out of dashboard-client.js unchanged.
@@ -10,6 +10,15 @@ import { api } from "./session.js";
 // row, "Tuesday, August 11th, 2026" in another. meeting_datetime is always a real
 // timestamp, so everything reads from that and falls back only if it is missing.
 const DHAKA = "Asia/Dhaka";
+
+// Which inbox this came from. With four channels live, "who booked" is only half
+// the answer — the owner needs to know where to reply.
+const CH = {
+  facebook:  { icon: "ti-brand-messenger",  label: "Messenger" },
+  instagram: { icon: "ti-brand-instagram",  label: "Instagram" },
+  whatsapp:  { icon: "ti-brand-whatsapp",   label: "WhatsApp" },
+  website:   { icon: "ti-world",            label: "Website" },
+};
 function when(b) {
   const raw = b.meeting_datetime;
   if (!raw) return { text: [b.meeting_date, b.meeting_time].filter(Boolean).join(" ") || "—", ts: 0 };
@@ -55,6 +64,7 @@ export default function Bookings({calConnected,clientId}) {
     setTimeout(()=>setNote(""),6000);
   };
   const sts=["All","Confirmed","Completed","Cancelled"];
+  const [chFilter,setChFilter]=useState("all");
 
   const load=async()=>{
     setLoading(true);
@@ -80,7 +90,8 @@ export default function Bookings({calConnected,clientId}) {
     window.addEventListener("message",h);
   };
 
-  const filtered = (filter==="All"?bookings:bookings.filter(b=>b.status===filter))
+  const byCh = chFilter==="all"?bookings:bookings.filter(b=>b.platform===chFilter);
+  const filtered = (filter==="All"?byCh:byCh.filter(b=>b.status===filter))
     .map(b=>({...b,_w:when(b)}))
     .sort((a,c)=>{
       const ap=a._w.ts<Date.now(), cp=c._w.ts<Date.now();
@@ -141,12 +152,27 @@ export default function Bookings({calConnected,clientId}) {
     </Accordion>}
     {note&&<div style={{marginBottom:14,padding:"11px 14px",borderRadius:10,fontSize:13,
       background:T.goldBg,border:`1px solid ${T.gold}`,color:T.text}}>{note}</div>}
+    {bookings.length>0&&<div style={{marginBottom:14,maxWidth:260}}>
+      <Select value={chFilter} onChange={setChFilter}
+        options={[{value:"all",label:`All channels (${bookings.length})`,icon:"ti-inbox"},
+          ...Object.entries(CH)
+            .filter(([k])=>bookings.some(b=>b.platform===k))
+            .map(([k,v])=>({value:k,label:`${v.label} (${bookings.filter(b=>b.platform===k).length})`,icon:v.icon}))]}/>
+    </div>}
     <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{sts.map(s=><button key={s} onClick={()=>setFilter(s)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===s?T.gold:"rgba(240,192,64,0.08)",color:filter===s?"#0a0a0a":T.textMuted}}>{s}</button>)}</div>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:filtered.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No bookings yet</Card>:filtered.map(b=><Card key={b.id}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
           <div style={{minWidth:0}}>
-            <div style={{fontSize:14,fontWeight:600}}>{b.customer_name||"—"} <span style={{fontSize:12,color:T.textMuted,fontWeight:400}}>· {b.service_want||""}</span></div>
+            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+              <span style={{fontSize:14,fontWeight:600}}>{b.customer_name||"—"}</span>
+              {b.platform&&<span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,
+                fontWeight:600,padding:"3px 9px",borderRadius:6,background:T.goldBg,color:T.gold}}>
+                <i className={`ti ${CH[b.platform]?.icon||"ti-message"}`} style={{fontSize:13}}/>
+                {CH[b.platform]?.label||b.platform}
+              </span>}
+            </div>
+            {b.service_want&&<div style={{fontSize:12.5,color:T.textMuted,marginTop:3}}>{b.service_want}</div>}
             <div style={{fontSize:12.5,color:T.text,marginTop:5,fontWeight:500}}>
               <i className="ti ti-calendar" style={{marginRight:5,color:T.gold}}/>{b._w.text}
               {group(b._w.ts)==="today"&&b.status==="Confirmed"&&
