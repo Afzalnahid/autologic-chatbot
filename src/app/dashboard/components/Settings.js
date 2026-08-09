@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Inp, words, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
+import { T, Card, Btn, Inp, Accordion, words, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
 import { api } from "./session.js";
 
 // The Settings tab, moved out of dashboard-client.js unchanged.
@@ -45,7 +45,8 @@ export default function Settings({settings,setSettings}) {
   };
   const selStyle={width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5};
   return <div style={{maxWidth:700}}>
-    <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>General</div>
+    <div style={{marginBottom:10}}/>
+    <Card style={{marginBottom:10}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>General</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
         <Inp label="Bot name" value={s.botName||""} onChange={e=>setS({...s,botName:e.target.value})}/>
         <Inp label="Business name" value={s.businessName||""} onChange={e=>setS({...s,businessName:e.target.value})}/>
@@ -53,18 +54,13 @@ export default function Settings({settings,setSettings}) {
       <Inp label="Greeting" value={s.greeting||""} onChange={e=>setS({...s,greeting:e.target.value})}/>
     </Card>
 
-    <Card style={{marginBottom:16,border:`1px solid ${T.border}`}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-        <i className="ti ti-lock" style={{color:T.gold,fontSize:16}}/>
-        <div style={{fontSize:15,fontWeight:500}}>Core rules (locked)</div>
-      </div>
+    <Accordion icon="ti-lock" title="Core rules" subtitle="Always active, cannot be changed">
       <div style={{fontSize:12,color:T.textMuted,marginBottom:10}}>These platform rules keep every bot accurate and safe. They are always active and cannot be changed.</div>
       <pre style={{fontSize:12,color:T.textMuted,whiteSpace:"pre-wrap",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:12,margin:0,lineHeight:1.7}}>{CORE_BASE_DISPLAY+"\n"+(isEcom?CORE_ECOM_DISPLAY:CORE_AGENCY_DISPLAY)}</pre>
       <div style={{fontSize:11.5,color:T.textDim,marginTop:8}}><i className="ti ti-info-circle" style={{marginRight:4}}/>{isEcom?"E-commerce rules active — product matching, display and order flow.":"Agency rules active — knowledge-base answers and meeting booking flow."}</div>
-    </Card>
+    </Accordion>
 
-    <Card style={{marginBottom:16}}>
-      <div style={{fontSize:15,fontWeight:500,marginBottom:6}}><i className="ti ti-wand" style={{marginRight:6,color:T.gold}}/>Bot training</div>
+    <Accordion icon="ti-wand" title="Bot training" subtitle="Describe your business in your own words">
       <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Describe your business in your own words — AI rewrites the business profile below, inside the locked structure.</div>
 
       <Inp textarea label="Describe your business" value={q.description||""} onChange={e=>setQ({description:e.target.value})}
@@ -121,7 +117,7 @@ export default function Settings({settings,setSettings}) {
       </>}
       <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?"Generating...":"Regenerate with AI"}</Btn>
       {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
-    </Card>
+    </Accordion>
 
     <Card style={{marginBottom:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:6}}>
@@ -157,10 +153,11 @@ export default function Settings({settings,setSettings}) {
       </>}
     </Card>
 
-    <Card style={{marginBottom:16}}><div style={{fontSize:15,fontWeight:500,marginBottom:6}}>Business prompt (editable)</div>
+    <Accordion icon="ti-file-text" title="Business prompt" subtitle="What the bot knows about you">
+      <div style={{height:6}}/>
       <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>This is your bot's business knowledge. Edit freely — the locked core rules above are added automatically on top.</div>
       <Inp textarea value={s.businessPrompt||s.systemPrompt||""} onChange={e=>setS({...s,businessPrompt:e.target.value})} style={{marginBottom:0}}/>
-    </Card>
+    </Accordion>
     <Btn gold onClick={save}><i className="ti ti-check" style={{marginRight:6}}/>{saved?"Saved!":"Save settings"}</Btn>
   </div>;
 }
