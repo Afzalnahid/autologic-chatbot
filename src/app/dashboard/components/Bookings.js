@@ -9,7 +9,10 @@ export default function Bookings({calConnected,clientId}) {
   const [bookings,setBookings]=useState([]);
   const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState("All");
+  // Ask the calendar itself rather than trusting a flag /api/me never sends.
+  // The prop is kept only as a first guess while the check is in flight.
   const [calOk,setCalOk]=useState(!!calConnected);
+  const [calEmail,setCalEmail]=useState("");
   const sts=["All","Confirmed","Completed","Cancelled"];
 
   const load=async()=>{
@@ -19,13 +22,20 @@ export default function Bookings({calConnected,clientId}) {
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
-  useEffect(()=>{setCalOk(!!calConnected);},[calConnected]);
+  useEffect(()=>{
+    let alive=true;
+    (async()=>{
+      const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);
+      if(alive&&d){ setCalOk(!!d.connected); setCalEmail(d.email||""); }
+    })();
+    return ()=>{alive=false;};
+  },[calConnected]);
   const update=async(id,status)=>{await api("/api/bookings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})}); load();};
 
   const connectCal=()=>{
     const w=window.open(`/api/gcal/login?client_id=${clientId}`,"gcal","width=520,height=640");
     if(!w) window.location.href=`/api/gcal/login?client_id=${clientId}`;
-    const h=e=>{if(e.data==="gcal-connected"){window.removeEventListener("message",h);setCalOk(true);}};
+    const h=async e=>{if(e.data==="gcal-connected"){window.removeEventListener("message",h);const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);setCalOk(d?!!d.connected:true);setCalEmail(d?.email||"");}};
     window.addEventListener("message",h);
   };
 
@@ -44,6 +54,10 @@ export default function Bookings({calConnected,clientId}) {
         never seen an OAuth screen. Step 3 is the one that stops people: Google
         shows a warning for apps it has not finished reviewing, and without
         being told what to do there, most people close the window. */}
+    {calOk&&calEmail&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,fontSize:12.5,color:T.textMuted}}>
+      <i className="ti ti-circle-check" style={{color:T.success,fontSize:15}}/>
+      Calendar connected · <span style={{color:T.text}}>{calEmail}</span>
+    </div>}
     {!calOk&&<Accordion icon="ti-help-circle" title="How to connect your calendar"
       subtitle="Takes about a minute — nothing to install">
       <ol style={{margin:0,paddingLeft:20,fontSize:13.5,lineHeight:1.85,color:T.textMuted}}>
