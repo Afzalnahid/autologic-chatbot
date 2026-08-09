@@ -512,26 +512,39 @@ function ConnectCalendar({clientId,onDone}) {
 export default function Dashboard() {
   const isMobile=useIsMobile();
   const [chatOpen,setChatOpen]=useState(false);
+  const pageRef=useRef("analytics");
   const [page,setPageRaw]=useState("analytics");
   const [upgradeIntent,setUpgradeIntent]=useState({plan:null,cycle:"monthly"});
   // One history entry for "inside a tab", not one per tab visited. Hopping
   // between six tabs used to leave six entries, so getting out took six presses.
   const HOME="analytics";
+  const pushed=useRef(false);
   const setPage=(p)=>{
+    if(typeof window==="undefined"){ setPageRaw(p); return; }
     setPageRaw(prev=>{
-      if(typeof window!=="undefined"){
-        const s={page:p,level:p===HOME?0:1};
-        if(prev===HOME&&p!==HOME) window.history.pushState(s,"","#"+p);
-        else window.history.replaceState(s,"","#"+p);
+      if(p===prev) return p;
+      if(p===HOME&&pushed.current){
+        // Walk the entry back instead of replacing it, so the phone's back
+        // button never lands on a state that looks identical to this one.
+        pushed.current=false;
+        window.history.back();
+        return prev;
       }
+      if(prev===HOME&&p!==HOME){ window.history.pushState({page:p},"","#"+p); pushed.current=true; }
+      else window.history.replaceState({page:p},"","#"+p);
       return p;
     });
   };
   useEffect(()=>{
     const onPop=(e)=>{
       // A sub-view claims the press first; only then does the tab give way.
-      if(window.__alBack&&window.__alBack()) { window.history.pushState({page:page,level:1},"","#"+page); return; }
-      setPageRaw(e.state?.page||HOME);
+      if(window.__alBack&&window.__alBack()){
+        window.history.pushState({page:pageRef.current},"","#"+pageRef.current);
+        return;
+      }
+      const to=e.state?.page||HOME;
+      pushed.current = to!==HOME;
+      setPageRaw(to);
     };
     window.addEventListener("popstate",onPop);
     const params=new URLSearchParams(window.location.search);
@@ -547,6 +560,7 @@ export default function Dashboard() {
     window.history.replaceState({page:window.location.hash.replace("#","")||HOME,level:0},"","");
     return ()=>window.removeEventListener("popstate",onPop);
   },[]);
+  useEffect(()=>{ pageRef.current=page; },[page]);
   const [products,setProducts]=useState([]);
   const [convos,setConvos]=useState([]);
   const [dashChannels,setDashChannels]=useState([]);
@@ -665,17 +679,23 @@ export default function Dashboard() {
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0,marginLeft:(!isMobile&&sidebarOpen)?240:0,transition:"margin-left 0.25s ease"}}>
       {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"12px 16px":"14px 24px",background:T.card,borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
         {isMobile&&page!==HOME&&<button onClick={()=>setPage(HOME)} className="ui-btn" aria-label="Back to dashboard"
-          style={{width:34,height:34,borderRadius:9,flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",
-            background:T.card,border:`1px solid ${T.border}`,color:T.textMuted,cursor:"pointer"}}>
-          <i className="ti ti-arrow-left" style={{fontSize:17}}/></button>}
+          style={{width:32,height:32,borderRadius:9,flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",
+            background:T.card,border:`1px solid ${T.border}`,color:T.textMuted,cursor:"pointer",padding:0}}>
+          <i className="ti ti-arrow-left" style={{fontSize:16}}/></button>}
         <div style={{display:"flex",alignItems:"center",gap:14,minWidth:0}}>
           <i onClick={()=>setSidebarOpen(true)} className="ti ti-menu-2" style={{fontSize:22,color:T.text,cursor:"pointer",flexShrink:0}}/>
-          <div style={{minWidth:0}}><Select value={page} onChange={setPage}
+          <div style={{minWidth:0,flex:isMobile?"1 1 auto":"0 0 auto",display:"flex"}}><Select value={page} onChange={setPage}
             options={PAGES.map((p,i)=>({value:p,label:navLabel(i),icon:isAgency&&p==="inventory"?"ti-database":isAgency&&p==="orders"?"ti-calendar-event":ICONS[i]}))}
-            style={{minWidth:isMobile?160:210}}/><div style={{display:"none"}}>{navLabel(PAGES.indexOf(page))}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today`:`${products.length} ${words(bt).item.toLowerCase()}s`}</div>}</div>
+            style={{flex:isMobile?"1 1 auto":"0 0 auto",minWidth:0,maxWidth:isMobile?"none":260}}/><div style={{display:"none"}}>{navLabel(PAGES.indexOf(page))}</div>{!isMobile&&<div style={{fontSize:12,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name} - {me?.client?.plan==='trial'?`Trial: ${me?.usage?.today??0}/30 msgs today`:`${products.length} ${words(bt).item.toLowerCase()}s`}</div>}</div>
         </div>
         <ThemeToggle mode={mode} toggle={toggleTheme}/>
-        <Btn small onClick={()=>load(false)} disabled={loading}><i className="ti ti-refresh" style={{marginRight:4,display:"inline-block",animation:loading?"spin 0.8s linear infinite":"none"}}/>{loading?"Syncing":"Sync"}</Btn>
+        {/* On a phone Sync is an icon: the word was what pushed the theme button
+            off the edge of the header. */}
+        <Btn small onClick={()=>load(false)} disabled={loading} title="Sync"
+          style={isMobile?{padding:"7px 10px",flexShrink:0}:{flexShrink:0}}>
+          <i className="ti ti-refresh" style={{marginRight:isMobile?0:4,display:"inline-block",animation:loading?"spin 0.8s linear infinite":"none"}}/>
+          {!isMobile&&(loading?"Syncing":"Sync")}
+        </Btn>
       </div>
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
