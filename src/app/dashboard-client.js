@@ -48,8 +48,10 @@ function AuthGate({onReady}) {
   // checks them, and this is the only place a customer is asked to accept them.
   const [agreed,setAgreed]=useState(false);
   const go=async()=>{
-    if(!email||!pw||busy) return;
-    setBusy(true); setErr("");
+    if(busy) return;
+    if(!email||!pw){ setErr("Enter your email and password."); return; }
+    if(mode==="signup"&&!agreed){ setErr("Please accept the terms to continue."); return; }
+    setBusy(true); setErr(""); setMsg("");
     try{
       let res;
       if(mode==="signup") res=await getSb().auth.signUp({email,password:pw});
@@ -71,7 +73,9 @@ function AuthGate({onReady}) {
     if(error) setErr(error.message);
     else setMsg("Password reset link sent — check your email.");
   };
-  const canSubmit = email && pw && (mode==="signin" || agreed) && !busy;
+  // Sign in stays clickable and answers with a message. A dead button teaches
+  // nothing; only signup waits, because the checkbox is a consent we must have.
+  const canSubmit = !busy && (mode==="signin" ? true : (email && pw && agreed));
   const signup = mode==="signup";
 
   return <div className="auth-wrap">
@@ -82,6 +86,7 @@ function AuthGate({onReady}) {
       <div className="auth-side">
         <div className="auth-pill">{signup?"Welcome back":"New here"}</div>
         <div className="auth-hello">{signup?"Hello, friend!":"Start free"}</div>
+        <div className="auth-hello-sm">{signup?"Hello, friend!":"Start free — 3 days"}</div>
         <p className="auth-copy">
           {signup
             ? "Already have an account? Sign in and pick up where your customers left off."
@@ -194,10 +199,20 @@ function AuthGate({onReady}) {
       .auth-swap:hover { color: ${T.text} }
 
       /* On a phone the blue panel would push the form below the fold, so it goes. */
+      .auth-hello-sm { display: none }
+
+      /* On a phone the panel becomes a strip: the form still starts above the
+         fold, but the blue half — the whole point of the design — survives. */
       @media (max-width: 720px) {
         .auth-card { grid-template-columns: 1fr }
-        .auth-side { display: none }
-        .auth-form { padding: 34px 24px }
+        .auth-side { padding: 18px 20px; flex-direction: row; flex-wrap: wrap;
+          text-align: left; gap: 10px; justify-content: flex-start }
+        .auth-hello, .auth-copy { display: none }
+        .auth-hello-sm { display: block; font-size: 17px; font-weight: 700; letter-spacing: -.015em }
+        .auth-pill { font-size: 10.5px; padding: 5px 11px }
+        .auth-ghost { margin: 0 0 0 auto; padding: 9px 16px; font-size: 12.5px; border-radius: 10px }
+        .auth-form { padding: 30px 22px }
+        .auth-card { border-radius: 20px }
       }
       @media (prefers-reduced-motion: reduce) {
         .auth-ghost, .auth-go, .emb input { transition: none !important; transform: none !important }
