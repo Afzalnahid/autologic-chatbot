@@ -298,3 +298,50 @@ export function ThemeToggle({ mode, toggle, onRail }) {
     </button>
   );
 }
+
+
+// A folding section. Height is animated from a measured value rather than to
+// `auto`, which browsers refuse to animate — the alternative, a fixed max-height,
+// either clips long content or makes short content open slowly.
+export function Accordion({ icon, title, subtitle, badge, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const inner = useRef(null);
+  const [h, setH] = useState(0);
+  useEffect(() => {
+    if (!inner.current) return;
+    const measure = () => setH(inner.current ? inner.current.scrollHeight : 0);
+    measure();
+    // Content can grow after it opens — a list loading, a textarea resizing.
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (ro) ro.observe(inner.current);
+    return () => ro && ro.disconnect();
+  }, [children, open]);
+
+  return (
+    <div className="ui-card" style={{ background: T.card, border: `1px solid ${T.border}`,
+      borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 2px rgba(19,23,34,.04)" }}>
+      <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open}
+        style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", padding: "14px 16px",
+          background: "transparent", border: "none", cursor: "pointer", textAlign: "left", color: T.text,
+          fontFamily: "inherit" }}>
+        <span style={{ width: 38, height: 38, borderRadius: 10, background: T.goldBg, flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 19, color: T.gold }} />
+        </span>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span style={{ display: "block", fontSize: 14, fontWeight: 600, textTransform: "capitalize" }}>{title}</span>
+          {subtitle && <span style={{ display: "block", fontSize: 12, color: T.textMuted, overflow: "hidden",
+            textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{subtitle}</span>}
+        </span>
+        {badge}
+        <i className="ti ti-chevron-down" style={{ fontSize: 18, color: T.textDim, flexShrink: 0,
+          transform: open ? "rotate(180deg)" : "none", transition: "transform .24s cubic-bezier(.16,1,.3,1)" }} />
+      </button>
+
+      <div style={{ height: open ? h : 0, overflow: "hidden",
+        transition: "height .28s cubic-bezier(.16,1,.3,1)" }}>
+        <div ref={inner} style={{ padding: "0 16px 16px" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
