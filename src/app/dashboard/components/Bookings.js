@@ -68,7 +68,8 @@ export default function Bookings({calConnected,clientId}) {
 
   const load=async()=>{
     setLoading(true);
-    const d=await api("/api/bookings").then(r=>r.json()).catch(()=>[]);
+    // The timestamp makes every request unique, so no cache anywhere can answer it.
+    const d=await api(`/api/bookings?t=${Date.now()}`).then(r=>r.json()).catch(()=>[]);
     if(Array.isArray(d)) setBookings(d);
     setLoading(false);
   };
