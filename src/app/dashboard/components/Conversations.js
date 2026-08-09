@@ -1,11 +1,15 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { T, Card, Badge, useIsMobile } from "./ui.js";
+import { T, Card, Badge, useIsMobile, Select } from "./ui.js";
 import { api, getSb } from "./session.js";
 
 // The Conversations tab, moved out of dashboard-client.js unchanged.
 
+const CH_ICON = { facebook:"ti-brand-messenger", instagram:"ti-brand-instagram",
+  whatsapp:"ti-brand-whatsapp", website:"ti-world" };
+
 export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
+  const cap=(w)=>String(w||"").charAt(0).toUpperCase()+String(w||"").slice(1);
   const [chFilter,setChFilter]=useState("all");
   const [tagFilter,setTagFilter]=useState("all");
   const [tagData,setTagData]=useState(null);
@@ -129,20 +133,25 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
         <Toggle on={globalBot} onClick={()=>toggle(null,!globalBot,true)} label={globalBot?"Bot ON":"Bot OFF"}/>
       </div>
-      {avail.length>1&&<div style={{display:"flex",gap:6,padding:"0 4px 10px"}}>
-        {["all",...avail].map(f=><div key={f} onClick={()=>{setChFilter(f);}} style={{padding:"5px 12px",borderRadius:14,fontSize:11.5,cursor:"pointer",textTransform:"capitalize",background:chFilter===f?T.goldBg:T.bgAlt,color:chFilter===f?T.gold:T.textMuted,border:`0.5px solid ${chFilter===f?T.gold+"50":T.border}`}}>{f}</div>)}
-      </div>}
-      {!!tagData?.available?.length&&<div style={{display:"flex",gap:6,padding:"0 4px 10px",flexWrap:"wrap"}}>
-        {["all",...tagData.available].map(f=>{
-          const n=f==="all"?null:(tagData.counts?.[f]||0);
-          const isComplaint=f===tagData.complaint_tag;
-          const on=tagFilter===f;
-          const c=isComplaint?T.danger:T.gold;
-          return <div key={f} onClick={()=>setTagFilter(f)} style={{padding:"5px 12px",borderRadius:14,fontSize:11.5,cursor:"pointer",background:on?(isComplaint?T.dangerBg:T.goldBg):T.bgAlt,color:on?c:(isComplaint&&n?c:T.textMuted),border:`0.5px solid ${on?c+"50":T.border}`}}>
-            {f==="all"?"All":f}{n?` (${n})`:""}
-          </div>;
-        })}
-      </div>}
+      {/* Two dropdowns instead of two rows of chips. On a phone the chips were
+          eating half the screen before a single conversation appeared, and the
+          counts are more readable inside the menu than crammed into a pill. */}
+      {(avail.length>1||!!tagData?.available?.length)&&
+        <div style={{display:"flex",gap:8,padding:"10px 12px",borderBottom:`1px solid ${T.border}`,flexWrap:"wrap"}}>
+          {avail.length>1&&
+            <Select value={chFilter} onChange={setChFilter} style={{flex:"1 1 140px",minWidth:0}}
+              options={[{value:"all",label:`All channels (${allConvos.length})`,icon:"ti-inbox"},
+                ...avail.map(f=>({value:f,label:cap(f),icon:CH_ICON[f]||"ti-message"}))]}/>}
+          {!!tagData?.available?.length&&
+            <Select value={tagFilter} onChange={setTagFilter} style={{flex:"1 1 140px",minWidth:0}}
+              options={[{value:"all",label:"All tags",icon:"ti-tag"},
+                ...tagData.available.map(f=>{
+                  const n=tagData.counts?.[f]||0;
+                  return {value:f,label:n?`${f} (${n})`:f,
+                    icon:f===tagData.complaint_tag?"ti-alert-triangle":"ti-tag"};
+                })]}/>}
+        </div>}
+
       {convos.map((cv,i)=>{
         const cvt=contacts[cv.id]||{};
         return <div key={cv.id} onClick={()=>setSel(i)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:sel===i?T.goldBg:"transparent",borderLeft:sel===i?`3px solid ${T.gold}`:"3px solid transparent"}}>
