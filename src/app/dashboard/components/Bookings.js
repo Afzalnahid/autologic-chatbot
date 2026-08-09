@@ -38,6 +38,104 @@ function group(ts) {
   return "later";
 }
 
+
+// A month at a glance. Every booking already carries a real timestamp, so the
+// grid is built from that — a dot for a meeting, a tick once it is done, a ring
+// on today. Tapping a day filters the list below to that day.
+function MonthGrid({ bookings, selected, onSelect }) {
+  const [cursor, setCursor] = useState(() => { const d = new Date(); d.setDate(1); return d; });
+
+  const y = cursor.getFullYear(), m = cursor.getMonth();
+  const first = new Date(y, m, 1);
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const lead = first.getDay();                       // Sunday-first, as Bangladesh reads it
+  const todayKey = keyOf(new Date());
+
+  // Group by day in Dhaka time, so a 4 PM meeting never lands on the wrong date.
+  const byDay = {};
+  bookings.forEach((b) => {
+    if (!b.meeting_datetime) return;
+    const d = new Date(b.meeting_datetime);
+    if (isNaN(d)) return;
+    const k = keyOf(d);
+    (byDay[k] = byDay[k] || []).push(b);
+  });
+
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(y, m, day));
+
+  const monthName = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const shift = (n) => setCursor(new Date(y, m + n, 1));
+
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <Btn small onClick={() => shift(-1)} title="Previous month"><i className="ti ti-chevron-left"/></Btn>
+        <div style={{ fontSize: 14.5, fontWeight: 600, flex: 1, textAlign: "center" }}>{monthName}</div>
+        <Btn small onClick={() => shift(1)} title="Next month"><i className="ti ti-chevron-right"/></Btn>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 6 }}>
+        {["S","M","T","W","T","F","S"].map((d, i) =>
+          <div key={i} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, color: T.textDim,
+            letterSpacing: .5, padding: "2px 0" }}>{d}</div>)}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+        {cells.map((d, i) => {
+          if (!d) return <div key={"x"+i} />;
+          const k = keyOf(d);
+          const items = byDay[k] || [];
+          const live = items.filter((b) => b.status === "Confirmed");
+          const done = items.filter((b) => b.status === "Completed");
+          const off  = items.filter((b) => b.status === "Cancelled");
+          const isToday = k === todayKey;
+          const isSel = k === selected;
+
+          return (
+            <button key={k} onClick={() => onSelect(isSel ? null : k)}
+              className="ui-btn"
+              style={{ position: "relative", aspectRatio: "1", minHeight: 40, borderRadius: 10, cursor: "pointer",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
+                background: isSel ? T.gold : items.length ? T.goldBg : "transparent",
+                border: `1px solid ${isSel ? T.gold : isToday ? T.gold : "transparent"}`,
+                color: isSel ? "#0A0D14" : items.length ? T.text : T.textDim,
+                fontSize: 13, fontWeight: isToday || items.length ? 600 : 400, fontFamily: "inherit" }}>
+              {d.getDate()}
+              <span style={{ display: "flex", gap: 2, height: 6, alignItems: "center" }}>
+                {done.length > 0 &&
+                  <i className="ti ti-check" style={{ fontSize: 11, lineHeight: 1,
+                    color: isSel ? "#0A0D14" : T.success }} />}
+                {live.map((_, n) => n < 3 &&
+                  <span key={n} style={{ width: 4, height: 4, borderRadius: "50%",
+                    background: isSel ? "#0A0D14" : T.gold }} />)}
+                {off.length > 0 && live.length === 0 && done.length === 0 &&
+                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: T.textDim }} />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 14, paddingTop: 12,
+        borderTop: `1px solid ${T.border}`, fontSize: 11.5, color: T.textMuted }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.gold }} />Meeting booked</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <i className="ti ti-check" style={{ fontSize: 12, color: T.success }} />Done</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ width: 9, height: 9, borderRadius: 3, border: `1px solid ${T.gold}` }} />Today</span>
+      </div>
+    </Card>
+  );
+}
+
+// Day key in Dhaka time, so grouping matches what the owner sees on the clock.
+function keyOf(d) {
+  return d.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });   // YYYY-MM-DD
+}
+
 export default function Bookings({calConnected,clientId}) {
   const [bookings,setBookings]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -65,6 +163,7 @@ export default function Bookings({calConnected,clientId}) {
   };
   const sts=["All","Confirmed","Completed","Cancelled"];
   const [chFilter,setChFilter]=useState("all");
+  const [day,setDay]=useState(null);
 
   const load=async()=>{
     setLoading(true);
@@ -108,7 +207,8 @@ export default function Bookings({calConnected,clientId}) {
     window.addEventListener("message",h);
   };
 
-  const byCh = chFilter==="all"?bookings:bookings.filter(b=>b.platform===chFilter);
+  const byDay = day ? bookings.filter(b=>b.meeting_datetime&&keyOf(new Date(b.meeting_datetime))===day) : bookings;
+  const byCh = chFilter==="all"?byDay:byDay.filter(b=>b.platform===chFilter);
   const filtered = (filter==="All"?byCh:byCh.filter(b=>b.status===filter))
     .map(b=>({...b,_w:when(b)}))
     .sort((a,c)=>{
@@ -176,6 +276,16 @@ export default function Bookings({calConnected,clientId}) {
       </Btn>
       <span style={{fontSize:12,color:T.textDim}}>{bookings.length} booking{bookings.length===1?"":"s"}</span>
     </div>
+    {bookings.length>0&&<MonthGrid bookings={bookings} selected={day} onSelect={setDay}/>}
+
+    {day&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"9px 13px",
+      borderRadius:10,background:T.goldBg,border:`1px solid ${T.gold}`,fontSize:13}}>
+      <i className="ti ti-calendar-event" style={{color:T.gold}}/>
+      Showing {new Date(day+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}
+      <button onClick={()=>setDay(null)} className="ui-btn" style={{marginLeft:"auto",background:"transparent",
+        border:"none",color:T.gold,cursor:"pointer",fontSize:12.5,fontWeight:600}}>Show all</button>
+    </div>}
+
     {bookings.length>0&&<div style={{marginBottom:14,maxWidth:260}}>
       <Select value={chFilter} onChange={setChFilter}
         options={[{value:"all",label:`All channels (${bookings.length})`,icon:"ti-inbox"},
