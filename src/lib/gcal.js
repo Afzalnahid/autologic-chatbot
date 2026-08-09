@@ -142,3 +142,20 @@ export async function createEvent(accessToken, { summary, description, startISO,
     "";
   return { eventId: res.id, meetLink, htmlLink: res.htmlLink };
 }
+
+// Cancelling in the dashboard has to reach Google too. sendUpdates=all is the
+// whole point: without it the customer keeps a live invitation for a meeting
+// nobody will attend, and turns up on the Meet link alone.
+export async function deleteEvent(accessToken, eventId) {
+  const res = await fetch(
+    `${CAL_BASE}/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  // 410 means it was already gone, which is the state we wanted anyway.
+  if (res.status === 404 || res.status === 410) return { alreadyGone: true };
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error?.message || `event delete failed (${res.status})`);
+  }
+  return { deleted: true };
+}
