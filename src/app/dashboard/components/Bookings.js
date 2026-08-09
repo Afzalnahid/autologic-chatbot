@@ -69,8 +69,11 @@ export default function Bookings({calConnected,clientId}) {
   const load=async()=>{
     setLoading(true);
     // The timestamp makes every request unique, so no cache anywhere can answer it.
-    const d=await api(`/api/bookings?t=${Date.now()}`).then(r=>r.json()).catch(()=>[]);
-    if(Array.isArray(d)) setBookings(d);
+    const d=await api(`/api/bookings/list?t=${Date.now()}`).then(r=>r.json()).catch(()=>null);
+    // The new endpoint answers with an object so an empty list and a failed
+    // request stop looking identical.
+    if(d&&Array.isArray(d.bookings)) setBookings(d.bookings);
+    else if(Array.isArray(d)) setBookings(d);
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
