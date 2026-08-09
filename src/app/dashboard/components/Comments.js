@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Badge } from "./ui.js";
+import { T, Card, Btn, Badge, Select } from "./ui.js";
 import { api } from "./session.js";
 
 // The Comments tab, moved out of dashboard-client.js unchanged.
@@ -9,8 +9,8 @@ import { api } from "./session.js";
 // With four channels connected, "which page did this land on" is the first thing
 // the owner needs to know.
 const CH = {
-  facebook:  { icon: "ti-brand-messenger", label: "Facebook" },
-  instagram: { icon: "ti-brand-instagram", label: "Instagram" },
+  facebook:  { icon: "ti-brand-messenger", label: "Facebook", inbox: "Messenger" },
+  instagram: { icon: "ti-brand-instagram", label: "Instagram", inbox: "Instagram DM" },
 };
 
 export default function Comments() {
@@ -21,7 +21,7 @@ export default function Comments() {
 
   const load=async()=>{
     setLoading(true);
-    const d=await api("/api/comments").then(r=>r.json()).catch(()=>[]);
+    const d=await api(`/api/comments?t=${Date.now()}`).then(r=>r.json()).catch(()=>[]);
     if(Array.isArray(d)) setRows(d);
     setLoading(false);
   };
@@ -38,12 +38,14 @@ export default function Comments() {
 
   const dmFailed = rows.filter(r=>r.dm_error).length;
   const filters=["All","Replied","Sent to inbox","Needs attention"];
-  const filtered = rows.filter(r=>{
+  const byCh = chFilter==="all" ? rows : rows.filter(r=>(r.platform||"facebook")===chFilter);
+  const filtered = byCh.filter(r=>{
     if(filter==="Replied") return r.replied;
     if(filter==="Sent to inbox") return r.dm_sent;
     if(filter==="Needs attention") return r.reply_error||r.dm_error;
     return true;
   });
+  const chCount = (k)=>rows.filter(r=>(r.platform||"facebook")===k).length;
 
   const ago=(t)=>{
     const d=Math.floor((Date.now()-new Date(t))/1000);
@@ -74,6 +76,12 @@ export default function Comments() {
     </Card>}
 
     <div style={{display:"flex",gap:8,marginBottom:18,flexWrap:"wrap"}}>
+      {rows.length>0&&<div style={{width:"100%",maxWidth:260,marginBottom:4}}>
+        <Select value={chFilter} onChange={setChFilter}
+          options={[{value:"all",label:`All channels (${rows.length})`,icon:"ti-inbox"},
+            ...Object.entries(CH).filter(([k])=>chCount(k)>0)
+              .map(([k,v])=>({value:k,label:`${v.label} (${chCount(k)})`,icon:v.icon}))]}/>
+      </div>}
       {filters.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===f?T.gold:T.goldBg,color:filter===f?"#0a0a0a":T.textMuted}}>{f}</button>)}
     </div>
 
@@ -100,8 +108,10 @@ export default function Comments() {
             </div>
           </div>
           <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
-            <Badge color={c.replied?T.success:T.textDim}>{c.replied?"Replied":"Not replied"}</Badge>
-            <Badge color={c.dm_sent?T.success:(c.dm_error?T.danger:T.textDim)}>{c.dm_sent?"Sent to inbox":(c.dm_error?"Inbox failed":"No inbox msg")}</Badge>
+            <Badge color={c.replied?T.success:T.textDim}>{c.replied?"Replied publicly":"Not replied"}</Badge>
+            <Badge color={c.dm_sent?T.success:(c.dm_error?T.danger:T.textDim)}>
+              {c.dm_sent?`Sent to ${CH[c.platform]?.inbox||"inbox"}`:(c.dm_error?"Inbox failed":"No inbox msg")}
+            </Badge>
             <button onClick={()=>remove(c.id)} title="Remove from dashboard" style={{background:"none",border:"none",cursor:"pointer",color:T.textDim,padding:"2px 4px",fontSize:15,lineHeight:1}}><i className="ti ti-trash"/></button>
           </div>
         </div>
