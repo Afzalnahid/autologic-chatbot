@@ -27,6 +27,17 @@ export default function GoogleCalendar() {
         <h2 style={H2}>What we do not do</h2>
         <p style={P}>Autologic does not read, store, or share Google Calendar data for any purpose beyond the scheduling actions described above. We never use calendar data for advertising, profiling, or any secondary purpose, and we never sell it. Calendar tokens are stored securely on our servers and are never shared with third parties or with other businesses on the platform.</p>
 
+        <h2 style={H2}>How a business connects it</h2>
+        <p style={P}>The whole connection happens through Google's own sign-in screen. There is nothing to install, and no keys or IDs to copy.</p>
+        <ol style={{ paddingLeft: 22, marginBottom: 12 }}>
+          <li style={{ marginBottom: 6 }}>Open the Bookings tab in the Autologic dashboard and press <strong>Connect now</strong>.</li>
+          <li style={{ marginBottom: 6 }}>Sign in with the Google account that holds the calendar you take meetings in.</li>
+          <li style={{ marginBottom: 6 }}>If Google shows a notice that the app is not yet verified, choose <strong>Advanced</strong> and then <strong>Go to Autologic</strong>. Our Google review is in progress; the notice is not a sign of a problem with your account.</li>
+          <li style={{ marginBottom: 6 }}>Press <strong>Continue</strong> to grant the two permissions described above.</li>
+          <li style={{ marginBottom: 6 }}>The window closes on its own and the bot begins offering your real free times.</li>
+        </ol>
+        <p style={P}>To disconnect at any time, remove Autologic from <strong>myaccount.google.com → Security → Third-party access</strong>. Existing bookings stay in your dashboard; only the automatic Meet links stop.</p>
+
         <h2 style={H2}>Your control</h2>
         <p style={P}>A business owner can disconnect Google Calendar at any time from their dashboard. Disconnecting immediately revokes Autologic's access and deletes all stored Google OAuth tokens for that account.</p>
 
