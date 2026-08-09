@@ -199,106 +199,77 @@ export function Select({ value, options, onChange, placeholder = "Select", style
 export function Motion() {
   return (
     <style>{`
+      /* Hover only where a pointer exists. On iOS a tapped element keeps its
+         hover style until you tap elsewhere, which looks like a stuck button —
+         this one media query is the difference between "polished" and "buggy"
+         on an iPhone. */
+      @media (hover: hover) and (pointer: fine) {
+        .ui-btn:hover:not(:disabled) { filter: brightness(.97) }
+        .ui-card:hover { box-shadow: 0 6px 20px color-mix(in srgb, ${T.text} 8%, transparent) }
+        .ui-row:hover { background: ${T.bgAlt} }
+        .ui-opt:hover { background: ${T.inset} !important }
+        .ui-btn:hover .ti, .ui-nav:hover .ti { transform: scale(1.12) }
+        .ui-btn:hover .ti-refresh, .ui-btn:hover .ti-reload { transform: rotate(90deg) }
+        .ui-btn:hover .ti-trash { transform: rotate(-9deg) scale(1.1) }
+        .ui-btn:hover .ti-plus { transform: rotate(90deg) }
+        .ui-btn:hover .ti-arrow-left { transform: translateX(-2px) }
+        .ui-btn:hover .ti-arrow-right, .ui-btn:hover .ti-send { transform: translateX(2px) }
+        .ui-btn:hover .ti-download, .ui-btn:hover .ti-upload { transform: translateY(2px) }
+        .ui-btn:hover .ti-copy { transform: translate(1px,-1px) }
+      }
+
+      /* Every icon shares one curve, so the whole app moves the same way. */
+      .ti { transition: transform .2s cubic-bezier(.16,1,.3,1), color .18s ease-out;
+            display: inline-block; will-change: transform }
+      .ui-btn:active:not(:disabled) .ti { transform: scale(.88) }
+
       .ui-btn { transition: filter .15s ease-out, transform .12s ease-out, border-color .18s ease-out, box-shadow .18s ease-out }
-      .ui-btn:hover:not(:disabled) { filter: brightness(.97) }
       .ui-btn:active:not(:disabled) { transform: scale(.97) }
       .ui-card { transition: box-shadow .2s ease-out, transform .2s ease-out, border-color .2s ease-out }
       .ui-inp { transition: border-color .16s ease-out, box-shadow .16s ease-out }
-      .ui-inp:focus { outline: none; border-color: ${T.gold}; box-shadow: 0 0 0 3px color-mix(in srgb, ${T.gold} 13%, transparent) }
+      .ui-inp:focus { outline: none; border-color: ${T.gold}; box-shadow: 0 0 0 3px color-mix(in srgb, ${T.gold} 22%, transparent) }
+
+      /* Anything busy says so in the same language. */
+      @keyframes ui-spin { to { transform: rotate(360deg) } }
+      .ti-loader, .ti-loader-2, .is-busy .ti-refresh { animation: ui-spin .9s linear infinite }
+      @keyframes ui-pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15) } 100% { transform: scale(1); opacity: 1 } }
+      .ti-check, .ti-circle-check { animation: ui-pop .32s cubic-bezier(.16,1,.3,1) both }
 
       @keyframes ui-menu { from { opacity: 0; transform: translateY(-6px) scale(.98) } to { opacity: 1; transform: none } }
       .ui-menu { animation: ui-menu .18s cubic-bezier(.16,1,.3,1) both; transform-origin: top }
       @keyframes ui-opt { from { opacity: 0; transform: translateY(-3px) } to { opacity: 1; transform: none } }
       .ui-opt { animation: ui-opt .16s ease-out both }
-      .ui-opt:hover { background: ${T.inset} !important }
 
       @keyframes ui-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
       .ui-page { animation: ui-in .28s cubic-bezier(.16,1,.3,1) both }
 
       .ui-row { transition: background .14s ease-out }
-      .ui-row:hover { background: ${T.bgAlt} }
       .ui-nav { transition: background .15s ease-out, color .15s ease-out }
 
-      @keyframes ui-pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, ${T.live} 40%, transparent) } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, ${T.live} 0%, transparent) } }
+      @keyframes ui-pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, ${T.live} 40%, transparent) }
+                            50% { box-shadow: 0 0 0 5px color-mix(in srgb, ${T.live} 0%, transparent) } }
       .ui-live { animation: ui-pulse 2.6s ease-in-out infinite }
 
+      /* Touch rules that apply on every phone, both platforms. */
+      button, a, [role="button"], select, .ui-opt { -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation }
+      @media (pointer: coarse) {
+        button, a[role="button"], .ui-opt { min-height: 44px }
+        .ui-menu { max-height: min(60vh, 420px) }
+      }
+      /* iOS zooms the page when a field under 16px takes focus. */
+      @supports (-webkit-touch-callout: none) {
+        input, textarea, select { font-size: max(16px, 1em) }
+      }
+
       @media (prefers-reduced-motion: reduce) {
-        .ui-btn, .ui-card, .ui-inp, .ui-menu, .ui-opt, .ui-page, .ui-row, .ui-nav, .ui-live,
-        .ui-btn *, .ui-menu * { animation: none !important; transition: none !important; transform: none !important }
+        .ti, .ui-btn, .ui-card, .ui-inp, .ui-menu, .ui-opt, .ui-page, .ui-row, .ui-nav, .ui-live,
+        .ti-check, .ti-loader, .ti-loader-2 {
+          animation: none !important; transition: none !important; transform: none !important }
       }
     `}</style>
   );
 }
-
-
-// Both palettes, and the switch. Contrast was checked pair by pair against the
-// surface each colour actually sits on: body text clears 7:1 in both modes,
-// secondary text and every status colour clear 4.5:1. Nothing here is a guess.
-export const PALETTE = {
-  light: {
-    bg: "#F4F6F9", bgAlt: "#EDF0F5", card: "#FFFFFF", cardAlt: "#F8FAFC", inset: "#E9EDF3",
-    rail: "#0D111A", railHover: "#1A2130", railText: "#A8B2C6", railTextOn: "#FFFFFF",
-    gold: "#3B6FE8", goldDim: "#2B55C4", goldBg: "rgba(59,111,232,0.09)",
-    text: "#0F1420", textMuted: "#4A5568", textDim: "#6B7488",
-    border: "#DDE3EC", borderStrong: "#C6CEDC",
-    danger: "#C93A50", success: "#097A5A", warn: "#8A5A07", purple: "#6D3FD9",
-    live: "#0FA97C", liveBg: "rgba(15,169,124,0.11)", warnBg: "rgba(154,100,8,0.10)", dangerBg: "rgba(201,58,80,0.09)",
-  },
-  dark: {
-    bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420", cardAlt: "#151B2A", inset: "#1C2436",
-    rail: "#080B12", railHover: "#161C2A", railText: "#98A3BA", railTextOn: "#FFFFFF",
-    gold: "#7BA4FF", goldDim: "#5B8CFF", goldBg: "rgba(123,164,255,0.13)",
-    text: "#E7EAF2", textMuted: "#A7B1C6", textDim: "#7C879C",
-    border: "#1F2839", borderStrong: "#2C374D",
-    danger: "#FF7A82", success: "#3FE0B4", warn: "#F5C25A", purple: "#A78BFA",
-    live: "#2ED3A7", liveBg: "rgba(46,211,167,0.13)", warnBg: "rgba(245,194,90,0.12)", dangerBg: "rgba(255,122,130,0.11)",
-  },
-};
-
-const vars = (p) => Object.entries(p).map(([k, v]) => `--${k}:${v}`).join(";");
-
-export function Theme() {
-  return (
-    <style>{`
-      :root, [data-theme="light"] { ${vars(PALETTE.light)}; color-scheme: light }
-      [data-theme="dark"] { ${vars(PALETTE.dark)}; color-scheme: dark }
-      body { background: var(--bg); color: var(--text) }
-    `}</style>
-  );
-}
-
-export function useTheme() {
-  const [mode, setMode] = useState("light");
-  useEffect(() => {
-    let saved = null;
-    try { saved = localStorage.getItem("al-theme"); } catch {}
-    // No stored choice means follow the machine — someone who runs their laptop
-    // dark should not be handed a white screen.
-    const start = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    setMode(start);
-    document.documentElement.dataset.theme = start;
-  }, []);
-  const toggle = () => {
-    const next = mode === "dark" ? "light" : "dark";
-    setMode(next);
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem("al-theme", next); } catch {}
-  };
-  return [mode, toggle];
-}
-
-export function ThemeToggle({ mode, toggle, onRail }) {
-  return (
-    <button onClick={toggle} className="ui-btn" title={mode === "dark" ? "Switch to light" : "Switch to dark"}
-      aria-label="Switch theme"
-      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34,
-        borderRadius: 9, cursor: "pointer", background: onRail ? "transparent" : T.card,
-        border: `1px solid ${onRail ? T.railHover : T.border}`, color: onRail ? T.railText : T.textMuted }}>
-      <i className={`ti ti-${mode === "dark" ? "sun" : "moon"}`} style={{ fontSize: 16 }} />
-    </button>
-  );
-}
-
 
 // A folding section. Height is animated from a measured value rather than to
 // `auto`, which browsers refuse to animate — the alternative, a fixed max-height,
