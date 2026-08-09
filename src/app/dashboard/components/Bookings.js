@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Badge } from "./ui.js";
+import { T, Card, Btn, Badge, Accordion } from "./ui.js";
 import { api } from "./session.js";
 
 // The Bookings tab, moved out of dashboard-client.js unchanged.
@@ -39,6 +39,45 @@ export default function Bookings({calConnected,clientId}) {
       </div>
       <Btn gold small onClick={connectCal}><i className="ti ti-brand-google" style={{marginRight:5}}/>Connect now</Btn>
     </Card>}
+
+    {/* Written for someone doing this for the first time, on a phone, who has
+        never seen an OAuth screen. Step 3 is the one that stops people: Google
+        shows a warning for apps it has not finished reviewing, and without
+        being told what to do there, most people close the window. */}
+    {!calOk&&<Accordion icon="ti-help-circle" title="How to connect your calendar"
+      subtitle="Takes about a minute — nothing to install">
+      <ol style={{margin:0,paddingLeft:20,fontSize:13.5,lineHeight:1.85,color:T.textMuted}}>
+        <li><b style={{color:T.text}}>Press “Connect now”.</b> A Google window opens. If nothing appears, your
+          browser blocked the pop-up — allow pop-ups for this site and press again.</li>
+        <li><b style={{color:T.text}}>Choose the Google account</b> that owns the calendar you take meetings in.
+          Use the business account, not a personal one you do not check.</li>
+        <li><b style={{color:T.text}}>If Google warns that the app is not verified</b>, press
+          <i style={{color:T.text}}> Advanced</i> then <i style={{color:T.text}}>Go to Autologic</i>.
+          The warning appears because our Google review is still in progress. Nothing is wrong with your account.</li>
+        <li><b style={{color:T.text}}>Press Continue</b> on the permissions screen. Autologic asks for two things
+          only: to see when you are free, and to create meetings for you.</li>
+        <li><b style={{color:T.text}}>The window closes by itself.</b> This banner disappears and the bot starts
+          offering real times to customers.</li>
+      </ol>
+
+      <div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${T.border}`}}>
+        <div style={{fontSize:12.5,fontWeight:600,color:T.text,marginBottom:8}}>If something goes wrong</div>
+        <ul style={{margin:0,paddingLeft:20,fontSize:13,lineHeight:1.8,color:T.textMuted}}>
+          <li>Nothing happened — the pop-up was blocked. Allow pop-ups, or open this page on a computer.</li>
+          <li>Wrong account connected — press Connect again and pick the right one. The old one is replaced.</li>
+          <li>You want to disconnect — remove Autologic from your Google account at
+            <span style={{color:T.gold}}> myaccount.google.com → Security → Third-party access</span>. Bookings keep
+            working, but Meet links stop.</li>
+        </ul>
+      </div>
+
+      <div style={{marginTop:14,fontSize:12,color:T.textDim,lineHeight:1.7}}>
+        <i className="ti ti-lock" style={{marginRight:5}}/>
+        Autologic never reads what is in your meetings — only whether a slot is free, and it only writes
+        the bookings your customers make. <a href="/google-calendar" target="_blank" rel="noopener"
+        style={{color:T.gold}}>What we access and why</a>
+      </div>
+    </Accordion>}
     <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{sts.map(s=><button key={s} onClick={()=>setFilter(s)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===s?T.gold:"rgba(240,192,64,0.08)",color:filter===s?"#0a0a0a":T.textMuted}}>{s}</button>)}</div>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:filtered.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No bookings yet</Card>:filtered.map(b=><Card key={b.id}>
