@@ -815,6 +815,41 @@ export async function handleIncoming(event) {
 
 // A customer commented on a Page post. Reply publicly under the comment and,
 // when enabled, send a private message that pulls them into the inbox.
+
+// What the post actually said. Until now a comment reply was written from the
+// comment alone, so "how much is this?" had no "this" — with more than one post
+// live, the bot would answer about whichever product the search happened to
+// surface. The caption is cached because one post draws many comments and there
+// is no sense asking Facebook the same question twenty times.
+const postCache = new Map();
+
+async function getPostContext(postId, token, platform) {
+  if (!postId || !token) return "";
+  const hit = postCache.get(postId);
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.text;
+
+  try {
+    const fields = platform === "instagram" ? "caption,media_type" : "message,story";
+    const res = await fetch(
+      `https://graph.facebook.com/v24.0/${encodeURIComponent(postId)}?fields=${fields}&access_token=${token}`
+    ).then((r) => r.json());
+
+    if (res?.error) {
+      console.error("[comment] post fetch:", res.error.message);
+      postCache.set(postId, { text: "", at: Date.now() });
+      return "";
+    }
+
+    const caption = (res.caption || res.message || res.story || "").trim();
+    const text = caption ? caption.slice(0, 600) : "";
+    postCache.set(postId, { text, at: Date.now() });
+    return text;
+  } catch (e) {
+    console.error("[comment] post fetch failed:", e.message);
+    return "";
+  }
+}
+
 export async function handleComment(event) {
   const channel = await getChannelByPage(event.pageId);
   if (!channel || (channel.platform !== "facebook" && channel.platform !== "instagram")) return;
@@ -852,16 +887,21 @@ export async function handleComment(event) {
     } catch (e) { console.error("comment contact name:", e.message); }
   }
   const text = (event.text || "").trim();
+  const postText = await getPostContext(event.postId, channel.access_token, channel.platform);
 
-  // Build a short, plain-text reply (comments are not JSON messages).
+  // Search on the comment *and* the caption: "koto?" alone finds nothing useful,
+  // but "koto? + jamdani saree collection" finds the right product.
+  const query = [text, postText].filter(Boolean).join(" ").trim();
+
   let context = "";
   if (bType === "agency") {
-    const snips = await searchKnowledge(clientId, text || "services", 5);
+    const snips = await searchKnowledge(clientId, query || "services", 5);
     context = snips.length ? "\n\nKNOWLEDGE:\n" + snips.map(x => x.content).join("\n---\n") : "";
   } else {
-    const prods = await searchProducts(clientId, text || "products", 3);
+    const prods = await searchProducts(clientId, query || "products", 3);
     context = prods.length ? "\n\nPRODUCTS:\n" + prods.map(p => JSON.stringify(p.metadata || {})).join("\n") : "";
   }
+  if (postText) context = "\n\nTHE POST THEY COMMENTED ON:\n" + postText + context;
 
   const { data: setRow } = await sb().from("app_settings").select("settings").eq("id", String(clientId)).maybeSingle();
   const settings = setRow?.settings || {};
@@ -873,13 +913,19 @@ export async function handleComment(event) {
     "If they wrote in Bangla, reply only in Bangla. If they wrote in English, reply only in English. " +
     "If they wrote Banglish (Bangla in English letters), reply in Banglish. Never mix two languages in one reply, and never default to English. " +
     "Do NOT output JSON, lists, links or prices unless the customer asked. " +
+    "A short comment like \"how much?\" refers to the item in the post above — answer about that, never about a different product. " +
+    "If the post does not make clear which item they mean, ask them to confirm rather than guessing. " +
     "Invite them to check their inbox for details. Use only the facts in the context below; never invent prices or claims.";
 
   let reply = "";
   try {
     reply = await chatWithGemini(
       commentInstruction + "\n\n" + persona + context,
-      [{ role: "user", content: `A customer commented on the post: "${text || "(no text, maybe a photo)"}"\n\nReply in the same language as this comment.` }]
+      [{ role: "user", content:
+        (postText ? `The post says: "${postText}"\n\n` : "") +
+        `A customer commented on that post: "${text || "(no text, maybe a photo)"}"\n\n` +
+        `If the comment is vague ("how much?", "is it available?"), it refers to whatever the post is about. ` +
+        `Reply in the same language as the comment.` }]
     );
     reply = String(reply || "").replace(/```/g, "").trim();
     // If the model returned a JSON array anyway, pull out the first text.
