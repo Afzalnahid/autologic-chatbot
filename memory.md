@@ -129,6 +129,31 @@ product photograph.
 - Task 10 follow-ups and broadcast batching past 20 remain unverified.
 - Task 8 (courier) and Task 3 (SSLCommerz) still need accounts.
 
+### Google Calendar — what is done, and the order for the rest (2026-08-09)
+The connection itself is finished and one-click: the owner presses Connect in
+Bookings, Google's own consent screen opens, done. No IDs, no tokens. A
+step-by-step guide now sits in the Bookings tab and on `/google-calendar`,
+including the "app is not verified" screen, which is where first-time users stop.
+
+Fixed at the same time: Bookings read `me.client.gcal_connected`, a field
+`/api/me` does not return, so it always said "not connected" — for every client,
+forever, even after a successful connection. It now asks `/api/gcal/status`
+directly, the same source Profile uses, and shows which account is linked.
+
+**Not code — Google Cloud Console, and blocked in this order:**
+1. **Now, no domain needed:** set the OAuth consent screen's Publishing status to
+   *In production*. In *Testing*, refresh tokens expire after 7 days, so every
+   client's calendar silently disconnects a week after they connect. Production
+   without verification means a 100-user lifetime cap and the unverified-app
+   warning, both acceptable for now.
+2. **After Meta App Review completes:** buy a custom domain. Adding one on Vercel
+   keeps `autologic-chatbot.vercel.app` working, so the URLs given to Meta stay
+   valid — but do not make the new domain primary with a redirect while the review
+   is open. The owner deliberately deferred this to protect the review.
+3. **Then:** submit Google verification. `calendar.events` is a sensitive scope,
+   so it needs a domain verified in Search Console, a privacy policy on it, scope
+   justification and a demo video. Google's manual review takes 4–6 weeks.
+
 ### What's next
 1. The two `bot.js` changes (`33f84b7`, `68b9515`) are live-verified on one
    channel (agency). Optional: if convenient, send one ecommerce-side test too —
