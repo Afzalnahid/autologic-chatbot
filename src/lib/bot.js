@@ -345,6 +345,7 @@ async function maybeCreateBooking(items, client, senderId, platform) {
   for (const b of bookingItems) {
     let meetLink = "";
     let eventId = "";
+    let slotBusy = false;
     let meetingDateTime = b.start || null;
 
     if (!accessToken) {
@@ -368,11 +369,28 @@ async function maybeCreateBooking(items, client, senderId, platform) {
           console.log("[booking] event created id =", eventId, "| meetLink =", meetLink || "EMPTY");
           if (!meetLink) console.error("[booking] event created but Google returned no Meet link");
         } else {
-          console.log("[booking] slot is busy — no event created");
+          // The slot is taken. Saying "confirmed" anyway is how three customers
+          // ended up holding the same 4 PM: the check ran, found it busy, and
+          // the booking was written regardless.
+          slotBusy = true;
+          console.log("[booking] slot is busy — refusing the booking", JSON.stringify(avail.busy));
         }
       } catch (e) {
         console.error("[booking] calendar error:", e.message);
       }
+    }
+
+    if (slotBusy) {
+      // Nothing is saved and nothing is confirmed. The note tells the model to
+      // apologise and offer another time instead of repeating the confirmation.
+      bookingNote =
+        `[The requested time ${b.meeting_date || ""} ${b.meeting_time || ""} is ALREADY BOOKED. ` +
+        `Do not confirm it. Apologise briefly, say that slot has just been taken, and offer two other times ` +
+        `on the same day or the next working day. Ask them to choose one.]`;
+      items = items.map((it) =>
+        it.text ? { ...it, text: it.text.replace(/\{\{MEET_LINK\}\}/g, "").trim() } : it
+      );
+      continue;
     }
 
     try {
