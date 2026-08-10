@@ -262,7 +262,17 @@ export function Motion() {
         input, textarea, select { font-size: max(16px, 1em) }
       }
 
+      .seg-pill { background: ${T.railHover}; box-shadow: inset 0 1px 0 rgba(255,255,255,.06) }
+      /* Glass only where something colourful sits behind it — over a flat panel
+         a blur has nothing to blur and just looks grey. */
+      .seg-glass { background: rgba(255,255,255,.14); backdrop-filter: blur(14px) saturate(150%);
+        -webkit-backdrop-filter: blur(14px) saturate(150%);
+        border: 1px solid rgba(255,255,255,.30);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 22px rgba(0,0,0,.18) }
+      .seg-item:focus-visible { outline: 2px solid ${T.gold}; outline-offset: 2px }
+      @media (hover: hover) and (pointer: fine) { .seg-item:hover { color: ${T.railTextOn} } }
       @media (prefers-reduced-motion: reduce) {
+        .seg-pill { transition: none !important }
         .ti, .ui-btn, .ui-card, .ui-inp, .ui-menu, .ui-opt, .ui-page, .ui-row, .ui-nav, .ui-live,
         .ti-check, .ti-loader, .ti-loader-2 {
           animation: none !important; transition: none !important; transform: none !important }
@@ -379,6 +389,74 @@ export function Accordion({ icon, title, subtitle, badge, defaultOpen = false, c
         transition: "height .28s cubic-bezier(.16,1,.3,1)" }}>
         <div ref={inner} style={{ padding: "0 16px 16px" }}>{children}</div>
       </div>
+    </div>
+  );
+}
+
+
+// A segmented control whose highlight slides between items instead of blinking
+// on and off. The pill is measured from the active child, so it fits whatever is
+// inside — an icon, a long label, a count — without anything being hard-coded.
+// Works vertically for the sidebar and horizontally for filter rows.
+export function Segmented({ items, value, onChange, vertical = false, glass = false, style, size = "md" }) {
+  const wrap = useRef(null);
+  const [box, setBox] = useState(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const place = () => {
+      const root = wrap.current;
+      if (!root) return;
+      const el = root.querySelector(`[data-seg="${String(value).replace(/"/g, "")}"]`);
+      if (!el) { setBox(null); return; }
+      const p = root.getBoundingClientRect(), r = el.getBoundingClientRect();
+      setBox({ x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height });
+    };
+    place();
+    // The row can wrap or the sidebar can scroll; keep the pill on its item.
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(place) : null;
+    if (ro && wrap.current) ro.observe(wrap.current);
+    window.addEventListener("resize", place);
+    const t = setTimeout(() => setReady(true), 60);
+    return () => { ro && ro.disconnect(); window.removeEventListener("resize", place); clearTimeout(t); };
+  }, [value, items, vertical]);
+
+  const pad = size === "sm" ? "7px 12px" : "9px 14px";
+  const font = size === "sm" ? 12.5 : 13.5;
+
+  return (
+    <div ref={wrap} style={{ position: "relative", display: "flex", flexWrap: vertical ? "nowrap" : "wrap",
+      flexDirection: vertical ? "column" : "row", gap: vertical ? 2 : 6, ...style }}>
+      {box && (
+        <span aria-hidden className={glass ? "seg-pill seg-glass" : "seg-pill"}
+          style={{ position: "absolute", left: box.x, top: box.y, width: box.w, height: box.h,
+            borderRadius: 10, pointerEvents: "none",
+            transition: ready ? "left .34s cubic-bezier(.34,1.4,.5,1), top .34s cubic-bezier(.34,1.4,.5,1), width .3s cubic-bezier(.34,1.4,.5,1), height .3s ease-out" : "none" }} />
+      )}
+      {items.map((it) => {
+        const k = it.value ?? it;
+        const on = k === value;
+        return (
+          <button key={k} type="button" data-seg={String(k)} onClick={() => onChange && onChange(k)}
+            className="seg-item" aria-current={on ? "true" : undefined}
+            style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", gap: 9,
+              padding: pad, borderRadius: 10, border: "1px solid transparent", cursor: "pointer",
+              background: "transparent", fontFamily: "inherit", fontSize: font,
+              fontWeight: on ? 600 : 500, color: on ? (glass ? "#fff" : T.railTextOn) : T.railText,
+              whiteSpace: "nowrap", justifyContent: vertical ? "flex-start" : "center",
+              width: vertical ? "100%" : "auto", transition: "color .2s ease-out" }}>
+            {it.icon && <i className={`ti ${it.icon}`} style={{ fontSize: 17, flexShrink: 0,
+              color: on ? T.gold : "inherit", transition: "color .2s ease-out" }} />}
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{it.label ?? it}</span>
+            {it.badge != null && (
+              <span style={{ marginLeft: "auto", background: on ? T.gold : T.railHover,
+                color: on ? "#0A0D14" : T.railText, fontSize: 10.5, fontWeight: 700, minWidth: 18, height: 18,
+                borderRadius: 9, display: "inline-flex", alignItems: "center", justifyContent: "center",
+                padding: "0 5px" }}>{it.badge}</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
