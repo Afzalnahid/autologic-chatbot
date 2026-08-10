@@ -568,6 +568,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
 
   const orderRule = "\n\nORDER SAVING: When the customer finally confirms an order with name, phone and address, ALSO append one object to the JSON array: {\"type\":\"order\",\"order_code\":\"<unique alphanumeric>\",\"customer_name\":\"..\",\"phone_number\":\"..\",\"address\":\"..\",\"product_ids\":\"codes comma separated\",\"product_names\":\"..\",\"quantity\":\"..\",\"total_price\":\"..\",\"image_urls\":\"..\"}. Never mention this object in text.";
 
+  let didAct = false;
   let raw;
   try {
     const rules = isAgency ? bookingRule() : orderRule;
@@ -593,16 +594,33 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     }
     const r = await maybeCreateBooking(items, client, senderId, platform);
     items = r.items;
-    if (r.booked) bookingNote = r.bookingNote;
+    if (r.booked) { bookingNote = r.bookingNote; didAct = true; }
   } else {
+    const before = items.length;
     items = await maybeSaveOrder(items, clientId, senderId);
+    if (items.length !== before) didAct = true;
   }
   items = await enforceLanguage(items, forcedLang || detectLanguage(combined));
   if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
   // Tagging never blocks or breaks a reply: if it fails, the customer still gets
   // their answer and the conversation simply keeps its previous tag.
   try {
-    await applyAutoTag(clientId, senderId, combined, bType);
+    // Give the tagger the recent conversation, not just this line: "yes" and
+    // "where is the link?" mean nothing alone, and that is how three booking
+    // conversations were labelled Other.
+    const { data: recent } = await sb()
+      .from("message_buffer")
+      .select("message_content")
+      .eq("client_id", clientId)
+      .eq("sender_id", senderId)
+      .eq("role", "customer")
+      .order("created_at", { ascending: false })
+      .limit(6);
+
+    const history = [combined, ...(recent || []).map((r) => r.message_content)].filter(Boolean);
+    // A booking that actually got made settles the label by itself.
+    const forced = didAct ? (bType === "agency" ? "Booking" : "Order") : null;
+    await applyAutoTag(clientId, senderId, history, bType, { forced });
   } catch (e) {
     console.error("[tags] skipped:", e.message);
   }
