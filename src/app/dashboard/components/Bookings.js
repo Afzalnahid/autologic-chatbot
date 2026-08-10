@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Badge, Accordion, Select } from "./ui.js";
 import { api } from "./session.js";
 
@@ -44,6 +44,10 @@ function group(ts) {
 // on today. Tapping a day filters the list below to that day.
 function MonthGrid({ bookings, selected, onSelect }) {
   const [cursor, setCursor] = useState(() => { const d = new Date(); d.setDate(1); return d; });
+  const [open, setOpen] = useState(false);
+  const inner = useRef(null);
+  const [h, setH] = useState(0);
+  useEffect(() => { if (inner.current) setH(inner.current.scrollHeight); }, [open, cursor, bookings.length]);
 
   const y = cursor.getFullYear(), m = cursor.getMonth();
   const first = new Date(y, m, 1);
@@ -68,21 +72,39 @@ function MonthGrid({ bookings, selected, onSelect }) {
   const monthName = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const shift = (n) => setCursor(new Date(y, m + n, 1));
 
+  const total = bookings.filter(b=>b.meeting_datetime).length;
+  const label = selected
+    ? new Date(selected+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})
+    : `${monthName} · ${total} meeting${total===1?"":"s"}`;
+
   return (
-    <Card style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+    <Card style={{ marginBottom: 14, padding: 0, overflow: "hidden" }}>
+      {/* Folded by default: a month grid is useful on demand, not permanently
+          occupying the top half of a phone screen. */}
+      <button onClick={()=>setOpen(v=>!v)} className="ui-btn"
+        style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"12px 16px",
+          background:"transparent", border:"none", cursor:"pointer", color:T.text, fontFamily:"inherit" }}>
+        <i className="ti ti-calendar-month" style={{ fontSize:18, color:T.gold }}/>
+        <span style={{ fontSize:13.5, fontWeight:600 }}>{label}</span>
+        <i className="ti ti-chevron-down" style={{ marginLeft:"auto", fontSize:17, color:T.textDim,
+          transform: open?"rotate(180deg)":"none", transition:"transform .22s cubic-bezier(.16,1,.3,1)" }}/>
+      </button>
+
+      <div style={{ height: open?h:0, overflow:"hidden", transition:"height .26s cubic-bezier(.16,1,.3,1)" }}>
+        <div ref={inner} style={{ padding:"0 16px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <Btn small onClick={() => shift(-1)} title="Previous month"><i className="ti ti-chevron-left"/></Btn>
         <div style={{ fontSize: 14.5, fontWeight: 600, flex: 1, textAlign: "center" }}>{monthName}</div>
         <Btn small onClick={() => shift(1)} title="Next month"><i className="ti ti-chevron-right"/></Btn>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 6 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, marginBottom: 4 }}>
         {["S","M","T","W","T","F","S"].map((d, i) =>
           <div key={i} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, color: T.textDim,
             letterSpacing: .5, padding: "2px 0" }}>{d}</div>)}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, maxWidth: 340 }}>
         {cells.map((d, i) => {
           if (!d) return <div key={"x"+i} />;
           const k = keyOf(d);
@@ -96,12 +118,12 @@ function MonthGrid({ bookings, selected, onSelect }) {
           return (
             <button key={k} onClick={() => onSelect(isSel ? null : k)}
               className="ui-btn"
-              style={{ position: "relative", aspectRatio: "1", minHeight: 40, borderRadius: 10, cursor: "pointer",
+              style={{ position: "relative", aspectRatio: "1", minHeight: 32, maxHeight: 44, borderRadius: 8, cursor: "pointer",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
                 background: isSel ? T.gold : items.length ? T.goldBg : "transparent",
                 border: `1px solid ${isSel ? T.gold : isToday ? T.gold : "transparent"}`,
                 color: isSel ? "#0A0D14" : items.length ? T.text : T.textDim,
-                fontSize: 13, fontWeight: isToday || items.length ? 600 : 400, fontFamily: "inherit" }}>
+                fontSize: 12.5, fontWeight: isToday || items.length ? 600 : 400, fontFamily: "inherit" }}>
               {d.getDate()}
               <span style={{ display: "flex", gap: 2, height: 6, alignItems: "center" }}>
                 {done.length > 0 &&
@@ -126,6 +148,8 @@ function MonthGrid({ bookings, selected, onSelect }) {
           <i className="ti ti-check" style={{ fontSize: 12, color: T.success }} />Done</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 9, height: 9, borderRadius: 3, border: `1px solid ${T.gold}` }} />Today</span>
+      </div>
+        </div>
       </div>
     </Card>
   );
