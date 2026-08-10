@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Badge, Select } from "./ui.js";
+import { T, Card, Btn, Badge, Select, Segmented } from "./ui.js";
 import { api } from "./session.js";
 
 // The Comments tab, moved out of dashboard-client.js unchanged.
@@ -82,7 +82,7 @@ export default function Comments() {
             ...Object.entries(CH).filter(([k])=>chCount(k)>0)
               .map(([k,v])=>({value:k,label:`${v.label} (${chCount(k)})`,icon:v.icon}))]}/>
       </div>}
-      {filters.map(f=><button key={f} onClick={()=>setFilter(f)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===f?T.gold:T.goldBg,color:filter===f?"#0a0a0a":T.textMuted}}>{f}</button>)}
+      {<Segmented items={filters} value={filter} onChange={setFilter} size="sm"/>}
     </div>
 
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
