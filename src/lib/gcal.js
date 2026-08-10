@@ -112,8 +112,12 @@ export async function createEvent(accessToken, { summary, description, startISO,
   const body = {
     summary,
     description: description || "",
-    start: { dateTime: startISO },
-    end: { dateTime: endISO },
+    start: { dateTime: startISO, timeZone: "Asia/Dhaka" },
+    end: { dateTime: endISO, timeZone: "Asia/Dhaka" },
+    // Without these two the slot does not reliably come back as busy, and the
+    // next customer is quietly given the same time.
+    transparency: "opaque",
+    status: "confirmed",
     conferenceData: {
       createRequest: {
         requestId,
