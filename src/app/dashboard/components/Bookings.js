@@ -47,108 +47,145 @@ function MonthGrid({ bookings, selected, onSelect }) {
   const [open, setOpen] = useState(false);
   const inner = useRef(null);
   const [h, setH] = useState(0);
-  useEffect(() => { if (inner.current) setH(inner.current.scrollHeight); }, [open, cursor, bookings.length]);
 
   const y = cursor.getFullYear(), m = cursor.getMonth();
-  const first = new Date(y, m, 1);
   const daysInMonth = new Date(y, m + 1, 0).getDate();
-  const lead = first.getDay();                       // Sunday-first, as Bangladesh reads it
+  const lead = new Date(y, m, 1).getDay();
   const todayKey = keyOf(new Date());
+  const monthName = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
-  // Group by day in Dhaka time, so a 4 PM meeting never lands on the wrong date.
   const byDay = {};
   bookings.forEach((b) => {
     if (!b.meeting_datetime) return;
     const d = new Date(b.meeting_datetime);
     if (isNaN(d)) return;
-    const k = keyOf(d);
-    (byDay[k] = byDay[k] || []).push(b);
+    (byDay[keyOf(d)] = byDay[keyOf(d)] || []).push(b);
   });
+
+  useEffect(() => { if (inner.current) setH(inner.current.scrollHeight); }, [open, cursor, selected, bookings.length]);
 
   const cells = [];
   for (let i = 0; i < lead; i++) cells.push(null);
-  for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(y, m, day));
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(y, m, d));
 
-  const monthName = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  const shift = (n) => setCursor(new Date(y, m + n, 1));
+  const total = bookings.filter((b) => b.meeting_datetime).length;
+  const header = selected
+    ? new Date(selected + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+    : `${monthName} · ${total} meeting${total === 1 ? "" : "s"}`;
 
-  const total = bookings.filter(b=>b.meeting_datetime).length;
-  const label = selected
-    ? new Date(selected+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})
-    : `${monthName} · ${total} meeting${total===1?"":"s"}`;
+  // One grid definition, used by the weekday row and the dates. They drifted out
+  // of line last time because only one of them had a width limit.
+  const GRID = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, width: "100%" };
+  const dayMeetings = selected ? (byDay[selected] || []) : [];
 
   return (
     <Card style={{ marginBottom: 14, padding: 0, overflow: "hidden" }}>
-      {/* Folded by default: a month grid is useful on demand, not permanently
-          occupying the top half of a phone screen. */}
-      <button onClick={()=>setOpen(v=>!v)} className="ui-btn"
-        style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"12px 16px",
-          background:"transparent", border:"none", cursor:"pointer", color:T.text, fontFamily:"inherit" }}>
-        <i className="ti ti-calendar-month" style={{ fontSize:18, color:T.gold }}/>
-        <span style={{ fontSize:13.5, fontWeight:600 }}>{label}</span>
-        <i className="ti ti-chevron-down" style={{ marginLeft:"auto", fontSize:17, color:T.textDim,
-          transform: open?"rotate(180deg)":"none", transition:"transform .22s cubic-bezier(.16,1,.3,1)" }}/>
+      <button onClick={() => setOpen((v) => !v)} className="ui-btn"
+        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 16px",
+          background: "transparent", border: "none", cursor: "pointer", color: T.text, fontFamily: "inherit" }}>
+        <i className="ti ti-calendar-month" style={{ fontSize: 18, color: T.gold }} />
+        <span style={{ fontSize: 13.5, fontWeight: 600 }}>{header}</span>
+        <i className="ti ti-chevron-down" style={{ marginLeft: "auto", fontSize: 17, color: T.textDim,
+          transform: open ? "rotate(180deg)" : "none", transition: "transform .22s cubic-bezier(.16,1,.3,1)" }} />
       </button>
 
-      <div style={{ height: open?h:0, overflow:"hidden", transition:"height .26s cubic-bezier(.16,1,.3,1)" }}>
-        <div ref={inner} style={{ padding:"0 16px 16px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <Btn small onClick={() => shift(-1)} title="Previous month"><i className="ti ti-chevron-left"/></Btn>
-        <div style={{ fontSize: 14.5, fontWeight: 600, flex: 1, textAlign: "center" }}>{monthName}</div>
-        <Btn small onClick={() => shift(1)} title="Next month"><i className="ti ti-chevron-right"/></Btn>
-      </div>
+      <div style={{ height: open ? h : 0, overflow: "hidden", transition: "height .26s cubic-bezier(.16,1,.3,1)" }}>
+        <div ref={inner} style={{ padding: "0 16px 16px" }}>
+          <div style={{ maxWidth: 360 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <Btn small onClick={() => setCursor(new Date(y, m - 1, 1))}><i className="ti ti-chevron-left"/></Btn>
+              <div style={{ flex: 1, textAlign: "center", fontSize: 13.5, fontWeight: 600 }}>{monthName}</div>
+              <Btn small onClick={() => setCursor(new Date(y, m + 1, 1))}><i className="ti ti-chevron-right"/></Btn>
+            </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, marginBottom: 4 }}>
-        {["S","M","T","W","T","F","S"].map((d, i) =>
-          <div key={i} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600, color: T.textDim,
-            letterSpacing: .5, padding: "2px 0" }}>{d}</div>)}
-      </div>
+            <div style={{ ...GRID, marginBottom: 4 }}>
+              {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d) =>
+                <div key={d} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600,
+                  color: T.textDim, padding: "2px 0" }}>{d}</div>)}
+            </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, maxWidth: 340 }}>
-        {cells.map((d, i) => {
-          if (!d) return <div key={"x"+i} />;
-          const k = keyOf(d);
-          const items = byDay[k] || [];
-          const live = items.filter((b) => b.status === "Confirmed");
-          const done = items.filter((b) => b.status === "Completed");
-          const off  = items.filter((b) => b.status === "Cancelled");
-          const isToday = k === todayKey;
-          const isSel = k === selected;
+            <div style={GRID}>
+              {cells.map((d, i) => {
+                if (!d) return <div key={"pad" + i} />;
+                const k = keyOf(d);
+                const items = byDay[k] || [];
+                const live = items.filter((b) => b.status === "Confirmed").length;
+                const done = items.filter((b) => b.status === "Completed").length;
+                const isToday = k === todayKey, isSel = k === selected;
+                return (
+                  <button key={k} onClick={() => onSelect(isSel ? null : k)} className="ui-btn"
+                    style={{ aspectRatio: "1", borderRadius: 8, cursor: "pointer", padding: 0,
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                      background: isSel ? T.gold : items.length ? T.goldBg : "transparent",
+                      border: `1px solid ${isSel ? T.gold : isToday ? T.gold : "transparent"}`,
+                      color: isSel ? "#0A0D14" : items.length ? T.text : T.textDim,
+                      fontSize: 12.5, fontWeight: isToday || items.length ? 600 : 400, fontFamily: "inherit" }}>
+                    {d.getDate()}
+                    <span style={{ display: "flex", gap: 2, height: 5, alignItems: "center" }}>
+                      {done > 0 && <i className="ti ti-check" style={{ fontSize: 10, lineHeight: 1,
+                        color: isSel ? "#0A0D14" : T.success }} />}
+                      {Array.from({ length: Math.min(live, 3) }).map((_, n) =>
+                        <span key={n} style={{ width: 4, height: 4, borderRadius: "50%",
+                          background: isSel ? "#0A0D14" : T.gold }} />)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-          return (
-            <button key={k} onClick={() => onSelect(isSel ? null : k)}
-              className="ui-btn"
-              style={{ position: "relative", aspectRatio: "1", minHeight: 32, maxHeight: 44, borderRadius: 8, cursor: "pointer",
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
-                background: isSel ? T.gold : items.length ? T.goldBg : "transparent",
-                border: `1px solid ${isSel ? T.gold : isToday ? T.gold : "transparent"}`,
-                color: isSel ? "#0A0D14" : items.length ? T.text : T.textDim,
-                fontSize: 12.5, fontWeight: isToday || items.length ? 600 : 400, fontFamily: "inherit" }}>
-              {d.getDate()}
-              <span style={{ display: "flex", gap: 2, height: 6, alignItems: "center" }}>
-                {done.length > 0 &&
-                  <i className="ti ti-check" style={{ fontSize: 11, lineHeight: 1,
-                    color: isSel ? "#0A0D14" : T.success }} />}
-                {live.map((_, n) => n < 3 &&
-                  <span key={n} style={{ width: 4, height: 4, borderRadius: "50%",
-                    background: isSel ? "#0A0D14" : T.gold }} />)}
-                {off.length > 0 && live.length === 0 && done.length === 0 &&
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: T.textDim }} />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 12, paddingTop: 10,
+              borderTop: `1px solid ${T.border}`, fontSize: 11, color: T.textMuted }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.gold }} />Booked</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <i className="ti ti-check" style={{ fontSize: 11, color: T.success }} />Done</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <span style={{ width: 9, height: 9, borderRadius: 3, border: `1px solid ${T.gold}` }} />Today</span>
+            </div>
+          </div>
 
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 14, paddingTop: 12,
-        borderTop: `1px solid ${T.border}`, fontSize: 11.5, color: T.textMuted }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.gold }} />Meeting booked</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <i className="ti ti-check" style={{ fontSize: 12, color: T.success }} />Done</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 9, height: 9, borderRadius: 3, border: `1px solid ${T.gold}` }} />Today</span>
-      </div>
+          {/* What a calendar is for: tap a day, see what is on it. */}
+          {selected && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 10 }}>
+                {new Date(selected + "T12:00:00").toLocaleDateString("en-GB",
+                  { weekday: "long", day: "numeric", month: "long" })}
+              </div>
+              {dayMeetings.length === 0
+                ? <div style={{ fontSize: 13, color: T.textMuted }}>Nothing booked on this day.</div>
+                : dayMeetings
+                    .sort((a, b) => new Date(a.meeting_datetime) - new Date(b.meeting_datetime))
+                    .map((b) => (
+                      <div key={b.id} style={{ display: "flex", gap: 11, padding: "10px 0",
+                        borderTop: `1px solid ${T.border}` }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: T.gold, minWidth: 66,
+                          fontVariantNumeric: "tabular-nums" }}>
+                          {new Date(b.meeting_datetime).toLocaleTimeString("en-US",
+                            { hour: "numeric", minute: "2-digit", timeZone: DHAKA })}
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 600 }}>{b.customer_name || "—"}</div>
+                          {b.service_want && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{b.service_want}</div>}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                            {b.platform && <span style={{ display: "inline-flex", alignItems: "center", gap: 4,
+                              fontSize: 10.5, fontWeight: 600, color: T.textMuted }}>
+                              <i className={`ti ${CH[b.platform]?.icon || "ti-message"}`} style={{ fontSize: 12 }} />
+                              {CH[b.platform]?.label || b.platform}
+                            </span>}
+                            <Badge color={b.status === "Confirmed" ? T.success : b.status === "Completed" ? T.info : T.danger}>
+                              {b.status}
+                            </Badge>
+                            {b.meeting_link && <a href={b.meeting_link} target="_blank" rel="noreferrer"
+                              style={{ fontSize: 11.5, color: T.gold, textDecoration: "none",
+                                display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <i className="ti ti-video" style={{ fontSize: 13 }} />Join
+                            </a>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+            </div>
+          )}
         </div>
       </div>
     </Card>
