@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { T, Card, Btn, Badge, Accordion, Select } from "./ui.js";
+import { T, Card, Btn, Badge, Accordion, Select, Segmented } from "./ui.js";
 import { api } from "./session.js";
 
 // The Bookings tab, moved out of dashboard-client.js unchanged.
@@ -354,7 +354,9 @@ export default function Bookings({calConnected,clientId}) {
             .filter(([k])=>bookings.some(b=>b.platform===k))
             .map(([k,v])=>({value:k,label:`${v.label} (${bookings.filter(b=>b.platform===k).length})`,icon:v.icon}))]}/>
     </div>}
-    <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{sts.map(s=><button key={s} onClick={()=>setFilter(s)} style={{padding:"6px 16px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,background:filter===s?T.gold:"rgba(240,192,64,0.08)",color:filter===s?"#0a0a0a":T.textMuted}}>{s}</button>)}</div>
+    <div style={{marginBottom:18}}>
+      <Segmented items={sts} value={filter} onChange={setFilter} size="sm"/>
+    </div>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:filtered.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No bookings yet</Card>:filtered.map(b=><Card key={b.id}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
