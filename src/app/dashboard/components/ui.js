@@ -271,6 +271,25 @@ export function Motion() {
         box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 22px rgba(0,0,0,.18) }
       .seg-item:focus-visible { outline: 2px solid ${T.gold}; outline-offset: 2px }
       @media (hover: hover) and (pointer: fine) { .seg-item:hover { color: ${T.railTextOn} } }
+      /* Calendar. A month grid is a navigator; the day list is where the work
+         happens — so on a wide screen they sit side by side instead of the grid
+         hugging one corner, and on a phone the grid stays a compact header above
+         the list. Cells are sized from the container, never a fixed pixel width. */
+      .cal-wrap { display: grid; gap: 20px; align-items: start }
+      @media (min-width: 760px) { .cal-wrap { grid-template-columns: minmax(300px, 380px) 1fr } }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100% }
+      .cal-cell { aspect-ratio: 1; min-height: 40px; border-radius: 10px; cursor: pointer; padding: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+        font-family: inherit; font-size: clamp(12px, 1.6vw, 14px); border: 1px solid transparent;
+        background: transparent; transition: background .18s ease-out, color .18s ease-out, transform .12s ease-out }
+      .cal-cell:active { transform: scale(.92) }
+      @media (pointer: coarse) { .cal-cell { min-height: 44px } }
+      .cal-dow { text-align: center; font-size: 10.5px; font-weight: 600; padding: 2px 0 }
+      .cal-day { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid ${T.border} }
+      .cal-day:first-of-type { border-top: none }
+      /* Swiping the grid changes month, which every phone user expects. */
+      .cal-swipe { touch-action: pan-y }
+
       @media (prefers-reduced-motion: reduce) {
         .seg-pill { transition: none !important }
         .ti, .ui-btn, .ui-card, .ui-inp, .ui-menu, .ui-opt, .ui-page, .ui-row, .ui-nav, .ui-live,
