@@ -47,12 +47,14 @@ function MonthGrid({ bookings, selected, onSelect }) {
   const [open, setOpen] = useState(false);
   const inner = useRef(null);
   const [h, setH] = useState(0);
+  const touch = useRef(null);
 
   const y = cursor.getFullYear(), m = cursor.getMonth();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const lead = new Date(y, m, 1).getDay();
   const todayKey = keyOf(new Date());
   const monthName = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const shift = (n) => setCursor(new Date(y, m + n, 1));
 
   const byDay = {};
   bookings.forEach((b) => {
@@ -62,26 +64,35 @@ function MonthGrid({ bookings, selected, onSelect }) {
     (byDay[keyOf(d)] = byDay[keyOf(d)] || []).push(b);
   });
 
-  useEffect(() => { if (inner.current) setH(inner.current.scrollHeight); }, [open, cursor, selected, bookings.length]);
+  useEffect(() => { if (inner.current) setH(inner.current.scrollHeight); },
+    [open, cursor, selected, bookings.length]);
 
   const cells = [];
   for (let i = 0; i < lead; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(y, m, d));
 
   const total = bookings.filter((b) => b.meeting_datetime).length;
+  const dayKey = selected || todayKey;
+  const dayList = (byDay[dayKey] || [])
+    .sort((a, b) => new Date(a.meeting_datetime) - new Date(b.meeting_datetime));
   const header = selected
     ? new Date(selected + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
     : `${monthName} · ${total} meeting${total === 1 ? "" : "s"}`;
 
-  // One grid definition, used by the weekday row and the dates. They drifted out
-  // of line last time because only one of them had a width limit.
-  const GRID = { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, width: "100%" };
-  const dayMeetings = selected ? (byDay[selected] || []) : [];
+  // Swipe to change month — expected on a phone, harmless with a mouse.
+  const onTouchStart = (e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = (e) => {
+    if (!touch.current) return;
+    const dx = e.changedTouches[0].clientX - touch.current.x;
+    const dy = e.changedTouches[0].clientY - touch.current.y;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) shift(dx < 0 ? 1 : -1);
+    touch.current = null;
+  };
 
   return (
     <Card style={{ marginBottom: 14, padding: 0, overflow: "hidden" }}>
       <button onClick={() => setOpen((v) => !v)} className="ui-btn"
-        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 16px",
+        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "13px 16px",
           background: "transparent", border: "none", cursor: "pointer", color: T.text, fontFamily: "inherit" }}>
         <i className="ti ti-calendar-month" style={{ fontSize: 18, color: T.gold }} />
         <span style={{ fontSize: 13.5, fontWeight: 600 }}>{header}</span>
@@ -90,102 +101,109 @@ function MonthGrid({ bookings, selected, onSelect }) {
       </button>
 
       <div style={{ height: open ? h : 0, overflow: "hidden", transition: "height .26s cubic-bezier(.16,1,.3,1)" }}>
-        <div ref={inner} style={{ padding: "0 16px 16px" }}>
-          <div style={{ maxWidth: 360 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <Btn small onClick={() => setCursor(new Date(y, m - 1, 1))}><i className="ti ti-chevron-left"/></Btn>
-              <div style={{ flex: 1, textAlign: "center", fontSize: 13.5, fontWeight: 600 }}>{monthName}</div>
-              <Btn small onClick={() => setCursor(new Date(y, m + 1, 1))}><i className="ti ti-chevron-right"/></Btn>
-            </div>
+        <div ref={inner} style={{ padding: "0 16px 18px" }}>
+          <div className="cal-wrap">
 
-            <div style={{ ...GRID, marginBottom: 4 }}>
-              {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d) =>
-                <div key={d} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 600,
-                  color: T.textDim, padding: "2px 0" }}>{d}</div>)}
-            </div>
-
-            <div style={GRID}>
-              {cells.map((d, i) => {
-                if (!d) return <div key={"pad" + i} />;
-                const k = keyOf(d);
-                const items = byDay[k] || [];
-                const live = items.filter((b) => b.status === "Confirmed").length;
-                const done = items.filter((b) => b.status === "Completed").length;
-                const isToday = k === todayKey, isSel = k === selected;
-                return (
-                  <button key={k} onClick={() => onSelect(isSel ? null : k)} className="ui-btn"
-                    style={{ aspectRatio: "1", borderRadius: 8, cursor: "pointer", padding: 0,
-                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
-                      background: isSel ? T.gold : items.length ? T.goldBg : "transparent",
-                      border: `1px solid ${isSel ? T.gold : isToday ? T.gold : "transparent"}`,
-                      color: isSel ? "#0A0D14" : items.length ? T.text : T.textDim,
-                      fontSize: 12.5, fontWeight: isToday || items.length ? 600 : 400, fontFamily: "inherit" }}>
-                    {d.getDate()}
-                    <span style={{ display: "flex", gap: 2, height: 5, alignItems: "center" }}>
-                      {done > 0 && <i className="ti ti-check" style={{ fontSize: 10, lineHeight: 1,
-                        color: isSel ? "#0A0D14" : T.success }} />}
-                      {Array.from({ length: Math.min(live, 3) }).map((_, n) =>
-                        <span key={n} style={{ width: 4, height: 4, borderRadius: "50%",
-                          background: isSel ? "#0A0D14" : T.gold }} />)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 12, paddingTop: 10,
-              borderTop: `1px solid ${T.border}`, fontSize: 11, color: T.textMuted }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.gold }} />Booked</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <i className="ti ti-check" style={{ fontSize: 11, color: T.success }} />Done</span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <span style={{ width: 9, height: 9, borderRadius: 3, border: `1px solid ${T.gold}` }} />Today</span>
-            </div>
-          </div>
-
-          {/* What a calendar is for: tap a day, see what is on it. */}
-          {selected && (
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 10 }}>
-                {new Date(selected + "T12:00:00").toLocaleDateString("en-GB",
-                  { weekday: "long", day: "numeric", month: "long" })}
+            <div className="cal-swipe" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <Btn small onClick={() => shift(-1)} aria-label="Previous month"><i className="ti ti-chevron-left"/></Btn>
+                <div style={{ flex: 1, textAlign: "center", fontSize: 14, fontWeight: 600 }}>{monthName}</div>
+                <Btn small onClick={() => shift(1)} aria-label="Next month"><i className="ti ti-chevron-right"/></Btn>
               </div>
-              {dayMeetings.length === 0
-                ? <div style={{ fontSize: 13, color: T.textMuted }}>Nothing booked on this day.</div>
-                : dayMeetings
-                    .sort((a, b) => new Date(a.meeting_datetime) - new Date(b.meeting_datetime))
-                    .map((b) => (
-                      <div key={b.id} style={{ display: "flex", gap: 11, padding: "10px 0",
-                        borderTop: `1px solid ${T.border}` }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, color: T.gold, minWidth: 66,
-                          fontVariantNumeric: "tabular-nums" }}>
-                          {new Date(b.meeting_datetime).toLocaleTimeString("en-US",
-                            { hour: "numeric", minute: "2-digit", timeZone: DHAKA })}
-                        </div>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 600 }}>{b.customer_name || "—"}</div>
-                          {b.service_want && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{b.service_want}</div>}
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-                            {b.platform && <span style={{ display: "inline-flex", alignItems: "center", gap: 4,
-                              fontSize: 10.5, fontWeight: 600, color: T.textMuted }}>
-                              <i className={`ti ${CH[b.platform]?.icon || "ti-message"}`} style={{ fontSize: 12 }} />
-                              {CH[b.platform]?.label || b.platform}
-                            </span>}
-                            <Badge color={b.status === "Confirmed" ? T.success : b.status === "Completed" ? T.info : T.danger}>
-                              {b.status}
-                            </Badge>
-                            {b.meeting_link && <a href={b.meeting_link} target="_blank" rel="noreferrer"
-                              style={{ fontSize: 11.5, color: T.gold, textDecoration: "none",
-                                display: "inline-flex", alignItems: "center", gap: 4 }}>
-                              <i className="ti ti-video" style={{ fontSize: 13 }} />Join
-                            </a>}
-                          </div>
+
+              <div className="cal-grid" style={{ marginBottom: 4 }}>
+                {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d) =>
+                  <div key={d} className="cal-dow" style={{ color: T.textDim }}>{d}</div>)}
+              </div>
+
+              <div className="cal-grid">
+                {cells.map((d, i) => {
+                  if (!d) return <div key={"pad" + i} />;
+                  const k = keyOf(d);
+                  const items = byDay[k] || [];
+                  const live = items.filter((b) => b.status === "Confirmed").length;
+                  const done = items.filter((b) => b.status === "Completed").length;
+                  const isToday = k === todayKey, isSel = k === selected;
+                  return (
+                    <button key={k} onClick={() => onSelect(isSel ? null : k)} className="cal-cell ui-btn"
+                      aria-label={`${d.getDate()} ${monthName}${items.length ? `, ${items.length} meeting` : ""}`}
+                      style={{ background: isSel ? T.gold : items.length ? T.goldBg : "transparent",
+                        borderColor: isSel ? T.gold : isToday ? T.gold : "transparent",
+                        color: isSel ? "#0A0D14" : items.length ? T.text : T.textDim,
+                        fontWeight: isToday || items.length ? 600 : 400 }}>
+                      {d.getDate()}
+                      <span style={{ display: "flex", gap: 2, height: 5, alignItems: "center" }}>
+                        {done > 0 && <i className="ti ti-check" style={{ fontSize: 10, lineHeight: 1,
+                          color: isSel ? "#0A0D14" : T.success }} />}
+                        {Array.from({ length: Math.min(live, 3) }).map((_, n) =>
+                          <span key={n} style={{ width: 4, height: 4, borderRadius: "50%",
+                            background: isSel ? "#0A0D14" : T.gold }} />)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 12, paddingTop: 10,
+                borderTop: `1px solid ${T.border}`, fontSize: 11, color: T.textMuted }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.gold }} />Booked</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <i className="ti ti-check" style={{ fontSize: 11, color: T.success }} />Done</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 3, border: `1px solid ${T.gold}` }} />Today</span>
+              </div>
+            </div>
+
+            {/* The agenda. On a phone this is what people actually read; on a
+                desktop it fills the space the grid used to leave empty. */}
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 13.5, fontWeight: 600 }}>
+                  {new Date(dayKey + "T12:00:00").toLocaleDateString("en-GB",
+                    { weekday: "long", day: "numeric", month: "long" })}
+                </span>
+                {dayKey === todayKey && <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: .5,
+                  color: T.gold }}>TODAY</span>}
+                {selected && <button onClick={() => onSelect(null)} className="ui-btn"
+                  style={{ marginLeft: "auto", background: "transparent", border: "none", color: T.gold,
+                    fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: 0 }}>Clear</button>}
+              </div>
+
+              {dayList.length === 0
+                ? <div style={{ fontSize: 13, color: T.textMuted, padding: "14px 0" }}>
+                    Nothing booked on this day.
+                  </div>
+                : dayList.map((b) => (
+                    <div key={b.id} className="cal-day">
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: T.gold, minWidth: 68,
+                        fontVariantNumeric: "tabular-nums" }}>
+                        {new Date(b.meeting_datetime).toLocaleTimeString("en-US",
+                          { hour: "numeric", minute: "2-digit", timeZone: DHAKA })}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{b.customer_name || "—"}</div>
+                        {b.service_want && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{b.service_want}</div>}
+                        <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 7, flexWrap: "wrap" }}>
+                          {b.platform && <span style={{ display: "inline-flex", alignItems: "center", gap: 4,
+                            fontSize: 10.5, fontWeight: 600, color: T.textMuted }}>
+                            <i className={`ti ${CH[b.platform]?.icon || "ti-message"}`} style={{ fontSize: 12 }} />
+                            {CH[b.platform]?.label || b.platform}
+                          </span>}
+                          <Badge color={b.status === "Confirmed" ? T.success : b.status === "Completed" ? T.info : T.danger}>
+                            {b.status}
+                          </Badge>
+                          {b.meeting_link && <a href={b.meeting_link} target="_blank" rel="noreferrer"
+                            style={{ fontSize: 11.5, color: T.gold, textDecoration: "none",
+                              display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <i className="ti ti-video" style={{ fontSize: 13 }} />Join
+                          </a>}
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </Card>
