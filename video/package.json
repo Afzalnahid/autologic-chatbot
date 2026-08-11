@@ -1,0 +1,17 @@
+{
+  "name": "autologic-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "remotion studio",
+    "render:en": "remotion render AutologicEN out/autologic-en.mp4",
+    "render:bn": "remotion render AutologicBN out/autologic-bn.mp4",
+    "render": "npm run render:en && npm run render:bn"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.508",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.508"
+  }
+}
