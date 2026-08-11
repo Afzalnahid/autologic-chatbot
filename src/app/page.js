@@ -248,6 +248,44 @@ export default function Home({ searchParams }) {
         }
       ` + BOARD_CSS + FLOW_CSS}</style>
       <script dangerouslySetInnerHTML={{ __html: REVEAL_JS }} />
+      <script dangerouslySetInnerHTML={{ __html: `(function(){
+        function start(){
+          var v = document.getElementById("al-film");
+          var sec = document.getElementById("film");
+          if (!v || !sec) return;
+
+          // No file yet, or a codec the browser will not take: remove the whole
+          // section rather than leaving a black rectangle on the page.
+          v.addEventListener("error", function(){ sec.remove(); });
+          v.addEventListener("stalled", function(){ if (!v.duration) sec.remove(); });
+
+          // Autoplay only while it is on screen. A looping video running in a
+          // background tab is wasted battery on the phones most people use here.
+          if ("IntersectionObserver" in window) {
+            new IntersectionObserver(function(es){
+              es.forEach(function(e){
+                if (e.isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function(){}); }
+                else v.pause();
+              });
+            }, { threshold: 0.25 }).observe(v);
+          }
+
+          if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            v.removeAttribute("autoplay"); v.pause(); v.controls = true;
+          }
+
+          var btn = document.getElementById("al-film-sound");
+          if (btn) btn.addEventListener("click", function(){
+            v.muted = !v.muted;
+            btn.innerHTML = v.muted
+              ? '<i class="ti ti-volume-3" style="font-size:19px"></i>'
+              : '<i class="ti ti-volume" style="font-size:19px"></i>';
+            if (!v.muted) { var p = v.play(); if (p && p.catch) p.catch(function(){}); }
+          });
+        }
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+      })();` }} />
+
 
       <script dangerouslySetInnerHTML={{ __html: `(function(){
         function start(){
@@ -320,6 +358,40 @@ export default function Home({ searchParams }) {
           </div>
           <div className="r" style={{ animationDelay: ".1s" }}>
             <Flow lang={lang} />
+          </div>
+        </div>
+      </section>
+
+      {/* The film. It sits between the promise and the proof: someone who
+          watched it already understands the product, and someone who did not
+          still has the conversations below. The section removes itself if the
+          file is not there, so the page never shows a broken player. */}
+      <section id="film" style={{ borderTop: `1px solid ${P.line}`, background: P.paper }}>
+        <div style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
+          <div data-reveal="0" style={{ marginBottom: 24, maxWidth: 620 }}>
+            <Label>{bn ? "৪৭ সেকেন্ডে" : "In 47 seconds"}</Label>
+            <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>
+              {bn ? "পুরোটা কীভাবে কাজ করে" : "The whole thing, working"}
+            </h2>
+          </div>
+
+          <div data-reveal="80" style={{ position: "relative", border: `1px solid ${P.line}`,
+            borderRadius: 4, overflow: "hidden", background: "#000", aspectRatio: "16 / 9" }}>
+            <video id="al-film" playsInline muted loop autoPlay preload="metadata"
+              poster="" controls={false}
+              style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}>
+              <source src={bn ? "/film-bn.mp4" : "/film-en.mp4"} type="video/mp4" />
+            </video>
+
+            {/* Sound is off by default because browsers demand it; the control is
+                here for anyone who wants it. */}
+            <button id="al-film-sound" type="button" aria-label={bn ? "শব্দ চালু করুন" : "Turn on sound"}
+              style={{ position: "absolute", right: 14, bottom: 14, width: 42, height: 42, borderRadius: 21,
+                border: "1px solid rgba(255,255,255,.28)", background: "rgba(10,13,20,.55)",
+                backdropFilter: "blur(10px)", color: "#fff", cursor: "pointer", display: "flex",
+                alignItems: "center", justifyContent: "center" }}>
+              <i className="ti ti-volume-3" style={{ fontSize: 19 }} />
+            </button>
           </div>
         </div>
       </section>
