@@ -1,0 +1,3 @@
+# The film project builds a video, not the site. Keeping it out of the deploy
+# means its dependencies never slow a build or reach production.
+video
