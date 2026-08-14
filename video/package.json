@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "start": "remotion studio",
-    "render:en": "remotion render AutologicEN out/autologic-en.mp4",
-    "render:bn": "remotion render AutologicBN out/autologic-bn.mp4",
+    "render:en": "remotion render src/index.jsx AutologicEN out/autologic-en.mp4",
+    "render:bn": "remotion render src/index.jsx AutologicBN out/autologic-bn.mp4",
     "render": "npm run render:en && npm run render:bn"
   },
   "dependencies": {
