@@ -205,3 +205,19 @@ belonged to a different company than the dashboard a visitor lands in one click 
 **Rule:** a reference contributes typography, rhythm, hierarchy and ideas. Colour comes
 from the product's own tokens — here, the same seven values `ui.js` uses — or the seams
 show the moment a customer signs up.
+
+## 19. A rebuilt server on the same port can silently serve the old build
+**2026-08-15.** Verifying a responsive-layout fix locally: `npm run build`, kill the dev
+server, rebuild, restart on the same port, re-check with a headless browser. The "after"
+screenshot looked identical to the "before" one. `pkill -f "next start"` had matched
+nothing — the running process's actual name is `next-server`, not `next start` — so the
+old server was still bound to the port, and the "restart" command silently failed to bind
+and did nothing. The re-verification was testing the untouched old build the whole time.
+Caught it by `curl`-ing the served HTML for a string only the new CSS contains, before
+trusting the second round of screenshots.
+
+**Rule:** after changing code and restarting a local server for verification, confirm the
+running process is actually new — check the PID's start time, or grep the served output
+for something only the new code contains — before trusting anything it returns. A restart
+command that "succeeds" with no error is not proof the old process is gone; `pkill -f` in
+particular must match the process's real argv, not the npm script name that launched it.

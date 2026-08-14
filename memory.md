@@ -4,6 +4,84 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-15)
+
+**Scheduled responsive audit — PR open, not merged.** Ran as an automated task
+(no live owner watching). Branch `audit/responsive-2026-08-15`, PR #1:
+https://github.com/Afzalnahid/autologic-chatbot/pull/1. Nothing pushed to `main`.
+
+Scope: landing page (`src/app/page.js`, `src/lib/landing.js`) and dashboard shell
+(`src/app/dashboard-client.js`, `src/app/dashboard/components/*`). Owner reported
+"layout errors" on Desktop/Mobile/Mac-Safari without naming them, so this session
+found them: full write-up with file:line in `docs/responsive-audit-2026-08-15.md`.
+
+Four small fixes, each verified against a real production build
+(`npm run build` + `npm run start`), not guessed from CSS reading alone:
+- **Landing nav CTA clipped off-screen below ~340px width** (`page.js` nav +
+  `.navbtn`). Confirmed with a headless-Chromium screenshot at 320px before
+  (button read "START FRE…", cut mid-word — `overflow-x:hidden` was hiding the
+  overflow instead of scrolling to it) and after (fully visible). This is the
+  page's one conversion button, on the phone width class most common among
+  older/budget devices in this market — worth flagging as the most important
+  finding of the four.
+- **Two mobile onboarding screens used `100vh` instead of `100dvh`**
+  (`ConnectChannel`, `ConnectCalendar` in `dashboard-client.js`) — the rest of
+  the dashboard shell already made this switch for mobile Safari's address-bar
+  issue; these two were missed. Now consistent.
+- **Conversations chat grid and Bookings calendar grid used a bare `1fr` next
+  to a fixed column** (`Conversations.js:149`, `ui.js:279`) — no shrink floor,
+  can overflow the container around 768–830px viewports (tablet portrait).
+  Changed to `minmax(0,1fr)`, the standard fix, no visual change when there's
+  room. The Conversations one is reasoned through carefully in the audit doc;
+  the Bookings one is the same pattern applied defensively but **not** screenshot-
+  verified — exercising it needs a logged-in agency account with Google
+  Calendar connected, which this environment has no credentials for.
+- **`backdrop-filter` missing its `-webkit-` twin** on the landing page's video
+  sound button (`page.js`) — `ui.js`'s own `.seg-glass` already pairs the two
+  correctly; this one spot was missed. Added, matching the existing pattern.
+
+**Verification method, for the record:** built and served the app locally with
+placeholder Supabase/Meta/etc. env values (gitignored `.env.local`, never
+committed — the repo has no real credentials in this sandbox), then drove
+headless Chromium (Playwright, installed only into the scratch directory, not
+added to the repo) at 320/360/375/1440px against the real running server and
+diffed screenshots before/after each fix. Caught one of my own mistakes this
+way: a stale `next start` process from an earlier attempt kept answering on
+the test port after a rebuild, so the first "re-verification" was silently
+testing the *old* build — the screenshots and `curl | grep` on a known string
+from the new code caught it before it was reported as done. Also: **no
+WebKit/Safari engine was available in this sandbox** (only Chromium is
+pre-installed here) — the Mac/Safari section of the audit is code review only,
+clearly marked as such in the doc, not claimed as visually verified.
+
+Also checked and found already correct, so left untouched: `position:sticky`,
+`aspect-ratio`, flex/grid `gap` (all fine for a current-Safari target), the
+`<video>` autoplay attributes (`playsInline`+`muted` already present), iOS
+input-zoom prevention in `globals.css`, and every other grid in the dashboard
+(all already `repeat(auto-fit, minmax(Npx,1fr))`, which doesn't have the
+overflow risk the two fixed ones had).
+
+None of the four fixes touch a locked prompt, a database query, or branch on
+`business_type` — same code path for `ecommerce` and `agency` in every case.
+
+Vercel's preview deployment for the PR came back **Ready** — independent
+confirmation beyond the local build.
+
+Subscribed to PR #1's activity (CI, review comments) per the standing PR-watch
+rule; a self check-in is scheduled to follow up if nothing else arrives first.
+
+### What's next
+1. **Owner: review and merge PR #1** (or ask for changes) —
+   https://github.com/Afzalnahid/autologic-chatbot/pull/1. Nothing is live
+   until this merges.
+2. If convenient, a quick look at the mobile nav fix on an actual small phone
+   and the Bookings calendar tab on an actual Mac/Safari would close the two
+   "not independently verified" gaps noted above and in the audit doc.
+3. Everything under the 2026-08-07 "What's next" below still stands unchanged
+   — this session did not touch any of it.
+
+---
+
 ## Last session (2026-08-07)
 
 **`bot.js` client_id invariant — DONE (one commit `33f84b7`).**
