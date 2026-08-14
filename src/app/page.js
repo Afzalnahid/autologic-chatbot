@@ -201,6 +201,15 @@ export default function Home({ searchParams }) {
         .navcta { background: ${P.accent}; border-color: ${P.accent}; color: ${P.onAccent} }
         .navcta:hover { filter: brightness(1.06); box-shadow: 0 8px 24px ${P.blue}33 }
         @media (max-width: 400px) { .navbtn { font-size: 9.5px; padding: 7px 9px; letter-spacing: .06em } }
+        /* Below ~340px (older/budget phones — iPhone SE 1st/2nd gen, many
+           entry-level Android handsets) the three nav buttons plus the wordmark
+           no longer fit and the "Start free" CTA — the page's one conversion
+           action — was clipped off the right edge. Tighten spacing further
+           rather than let it wrap or hide, so it stays one row and reachable. */
+        @media (max-width: 340px) {
+          .navwrap { padding-left: 10px !important; padding-right: 10px !important; gap: 6px !important }
+          .navbtn { font-size: 8.5px; padding: 6px 6px; letter-spacing: .02em }
+        }
 
         .flink { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .1em;
           text-transform: uppercase; color: ${P.inkSoft}; text-decoration: none; transition: color .15s ease-out }
@@ -307,7 +316,7 @@ export default function Home({ searchParams }) {
       <div className="sheet"><i /><i /><i /><i /></div>
 
       <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 4, background: P.paper }}>
-        <div style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
+        <div className="navwrap" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0 }}>
             <div style={{ width: 26, height: 26, background: P.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -388,7 +397,7 @@ export default function Home({ searchParams }) {
             <button id="al-film-sound" type="button" aria-label={bn ? "শব্দ চালু করুন" : "Turn on sound"}
               style={{ position: "absolute", right: 14, bottom: 14, width: 42, height: 42, borderRadius: 21,
                 border: "1px solid rgba(255,255,255,.28)", background: "rgba(10,13,20,.55)",
-                backdropFilter: "blur(10px)", color: "#fff", cursor: "pointer", display: "flex",
+                WebkitBackdropFilter: "blur(10px)", backdropFilter: "blur(10px)", color: "#fff", cursor: "pointer", display: "flex",
                 alignItems: "center", justifyContent: "center" }}>
               <i className="ti ti-volume-3" style={{ fontSize: 19 }} />
             </button>

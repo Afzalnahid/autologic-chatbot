@@ -427,6 +427,7 @@ function Onboarding({me,onTrial,onDemo}) {
 }
 
 function ConnectChannel({onDone,clientId}) {
+  const isMobile=useIsMobile();
   useEffect(()=>{
     const h=e=>{
       if(e.data==="fb_connected"||e.data==="ig_connected"||e.data==="wa_connected") onDone();
@@ -447,7 +448,7 @@ function ConnectChannel({onDone,clientId}) {
     else if(id==="instagram") openPopup(`/api/ig/login?client_id=${clientId}`);
     else if(id==="whatsapp") openPopup(`/api/wa/embedded?client_id=${clientId}`);
   };
-  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+  return <div style={{height:isMobile?"100dvh":"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{maxWidth:520,width:"100%"}}>
       <div style={{textAlign:"center",marginBottom:24}}>
         <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`}}>
@@ -474,6 +475,7 @@ function ConnectChannel({onDone,clientId}) {
 }
 
 function ConnectCalendar({clientId,onDone}) {
+  const isMobile=useIsMobile();
   const [calOk,setCalOk]=useState(false);
   useEffect(()=>{
     const h=e=>{if(e.data==="gcal-connected") setCalOk(true);};
@@ -484,7 +486,7 @@ function ConnectCalendar({clientId,onDone}) {
     const w=window.open(`/api/gcal/login?client_id=${clientId}`,"gcal","width=520,height=640");
     if(!w) window.location.href=`/api/gcal/login?client_id=${clientId}`;
   };
-  return <div style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+  return <div style={{height:isMobile?"100dvh":"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
     <div style={{maxWidth:480,width:"100%"}}>
       <div style={{textAlign:"center",marginBottom:24}}>
         <div style={{width:52,height:52,borderRadius:14,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`}}>
