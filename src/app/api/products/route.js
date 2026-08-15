@@ -7,8 +7,8 @@ import { withErrors } from "@/lib/route-errors.js";
 export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json([], { status: authErr ? 401 : 200 });
-  const { data: rows } = await supabase.from("products").select("id,metadata,client_id").limit(1000);
-  const products = (rows || []).filter(r => r.client_id === client.id).map(r => ({ id: r.id, ...(r.metadata || {}) }));
+  const { data: rows } = await supabase.from("products").select("id,metadata,client_id").eq("client_id", client.id).limit(1000);
+  const products = (rows || []).map(r => ({ id: r.id, ...(r.metadata || {}) }));
   return NextResponse.json(products);
 }, "products");
 
