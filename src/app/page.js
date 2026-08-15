@@ -67,7 +67,7 @@ function Bub({ me, children }) {
 function Flow({ lang }) {
   const bn = lang === "bn";
   return (
-    <div className="flow-wrap" style={{ border: `1px solid ${P.line}`, background: P.paper2,
+    <div className="flow-wrap" suppressHydrationWarning style={{ border: `1px solid ${P.line}`, background: P.paper2,
       borderRadius: 20, overflow: "hidden", boxShadow: "var(--lp-nm-sm)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 18px 12px", borderBottom: `1px solid ${P.line}` }}>
@@ -162,7 +162,13 @@ export default function Home({ searchParams }) {
     <div style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
       <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_JS }} />
-      <style>{`
+      {/* CSS goes in via dangerouslySetInnerHTML, never as a text child. React's
+          server renderer HTML-escapes text children (' → &#x27;, " → &quot;,
+          > → &gt;) and a <style> tag does not decode entities, so the served
+          stylesheet was corrupt (the @import URL 404'd, [data-theme="…"] rules
+          were dropped) and its text never matched the client — the hydration
+          errors that used to appear on every load of this page. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
         ${THEME_CSS}
         html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
@@ -266,7 +272,7 @@ export default function Home({ searchParams }) {
         @media (prefers-reduced-motion: reduce) {
           [class^="fch"], [class^="fsrc"], [class^="fout"], .core-ring, .wire { animation: none !important; opacity: 1 !important }
         }
-      ` + BOARD_CSS + FLOW_CSS}</style>
+      ` + BOARD_CSS + FLOW_CSS }} />
       <script dangerouslySetInnerHTML={{ __html: REVEAL_JS }} />
       <script dangerouslySetInnerHTML={{ __html: `(function(){
         function start(){
@@ -345,7 +351,9 @@ export default function Home({ searchParams }) {
                 start. "Sign up" and "Try free" were the same door twice, so one went. */}
             <button id="al-mode" type="button" className="navbtn" aria-label="Switch theme"
               style={{ display: "inline-flex", alignItems: "center", fontFamily: "inherit" }}>
-              <i id="al-mode-ic" className="ti ti-moon" style={{ fontSize: 13 }} />
+              {/* THEME_BOOT_JS swaps this icon before React hydrates, so the DOM
+                  legitimately differs from the server markup in dark mode. */}
+              <i id="al-mode-ic" className="ti ti-moon" style={{ fontSize: 13 }} suppressHydrationWarning />
             </button>
             <a href={other} className="navbtn" aria-label="Change language"
               style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -393,14 +401,17 @@ export default function Home({ searchParams }) {
           file is not there, so the page never shows a broken player. */}
       <section id="film" style={{ borderTop: `1px solid ${P.line}`, background: P.paper }}>
         <div style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
-          <div data-reveal="0" style={{ marginBottom: 24, maxWidth: 620 }}>
+          {/* data-reveal / .flow-wrap / .board-wrap: the inline scripts add classes to
+              these before React hydrates (by design — the page is a server component and
+              the motion is plain JS), so each carries suppressHydrationWarning. */}
+          <div data-reveal="0" suppressHydrationWarning style={{ marginBottom: 24, maxWidth: 620 }}>
             <Label>{bn ? "৪৭ সেকেন্ডে" : "In 47 seconds"}</Label>
             <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>
               {bn ? "পুরোটা কীভাবে কাজ করে" : "The whole thing, working"}
             </h2>
           </div>
 
-          <div data-reveal="80" style={{ position: "relative", border: `1px solid ${P.line}`,
+          <div data-reveal="80" suppressHydrationWarning style={{ position: "relative", border: `1px solid ${P.line}`,
             borderRadius: 20, overflow: "hidden", background: "#000", aspectRatio: "16 / 9",
             boxShadow: "var(--lp-nm)" }}>
             <video id="al-film" playsInline muted loop autoPlay preload="metadata"
@@ -425,12 +436,12 @@ export default function Home({ searchParams }) {
       <section style={{ borderTop: `1px solid ${P.line}`, borderBottom: `1px solid ${P.line}`, background: P.paper2 }}>
         <div style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
           <div className="two" style={{ display: "grid", gridTemplateColumns: "0.85fr 1.15fr", gap: "clamp(28px,5vw,56px)", alignItems: "center" }}>
-            <div data-reveal="0">
+            <div data-reveal="0" suppressHydrationWarning>
               <Label>{c.convLabel}</Label>
               <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: "0 0 16px" }}>{c.convTitle}</h2>
               <p style={{ fontSize: 15.5, lineHeight: 1.65, color: P.inkSoft, margin: 0, maxWidth: 420 }}>{c.convLead}</p>
             </div>
-            <div className="board-wrap" style={{ maxWidth: 330, margin: "0 auto", width: "100%" }}>
+            <div className="board-wrap" suppressHydrationWarning style={{ maxWidth: 330, margin: "0 auto", width: "100%" }}>
               <div className="al-bars"><span /><span /><span /><span /></div>
               <div className="al-phone" style={{ background: "linear-gradient(160deg, #232B3D, #10151F)" }}>
                 <div className="al-screen" style={{ background: P.paper2 }}>
@@ -450,13 +461,13 @@ export default function Home({ searchParams }) {
       </section>
 
       <section style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
-        <div data-reveal="0" style={{ marginBottom: 34, maxWidth: 620 }}>
+        <div data-reveal="0" suppressHydrationWarning style={{ marginBottom: 34, maxWidth: 620 }}>
           <Label>{c.featLabel}</Label>
           <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>{c.featTitle}</h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {c.features.map((f, i) => (
-            <div key={f.title} className="card" data-reveal={(i % 3) * 70}
+            <div key={f.title} className="card" data-reveal={(i % 3) * 70} suppressHydrationWarning
               style={{ padding: 28 }}>
               <div style={{ ...mono, fontSize: 9.5, color: P.accent, marginBottom: 16 }}>{String(i + 1).padStart(2, "0")}</div>
               <i className={`ti ${f.icon}`} style={{ fontSize: 22, color: P.blue }} />
@@ -469,7 +480,7 @@ export default function Home({ searchParams }) {
 
       {cases.length > 0 && (
         <section id="case-studies" style={{ ...wrap, padding: "0 clamp(16px,4vw,26px) clamp(40px,7vw,80px)" }}>
-          <div data-reveal="0" style={{ marginBottom: 30, maxWidth: 620 }}>
+          <div data-reveal="0" suppressHydrationWarning style={{ marginBottom: 30, maxWidth: 620 }}>
             <Label>{bn ? "যাঁরা ব্যবহার করছেন" : "In production"}</Label>
             <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>
               {bn ? "যেসব ব্যবসা Autologic-এ চলছে" : "Businesses running on Autologic"}
@@ -480,7 +491,7 @@ export default function Home({ searchParams }) {
             {cases.map((cs, i) => {
               const draft = isPlaceholder(cs);
               return (
-                <div key={cs.id} className="card" data-reveal={(i % 3) * 70}
+                <div key={cs.id} className="card" data-reveal={(i % 3) * 70} suppressHydrationWarning
                   style={{ padding: 26 }}>
                   <div style={{ ...mono, fontSize: 9, color: draft ? P.inkSoft : P.accent, marginBottom: 14 }}>
                     {TYPE_LABEL[cs.businessType] || cs.businessType}{draft ? " · DRAFT" : ""}
