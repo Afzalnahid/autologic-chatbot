@@ -1,6 +1,8 @@
 // Lightweight Resend email helper. Never throws — email failures must not
 // break the signup/approval flow. Returns { ok, error }.
 
+import { formatDhakaDate } from "@/lib/time.js";
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM = process.env.RESEND_FROM || "Autologic <onboarding@resend.dev>";
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
@@ -89,7 +91,7 @@ export async function notifyPaymentRequest({ business, email, plan, cycle, amoun
 
 // Payment verified — tell the client their plan is live.
 export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
-  const until = expiresAt ? new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
+  const until = expiresAt ? formatDhakaDate(new Date(expiresAt)) : null;
   return send({
     to: clientEmail,
     subject: `Your ${planName} plan is active — Autologic`,
@@ -162,7 +164,7 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
 
 // Sent a few days before a trial or paid plan runs out.
 export async function notifyExpiringSoon(clientEmail, { business, plan, daysLeft, expiresAt }) {
-  const when = expiresAt ? new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null;
+  const when = expiresAt ? formatDhakaDate(new Date(expiresAt)) : null;
   const isTrial = plan === "trial";
   return send({
     to: clientEmail,

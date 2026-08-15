@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase.js";
 import { PLANS } from "@/lib/plans.js";
+import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 
 // A website visitor has no address to send to once the tab is closed, so the
 // website channel cannot be broadcast to at all.
@@ -148,9 +149,10 @@ export async function remainingQuota(client) {
   const monthly = plan.messagesPerMonth ?? null;
   if (!daily && !monthly) return { limit: null, used: 0, remaining: Infinity, unlimited: true };
 
-  const start = new Date();
-  if (daily) start.setHours(0, 0, 0, 0);
-  else { start.setDate(1); start.setHours(0, 0, 0, 0); }
+  // Reset at Dhaka midnight, not the server's UTC midnight (which is 6am in
+  // Bangladesh) — otherwise a tenant's quota window is six hours off from the
+  // day they actually experience.
+  const start = daily ? startOfDayDhaka() : startOfMonthDhaka();
   const since = start.toISOString();
 
   const [msgQ, bcQ] = await Promise.all([
