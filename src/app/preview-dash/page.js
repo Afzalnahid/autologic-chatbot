@@ -15,7 +15,10 @@ export default function PreviewDash({ searchParams }) {
 
   return (
     <div style={{ background: D.canvas, minHeight: "100vh", color: D.ink, fontFamily: FONT.ui }}>
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child — see the note in src/app/page.js:
+          React's server renderer HTML-escapes text children, and <style> does not
+          decode entities, so the @import URL 404'd and hydration failed. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Anek+Bangla:wght@400;500;600&display=swap');
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
         html, body { margin: 0; overflow-x: hidden; -webkit-text-size-adjust: 100% }
@@ -54,7 +57,7 @@ export default function PreviewDash({ searchParams }) {
           .rail a { white-space: nowrap }
         }
         @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
-      `}</style>
+      ` }} />
 
       <div className="shell">
         <aside className="rail" style={{ background: D.rail, padding: "18px 14px", position: "sticky",

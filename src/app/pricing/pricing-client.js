@@ -55,7 +55,11 @@ export default function PricingClient() {
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "system-ui, sans-serif" }}>
-      <style>{THEME_CSS}</style>
+      {/* dangerouslySetInnerHTML, not a text child: React's server renderer
+          HTML-escapes text ([data-theme="light"] → &quot;) and <style> does not
+          decode it, which broke the theme rules on first paint and made every
+          load of this page fail hydration. Same fix as the landing page. */}
+      <style dangerouslySetInnerHTML={{ __html: THEME_CSS }} />
       <nav style={{ borderBottom: `1px solid ${T.border}` }}>
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px" }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: T.text }}>
