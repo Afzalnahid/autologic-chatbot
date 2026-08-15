@@ -7,9 +7,8 @@ export async function GET(request) {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json([], { status: authErr ? 401 : 200 });
   try {
-    const { data: rows } = await supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(300);
-    const data = (rows || []).filter(o => o.client_id === client.id);
-    return NextResponse.json(data || []);
+    const { data: rows } = await supabase.from("orders").select("*").eq("client_id", client.id).order("created_at", { ascending: false }).limit(300);
+    return NextResponse.json(rows || []);
   } catch {
     return NextResponse.json([]);
   }

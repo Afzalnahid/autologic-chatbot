@@ -13,11 +13,11 @@ export async function POST(request) {
     const kind = form.get("kind") || "image";
     if (!sender_id || !file) return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
-    const { data: mb } = await supabase.from("message_buffer").select("platform,client_id,sender_id").order("created_at",{ascending:false}).limit(300);
-    const platform = (mb || []).find(m => m.client_id === client.id && m.sender_id === sender_id)?.platform || "facebook";
-    const { data: chans } = await supabase.from("channels").select("*").eq("status", "connected").limit(200);
-    const ch = (chans || []).find(c => c.client_id === client.id && c.platform === platform)
-      || (chans || []).find(c => c.client_id === client.id);
+    const { data: mb } = await supabase.from("message_buffer").select("platform,client_id,sender_id")
+      .eq("client_id", client.id).eq("sender_id", sender_id).order("created_at",{ascending:false}).limit(1);
+    const platform = mb?.[0]?.platform || "facebook";
+    const { data: chans } = await supabase.from("channels").select("*").eq("status", "connected").eq("client_id", client.id);
+    const ch = (chans || []).find(c => c.platform === platform) || (chans || [])[0];
     if (!ch) return NextResponse.json({ error: "no channel" }, { status: 400 });
 
     if (platform === "whatsapp") {

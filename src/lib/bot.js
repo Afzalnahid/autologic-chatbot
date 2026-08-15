@@ -478,7 +478,7 @@ export function detectLanguage(text) {
   return "English";
 }
 
-function languageLock(lang) {
+export function languageLock(lang) {
   const how = {
     Bangla: "The customer wrote in Bangla. Write your entire reply in Bangla script only.",
     Banglish: "The customer wrote Banglish (Bangla words in English letters). Write your entire reply the same way — Bangla words spelled in English letters, no Bengali script.",
