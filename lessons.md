@@ -202,6 +202,38 @@ App Review requires those URLs to be reachable from the site. The owner caught i
 came along with its layout: cream paper, orange CTA. The result looked accomplished and
 belonged to a different company than the dashboard a visitor lands in one click later.
 
+## 19. Writing a rule down is not the same as enforcing it
+**2026-08-15.** Lesson #14 (2026-08-07) already said it: fix an invariant everywhere
+it's broken, not just where you noticed it, and grep the whole repo before calling it
+done. That grep was never actually run against the rest of the codebase. A full-project
+audit eight days later found the identical "fetch all tenants, filter with `client_id`
+in JavaScript" shape in 8 more places — `api/me`, `api/contacts` (×2, with no filter or
+limit at all), `api/orders`, `api/products`, `api/import-one`, `api/profile`,
+`api/channels`, `api/send-message`/`api/send-media`. Two of the worst (`api/orders`,
+`api/products`) had the exact same failure mode as the already-fixed `pendingFor` bug:
+a busy platform can push a tenant's own rows past a shared cap and they vanish from
+that tenant's own dashboard, silently.
+
+**Rule:** a written rule in `AGENTS.md` or a past lesson is not self-enforcing. After
+fixing an invariant violation, actually run the grep across the whole repo in the same
+session — don't write "grep the whole repo" as future guidance and move on. Better
+still: a rule that recurs a second time after being named once is a candidate for a
+mechanical check (a shared query helper, a lint rule) rather than a fourth round of
+manual fixes later.
+
+## 20. A build warning is a bug report, not noise to scroll past
+**2026-08-15.** `npm run build` had been printing "Attempted import error: 'languageRule'
+is not exported from '@/lib/bot.js'" on every build. It was not a false alarm: the
+import really did resolve to `undefined`, and the only caller — the public demo chat
+bot — threw on every single message and had never once returned a real reply. Nobody
+had read the warning as what it was: a live, on-every-build report that a whole feature
+was broken.
+
+**Rule:** a compiler/bundler warning that names a specific broken import is not
+cosmetic. Read it, trace the caller, and check whether the code path it warns about is
+reachable and used — don't wait for a user report to notice a warning that already told
+you the answer.
+
 **Rule:** a reference contributes typography, rhythm, hierarchy and ideas. Colour comes
 from the product's own tokens — here, the same seven values `ui.js` uses — or the seams
 show the moment a customer signs up.

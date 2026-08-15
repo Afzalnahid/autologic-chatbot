@@ -4,6 +4,68 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-15)
+
+**Full-project bug audit — DONE. PR #4 (`audit/bugs-2026-08-15` → `main`), not merged.**
+
+Scheduled sweep for tenant-isolation bugs (the `client_id`-at-the-DB invariant),
+`bot.js`, API routes, and the broadcast/follow-up 24-hour window. Full write-up:
+`docs/bug-audit-2026-08-15.md`. 9 real bugs found and fixed, all small/reversible.
+
+**The pattern `lessons.md` #14 predicted actually recurred, in 8 more places.**
+The 2026-08-07 session fixed the "fetch all tenants, filter in JS" anti-pattern in
+`bot.js` and wrote down "grep the whole repo for the same shape before calling it
+done" — but that grep was never done. This session did it:
+- `api/me`, `api/contacts` (×2) — **no filter and no limit at all**, fetched entire
+  `message_buffer`/`contacts` tables on every dashboard/Conversations load.
+- `api/orders`, `api/products`, `api/import-one` — global `limit(300/1000)`, no
+  `client_id` filter. Same failure shape as the already-fixed `pendingFor` bug: once
+  other tenants' rows fill the shared cap, a tenant's own orders/products can vanish
+  from their own dashboard, or product re-import can silently duplicate instead of
+  replacing.
+- `api/profile`, `api/channels`, `api/send-message`, `api/send-media` — same anti-
+  pattern on lower-traffic reads (usage counts, outbound-reply channel lookup).
+
+All fixed the same way: move `.eq("client_id", ...)` into the Supabase query, drop
+the JS filter. Return shapes unchanged, no caller updated.
+
+**Unrelated bug also found and fixed: the public demo chat bot was completely
+broken.** `api/demo-chat/route.js` imported `languageRule` from `bot.js`, which does
+not exist — confirmed by a real `npm run build` import-error warning. Every message
+threw and the route always returned `"Error: languageRule is not a function"`
+instead of a reply. The function that was meant (`languageLock`, used by the real
+reply engine for the same purpose) existed but wasn't exported. Exported it, fixed
+the import and call site in `demo-chat/route.js` to match how `composeReply` already
+does this. Build warning confirmed gone afterward.
+
+**Checked and confirmed already correct** (no change): `bot.js`'s seven previously-
+fixed reads, `api/admin` (its cross-tenant reads are the intended, role-gated admin
+view — not a bug), `api/conversations`, `knowledge`, `comments`, `bookings`,
+`bookings/list`, `generate-prompt`, `widget/chat`, `broadcast`, `analytics`,
+`settings`, `billing`, `tags`, and the broadcast/follow-up 24-hour window logic in
+`src/lib/broadcast.js` / `src/lib/followup.js` (still `WINDOW_HOURS - 0.5` anchored on
+the customer's last inbound message, matches what was documented on 2026-08-07).
+
+- Verified: `node --check` on every changed file; `npm run build` clean with
+  placeholder Supabase env vars (this sandbox had none configured — the
+  "supabaseUrl is required" failure reproduces identically on unmodified `main`
+  with no env vars, so it's an environment-config limitation, not caused by this
+  work). Not deployed — task explicitly said not to push to `main` or deploy.
+- **Not yet done:** owner needs to review and merge PR #4, then spot-check Orders,
+  Inventory, Conversations and the demo chat widget live. This session is watching
+  the PR for CI/review activity per the standing PR-subscription rule.
+
+### What's next
+1. Owner reviews and merges (or requests changes on) PR #4.
+2. After merge, spot-check the fixed dashboard tabs and the demo chat widget live —
+   not verified in a browser this session (no deploy).
+3. Everything under the 2026-08-07 "What's next" still stands unless already
+   otherwise resolved: Task 8 (courier, ecommerce only) is the next unblocked
+   feature; Task 3 (SSLCommerz) waits on sandbox credentials.
+4. Idea flagged, not started: a shared query helper or lint rule that makes an
+   unscoped `client_id` read impossible to write by accident, so this class of bug
+   stops recurring file-by-file. See the audit report's "Not fixed" section.
+
 ## Last session (2026-08-07)
 
 **`bot.js` client_id invariant — DONE (one commit `33f84b7`).**
