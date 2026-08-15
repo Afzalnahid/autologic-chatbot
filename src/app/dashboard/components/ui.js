@@ -276,7 +276,7 @@ export function Motion() {
          hugging one corner, and on a phone the grid stays a compact header above
          the list. Cells are sized from the container, never a fixed pixel width. */
       .cal-wrap { display: grid; gap: 20px; align-items: start }
-      @media (min-width: 760px) { .cal-wrap { grid-template-columns: minmax(300px, 380px) 1fr } }
+      @media (min-width: 760px) { .cal-wrap { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr) } }
       .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100% }
       .cal-cell { aspect-ratio: 1; min-height: 40px; border-radius: 10px; cursor: pointer; padding: 0;
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;

@@ -146,7 +146,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     <span style={{fontSize:11,color:T.textMuted}}>{label}</span>
   </div>;
 
-  return <div style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px 1fr",gap:16,height:isMobile?(sel>=0?"100dvh":"calc(100dvh - 190px)"):"calc(100vh - 130px)"}}>
+  return <div style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px minmax(0,1fr)",gap:16,height:isMobile?(sel>=0?"100dvh":"calc(100dvh - 190px)"):"calc(100vh - 130px)"}}>
     {showList&&<Card style={{overflow:"auto",padding:0,height:"100%"}}>
       <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
