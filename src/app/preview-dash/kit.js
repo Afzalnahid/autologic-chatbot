@@ -10,7 +10,7 @@ export const D = {
   rail: "#0D111A", railHover: "#161C2A", railText: "#98A3BA", railTextOn: "#FFFFFF",
   canvas: "#F5F6F8", surface: "#FFFFFF", line: "#E4E8EF", lineSoft: "#EFF1F5",
   ink: "#131722", inkSoft: "#5A6478", inkFaint: "#8A93A6",
-  blue: "#5B8CFF", blueSoft: "#EEF3FF", mint: "#2ED3A7", mintSoft: "#E7F9F3",
+  blue: "#D92632", blueSoft: "#FBEAEC", mint: "#2ED3A7", mintSoft: "#E7F9F3",
   amber: "#E9A23B", amberSoft: "#FDF3E3", rose: "#E8556D", roseSoft: "#FDEDEF",
 };
 

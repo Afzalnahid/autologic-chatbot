@@ -4,6 +4,57 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-16) — Full UI redesign: crimson/white neumorphic
+
+**Owner-directed brand change, applied across the whole surface in one pass.**
+The owner supplied three reference videos (neumorphic sidebar, premium dashboard
+header, premium date-range calendar) and asked for a red+white theme with dark
+mode. This replaces the periwinkle brand — CLAUDE.md's invariant was updated to
+match (crimson `#D92632` light / `#FF4D59` dark; mint still means "live" only).
+
+What shipped (single commit):
+- `ui.js` — new `PALETTE` (both themes), neumorphic shadow tokens
+  (`--nm-out/-sm/-in`), red gradient + glow (`--acc-grad`, `--acc-glow`),
+  red `seg-pill`, white-text `Btn gold`, `.pbtn` premium square button with
+  red hover-flood, badge fixes (`${color}18` string concat on a CSS var never
+  worked — replaced with `color-mix`).
+- `dashboard-client.js` — sidebar is now a floating neumorphic card (video 1):
+  brand tile, grouped sections with dividers, red active capsule, live
+  conversation-count badge, Log out at the bottom; opens by default on desktop.
+  Header is a floating rounded bar (video 2): menu/sync/bell(+badge)/theme
+  toggle as premium squares, avatar with red gradient + mint live dot (mint dot
+  only when a channel is connected).
+- `Bookings.js` — premium range calendar (video 3): preset chips
+  (Today / Next 7 days / This month), tap-two-days range with red endpoints and
+  tinted band, start→end→duration summary strip, agenda + list filter follow
+  the range (`day` state is now `{a,b}` keys).
+- `landing.js`/`page.js` — public pages re-tokened to CSS vars (`--lp-*`),
+  light/dark palettes + `THEME_BOOT_JS` (shared `al-theme` storage key with the
+  dashboard), nav theme toggle, rounded neumorphic cards/film frame, red CTAs.
+- `pricing-client.js` re-tokened to the same vars; static pages
+  (terms/privacy/contact/google-calendar), admin, reset, Meta OAuth popups,
+  `public/widget.js`, `dress.svg` all moved off periwinkle.
+
+Verified: `npm run build` clean (no errors/warnings); landing, pricing and the
+dashboard auth screen render locally with the new tokens in the served HTML
+(placeholder env in gitignored `.env.local`). Browser console shows only two
+**pre-existing** errors (broken Google-Fonts `@import` hoisting + React
+hydration #425/#418/#423) — verified byte-identical on production *before* this
+change, so they are not from this redesign. Logged as a separate task; not
+fixed in this commit (one task at a time).
+
+**NOT verified:** pixel-level screenshots (the browser pane could not composite
+this session) and a real logged-in dashboard (no credentials locally). After
+deploy, the owner should eyeball: sidebar/header on desktop + phone, dark mode
+toggle, the Bookings range calendar, and the landing page in both themes.
+
+### What's next
+1. Owner eyeballs the deployed redesign on a phone and a laptop, both themes.
+2. Separate task exists for the pre-existing console errors (fonts + hydration).
+3. Everything under earlier "What's next" sections still stands.
+
+---
+
 ## Last session (2026-08-15) — Responsive audit
 
 **Scheduled responsive audit — PR open, not merged.** Ran as an automated task

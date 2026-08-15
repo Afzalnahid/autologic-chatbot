@@ -656,6 +656,10 @@ export default function Dashboard() {
     if(!silent)setLoading(false);
   };
 
+  // Desktop keeps the sidebar out by default the way the reference does not —
+  // a premium dashboard opens with its menu in place; a phone keeps it away.
+  useEffect(()=>{ if(stage==="app") setSidebarOpen(!isMobile); },[isMobile,stage]);
+
   useEffect(()=>{if(authed&&stage==="app")load();},[authed,stage]);
   useEffect(()=>{
     if(!authed||stage!=="app") return;
@@ -667,22 +671,47 @@ export default function Dashboard() {
   if(stage==="auth") return <AuthGate onReady={async()=>{setAuthed(true);await loadMe();}}/>;
   if(stage==="onboarding") return <Onboarding me={me} onDemo={()=>{setStage("app");setPage("demo");}} onTrial={async()=>{await loadMe();setStage("connect");}}/>;
   if(stage==="connect") return <ConnectChannel clientId={me?.client?.id} onDone={async()=>{const bt=me?.client?.business_type;await loadMe();setStage(bt==="agency"?"connect-cal":"app");}}/>;
-  if(stage==="connect-cal") return <ConnectCalendar clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;  
+  if(stage==="connect-cal") return <ConnectCalendar clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;
+
+  const activeCount=convos.filter(c=>c.status==="active").length;
+  const botLive=dashChannels.length>0;
+  const initials=(me?.client?.business_name||"A").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
 
   return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden",background:T.bg}}>
     <Theme/><Motion/>
-    {sidebarOpen&&isMobile&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:40}}/>}
-    <div style={{position:"fixed",zIndex:50,height:"100%",width:240,background:T.rail,borderRight:"none",display:"flex",flexDirection:"column",flexShrink:0,transform:sidebarOpen?"translateX(0)":"translateX(-100%)",transition:"transform 0.25s ease",left:0,top:0}}>
-      <div style={{padding:"20px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${T.railHover}`}}>
-        <div style={{width:36,height:36,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,border:`1px solid color-mix(in srgb, ${T.gold} 19%, transparent)`,overflow:"hidden"}}>{me?.client?.logo_url?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<i className="ti ti-bolt" style={{fontSize:18,color:T.gold}}/>}</div>
-        <div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:600,color:T.railTextOn,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{me?.client?.business_name||"Autologic"}</div><div style={{fontSize:10,color:T.railText,textTransform:"uppercase",letterSpacing:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{settings?.botName||"chatbot"}</div></div>
-        <i onClick={()=>setSidebarOpen(false)} className="ti ti-x" style={{fontSize:18,color:T.railText,cursor:"pointer"}}/>
+    {sidebarOpen&&isMobile&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:40}}/>}
+
+    {/* The sidebar is the reference's neumorphic card: a soft slab floating off
+        the page, grouped sections with quiet labels, and one red capsule marking
+        where you are. */}
+    <div style={{position:"fixed",zIndex:50,top:14,bottom:14,left:14,width:252,background:T.rail,
+      borderRadius:24,boxShadow:T.nmOut,display:"flex",flexDirection:"column",flexShrink:0,
+      transform:sidebarOpen?"translateX(0)":"translateX(calc(-100% - 28px))",transition:"transform 0.28s cubic-bezier(.22,.61,.36,1)",
+      paddingBottom:"env(safe-area-inset-bottom)"}}>
+      <div style={{padding:"20px 18px 14px",display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:44,height:44,borderRadius:14,background:T.card,boxShadow:T.nmSm,
+          display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
+          {me?.client?.logo_url
+            ?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            :<i className="ti ti-bolt" style={{fontSize:21,color:T.gold}}/>}
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:15,fontWeight:700,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.01em"}}>{me?.client?.business_name||"Autologic"}</div>
+          <div style={{fontSize:9.5,color:T.textDim,textTransform:"uppercase",letterSpacing:"0.16em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:2}}>{settings?.botName||"chatbot"}</div>
+        </div>
+        <button onClick={()=>setSidebarOpen(false)} className="ui-btn" aria-label="Collapse menu"
+          style={{width:28,height:28,borderRadius:9,display:"inline-flex",alignItems:"center",justifyContent:"center",
+            background:"transparent",border:"none",color:T.textDim,cursor:"pointer",padding:0}}>
+          <i className={`ti ti-${isMobile?"x":"chevron-left"}`} style={{fontSize:16}}/>
+        </button>
       </div>
-      <nav style={{flex:1,padding:"12px 8px",overflowY:"auto"}}>
-        {GROUPS.map(g=>(
-          <div key={g.title} style={{marginBottom:14}}>
-            <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",
-              color:"#5C6780",padding:"0 12px",marginBottom:6}}>{g.title}</div>
+
+      <nav style={{flex:1,padding:"4px 12px",overflowY:"auto",minHeight:0}}>
+        {GROUPS.map((g,gi)=>(
+          <div key={g.title} style={{marginBottom:6,paddingTop:gi?10:0,
+            borderTop:gi?`1px solid ${T.border}`:"none"}}>
+            <div style={{fontSize:9.5,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",
+              color:T.textDim,padding:"0 12px",marginBottom:6}}>{g.title}</div>
             <Segmented vertical value={page} onChange={(p)=>{setPage(p);if(isMobile)setSidebarOpen(false);}}
               items={g.pages.map(p=>{
                 const i=PAGES.indexOf(p);
@@ -690,39 +719,46 @@ export default function Dashboard() {
                   value:p,
                   label:navLabel(i),
                   icon:isAgency&&p==="inventory"?"ti-database":isAgency&&p==="orders"?"ti-calendar-event":ICONS[i],
-                  badge:p==="conversations"&&convos.some(c=>c.status==="active")?"•":undefined,
+                  badge:p==="conversations"&&activeCount?String(activeCount):undefined,
                 };
               })}/>
           </div>
         ))}
       </nav>
+
+      {/* The bottom of the reference sidebar: parted from the menu, always reachable. */}
+      <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`}}>
+        <button onClick={async()=>{try{await getSb().auth.signOut();}catch{} window.location.href="/";}}
+          className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,width:"100%",
+            padding:"10px 14px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
+            fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left"}}>
+          <i className="ti ti-logout" style={{fontSize:17}}/>Log out
+        </button>
+      </div>
     </div>
 
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0,marginLeft:(!isMobile&&sidebarOpen)?240:0,transition:"margin-left 0.25s ease"}}>
-      {/* One row, three zones, nothing overlapping: what you can go back to,
-          where you are, and what you can do here. The page dropdown is gone —
-          it repeated the sidebar, which is always one tap away. */}
-      {!(isMobile&&chatOpen)&&<div style={{padding:isMobile?"10px 14px":"14px 24px",background:T.card,
-        borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:isMobile?8:14}}>
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0,marginLeft:(!isMobile&&sidebarOpen)?280:0,transition:"margin-left 0.28s cubic-bezier(.22,.61,.36,1)"}}>
+      {/* The reference header: a rounded bar floating on the surface, square
+          soft-shadow buttons that flood red on hover, a live avatar on the end. */}
+      {!(isMobile&&chatOpen)&&<div style={{margin:isMobile?"10px 10px 0":"14px 18px 0",padding:isMobile?"8px 10px":"9px 12px",
+        background:T.card,borderRadius:isMobile?16:20,boxShadow:T.nmSm,
+        display:"flex",alignItems:"center",gap:isMobile?8:12,flexShrink:0}}>
 
         <div style={{display:"flex",alignItems:"center",gap:isMobile?6:10,flexShrink:0}}>
-          <button onClick={()=>setSidebarOpen(true)} className="ui-btn" aria-label="Menu"
-            style={{width:34,height:34,borderRadius:9,display:"inline-flex",alignItems:"center",
-              justifyContent:"center",background:"transparent",border:"none",color:T.text,cursor:"pointer",padding:0}}>
-            <i className="ti ti-menu-2" style={{fontSize:21}}/>
-          </button>
-          {isMobile&&page!==HOME&&<button onClick={()=>setPage(HOME)} className="ui-btn" aria-label="Back"
-            style={{width:34,height:34,borderRadius:9,display:"inline-flex",alignItems:"center",
-              justifyContent:"center",background:"transparent",border:`1px solid ${T.border}`,
-              color:T.textMuted,cursor:"pointer",padding:0}}>
+          {!sidebarOpen&&<button onClick={()=>setSidebarOpen(true)} className="pbtn" aria-label="Menu"
+            style={isMobile?{width:38,height:38,borderRadius:12}:undefined}>
+            <i className="ti ti-menu-2"/>
+          </button>}
+          {isMobile&&page!==HOME&&<button onClick={()=>setPage(HOME)} className="pbtn" aria-label="Back"
+            style={{width:38,height:38,borderRadius:12}}>
             <i className="ti ti-arrow-left" style={{fontSize:16}}/>
           </button>}
         </div>
 
         <div style={{minWidth:0,flex:1}}>
-          <div style={{fontSize:isMobile?15.5:18,fontWeight:700,letterSpacing:"-0.02em",
+          <div style={{fontSize:isMobile?15.5:17.5,fontWeight:700,letterSpacing:"-0.02em",
             overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{navLabel(PAGES.indexOf(page))}</div>
-          {!isMobile&&<div style={{fontSize:12,color:T.textDim,marginTop:2,overflow:"hidden",
+          {!isMobile&&<div style={{fontSize:11.5,color:T.textDim,marginTop:1,overflow:"hidden",
             textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {me?.client?.business_name} · {me?.client?.plan==='trial'
               ?`Trial — ${me?.usage?.today??0}/30 messages today`
@@ -730,17 +766,32 @@ export default function Dashboard() {
           </div>}
         </div>
 
-        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-          <Btn small onClick={()=>load(false)} disabled={loading} title="Sync"
-            style={isMobile?{padding:"7px 10px"}:undefined}>
-            <i className="ti ti-refresh" style={{marginRight:isMobile?0:5,display:"inline-block",
-              animation:loading?"spin 0.8s linear infinite":"none"}}/>
-            {!isMobile&&(loading?"Syncing":"Sync")}
-          </Btn>
-          <ThemeToggle mode={mode} toggle={toggleTheme}/>
+        <div style={{display:"flex",alignItems:"center",gap:isMobile?7:10,flexShrink:0}}>
+          <button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
+            title="Sync" aria-label="Sync"
+            style={isMobile?{width:38,height:38,borderRadius:12}:undefined}>
+            <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>
+          </button>
+          <button onClick={()=>setPage("conversations")} className="pbtn" title="Active conversations"
+            aria-label={`Notifications${activeCount?`, ${activeCount} active`:""}`}
+            style={isMobile?{width:38,height:38,borderRadius:12}:undefined}>
+            <i className="ti ti-bell"/>
+            {activeCount>0&&<span className="pbadge">{activeCount>9?"9+":activeCount}</span>}
+          </button>
+          <ThemeToggle mode={mode} toggle={toggleTheme} style={isMobile?{width:38,height:38,borderRadius:12}:undefined}/>
+          <div title={botLive?"Bot is live":"No channel connected"}
+            style={{position:"relative",width:isMobile?38:42,height:isMobile?38:42,borderRadius:"50%",
+              background:T.accGrad,boxShadow:T.accGlow,display:"flex",alignItems:"center",
+              justifyContent:"center",flexShrink:0,overflow:"visible"}}>
+            {me?.client?.logo_url
+              ?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:"50%"}}/>
+              :<span style={{fontSize:isMobile?13:15,fontWeight:700,color:"#fff",letterSpacing:".02em"}}>{initials}</span>}
+            {botLive&&<span className="ui-live" style={{position:"absolute",bottom:0,right:0,width:11,height:11,
+              borderRadius:"50%",background:T.live,border:`2px solid ${T.card}`}}/>}
+          </div>
         </div>
       </div>
-      }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:24),minHeight:0}}>
+      }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:20),minHeight:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <div key={page} className="ui-page">
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}

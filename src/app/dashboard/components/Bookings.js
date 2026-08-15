@@ -39,9 +39,14 @@ function group(ts) {
 }
 
 
-// A month at a glance. Every booking already carries a real timestamp, so the
-// grid is built from that — a dot for a meeting, a tick once it is done, a ring
-// on today. Tapping a day filters the list below to that day.
+// A month at a glance, with the reference's premium range picker: preset chips,
+// tap once for a day, tap a second day for a range — the endpoints fill red, the
+// days between get a tinted band, and a summary strip reads the whole selection
+// back. The agenda below follows whatever is selected.
+const fmtKey = (k, opt) => new Date(k + "T12:00:00").toLocaleDateString("en-GB",
+  opt || { day: "numeric", month: "short", year: "numeric" });
+const dayCount = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 864e5) + 1;
+
 function MonthGrid({ bookings, selected, onSelect }) {
   const [cursor, setCursor] = useState(() => { const d = new Date(); d.setDate(1); return d; });
   const [open, setOpen] = useState(false);
@@ -55,6 +60,23 @@ function MonthGrid({ bookings, selected, onSelect }) {
   const todayKey = keyOf(new Date());
   const monthName = cursor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   const shift = (n) => setCursor(new Date(y, m + n, 1));
+
+  // Range endpoints. `a` alone is a single picked day; `a`+`b` is a band.
+  const rA = selected?.a || null, rB = selected?.b || selected?.a || null;
+  const pick = (k) => {
+    if (!rA || selected?.b || selected?.preset) { onSelect({ a: k }); return; }
+    if (k === rA) { onSelect(null); return; }
+    onSelect(k < rA ? { a: k, b: rA } : { a: rA, b: k });
+  };
+  const inBand = (k) => rA && rB && rB !== rA && k > rA && k < rB;
+  const plusDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return keyOf(d); };
+  const PRESETS = [
+    { label: "Today", get: () => ({ a: todayKey, b: todayKey, preset: "Today" }) },
+    { label: "Next 7 days", get: () => ({ a: todayKey, b: plusDays(6), preset: "Next 7 days" }) },
+    { label: "This month", get: () => { const d = new Date(); return {
+      a: keyOf(new Date(d.getFullYear(), d.getMonth(), 1)),
+      b: keyOf(new Date(d.getFullYear(), d.getMonth() + 1, 0)), preset: "This month" }; } },
+  ];
 
   const byDay = {};
   bookings.forEach((b) => {
@@ -72,11 +94,16 @@ function MonthGrid({ bookings, selected, onSelect }) {
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(y, m, d));
 
   const total = bookings.filter((b) => b.meeting_datetime).length;
-  const dayKey = selected || todayKey;
-  const dayList = (byDay[dayKey] || [])
+  const dayList = bookings
+    .filter((b) => {
+      if (!b.meeting_datetime) return false;
+      const k = keyOf(new Date(b.meeting_datetime));
+      return rA ? (k >= rA && k <= rB) : k === todayKey;
+    })
     .sort((a, b) => new Date(a.meeting_datetime) - new Date(b.meeting_datetime));
-  const header = selected
-    ? new Date(selected + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+  const header = rA
+    ? (rA === rB ? fmtKey(rA, { weekday: "short", day: "numeric", month: "short" })
+      : `${fmtKey(rA, { day: "numeric", month: "short" })} → ${fmtKey(rB, { day: "numeric", month: "short" })}`)
     : `${monthName} · ${total} meeting${total === 1 ? "" : "s"}`;
 
   // Swipe to change month — expected on a phone, harmless with a mouse.
@@ -105,6 +132,25 @@ function MonthGrid({ bookings, selected, onSelect }) {
           <div className="cal-wrap">
 
             <div className="cal-swipe" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+              {/* Preset chips, exactly the reference's quick row. Selection applies
+                  immediately — no "apply" button between a tap and the answer. */}
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
+                {PRESETS.map((p) => {
+                  const on = selected?.preset === p.label;
+                  return (
+                    <button key={p.label} onClick={() => onSelect(on ? null : p.get())} className="ui-btn"
+                      style={{ padding: "6px 13px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+                        cursor: "pointer", border: `1px solid ${on ? "transparent" : T.border}`,
+                        background: on ? T.accGrad : T.card, color: on ? "#fff" : T.textMuted,
+                        boxShadow: on ? T.accGlow : "none" }}>{p.label}</button>
+                  );
+                })}
+                {selected && <button onClick={() => onSelect(null)} className="ui-btn"
+                  style={{ padding: "6px 13px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", border: "none", background: "transparent", color: T.gold }}>
+                  <i className="ti ti-x" style={{ fontSize: 12, marginRight: 4 }}/>Clear</button>}
+              </div>
+
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <Btn small onClick={() => shift(-1)} aria-label="Previous month"><i className="ti ti-chevron-left"/></Btn>
                 <div style={{ flex: 1, textAlign: "center", fontSize: 14, fontWeight: 600 }}>{monthName}</div>
@@ -123,26 +169,51 @@ function MonthGrid({ bookings, selected, onSelect }) {
                   const items = byDay[k] || [];
                   const live = items.filter((b) => b.status === "Confirmed").length;
                   const done = items.filter((b) => b.status === "Completed").length;
-                  const isToday = k === todayKey, isSel = k === selected;
+                  const isToday = k === todayKey;
+                  const isEnd = k === rA || k === rB;      // a range endpoint, filled red
+                  const banded = inBand(k);
                   return (
-                    <button key={k} onClick={() => onSelect(isSel ? null : k)} className="cal-cell ui-btn"
+                    <button key={k} onClick={() => pick(k)} className="cal-cell ui-btn"
                       aria-label={`${d.getDate()} ${monthName}${items.length ? `, ${items.length} meeting` : ""}`}
-                      style={{ background: isSel ? T.gold : items.length ? T.goldBg : "transparent",
-                        borderColor: isSel ? T.gold : isToday ? T.gold : "transparent",
-                        color: isSel ? "#0A0D14" : items.length ? T.text : T.textDim,
-                        fontWeight: isToday || items.length ? 600 : 400 }}>
+                      style={{ background: isEnd ? T.accGrad
+                          : banded ? `color-mix(in srgb, ${T.gold} 13%, transparent)`
+                          : items.length ? T.goldBg : "transparent",
+                        borderColor: isEnd ? "transparent" : isToday ? T.gold : "transparent",
+                        boxShadow: isEnd ? T.accGlow : "none",
+                        color: isEnd ? "#fff" : items.length || banded ? T.text : T.textDim,
+                        fontWeight: isToday || items.length || isEnd ? 600 : 400 }}>
                       {d.getDate()}
                       <span style={{ display: "flex", gap: 2, height: 5, alignItems: "center" }}>
                         {done > 0 && <i className="ti ti-check" style={{ fontSize: 10, lineHeight: 1,
-                          color: isSel ? "#0A0D14" : T.success }} />}
+                          color: isEnd ? "#fff" : T.success }} />}
                         {Array.from({ length: Math.min(live, 3) }).map((_, n) =>
                           <span key={n} style={{ width: 4, height: 4, borderRadius: "50%",
-                            background: isSel ? "#0A0D14" : T.gold }} />)}
+                            background: isEnd ? "#fff" : T.gold }} />)}
                       </span>
                     </button>
                   );
                 })}
               </div>
+
+              {/* The reference's summary bar: what is selected, read back in words. */}
+              {rA && <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                marginTop: 12, padding: "10px 14px", borderRadius: 12, background: T.bgAlt,
+                boxShadow: T.nmIn, fontSize: 12.5 }}>
+                <span>
+                  <span style={{ display: "block", fontSize: 9, fontWeight: 700, letterSpacing: ".12em",
+                    color: T.textDim, textTransform: "uppercase" }}>Start</span>
+                  <b>{fmtKey(rA)}</b>
+                </span>
+                <i className="ti ti-arrow-right" style={{ color: T.gold, fontSize: 15 }}/>
+                <span>
+                  <span style={{ display: "block", fontSize: 9, fontWeight: 700, letterSpacing: ".12em",
+                    color: T.textDim, textTransform: "uppercase" }}>End</span>
+                  <b>{fmtKey(rB)}</b>
+                </span>
+                <span style={{ marginLeft: "auto", padding: "4px 11px", borderRadius: 999,
+                  background: T.accGrad, color: "#fff", fontSize: 11.5, fontWeight: 700 }}>
+                  {dayCount(rA, rB)} day{dayCount(rA, rB) === 1 ? "" : "s"}</span>
+              </div>}
 
               <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 12, paddingTop: 10,
                 borderTop: `1px solid ${T.border}`, fontSize: 11, color: T.textMuted }}>
@@ -152,6 +223,8 @@ function MonthGrid({ bookings, selected, onSelect }) {
                   <i className="ti ti-check" style={{ fontSize: 11, color: T.success }} />Done</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                   <span style={{ width: 9, height: 9, borderRadius: 3, border: `1px solid ${T.gold}` }} />Today</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.textDim }}>
+                  Tap two days for a range</span>
               </div>
             </div>
 
@@ -160,10 +233,14 @@ function MonthGrid({ bookings, selected, onSelect }) {
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
                 <span style={{ fontSize: 13.5, fontWeight: 600 }}>
-                  {new Date(dayKey + "T12:00:00").toLocaleDateString("en-GB",
-                    { weekday: "long", day: "numeric", month: "long" })}
+                  {rA
+                    ? (rA === rB
+                        ? fmtKey(rA, { weekday: "long", day: "numeric", month: "long" })
+                        : `${fmtKey(rA, { day: "numeric", month: "short" })} → ${fmtKey(rB, { day: "numeric", month: "short" })}`)
+                    : new Date(todayKey + "T12:00:00").toLocaleDateString("en-GB",
+                        { weekday: "long", day: "numeric", month: "long" })}
                 </span>
-                {dayKey === todayKey && <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: .5,
+                {(rA || todayKey) === todayKey && rA === rB && <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: .5,
                   color: T.gold }}>TODAY</span>}
                 {selected && <button onClick={() => onSelect(null)} className="ui-btn"
                   style={{ marginLeft: "auto", background: "transparent", border: "none", color: T.gold,
@@ -172,12 +249,17 @@ function MonthGrid({ bookings, selected, onSelect }) {
 
               {dayList.length === 0
                 ? <div style={{ fontSize: 13, color: T.textMuted, padding: "14px 0" }}>
-                    Nothing booked on this day.
+                    {rA && rA !== rB ? "Nothing booked in this range." : "Nothing booked on this day."}
                   </div>
                 : dayList.map((b) => (
                     <div key={b.id} className="cal-day">
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: T.gold, minWidth: 68,
                         fontVariantNumeric: "tabular-nums" }}>
+                        {rA && rA !== rB && <span style={{ display: "block", fontSize: 10.5, color: T.textMuted,
+                          fontWeight: 600 }}>
+                          {new Date(b.meeting_datetime).toLocaleDateString("en-GB",
+                            { day: "numeric", month: "short", timeZone: DHAKA })}
+                        </span>}
                         {new Date(b.meeting_datetime).toLocaleTimeString("en-US",
                           { hour: "numeric", minute: "2-digit", timeZone: DHAKA })}
                       </div>
@@ -286,7 +368,12 @@ export default function Bookings({calConnected,clientId}) {
     window.addEventListener("message",h);
   };
 
-  const byDay = day ? bookings.filter(b=>b.meeting_datetime&&keyOf(new Date(b.meeting_datetime))===day) : bookings;
+  // `day` is now a range: {a, b?} of YYYY-MM-DD keys (string compare is date order).
+  const byDay = day?.a ? bookings.filter(b=>{
+    if(!b.meeting_datetime) return false;
+    const k=keyOf(new Date(b.meeting_datetime));
+    return k>=day.a && k<=(day.b||day.a);
+  }) : bookings;
   const byCh = chFilter==="all"?byDay:byDay.filter(b=>b.platform===chFilter);
   const filtered = (filter==="All"?byCh:byCh.filter(b=>b.status===filter))
     .map(b=>({...b,_w:when(b)}))
@@ -357,10 +444,12 @@ export default function Bookings({calConnected,clientId}) {
     </div>
     {bookings.length>0&&<MonthGrid bookings={bookings} selected={day} onSelect={setDay}/>}
 
-    {day&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"9px 13px",
-      borderRadius:10,background:T.goldBg,border:`1px solid ${T.gold}`,fontSize:13}}>
+    {day?.a&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"9px 13px",
+      borderRadius:12,background:T.goldBg,border:`1px solid color-mix(in srgb, ${T.gold} 30%, transparent)`,fontSize:13}}>
       <i className="ti ti-calendar-event" style={{color:T.gold}}/>
-      Showing {new Date(day+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})}
+      Showing {(!day.b||day.b===day.a)
+        ? new Date(day.a+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"})
+        : `${new Date(day.a+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})} → ${new Date(day.b+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`}
       <button onClick={()=>setDay(null)} className="ui-btn" style={{marginLeft:"auto",background:"transparent",
         border:"none",color:T.gold,cursor:"pointer",fontSize:12.5,fontWeight:600}}>Show all</button>
     </div>}

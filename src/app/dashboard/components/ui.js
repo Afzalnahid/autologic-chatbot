@@ -19,6 +19,8 @@ export const T = {
   border: "var(--border)", borderStrong: "var(--borderStrong)",
   danger: "var(--danger)", success: "var(--success)", info: "var(--gold)", warn: "var(--warn)", purple: "var(--purple)",
   live: "var(--live)", liveBg: "var(--liveBg)", warnBg: "var(--warnBg)", dangerBg: "var(--dangerBg)",
+  nmOut: "var(--nm-out)", nmSm: "var(--nm-sm)", nmIn: "var(--nm-in)",
+  accGrad: "var(--acc-grad)", accGlow: "var(--acc-glow)",
 };
 
 export const ITEM_WORDS = { ecommerce:{item:"Product",inv:"Inventory",order:"Orders"}, agency:{item:"Service",inv:"Services",order:"Inquiries"}, other:{item:"Item",inv:"Catalog",order:"Requests"} };
@@ -35,9 +37,9 @@ export function useIsMobile(){
   return m;
 }
 
-export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:500,background:danger?T.danger:gold?T.gold:T.goldBg,color:danger?"#fff":gold?"#0A0D14":T.gold,...style}}>{children}</button>; }
-export function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,background:`${color}18`,color}}>{children}</span>; }
-export function Card({children,style,...p}){ return <div {...p} className="ui-card" style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,boxShadow:"0 1px 2px rgba(19,23,34,.04)",padding:"1.25rem",...style}}>{children}</div>; }
+export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:small?10:12,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:600,background:danger?T.danger:gold?T.accGrad:T.goldBg,color:danger?"#fff":gold?"#fff":T.gold,boxShadow:gold?T.accGlow:"none",...style}}>{children}</button>; }
+export function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:`color-mix(in srgb, ${color} 11%, transparent)`,color}}>{children}</span>; }
+export function Card({children,style,...p}){ return <div {...p} className="ui-card" style={{background:T.card,borderRadius:18,border:`1px solid ${T.border}`,boxShadow:T.nmSm,padding:"1.25rem",...style}}>{children}</div>; }
 export function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} className="ui-inp" style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} className="ui-inp" style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
 
 // Plan catalogue and formatting used by several tabs.
@@ -60,7 +62,7 @@ export const taka=n=>"\u09F3"+Number(n||0).toLocaleString("en-IN");
 export const shortDate=d=>d?new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
 
 // Chart and stat building blocks shared by the tabs.
-export function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:10,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
+export function StatCard({icon,label,value,sub,color=T.gold}){ return <Card style={{flex:1,minWidth:140}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><div style={{width:36,height:36,borderRadius:12,background:`color-mix(in srgb, ${color} 10%, transparent)`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${icon}`} style={{fontSize:18,color}}/></div><span style={{fontSize:12,color:T.textMuted,textTransform:"uppercase",letterSpacing:.8}}>{label}</span></div><div style={{fontSize:28,fontWeight:600,color:T.text}}>{value}</div>{sub&&<div style={{fontSize:12,color:T.textMuted,marginTop:4}}>{sub}</div>}</Card>; }
 
 export const fmtNum=n=>{const v=Number(n)||0;if(Math.abs(v)>=1e6)return (v/1e6).toFixed(v%1e6===0?0:1)+"M";if(Math.abs(v)>=1000)return (v/1000).toFixed(v%1000===0?0:1)+"K";return String(v);};
 export const fmtMoney=n=>"\u09F3"+(Number(n)||0).toLocaleString("en-IN");
@@ -79,7 +81,7 @@ export function Trend({value,unit="%",invert}) {
 export function KStat({icon,label,value,sub,color=T.gold,trend,trendUnit,invert}) {
   return <Card style={{flex:1,minWidth:150}}>
     <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:10}}>
-      <div style={{width:30,height:30,borderRadius:9,background:`${color}15`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+      <div style={{width:30,height:30,borderRadius:10,background:`color-mix(in srgb, ${color} 10%, transparent)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
         <i className={`ti ${icon}`} style={{fontSize:15,color}}/>
       </div>
       <span style={{fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:.7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</span>
@@ -262,7 +264,9 @@ export function Motion() {
         input, textarea, select { font-size: max(16px, 1em) }
       }
 
-      .seg-pill { background: ${T.railHover}; box-shadow: inset 0 1px 0 rgba(255,255,255,.06) }
+      /* The active pill is the one filled red in the whole surface — exactly the
+         reference sidebar: red capsule, white text, soft red glow. */
+      .seg-pill { background: var(--acc-grad); box-shadow: var(--acc-glow) }
       /* Glass only where something colourful sits behind it — over a flat panel
          a blur has nothing to blur and just looks grey. */
       .seg-glass { background: rgba(255,255,255,.14); backdrop-filter: blur(14px) saturate(150%);
@@ -270,7 +274,23 @@ export function Motion() {
         border: 1px solid rgba(255,255,255,.30);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 22px rgba(0,0,0,.18) }
       .seg-item:focus-visible { outline: 2px solid ${T.gold}; outline-offset: 2px }
-      @media (hover: hover) and (pointer: fine) { .seg-item:hover { color: ${T.railTextOn} } }
+      @media (hover: hover) and (pointer: fine) { .seg-item:hover { color: ${T.text} } }
+
+      /* Premium square button — the reference header's 48px rounded tile that
+         lifts off the surface and floods red on hover. */
+      .pbtn { position: relative; width: 42px; height: 42px; border-radius: 14px; border: none;
+        cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+        background: ${T.card}; color: ${T.textMuted}; box-shadow: var(--nm-sm); flex-shrink: 0;
+        transition: background .3s ease, color .3s ease, box-shadow .3s ease, transform .15s ease }
+      .pbtn:active { transform: scale(.94) }
+      @media (hover: hover) and (pointer: fine) {
+        .pbtn:hover { background: var(--acc-grad); color: #fff; box-shadow: var(--acc-glow) }
+      }
+      .pbtn .ti { font-size: 19px }
+      .pbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
+        padding: 0 5px; border-radius: 9px; background: var(--acc-grad); color: #fff;
+        font-size: 10px; font-weight: 700; display: flex; align-items: center;
+        justify-content: center; border: 2px solid ${T.card}; box-sizing: content-box }
       /* Calendar. A month grid is a navigator; the day list is where the work
          happens — so on a wide screen they sit side by side instead of the grid
          hugging one corner, and on a phone the grid stays a compact header above
@@ -300,24 +320,29 @@ export function Motion() {
   );
 }
 
+// The 2026-08 redesign: crimson on soft white, neumorphic depth. `gold` still
+// names the primary accent (every component reads it), it just holds red now.
+// Mint stays reserved for "the bot is live" and nothing else.
 export const PALETTE = {
   light: {
-    bg: "#F4F6F9", bgAlt: "#EDF0F5", card: "#FFFFFF", cardAlt: "#F8FAFC", inset: "#E9EDF3",
-    rail: "#0D111A", railHover: "#1A2130", railText: "#A8B2C6", railTextOn: "#FFFFFF",
-    gold: "#3B6FE8", goldDim: "#2B55C4", goldBg: "rgba(59,111,232,0.09)",
-    text: "#0F1420", textMuted: "#4A5568", textDim: "#6B7488",
-    border: "#DDE3EC", borderStrong: "#C6CEDC",
-    danger: "#C93A50", success: "#097A5A", warn: "#8A5A07", purple: "#6D3FD9",
-    live: "#0FA97C", liveBg: "rgba(15,169,124,0.11)", warnBg: "rgba(154,100,8,0.10)", dangerBg: "rgba(201,58,80,0.09)",
+    bg: "#EEF0F5", bgAlt: "#E7EAF1", card: "#F5F6FA", cardAlt: "#FBFCFE", inset: "#E3E7EF",
+    rail: "#F5F6FA", railHover: "#E9ECF3", railText: "#697083", railTextOn: "#FFFFFF",
+    gold: "#D92632", goldDim: "#B01824", goldBg: "rgba(217,38,50,0.08)",
+    text: "#191C24", textMuted: "#4C5364", textDim: "#8A91A3",
+    border: "#DFE3EC", borderStrong: "#C9CFDD",
+    danger: "#C9273A", success: "#0A7C5C", warn: "#8A5A07", purple: "#6D3FD9",
+    live: "#0FA97C", liveBg: "rgba(15,169,124,0.11)", warnBg: "rgba(154,100,8,0.10)", dangerBg: "rgba(201,39,58,0.09)",
+    shDark: "rgba(166,173,192,0.5)", shLight: "rgba(255,255,255,0.95)",
   },
   dark: {
-    bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420", cardAlt: "#151B2A", inset: "#1C2436",
-    rail: "#080B12", railHover: "#161C2A", railText: "#98A3BA", railTextOn: "#FFFFFF",
-    gold: "#7BA4FF", goldDim: "#5B8CFF", goldBg: "rgba(123,164,255,0.13)",
-    text: "#E7EAF2", textMuted: "#A7B1C6", textDim: "#7C879C",
-    border: "#1F2839", borderStrong: "#2C374D",
+    bg: "#111318", bgAlt: "#15181F", card: "#191C24", cardAlt: "#1F232D", inset: "#242936",
+    rail: "#191C24", railHover: "#232833", railText: "#8B93A6", railTextOn: "#FFFFFF",
+    gold: "#FF4D59", goldDim: "#E23440", goldBg: "rgba(255,77,89,0.12)",
+    text: "#EAECF2", textMuted: "#A9B0C0", textDim: "#7C8496",
+    border: "#252A35", borderStrong: "#333A49",
     danger: "#FF7A82", success: "#3FE0B4", warn: "#F5C25A", purple: "#A78BFA",
     live: "#2ED3A7", liveBg: "rgba(46,211,167,0.13)", warnBg: "rgba(245,194,90,0.12)", dangerBg: "rgba(255,122,130,0.11)",
+    shDark: "rgba(0,0,0,0.55)", shLight: "rgba(255,255,255,0.05)",
   },
 };
 
@@ -328,6 +353,15 @@ export function Theme() {
     <style>{`
       :root, [data-theme="light"] { ${vars(PALETTE.light)}; color-scheme: light }
       [data-theme="dark"] { ${vars(PALETTE.dark)}; color-scheme: dark }
+      /* Neumorphic depth, derived from the palette's shadow pair so both themes
+         carve the same shapes. --acc-grad is the one red every filled control uses. */
+      :root, [data-theme="light"], [data-theme="dark"] {
+        --nm-out: 9px 9px 20px var(--shDark), -9px -9px 20px var(--shLight);
+        --nm-sm: 4px 4px 10px var(--shDark), -4px -4px 10px var(--shLight);
+        --nm-in: inset 4px 4px 9px var(--shDark), inset -4px -4px 9px var(--shLight);
+        --acc-grad: linear-gradient(135deg, var(--gold), var(--goldDim));
+        --acc-glow: 0 10px 22px color-mix(in srgb, var(--gold) 32%, transparent);
+      }
       body { background: var(--bg); color: var(--text) }
     `}</style>
   );
@@ -353,14 +387,11 @@ export function useTheme() {
   return [mode, toggle];
 }
 
-export function ThemeToggle({ mode, toggle, onRail }) {
+export function ThemeToggle({ mode, toggle, style }) {
   return (
-    <button onClick={toggle} className="ui-btn" title={mode === "dark" ? "Switch to light" : "Switch to dark"}
-      aria-label="Switch theme"
-      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34,
-        borderRadius: 9, cursor: "pointer", background: onRail ? "transparent" : T.card,
-        border: `1px solid ${onRail ? T.railHover : T.border}`, color: onRail ? T.railText : T.textMuted }}>
-      <i className={`ti ti-${mode === "dark" ? "sun" : "moon"}`} style={{ fontSize: 16 }} />
+    <button onClick={toggle} className="pbtn" title={mode === "dark" ? "Switch to light" : "Switch to dark"}
+      aria-label="Switch theme" style={style}>
+      <i className={`ti ti-${mode === "dark" ? "sun" : "moon"}`} />
     </button>
   );
 }
@@ -465,11 +496,11 @@ export function Segmented({ items, value, onChange, vertical = false, glass = fa
               whiteSpace: "nowrap", justifyContent: vertical ? "flex-start" : "center",
               width: vertical ? "100%" : "auto", transition: "color .2s ease-out" }}>
             {it.icon && <i className={`ti ${it.icon}`} style={{ fontSize: 17, flexShrink: 0,
-              color: on ? T.gold : "inherit", transition: "color .2s ease-out" }} />}
+              color: "inherit", transition: "color .2s ease-out" }} />}
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{it.label ?? it}</span>
             {it.badge != null && (
-              <span style={{ marginLeft: "auto", background: on ? T.gold : T.railHover,
-                color: on ? "#0A0D14" : T.railText, fontSize: 10.5, fontWeight: 700, minWidth: 18, height: 18,
+              <span style={{ marginLeft: "auto", background: on ? "rgba(255,255,255,.25)" : T.accGrad,
+                color: "#fff", fontSize: 10.5, fontWeight: 700, minWidth: 18, height: 18,
                 borderRadius: 9, display: "inline-flex", alignItems: "center", justifyContent: "center",
                 padding: "0 5px" }}>{it.badge}</span>
             )}

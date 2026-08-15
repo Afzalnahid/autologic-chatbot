@@ -93,9 +93,9 @@ export async function GET(request) {
   .err{color:#FF5A5F}
   .ok{color:#2ED3A7}
   .alt{margin-top:20px;padding-top:18px;border-top:1px solid #1F2839;font-size:12.5px;color:#5E6B85;line-height:1.6}
-  .alt a{color:#5B8CFF;text-decoration:none;display:block;margin-top:3px;font-weight:500}
+  .alt a{color:#FF6B75;text-decoration:none;display:block;margin-top:3px;font-weight:500}
   .alt a:hover{text-decoration:underline}
-  .spin{display:inline-block;width:13px;height:13px;border:2px solid #2C374D;border-top-color:#5B8CFF;
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid #2C374D;border-top-color:#FF6B75;
         border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:7px}
   @keyframes s{to{transform:rotate(360deg)}}
 </style></head><body>

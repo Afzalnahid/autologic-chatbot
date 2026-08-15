@@ -36,8 +36,12 @@ Google Calendar · Vercel (`autologic-chatbot.vercel.app`)
 - Locked prompts (`FIXED_BASE`, `FIXED_ECOM`, `FIXED_AGENCY`) are enforced on the
   server and stay there.
 - Every feature answers for **both** `ecommerce` and `agency` business types.
-- Periwinkle `#5B8CFF` is the brand colour. Gold was removed and never returns.
+- Crimson `#D92632` on soft white is the brand palette (owner's 2026-08-16 redesign;
+  dark mode uses `#FF4D59`). Periwinkle and gold were removed and never return.
   Mint `#2ED3A7` means "bot is live" and nothing else.
+- Design tokens are CSS variables: the dashboard's live in
+  `src/app/dashboard/components/ui.js` (`PALETTE`), the public pages' in
+  `src/lib/landing.js` (`THEME_CSS`). Never hard-code a brand colour in a component.
 - Embeddings stay 768-dimensional.
 - Client setup is one click. Never ask a business owner to find an ID or paste a token.
 - Broadcasts and follow-ups only ever send inside Meta's 24-hour window.

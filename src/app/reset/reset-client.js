@@ -4,7 +4,7 @@ import { createClient as createSb } from "@/utils/supabase/client";
 
 const T = {
   bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420",
-  gold: "#5B8CFF", text: "#E7EAF2", textMuted: "#98A3BA",
+  gold: "#FF6B75", text: "#E7EAF2", textMuted: "#98A3BA",
   border: "#1F2839", danger: "#FF5A5F", success: "#2ED3A7",
 };
 

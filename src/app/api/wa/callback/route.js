@@ -90,7 +90,7 @@ export async function GET(request) {
     // If still nothing found — show manual fallback with the token pre-filled
     if (!phoneNumbers.length) {
       return html(`
-        <h3 style="color:#5B8CFF;margin-bottom:6px">Connect WhatsApp</h3>
+        <h3 style="color:#FF6B75;margin-bottom:6px">Connect WhatsApp</h3>
         <p style="color:#98A3BA;font-size:13px;margin-bottom:20px">
           Auto-detection requires <strong>whatsapp_business_management</strong> permission 
           (pending App Review). Enter your Phone Number ID manually below — 
@@ -107,7 +107,7 @@ export async function GET(request) {
               Find this in: Meta App Dashboard → WhatsApp → API Setup → Phone number ID
             </p>
           </div>
-          <button type="submit" style="width:100%;padding:12px;background:#5B8CFF;color:#0a0a0a;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
+          <button type="submit" style="width:100%;padding:12px;background:#E23440;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
         </form>
         <p style="font-size:11px;color:#64748b;margin-top:14px;text-align:center">
           After App Review is approved, this will be fully automatic.
@@ -127,13 +127,13 @@ export async function GET(request) {
     const encoded = encodeURIComponent(JSON.stringify(phoneNumbers));
 
     return html(`
-      <h3 style="color:#5B8CFF;margin-bottom:4px">Connect WhatsApp</h3>
+      <h3 style="color:#FF6B75;margin-bottom:4px">Connect WhatsApp</h3>
       <p style="color:#98A3BA;font-size:13px;margin-bottom:20px">Select which number to connect</p>
       <form method="POST" action="/api/wa/select">
         <input type="hidden" name="state" value="${stateToken}">
         <input type="hidden" name="phones" value="${encoded}">
         ${opts}
-        <button type="submit" style="margin-top:14px;width:100%;padding:12px;background:#5B8CFF;color:#0a0a0a;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
+        <button type="submit" style="margin-top:14px;width:100%;padding:12px;background:#E23440;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
       </form>
     `);
   } catch (e) {

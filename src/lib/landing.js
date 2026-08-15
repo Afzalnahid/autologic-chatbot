@@ -3,27 +3,80 @@
 // side where a mismatch is obvious.
 
 // The product's palette, not the reference's. A visitor who signs up lands in a
-// dashboard painted these colours; a cream-and-orange landing page made the two
-// look like different companies. The reference's *structure* is what was worth
-// keeping — the serif display, the technical microtype, the hairline grid.
+// dashboard painted these colours; a mismatched landing page made the two look
+// like different companies. Every value is a CSS variable so the page follows
+// the same light/dark switch as the dashboard (shared "al-theme" storage key).
+// 2026-08 redesign: crimson on soft white, neumorphic depth; dark mode mirrors it.
 export const P = {
-  paper: "#0A0D14",        // page
-  paper2: "#0F1420",       // raised surface
-  ink: "#E7EAF2",          // text
-  inkSoft: "#98A3BA",      // secondary text
-  blue: "#5B8CFF",         // the brand accent, everywhere
-  blueSoft: "rgba(91,140,255,0.10)",
-  accent: "#5B8CFF",       // was orange; one accent is enough
-  live: "#2ED3A7",         // mint, and only ever "the bot is live"
-  line: "#1F2839",
-  onAccent: "#0A0D14",     // text sitting on a periwinkle fill
+  paper: "var(--lp-bg)",        // page
+  paper2: "var(--lp-card)",     // raised surface
+  ink: "var(--lp-ink)",         // text
+  inkSoft: "var(--lp-soft)",    // secondary text
+  blue: "var(--lp-acc)",        // the brand accent (crimson), everywhere
+  blueSoft: "var(--lp-accSoft)",
+  accent: "var(--lp-acc)",      // one accent is enough
+  live: "#2ED3A7",              // mint, and only ever "the bot is live"
+  line: "var(--lp-line)",
+  onAccent: "#FFFFFF",          // text sitting on a crimson fill
+  bubble: "var(--lp-bubble)",   // chat bubbles / typing dots in the phone demo
 };
+
+// The two palettes plus the neumorphic depth tokens. Loaded by every public
+// page (landing, pricing), so the whole site re-themes from one place.
+export const THEME_CSS = `
+  :root, [data-theme="light"] {
+    --lp-bg:#EEF0F5; --lp-card:#F7F8FC; --lp-ink:#16181F; --lp-soft:#5A6170;
+    --lp-acc:#D92632; --lp-accDim:#B01824; --lp-accSoft:rgba(217,38,50,.08);
+    --lp-line:#DFE3EC; --lp-bubble:#FFFFFF;
+    --lp-shd:rgba(166,173,192,.5); --lp-shl:rgba(255,255,255,.95);
+    color-scheme: light;
+  }
+  [data-theme="dark"] {
+    --lp-bg:#111318; --lp-card:#191C24; --lp-ink:#EAECF2; --lp-soft:#9AA1B2;
+    --lp-acc:#FF4D59; --lp-accDim:#E23440; --lp-accSoft:rgba(255,77,89,.11);
+    --lp-line:#252A35; --lp-bubble:#20242E;
+    --lp-shd:rgba(0,0,0,.55); --lp-shl:rgba(255,255,255,.05);
+    color-scheme: dark;
+  }
+  :root {
+    --lp-nm: 9px 9px 22px var(--lp-shd), -9px -9px 22px var(--lp-shl);
+    --lp-nm-sm: 4px 4px 12px var(--lp-shd), -4px -4px 12px var(--lp-shl);
+    --lp-grad: linear-gradient(135deg, var(--lp-acc), var(--lp-accDim));
+    --lp-glow: 0 10px 24px color-mix(in srgb, var(--lp-acc) 30%, transparent);
+  }
+  body { background: var(--lp-bg) }
+`;
+
+// Applies the saved theme before first paint and wires the nav toggle. The
+// storage key is shared with the dashboard, so one choice follows the visitor
+// across the whole site.
+export const THEME_BOOT_JS = `(function(){
+  function apply(t){
+    document.documentElement.dataset.theme = t;
+    var ic = document.getElementById("al-mode-ic");
+    if (ic) ic.className = "ti ti-" + (t === "dark" ? "sun" : "moon");
+  }
+  var t = null;
+  try { t = localStorage.getItem("al-theme"); } catch(e){}
+  if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  apply(t);
+  function wire(){
+    apply(document.documentElement.dataset.theme || "light");
+    var b = document.getElementById("al-mode");
+    if (b) b.addEventListener("click", function(){
+      var next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      apply(next);
+      try { localStorage.setItem("al-theme", next); } catch(e){}
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire); else wire();
+})();`;
 
 export const CH = {
   whatsapp:  { icon: "ti-brand-whatsapp",  name: "WhatsApp Business",  short: "WhatsApp",  tint: "#25D366" },
   messenger: { icon: "ti-brand-messenger", name: "Facebook Messenger", short: "Messenger", tint: "#0084FF" },
   instagram: { icon: "ti-brand-instagram", name: "Instagram Business", short: "Instagram", tint: "#E1306C" },
-  website:   { icon: "ti-world",           name: "Your website",       short: "Website",   tint: "#5B8CFF" },
+  website:   { icon: "ti-world",           name: "Your website",       short: "Website",   tint: "#D92632" },
 };
 
 // Both languages, written rather than machine-translated, because the customer
@@ -156,7 +209,8 @@ export function flowCss() {
     .core-ring { position:absolute; inset:0; border-radius:50%; border:1px solid ${P.blue}; animation: fpulse 2.4s ease-out infinite }
     .core-ring:nth-child(2) { animation-delay: 1.2s }
     @keyframes spin { to { transform: rotate(360deg) } }
-    .core-arc { position:absolute; inset:-6px; border-radius:50%; border:1.5px dashed ${P.blue}55;
+    .core-arc { position:absolute; inset:-6px; border-radius:50%;
+      border:1.5px dashed color-mix(in srgb, ${P.blue} 33%, transparent);
       border-top-color: ${P.accent}; animation: spin 6s linear infinite }
     .fprog { height: 2px; background: ${P.line}; position: relative; overflow: hidden }
     .fprog i { position:absolute; inset:0; background: ${P.accent}; transform-origin: left; transform: scaleX(0);

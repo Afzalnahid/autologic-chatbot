@@ -2,7 +2,7 @@ export const metadata = { title: "Privacy Policy - Autologic" };
 
 export default function Privacy() {
   const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
-  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#5B8CFF" };
+  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#FF6B75" };
   const P = { marginBottom: 12 };
   return (
     <div style={{ background: "#0A0D14", minHeight: "100vh" }}>
@@ -37,10 +37,10 @@ export default function Privacy() {
         <h2 style={H2}>9. Changes to This Policy</h2>
         <p style={P}>We may update this Privacy Policy from time to time. The date at the top reflects the most recent revision. Continued use after changes constitutes acceptance.</p>
         <h2 style={H2}>10. Contact</h2>
-        <p style={P}><strong>Autologic</strong> · Kandirpar, Cumilla, Bangladesh<br/>Email: <a href="mailto:nahidafzal97@gmail.com" style={{ color: "#5B8CFF" }}>nahidafzal97@gmail.com</a></p>
-        <div style={{ marginTop: 48, padding: "16px 20px", background: "rgba(91,140,255,0.06)", borderRadius: 8, border: "1px solid rgba(91,140,255,0.15)", fontSize: 13, color: "#98A3BA" }}>
+        <p style={P}><strong>Autologic</strong> · Kandirpar, Cumilla, Bangladesh<br/>Email: <a href="mailto:nahidafzal97@gmail.com" style={{ color: "#FF6B75" }}>nahidafzal97@gmail.com</a></p>
+        <div style={{ marginTop: 48, padding: "16px 20px", background: "rgba(255,107,117,0.07)", borderRadius: 8, border: "1px solid rgba(255,107,117,0.18)", fontSize: 13, color: "#98A3BA" }}>
           Autologic's use of information received from Google APIs will adhere to the{" "}
-          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: "#5B8CFF" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: "#FF6B75" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.
         </div>
       </div>
     </div>

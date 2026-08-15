@@ -4,7 +4,7 @@ export const metadata = {
 };
 
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
-import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS } from "@/lib/landing.js";
+import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS, THEME_BOOT_JS } from "@/lib/landing.js";
 
 const mono = { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 10.5,
   letterSpacing: "0.13em", textTransform: "uppercase" };
@@ -54,7 +54,7 @@ function Slide({ conv, c, k }) {
 function Bub({ me, children }) {
   return (
     <div style={{ maxWidth: "84%", fontSize: 12.5, lineHeight: 1.6, padding: "8px 11px", borderRadius: 12,
-      background: me ? P.blue : "#151B29", color: me ? P.onAccent : P.ink,
+      background: me ? P.blue : P.bubble, color: me ? P.onAccent : P.ink,
       borderBottomRightRadius: me ? 4 : 12, borderBottomLeftRadius: me ? 12 : 4,
       border: me ? "none" : `1px solid ${P.line}` }}>{children}</div>
   );
@@ -67,7 +67,8 @@ function Bub({ me, children }) {
 function Flow({ lang }) {
   const bn = lang === "bn";
   return (
-    <div className="flow-wrap" style={{ border: `1px solid ${P.line}`, background: P.paper2 }}>
+    <div className="flow-wrap" style={{ border: `1px solid ${P.line}`, background: P.paper2,
+      borderRadius: 20, overflow: "hidden", boxShadow: "var(--lp-nm-sm)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 18px 12px", borderBottom: `1px solid ${P.line}` }}>
         <span style={{ ...mono, fontSize: 9.5, color: P.inkSoft }}>⌗ {bn ? "যেভাবে কাজ করে" : "How it works"}</span>
@@ -160,8 +161,10 @@ export default function Home({ searchParams }) {
   return (
     <div style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
+      <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_JS }} />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
+        ${THEME_CSS}
         html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
         * { -webkit-tap-highlight-color: transparent }
         /* Long Bangla compounds and URLs must never push the layout sideways. */
@@ -183,7 +186,8 @@ export default function Home({ searchParams }) {
 
         /* The sheet: hairline rules and crop marks, so the page reads as a drawing. */
         .sheet { position: fixed; inset: 14px; pointer-events: none; border: 1px solid ${P.line}; z-index: 3 }
-        .sheet i { position: absolute; width: 9px; height: 9px; border: 1px solid ${P.blue}44 }
+        .sheet i { position: absolute; width: 9px; height: 9px;
+          border: 1px solid color-mix(in srgb, ${P.blue} 27%, transparent) }
         .sheet i:nth-child(1) { top: -5px; left: -5px } .sheet i:nth-child(2) { top: -5px; right: -5px }
         .sheet i:nth-child(3) { bottom: -5px; left: -5px } .sheet i:nth-child(4) { bottom: -5px; right: -5px }
 
@@ -196,10 +200,13 @@ export default function Home({ searchParams }) {
 
         .navbtn { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .09em;
           text-transform: uppercase; text-decoration: none; color: ${P.ink}; border: 1px solid ${P.line};
-          padding: 8px 11px; white-space: nowrap; line-height: 1; transition: all .15s ease-out }
-        .navbtn:hover { border-color: ${P.blue}66; color: ${P.ink} }
-        .navcta { background: ${P.accent}; border-color: ${P.accent}; color: ${P.onAccent} }
-        .navcta:hover { filter: brightness(1.06); box-shadow: 0 8px 24px ${P.blue}33 }
+          background: ${P.paper2}; border-radius: 11px; box-shadow: var(--lp-nm-sm);
+          padding: 8px 11px; white-space: nowrap; line-height: 1; cursor: pointer;
+          transition: all .15s ease-out }
+        .navbtn:hover { border-color: color-mix(in srgb, ${P.blue} 40%, transparent); color: ${P.ink} }
+        .navcta { background: var(--lp-grad); border-color: transparent; color: ${P.onAccent};
+          box-shadow: var(--lp-glow) }
+        .navcta:hover { filter: brightness(1.06); box-shadow: var(--lp-glow) }
         @media (max-width: 400px) { .navbtn { font-size: 9.5px; padding: 7px 9px; letter-spacing: .06em } }
         /* Below ~340px (older/budget phones — iPhone SE 1st/2nd gen, many
            entry-level Android handsets) the three nav buttons plus the wordmark
@@ -215,10 +222,14 @@ export default function Home({ searchParams }) {
           text-transform: uppercase; color: ${P.inkSoft}; text-decoration: none; transition: color .15s ease-out }
         .flink:hover { color: ${P.ink}; text-decoration: underline; text-underline-offset: 4px }
 
-        .btn { transition: transform .15s ease-out, background .15s ease-out }
+        .btn { border-radius: 13px; transition: transform .15s ease-out, background .15s ease-out, box-shadow .2s ease-out }
         .btn:hover { transform: translateY(-2px) } .btn:active { transform: scale(.97) }
-        .card { background: ${P.paper2}; border: 1px solid ${P.line}; transition: transform .2s ease-out, border-color .2s ease-out, box-shadow .2s ease-out }
-        .card:hover { transform: translateY(-3px); border-color: ${P.blue}55; box-shadow: 0 14px 40px ${P.blue}1F }
+        .card { background: ${P.paper2}; border: 1px solid ${P.line}; border-radius: 18px;
+          box-shadow: var(--lp-nm-sm);
+          transition: transform .2s ease-out, border-color .2s ease-out, box-shadow .2s ease-out }
+        .card:hover { transform: translateY(-3px);
+          border-color: color-mix(in srgb, ${P.blue} 33%, transparent);
+          box-shadow: 0 14px 40px color-mix(in srgb, ${P.blue} 12%, transparent) }
         a:focus-visible { outline: 2px solid ${P.accent}; outline-offset: 3px }
         @media (max-width: 900px) { .two { grid-template-columns: 1fr !important } .hide-sm { display: none } }
         @media (prefers-reduced-motion: reduce) { .r, .card, .btn { animation: none !important; transition: none !important } .al-obs { opacity: 1 !important; transform: none !important } }
@@ -232,7 +243,7 @@ export default function Home({ searchParams }) {
         .al-slide { position: absolute; inset: 0; opacity: 0; display: flex; flex-direction: column }
         .al-stack { margin-top: auto; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; padding: 10px 12px 12px; flex: 1 }
         .al-msg { opacity: 0 } .al-msgwrap { position: relative }
-        .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 12px; background: #151B29;
+        .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 12px; background: ${P.bubble};
           border: 1px solid ${P.line}; opacity: 0; position: absolute; top: 0; left: 0 }
         .al-typing b { width: 5px; height: 5px; border-radius: 50%; background: ${P.inkSoft};
           animation: bnc 1.3s ease-in-out infinite }
@@ -319,7 +330,8 @@ export default function Home({ searchParams }) {
         <div className="navwrap" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0 }}>
-            <div style={{ width: 26, height: 26, background: P.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9,
+              boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <i className="ti ti-robot" style={{ fontSize: 15, color: P.onAccent }} />
             </div>
             <span className="fr" style={{ fontSize: 19 }}>Autologic</span>
@@ -331,6 +343,10 @@ export default function Home({ searchParams }) {
 
             {/* Three buttons, three different jobs: change language, come back, or
                 start. "Sign up" and "Try free" were the same door twice, so one went. */}
+            <button id="al-mode" type="button" className="navbtn" aria-label="Switch theme"
+              style={{ display: "inline-flex", alignItems: "center", fontFamily: "inherit" }}>
+              <i id="al-mode-ic" className="ti ti-moon" style={{ fontSize: 13 }} />
+            </button>
             <a href={other} className="navbtn" aria-label="Change language"
               style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               <i className="ti ti-language" style={{ fontSize: 13 }} />
@@ -385,7 +401,8 @@ export default function Home({ searchParams }) {
           </div>
 
           <div data-reveal="80" style={{ position: "relative", border: `1px solid ${P.line}`,
-            borderRadius: 4, overflow: "hidden", background: "#000", aspectRatio: "16 / 9" }}>
+            borderRadius: 20, overflow: "hidden", background: "#000", aspectRatio: "16 / 9",
+            boxShadow: "var(--lp-nm)" }}>
             <video id="al-film" playsInline muted loop autoPlay preload="metadata"
               poster="" controls={false}
               style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}>
@@ -437,10 +454,10 @@ export default function Home({ searchParams }) {
           <Label>{c.featLabel}</Label>
           <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>{c.featTitle}</h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 0, borderTop: `1px solid ${P.line}`, borderLeft: `1px solid ${P.line}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {c.features.map((f, i) => (
             <div key={f.title} className="card" data-reveal={(i % 3) * 70}
-              style={{ borderTop: "none", borderLeft: "none", padding: 28, background: "transparent" }}>
+              style={{ padding: 28 }}>
               <div style={{ ...mono, fontSize: 9.5, color: P.accent, marginBottom: 16 }}>{String(i + 1).padStart(2, "0")}</div>
               <i className={`ti ${f.icon}`} style={{ fontSize: 22, color: P.blue }} />
               <div className="fr" style={{ fontSize: 21, margin: "12px 0 8px", lineHeight: 1.15 }}>{f.title}</div>
@@ -459,12 +476,12 @@ export default function Home({ searchParams }) {
             </h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 290px), 1fr))",
-            gap: 0, borderTop: `1px solid ${P.line}`, borderLeft: `1px solid ${P.line}` }}>
+            gap: 16 }}>
             {cases.map((cs, i) => {
               const draft = isPlaceholder(cs);
               return (
                 <div key={cs.id} className="card" data-reveal={(i % 3) * 70}
-                  style={{ borderTop: "none", borderLeft: "none", padding: 26, background: "transparent" }}>
+                  style={{ padding: 26 }}>
                   <div style={{ ...mono, fontSize: 9, color: draft ? P.inkSoft : P.accent, marginBottom: 14 }}>
                     {TYPE_LABEL[cs.businessType] || cs.businessType}{draft ? " · DRAFT" : ""}
                   </div>
