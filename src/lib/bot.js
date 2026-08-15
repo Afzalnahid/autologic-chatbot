@@ -433,17 +433,47 @@ async function maybeCreateBooking(items, client, senderId, platform) {
   return { items: items.filter(it => it.type !== "booking"), booked, bookingNote };
 }
 
-function bookingRule() {
-  // Give the model the real current date in Dhaka time, so it never guesses the
-  // year (it was producing 2024) and can resolve "tomorrow" / "next Monday".
+// Real "now" for the reply engine. Vercel runs in UTC, so `new Date()` /
+// `toLocaleString()` without an explicit timeZone would give the model UTC,
+// not Bangladesh time. Intl.DateTimeFormat with timeZone: 'Asia/Dhaka' reads
+// the correct local time straight off the real clock (Bangladesh has no DST,
+// so this is a fixed UTC+6 in practice, but resolving it through Intl means
+// we never have to reason about the offset by hand). No per-client timezone
+// column exists yet, so every tenant defaults to Asia/Dhaka.
+function nowInDhaka() {
   const now = new Date();
-  const dhaka = new Date(now.getTime() + 6 * 3600 * 1000); // UTC+6, no DST in BD
-  const iso = dhaka.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
-  const weekday = dhaka.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
-  return "\n\nCURRENT DATE & TIME: Today is " + weekday + ", " + iso.slice(0, 10) +
-    " and the current time is " + iso.slice(11, 16) + " in the Asia/Dhaka timezone (UTC+6). " +
-    "Always use THIS as the reference for \"today\", \"tomorrow\", \"next week\", etc. Never invent a different year." +
-    "\n\nBOOKING FLOW (agency): You can schedule meetings. Before booking you MUST have all 6: customer name, email, phone number, the specific service they want, preferred meeting date, and preferred meeting time. If any is missing, ask for it politely. Once you have all 6 and the customer confirms, append ONE object to the JSON array: {\"type\":\"booking\",\"customer_name\":\"..\",\"email\":\"..\",\"phone\":\"..\",\"service_want\":\"..\",\"meeting_date\":\"..\",\"meeting_time\":\"..\",\"start\":\"<ISO8601 datetime with timezone>\",\"end\":\"<ISO8601 datetime, 30 min after start>\"}. In your text message to the customer, write the meeting link exactly as {{MEET_LINK}} — it will be replaced with the real Google Meet link automatically. Never mention the booking JSON object in your text. Compute start/end as full ISO8601 timestamps (e.g. " + iso.slice(0,10) + "T15:00:00+06:00) using the requested date and time in the Asia/Dhaka timezone. " +
+  const partsOf = (opts) =>
+    new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Dhaka", ...opts })
+      .formatToParts(now)
+      .reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+
+  const long = partsOf({
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+  const sortable = partsOf({
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+
+  return {
+    // "Friday, 15 August 2026, 2:41 PM"
+    label: `${long.weekday}, ${long.day} ${long.month} ${long.year}, ${long.hour}:${long.minute} ${long.dayPeriod}`,
+    date: `${sortable.year}-${sortable.month}-${sortable.day}`, // YYYY-MM-DD
+  };
+}
+
+// Injected into every reply prompt, both business types, every channel, so the
+// model always knows the real current date/time instead of guessing.
+function timeContext() {
+  const { label } = nowInDhaka();
+  return "\n\nCurrent date & time (Asia/Dhaka): " + label + ". " +
+    "Always use THIS as the reference for \"today\", \"tomorrow\", \"this Thursday\", \"next week\", business hours, and whether you are open right now. Never invent a different year or day.";
+}
+
+function bookingRule() {
+  const { date } = nowInDhaka();
+  return "\n\nBOOKING FLOW (agency): You can schedule meetings. Before booking you MUST have all 6: customer name, email, phone number, the specific service they want, preferred meeting date, and preferred meeting time. If any is missing, ask for it politely. Once you have all 6 and the customer confirms, append ONE object to the JSON array: {\"type\":\"booking\",\"customer_name\":\"..\",\"email\":\"..\",\"phone\":\"..\",\"service_want\":\"..\",\"meeting_date\":\"..\",\"meeting_time\":\"..\",\"start\":\"<ISO8601 datetime with timezone>\",\"end\":\"<ISO8601 datetime, 30 min after start>\"}. In your text message to the customer, write the meeting link exactly as {{MEET_LINK}} — it will be replaced with the real Google Meet link automatically. Never mention the booking JSON object in your text. Compute start/end as full ISO8601 timestamps (e.g. " + date + "T15:00:00+06:00) using the requested date and time in the Asia/Dhaka timezone. " +
     "CRITICAL: Only append the booking object in the SINGLE turn where the customer first confirms. If the recent conversation already shows a booking was confirmed and a meeting link was already sent, do NOT create another booking — just answer their question normally.";
 }
 const BOOKING_RULE_PLACEHOLDER = "";
@@ -577,7 +607,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     // Also on the user turn. A system instruction loses to the visible pattern of
     // the conversation: with a history of Bangla replies the model simply copies
     // the previous answer, whatever the system prompt says.
-    raw = await chatWithGemini(systemPrompt + context + rules + lock,
+    raw = await chatWithGemini(systemPrompt + context + timeContext() + rules + lock,
       [...history, { role: "user", content: combined + `\n\n[Reply in ${lang} only.]` }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
