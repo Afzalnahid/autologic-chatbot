@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase.js";
 import { requireClient, trialActive } from "@/lib/auth.js";
 import { notifyExpiringSoon } from "@/lib/email.js";
 import { withErrors } from "@/lib/route-errors.js";
+import { startOfDayDhaka } from "@/lib/time.js";
 
 // Warn the owner when a trial or paid plan ends within 3 days, at most once per
 // plan period (tracked by expiry_warned_at against the current expiry date).
@@ -35,7 +36,7 @@ export const GET = withErrors(async (request) => {
   if (error) return NextResponse.json({ error }, { status: 401 });
   if (!client) return NextResponse.json({ client: null, email });
 
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = startOfDayDhaka();
   const { data: msgs } = await supabase.from("message_buffer").select("id,client_id,role,created_at");
   const used = (msgs || []).filter(m => m.client_id === client.id && (m.role || "customer") === "customer" && new Date(m.created_at) >= today).length;
 

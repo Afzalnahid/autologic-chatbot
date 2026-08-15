@@ -6,6 +6,7 @@ import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyp
 import { analyzeImageBase64 } from "@/lib/gemini.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
+import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 
 function visionPrompt(businessType, itemLabel) {
   const unit = itemLabel || "item";
@@ -60,7 +61,7 @@ export async function botAllowed(channel, senderId) {
     if (!client.trial_end || new Date(client.trial_end) <= new Date()) {
       return { allowed: false, reason: "trial_expired", client };
     }
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = startOfDayDhaka();
     const { count } = await sb().from("message_buffer")
       .select("id", { count: "exact", head: true })
       .eq("client_id", client.id).eq("role", "customer").gte("created_at", today.toISOString());
@@ -74,8 +75,7 @@ export async function botAllowed(channel, senderId) {
     }
     const limit = PLANS[client.plan]?.messagesPerMonth;
     if (limit) {
-      const monthStart = new Date();
-      monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      const monthStart = startOfMonthDhaka();
       const { count } = await sb().from("message_buffer")
         .select("id", { count: "exact", head: true })
         .eq("client_id", client.id).eq("role", "customer").gte("created_at", monthStart.toISOString());
@@ -434,16 +434,12 @@ async function maybeCreateBooking(items, client, senderId, platform) {
 }
 
 function bookingRule() {
-  // Give the model the real current date in Dhaka time, so it never guesses the
-  // year (it was producing 2024) and can resolve "tomorrow" / "next Monday".
-  const now = new Date();
-  const dhaka = new Date(now.getTime() + 6 * 3600 * 1000); // UTC+6, no DST in BD
-  const iso = dhaka.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
-  const weekday = dhaka.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
-  return "\n\nCURRENT DATE & TIME: Today is " + weekday + ", " + iso.slice(0, 10) +
-    " and the current time is " + iso.slice(11, 16) + " in the Asia/Dhaka timezone (UTC+6). " +
-    "Always use THIS as the reference for \"today\", \"tomorrow\", \"next week\", etc. Never invent a different year." +
-    "\n\nBOOKING FLOW (agency): You can schedule meetings. Before booking you MUST have all 6: customer name, email, phone number, the specific service they want, preferred meeting date, and preferred meeting time. If any is missing, ask for it politely. Once you have all 6 and the customer confirms, append ONE object to the JSON array: {\"type\":\"booking\",\"customer_name\":\"..\",\"email\":\"..\",\"phone\":\"..\",\"service_want\":\"..\",\"meeting_date\":\"..\",\"meeting_time\":\"..\",\"start\":\"<ISO8601 datetime with timezone>\",\"end\":\"<ISO8601 datetime, 30 min after start>\"}. In your text message to the customer, write the meeting link exactly as {{MEET_LINK}} — it will be replaced with the real Google Meet link automatically. Never mention the booking JSON object in your text. Compute start/end as full ISO8601 timestamps (e.g. " + iso.slice(0,10) + "T15:00:00+06:00) using the requested date and time in the Asia/Dhaka timezone. " +
+  // The current-date/time line itself now comes from currentTimeLine() in
+  // composeReply(), shared with every business type. This only adds the
+  // booking-specific instructions, plus a worked ISO8601 example anchored on
+  // today's real Dhaka date so the model never guesses the year.
+  const today = todayDhakaISO();
+  return "\n\nBOOKING FLOW (agency): You can schedule meetings. Before booking you MUST have all 6: customer name, email, phone number, the specific service they want, preferred meeting date, and preferred meeting time. If any is missing, ask for it politely. Once you have all 6 and the customer confirms, append ONE object to the JSON array: {\"type\":\"booking\",\"customer_name\":\"..\",\"email\":\"..\",\"phone\":\"..\",\"service_want\":\"..\",\"meeting_date\":\"..\",\"meeting_time\":\"..\",\"start\":\"<ISO8601 datetime with timezone>\",\"end\":\"<ISO8601 datetime, 30 min after start>\"}. In your text message to the customer, write the meeting link exactly as {{MEET_LINK}} — it will be replaced with the real Google Meet link automatically. Never mention the booking JSON object in your text. Compute start/end as full ISO8601 timestamps (e.g. " + today + "T15:00:00+06:00) using the requested date and time in the Asia/Dhaka timezone. " +
     "CRITICAL: Only append the booking object in the SINGLE turn where the customer first confirms. If the recent conversation already shows a booking was confirmed and a meeting link was already sent, do NOT create another booking — just answer their question normally.";
 }
 const BOOKING_RULE_PLACEHOLDER = "";
@@ -571,7 +567,11 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   let didAct = false;
   let raw;
   try {
-    const rules = isAgency ? bookingRule() : orderRule;
+    // currentTimeLine() reaches every channel through this one call: FB, IG and
+    // WhatsApp via processConversation(), and the website widget, which calls
+    // composeReply() directly. Both business types get it — ecommerce replies
+    // previously carried no time awareness at all.
+    const rules = (isAgency ? bookingRule() : orderRule) + currentTimeLine();
     const lang = forcedLang || detectLanguage(combined);
     const lock = languageLock(lang);
     // Also on the user turn. A system instruction loses to the visible pattern of

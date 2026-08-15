@@ -4,6 +4,77 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-15) — scheduled run, PR opened, not yet merged
+
+**Real Asia/Dhaka time awareness — branch `feat/realtime-timezone-2026-08-15`, PR opened.**
+Not pushed to `main` per the delivery rule for this task; owner needs to review and merge.
+
+The root problem: Vercel runs the server in UTC, and the bot only had a manual,
+hand-rolled Dhaka-time computation wired into the **agency** booking prompt. The
+**ecommerce** reply path (`orderRule` in `composeReply()`) had no time awareness at
+all — "is it open now", "today's offer", etc. were unanswerable for every ecommerce
+tenant, on every channel.
+
+What shipped:
+- New `src/lib/time.js` — one shared, documented helper: `nowInDhaka()`,
+  `formatDhaka()` / `formatDhakaDate()`, `currentTimeLine()`, `todayDhakaISO()`,
+  `startOfDayDhaka()` / `startOfMonthDhaka()`. Fixed +6h offset is safe because
+  Bangladesh has had no daylight saving since 2010.
+- `src/lib/bot.js` `composeReply()` — `currentTimeLine()` is now appended to the
+  prompt for **both** business types, so it reaches all four channels through the
+  one shared function (FB/IG/WhatsApp via `processConversation`, the widget via
+  `/api/widget/chat` calling `composeReply` directly). `bookingRule()` still adds
+  its own worked ISO8601 example (needed for the AI to compute `start`/`end`) but
+  no longer duplicates the current-time computation.
+- Same file: the trial/paid quota "today"/"this month" boundaries in `botAllowed`
+  were computed with `new Date(); x.setHours(0,0,0,0)`, which is **UTC** midnight on
+  Vercel — 6am in Bangladesh. Now use `startOfDayDhaka()` / `startOfMonthDhaka()`.
+- Same fix applied everywhere else the identical bug shape was found by grepping
+  the whole repo: `broadcast.js` `remainingQuota()`, `api/me`, `api/billing`
+  (`usageToday`/`usageThisMonth`), `api/admin/client-detail` (`dayStart`).
+  **Deliberate, owner-visible behaviour change:** daily/monthly quota and usage
+  counters now reset at real Dhaka midnight instead of 6am Dhaka time (UTC
+  midnight) — see the PR body for the full list.
+- `src/lib/email.js` — `notifyPaymentApproved`'s "valid until" and
+  `notifyExpiringSoon`'s expiry date were formatted with no `timeZone`, so they ran
+  in the server's UTC and could show the wrong calendar date near midnight. Now use
+  `formatDhakaDate()`.
+- `api/analytics/route.js` — had its own already-correct ad-hoc `DHAKA_OFFSET`
+  constant for the per-day chart bucketing; consolidated onto the shared helper,
+  zero behaviour change.
+- **Left deliberately unchanged (verified correct):** everything computing an
+  absolute UTC instant or duration (broadcast/follow-up 24-hour window math, token
+  expiry, oauth-state age, rate-limit sweeps, stored timestamps), `gcal.js`'s
+  `timeZone: "Asia/Dhaka"` on calendar events (already correct — it just needed the
+  AI's "now" to be accurate, which the `composeReply` fix provides), and every
+  client-side dashboard component (`Bookings.js`, `Profile.js`, `Billing.js`,
+  `admin-client.js`, ...) — those run in the visitor's own browser and already
+  reflect the visitor's real local timezone.
+
+**Verified (real evidence, not assumption):** `npm run build` passes clean (only a
+pre-existing, unrelated `languageRule` import warning that also reproduces on
+unmodified `main`). Probed `time.js` directly with `node`: at a UTC instant that
+falls in the Dhaka early-morning (`2026-08-15T20:30:00Z`), `formatDhaka()` correctly
+reports `Sunday, August 16, 2026, 2:30 AM` and `startOfDayDhaka()` correctly returns
+`2026-08-15T18:00:00Z` (= Dhaka midnight) — proving it crosses the UTC/Dhaka day
+boundary correctly rather than reusing UTC midnight. `currentTimeLine()` against the
+real system clock also matched: UTC `05:57` → Dhaka `11:57 AM`, exactly +6h.
+
+**NOT verified:** no live message was sent through the deployed build (this was a
+scheduled, unattended run — the branch was not deployed, per the task's delivery
+rule). The owner should merge, let Vercel deploy, then send one ecommerce and one
+agency test message asking something like "is this open right now?" and check the
+bot's answer reflects real Bangladesh time.
+
+### What's next
+1. Owner reviews and merges PR `feat/realtime-timezone-2026-08-15` (or asks for
+   changes).
+2. After merge and deploy: live-test both business types on at least one channel —
+   confirm the bot knows today's real date/day-of-week and the current time.
+3. Everything under the 2026-08-07 "What's next" below still stands.
+
+---
+
 ## Last session (2026-08-07)
 
 **`bot.js` client_id invariant — DONE (one commit `33f84b7`).**

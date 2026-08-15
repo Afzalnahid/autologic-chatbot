@@ -5,9 +5,9 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
+import { nowInDhaka } from "@/lib/time.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
-const DHAKA_OFFSET = 6 * 3600 * 1000;
 // A new conversation starts after this much silence from the same person.
 const SESSION_GAP_MS = 6 * 3600 * 1000;
 
@@ -22,7 +22,7 @@ const STOP = new Set([
 ]);
 
 const normalize = (t) => String(t || "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
-const dateKey = (d) => new Date(new Date(d).getTime() + DHAKA_OFFSET).toISOString().slice(0, 10);
+const dateKey = (d) => nowInDhaka(new Date(d)).toISOString().slice(0, 10);
 
 // Percentage change between two periods. null when there is no baseline to compare against.
 function pctChange(cur, prev) {
@@ -171,7 +171,7 @@ export const GET = withErrors(async (request) => {
     if (role === "bot") ch.bot++;
 
     if (role === "customer") {
-      const local = new Date(new Date(m.created_at).getTime() + DHAKA_OFFSET);
+      const local = nowInDhaka(new Date(m.created_at));
       hours[local.getUTCHours()].count++;
 
       if (m.sender_id) {
