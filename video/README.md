@@ -25,6 +25,17 @@ needs changing.
 
 To preview and edit without rendering, `npm start` opens Remotion Studio.
 
+## Rendering on a network-restricted machine
+
+Remotion normally downloads its own headless Chrome on first run. On a sandbox
+that blocks that download (e.g. a cloud CI box with an egress allowlist),
+point it at any already-installed Chromium/headless-shell binary instead:
+
+```bash
+npm run render:en -- --browser-executable=/path/to/headless_shell
+npm run render:bn -- --browser-executable=/path/to/headless_shell
+```
+
 ## Before you publish the Bangla one
 
 The film asks for **Noto Sans Bengali** and falls back to whatever the machine

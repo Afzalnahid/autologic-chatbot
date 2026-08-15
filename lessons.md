@@ -253,3 +253,25 @@ running process is actually new — check the PID's start time, or grep the serv
 for something only the new code contains — before trusting anything it returns. A restart
 command that "succeeds" with no error is not proof the old process is gone; `pkill -f` in
 particular must match the process's real argv, not the npm script name that launched it.
+
+## 20. A sandboxed session's network is not the open internet
+**2026-08-15.** Asked to download a CC0 music track for the product film. Every
+general-web host tried was blocked by the session's own egress policy — not one
+flaky host, but all of them: pixabay, freesound, archive.org, incompetech,
+opengameart, freepd, soundbible, and even Remotion's own asset CDN
+(`remotion.media`), which broke its normal first-run Chrome download too. Only a
+handful of package registries and `github.com` were reachable.
+
+**Rules:**
+- Before spending time hunting for a "better" source when a download fails, check
+  whether the *class* of host is blocked, not just the one URL — a couple of quick
+  probes to unrelated domains (or the proxy's own status endpoint) tells you in
+  seconds whether this is a dead link or a policy wall.
+- A policy-blocked host is reported, never routed around — no fetching the same
+  asset from an unrelated allowed host as a workaround, no fabricating a
+  placeholder and shipping it as if it were the real (licensed) thing.
+- When a task depends on an external download that might not be reachable, still
+  do everything around it that doesn't depend on the download (wire the code path,
+  verify what can be verified, document exactly what's left) and say plainly what
+  a human needs to finish by hand. A half-finished PR with an honest account beats
+  silence or a fabricated "done".
