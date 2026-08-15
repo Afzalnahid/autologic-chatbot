@@ -3,8 +3,9 @@ export const metadata = {
   description: "Autologic is an AI-powered customer service chatbot platform that connects to Facebook, Instagram, WhatsApp and your own website, and books meetings into Google Calendar.",
 };
 
+import Script from "next/script";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
-import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS, THEME_BOOT_JS } from "@/lib/landing.js";
+import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
 
 const mono = { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 10.5,
   letterSpacing: "0.13em", textTransform: "uppercase" };
@@ -161,7 +162,7 @@ export default function Home({ searchParams }) {
   return (
     <div style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
-      <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_JS }} />
+      {/* Theme boot lives in the root layout (a script here never executes). */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
         ${THEME_CSS}
@@ -267,8 +268,13 @@ export default function Home({ searchParams }) {
           [class^="fch"], [class^="fsrc"], [class^="fout"], .core-ring, .wire { animation: none !important; opacity: 1 !important }
         }
       ` + BOARD_CSS + FLOW_CSS}</style>
-      <script dangerouslySetInnerHTML={{ __html: REVEAL_JS }} />
-      <script dangerouslySetInnerHTML={{ __html: `(function(){
+      {/* next/script, not a bare <script>: inline scripts rendered by a server
+          component through dangerouslySetInnerHTML are inserted by React and
+          never executed by the browser (innerHTML rule), so scroll-reveal, the
+          film autoplay and the flow animation were all silently dead in
+          production. afterInteractive runs them once React has hydrated. */}
+      <Script id="al-reveal" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: REVEAL_JS }} />
+      <Script id="al-film-js" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `(function(){
         function start(){
           var v = document.getElementById("al-film");
           var sec = document.getElementById("film");
@@ -307,7 +313,7 @@ export default function Home({ searchParams }) {
       })();` }} />
 
 
-      <script dangerouslySetInnerHTML={{ __html: `(function(){
+      <Script id="al-flow-js" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `(function(){
         function start(){
           if (!("IntersectionObserver" in window)) {
             document.querySelectorAll(".flow-wrap,.board-wrap").forEach(function(el){ el.classList.add("play"); });

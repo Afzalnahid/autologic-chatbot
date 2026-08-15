@@ -51,25 +51,33 @@ export const THEME_CSS = `
 // storage key is shared with the dashboard, so one choice follows the visitor
 // across the whole site.
 export const THEME_BOOT_JS = `(function(){
+  var KEY = "al-theme";
+  function current(){
+    var t = null;
+    try { t = localStorage.getItem(KEY); } catch(e){}
+    return t || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  }
   function apply(t){
-    document.documentElement.dataset.theme = t;
+    document.documentElement.setAttribute("data-theme", t);
     var ic = document.getElementById("al-mode-ic");
     if (ic) ic.className = "ti ti-" + (t === "dark" ? "sun" : "moon");
   }
-  var t = null;
-  try { t = localStorage.getItem("al-theme"); } catch(e){}
-  if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  apply(t);
-  function wire(){
-    apply(document.documentElement.dataset.theme || "light");
-    var b = document.getElementById("al-mode");
-    if (b) b.addEventListener("click", function(){
-      var next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-      apply(next);
-      try { localStorage.setItem("al-theme", next); } catch(e){}
-    });
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire); else wire();
+  apply(current());
+  // Delegated, so it survives React replacing the button during hydration.
+  document.addEventListener("click", function(e){
+    var b = e.target && e.target.closest ? e.target.closest("#al-mode") : null;
+    if (!b) return;
+    var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    apply(next);
+    try { localStorage.setItem(KEY, next); } catch(e2){}
+  }, true);
+  // Hydration can rewrite <html>'s attributes from the server markup (which
+  // has none); re-assert the choice once it settles, and whenever the icon
+  // node is swapped in.
+  function reassert(){ apply(current()); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", reassert); else reassert();
+  window.addEventListener("load", reassert);
+  setTimeout(reassert, 0); setTimeout(reassert, 300); setTimeout(reassert, 1500);
 })();`;
 
 export const CH = {
