@@ -4,6 +4,73 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-16) — Landing-page console errors: fonts + hydration
+
+**Both pre-existing landing-page console errors fixed. Branch
+`claude/loving-wozniak-ec9707` (based on `main` @ `9ddf12b`, the redesign),
+commits `0dcf128` + `7d96e8e`. Not merged, not deployed.**
+
+The two errors ("Refused to apply style from …fonts.googleapis…" and React
+#425×4/#418/#423 on every load) had **one root cause, and it was not what the
+task prompt guessed.** Nothing "hoists" the `@import`. The page rendered its
+CSS as a *text child* of `<style>`; React's server renderer HTML-escapes text
+children (`'`→`&#x27;`, `"`→`&quot;`, `>`→`&gt;`) and a `<style>` tag never
+decodes entities. So the served stylesheet was corrupt: the `@import` URL became
+a relative path on our own origin (404 → "Refused to apply style"), the
+`[data-theme=&quot;light&quot;]` selector was invalid so the whole theme-vars
+rule was dropped on first paint, and the server `<style>` text ≠ client text →
+hydration failed → React re-rendered the whole root client-side. **That
+client re-render was the only reason the page ever looked right** — the CSS
+only became valid after the crash.
+
+Evidence, not inference: `curl` of the served HTML showed `&#x27;`/`&quot;`
+inside `<style>`; a `next dev` build printed exactly one "Text content did not
+match" warning, on that `<style>`; the Chrome console URL was literally
+`http://localhost:3000/&#x27;https://fonts.googleapis.com/…&#x27;`.
+
+Fix (small): `<style dangerouslySetInnerHTML={{ __html: css }} />` instead of
+`<style>{css}</style>` in `src/app/page.js`. Same defect found by grep and
+fixed in `pricing-client.js` (`<style>{THEME_CSS}</style>` — /pricing failed
+hydration on every load too, since the redesign) and `preview-dash/page.js`
+(second commit). Dashboard's `<Theme/>`/`<Motion/>` in `ui.js` have the same
+shape but only render after the client-side auth check → never in server HTML
+→ left alone (note: if anyone ever SSRs them, they break the same way).
+
+Also added `suppressHydrationWarning` where inline scripts change the DOM before
+hydration by design — dev-only warnings that were masked until now: `<html>`
+in `layout.js` (theme boot script sets `data-theme`), the nav toggle icon
+`#al-mode-ic`, and the 8 `data-reveal` + `.flow-wrap` + `.board-wrap`
+elements (REVEAL_JS / play classes). Production ignores attribute mismatches,
+so these change nothing for visitors; they keep the dev console clean so the
+next real error is not buried.
+
+**Verified:** `next build` clean; `next start` + Chrome: served HTML has the
+raw `@import url('https://…`; Fraunces 700 / IBM Plex Mono 400 / Inter 400+600
+(and Anek Bangla on `?lang=bn`) report `loaded`; console has zero errors on
+`/`, `/?lang=bn`, `/pricing`, light and dark; the reveal, flow-diagram and
+phone-board animations still run in a *visible* tab (10/11 reveal elements
+got `al-in` after scrolling; the 11th just never had a visible moment). One
+gotcha for future sessions: **the in-app Browser pane was hidden all session
+(`document.hidden === true`), and hidden tabs never fire IntersectionObserver
+or rAF** — the first "reveal is broken" reading was that artifact, not a
+regression; had to use the real Chrome via claude-in-chrome to see it.
+
+**Found, not fixed (separate task):** `.bn .fr { font-family: 'Anek Bangla' }`
+in `page.js` has been dead since the landing page shipped (2026-08-08) — no
+element ever carries the `bn` class, so Bangla headings on `?lang=bn` render
+in Fraunces with a system-serif fallback for Bangla glyphs, not Anek Bangla.
+One-line fix (`className={bn ? "bn" : undefined}` on the page wrapper), but
+it changes how the Bangla headline looks, so the owner should decide.
+
+### What's next
+1. Owner reviews the two commits on `claude/loving-wozniak-ec9707`, merges
+   into `main`, lets Vercel deploy, then opens autologic-chatbot.vercel.app
+   with the console open: expect **no** red lines on `/` and `/pricing`.
+2. Decide on the dead `.bn .fr` rule above (Bangla headline font).
+3. Everything under the redesign session's "What's next" still stands.
+
+---
+
 ## Last session (2026-08-16) — Full UI redesign: crimson/white neumorphic
 
 **Owner-directed brand change, applied across the whole surface in one pass.**

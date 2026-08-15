@@ -275,3 +275,45 @@ handful of package registries and `github.com` were reachable.
   verify what can be verified, document exactly what's left) and say plainly what
   a human needs to finish by hand. A half-finished PR with an honest account beats
   silence or a fabricated "done".
+
+## 21. Never render CSS as a text child of `<style>` in React — use dangerouslySetInnerHTML
+**2026-08-16.** Every load of the landing page (and, since the redesign, /pricing)
+threw a Google-Fonts "Refused to apply style" error plus React #425/#418/#423.
+The task prompt's guess was "Next.js hoists the `@import` into a `<link>`". It
+did not. The CSS was written as `<style>{css}</style>`; React's server renderer
+HTML-escapes text children (`'`→`&#x27;`, `"`→`&quot;`, `>`→`&gt;`) and a
+`<style>` element never decodes entities, so the browser received a corrupt
+stylesheet: the `@import` URL turned into a relative path (404), the
+`[data-theme=&quot;light&quot;]` selector was invalid so the whole theme-vars
+rule was dropped, and the server text never matched the client text, so
+hydration failed and React re-rendered the root on the client — which was the
+only reason the CSS ever became valid. The site looked fine *because* it was
+crashing.
+
+**Rules:**
+- In React, inline CSS goes in via `<style dangerouslySetInnerHTML={{ __html }} />`,
+  never as `{children}`. Same for anything raw-text (`<script>` too).
+- A page that "looks fine" but hydrates with errors may look fine *only because*
+  the client re-render papered over broken server HTML — check the served HTML
+  with `curl`, not just the final DOM.
+- Before adopting a task prompt's suggested cause, reproduce and read the
+  unminified message: `curl` of the HTML showed `&#x27;` in ten seconds and made
+  the "hoisting" theory impossible (#1 again).
+
+## 22. A hidden tab cannot verify anything scroll- or frame-driven
+**2026-08-16.** After the fix, a check of the landing page's scroll-reveal
+animation reported all 13 reveal elements stuck at opacity 0 and no
+IntersectionObserver callback ever firing — which read exactly like a fresh
+regression caused by the fix (the previous client re-render had been throwing
+away the nodes the observers watched). It was not: the in-app Browser pane was
+hidden the whole session (`document.hidden === true`, `visibilityState:
+"hidden"`), and browsers do not run IntersectionObserver or requestAnimationFrame
+for hidden documents. Even a brand-new observer on `<h1>` never fired. Loading
+the same page in a *visible* Chrome tab, the elements revealed as designed.
+
+**Rule:** before reporting a scroll-, viewport- or animation-driven regression,
+check `document.visibilityState` and whether `requestAnimationFrame` fires. If
+the tab is hidden, nothing observed about motion or intersection is evidence
+either way — get a visible tab (real Chrome, or a headless engine that
+composites) and repeat. Complements #16: a still frame cannot show motion, and
+a hidden tab cannot produce one.
