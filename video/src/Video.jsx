@@ -38,7 +38,7 @@ export function Film({ lang = "en" }) {
   let at = 0;
   return (
     <AbsoluteFill style={{ background: T.bg }}>
-      <Audio src={staticFile("music.mp3")} volume={0.35} />
+      <Audio src={staticFile("music.wav")} volume={0.35} />
       {PLAN.map(({ C, secs }, i) => {
         const from = at;
         const dur = Math.round(secs * fps);
