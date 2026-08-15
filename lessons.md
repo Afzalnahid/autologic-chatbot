@@ -205,3 +205,25 @@ belonged to a different company than the dashboard a visitor lands in one click 
 **Rule:** a reference contributes typography, rhythm, hierarchy and ideas. Colour comes
 from the product's own tokens — here, the same seven values `ui.js` uses — or the seams
 show the moment a customer signs up.
+
+## 19. A sandboxed session's network is not the open internet
+**2026-08-15.** Asked to download a CC0 music track for the product film. Every
+general-web host tried was blocked by the session's own egress policy — not one
+flaky host, but all of them: pixabay, freesound, archive.org, incompetech,
+opengameart, freepd, soundbible, and even Remotion's own asset CDN
+(`remotion.media`), which broke its normal first-run Chrome download too. Only a
+handful of package registries and `github.com` were reachable.
+
+**Rules:**
+- Before spending time hunting for a "better" source when a download fails, check
+  whether the *class* of host is blocked, not just the one URL — a couple of quick
+  probes to unrelated domains (or the proxy's own status endpoint) tells you in
+  seconds whether this is a dead link or a policy wall.
+- A policy-blocked host is reported, never routed around — no fetching the same
+  asset from an unrelated allowed host as a workaround, no fabricating a
+  placeholder and shipping it as if it were the real (licensed) thing.
+- When a task depends on an external download that might not be reachable, still
+  do everything around it that doesn't depend on the download (wire the code path,
+  verify what can be verified, document exactly what's left) and say plainly what
+  a human needs to finish by hand. A half-finished PR with an honest account beats
+  silence or a fabricated "done".

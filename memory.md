@@ -4,6 +4,49 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-15)
+
+**Product film background music — PR open, not merged, not fully done.**
+`feat/film-music-2026-08-15` → https://github.com/Afzalnahid/autologic-chatbot/pull/2
+
+- `video/src/Video.jsx`: added `<Audio src={staticFile("music.mp3")} volume={0.35} />`
+  once at the top level of `Film()`, outside any per-scene `<Sequence>`, so it plays
+  across all seven scenes in both languages.
+- **`video/public/music.mp3` was not obtained.** This session's network egress
+  policy blocked every general-web host tried for a CC0 track (pixabay, freesound,
+  archive.org, incompetech, opengameart, freepd, soundbible) — confirmed via direct
+  HTTPS and via the WebFetch tool, not a fluke. Per this session's own rules, a
+  policy-blocked host is reported, not routed around, so no placeholder/fabricated
+  audio was committed. See `lessons.md` #19.
+- Confirmed the wiring itself is correct: a test render with the `<Audio>` line
+  present bundles and runs fine, failing only with a 404 on the not-yet-supplied
+  `music.mp3` — exactly the expected failure once a real file lands.
+- Bengali font checked independently (this was flagged as a known risk in a fresh
+  sandbox, unrelated to the music task): installed `fonts-noto-core`, rendered a
+  still frame of `AutologicBN`, read the PNG directly — real Bengali letters, not
+  boxes. Also checked the **currently shipped** `public/film-bn.mp4` the same way —
+  it already renders correctly, so no video files needed touching for this.
+- `public/film-en.mp4` / `public/film-bn.mp4` are **unchanged** — there was nothing
+  new to bake in without the audio file.
+- Also hit and documented (not code-fixed): this sandbox can't reach
+  `remotion.media` either, so Remotion's own headless-Chrome download fails the
+  same way the music download did. Worked around it for testing with
+  `--browser-executable=<path to an already-installed Chromium headless shell>`,
+  confirmed the existing `npm run render:en`/`render:bn` scripts already forward
+  that flag with `--` — no code or config change needed. Documented in
+  `video/README.md`.
+
+### What's next
+1. **Owner action required to finish this PR:** download a real CC0/royalty-free
+   track (~47s or loopable) from a reputable source (Pixabay Music, FreePD, Chosic's
+   CC0 collection are all named in the PR body), save as `video/public/music.mp3`,
+   run `cd video && npm run render`, copy the two outputs over
+   `public/film-en.mp4` / `public/film-bn.mp4`, commit, and the PR is done.
+2. PR is being watched for CI/review activity; Vercel preview already deployed
+   READY.
+
+---
+
 ## Last session (2026-08-07)
 
 **`bot.js` client_id invariant — DONE (one commit `33f84b7`).**
