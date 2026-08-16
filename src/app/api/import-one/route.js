@@ -40,12 +40,15 @@ export async function POST(request) {
       sale_price: p.sale_price || "",
       stock_status: p.stock_status || "instock",
       image_url: p.image_url || "",
+      images: p.image_url ? [p.image_url] : [],
+      visual,
       description: p.description || "",
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
 
     const { data: existing } = await supabase.from("products").select("id,metadata,client_id").eq("client_id", client.id).limit(1000);
     const dupIds = (existing || []).filter(r => r.metadata?.product_code === p.product_code).map(r => r.id);
-    for (const id of dupIds) await supabase.from("products").delete().eq("id", id);
+    for (const id of dupIds) await supabase.from("products").delete().eq("id", id).eq("client_id", client.id);
     const { error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true, analyzed: !!visual });

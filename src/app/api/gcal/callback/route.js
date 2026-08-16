@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
 import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { exchangeCode, fetchGoogleEmail } from "@/lib/gcal.js";
@@ -10,8 +11,8 @@ export async function GET(request) {
   const clientId = verifyState(searchParams.get("state"));
   const err = searchParams.get("error");
   if (err) return htmlClose("Google Calendar connect cancelled.");
-  if (!code) return new NextResponse("Missing authorization code", { status: 400 });
-  if (!clientId) return new NextResponse("This connect link has expired or is invalid. Please start again from your dashboard.", { status: 403 });
+  if (!code) return connectFailedPage({ platform: "gcal", status: 400, reason: "Google did not send back an authorization code. Please try connecting again." });
+  if (!clientId) return connectFailedPage({ platform: "gcal", status: 403, reason: "This connect link has expired. Please start again from your dashboard." });
 
   try {
     const redirectUri = `${origin}/api/gcal/callback`;
@@ -29,18 +30,14 @@ export async function GET(request) {
     if (tok.refresh_token) patch.gcal_refresh_token = tok.refresh_token;
 
     const { error } = await supabase.from("clients").update(patch).eq("id", clientId);
-    if (error) return new NextResponse("Save failed: " + error.message, { status: 500 });
+    if (error) return connectFailedPage({ platform: "gcal", reason: "We could not save the connection: " + error.message });
 
-    return htmlClose(`Google Calendar connected as ${email || "your account"}. You can close this window.`);
+    return connectedPage({ platform: "gcal", name: email || "your Google account", seconds: 5, rows: [
+      { ok: true, title: "Bookings go straight into this calendar", sub: "When a customer books, the event appears here automatically." },
+      { ok: true, title: "Google Meet links are sent for you", sub: "Every confirmed booking gets a Meet link, delivered to the customer in chat." },
+    ] });
   } catch (e) {
-    return new NextResponse("Calendar connect failed: " + e.message, { status: 500 });
+    console.error("[gcal-callback]", e?.message || e);
+    return connectFailedPage({ platform: "gcal", reason: "Google did not finish the connection: " + e.message });
   }
-}
-
-function htmlClose(msg) {
-  const html = `<!DOCTYPE html><html><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:32px;text-align:center">
-<h3>${msg}</h3>
-<script>try{window.opener&&window.opener.postMessage('gcal-connected','*');}catch(e){}setTimeout(function(){window.close();},1500);</script>
-</body></html>`;
-  return new NextResponse(html, { headers: { "Content-Type": "text/html" } });
 }

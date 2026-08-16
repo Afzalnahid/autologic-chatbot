@@ -42,9 +42,16 @@ export const PUT = withErrors(async (request) => {
   return NextResponse.json({ ok: true });
 }, "profile");
 
+// Counts for the Profile "Resources" card. A shop is measured in products and
+// orders; an agency in knowledge files and bookings — both sets are returned
+// and the tab shows the pair that fits the business type.
 async function getUsage(client) {
-  const { count: products } = await supabase.from("products").select("id", { count: "exact", head: true }).eq("client_id", client.id);
-  const { count: orders } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("client_id", client.id);
-  const { count: channels } = await supabase.from("channels").select("id", { count: "exact", head: true }).eq("client_id", client.id);
-  return { products: products || 0, orders: orders || 0, channels: channels || 0 };
+  const cnt = async (table, col = "id") => {
+    const { count } = await supabase.from(table).select(col, { count: "exact", head: true }).eq("client_id", client.id);
+    return count || 0;
+  };
+  const [products, orders, channels, bookings, knowledge] = await Promise.all([
+    cnt("products"), cnt("orders"), cnt("channels"), cnt("bookings"), cnt("file_registry", "file_id"),
+  ]);
+  return { products, orders, channels, bookings, knowledge };
 }

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { T, Card, Btn, Inp, Badge } from "./ui.js";
+import { T, Card, Btn, Inp, Badge, Select } from "./ui.js";
 import { api, getSb, setAuthToken } from "./session.js";
 
 // The Profile tab, moved out of dashboard-client.js unchanged.
@@ -127,9 +127,8 @@ export default function Profile() {
         <Inp label="Address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/>
         <Inp label="Website" value={form.website} onChange={e=>setForm({...form,website:e.target.value})}/>
         <label style={{display:"block",fontSize:12,color:T.textMuted,margin:"4px 0 6px",textTransform:"uppercase",letterSpacing:1}}>Business type</label>
-        <select value={form.business_type} onChange={e=>setForm({...form,business_type:e.target.value})} style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13,marginBottom:12}}>
-          {Object.entries(BIZ_LABEL).map(([k,v])=><option key={k} value={k}>{v}</option>)}
-        </select>
+        <Select wide value={form.business_type} onChange={v=>setForm({...form,business_type:v})} style={{marginBottom:12}}
+          options={[{value:"ecommerce",label:BIZ_LABEL.ecommerce,icon:"ti-shopping-bag"},{value:"agency",label:BIZ_LABEL.agency,icon:"ti-briefcase"}]}/>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <Btn gold onClick={save} disabled={saving}>{saving?"Saving...":"Save changes"}</Btn>
           <Btn onClick={()=>{setEditing(false);load();}}>Cancel</Btn>
@@ -146,8 +145,11 @@ export default function Profile() {
       <Row k="Joined" v={p.created_at?new Date(p.created_at).toLocaleDateString():"-"}/>
       <div style={{height:12}}/>
       <div style={{fontSize:14,fontWeight:600,margin:"8px 0 12px"}}>Resources</div>
-      <Row k="Products" v={p.usage?.products??0}/>
-      <Row k="Orders" v={p.usage?.orders??0}/>
+      {/* A shop counts products and orders; an agency counts knowledge files
+          and bookings. Showing "Products 0" to a dental clinic was wrong. */}
+      {p.business_type==="agency"
+        ?<><Row k="Knowledge files" v={p.usage?.knowledge??0}/><Row k="Bookings" v={p.usage?.bookings??0}/></>
+        :<><Row k="Products" v={p.usage?.products??0}/><Row k="Orders" v={p.usage?.orders??0}/></>}
       <Row k="Channels" v={p.usage?.channels??0}/>
       <div style={{height:16}}/>
       <Btn danger onClick={async()=>{await getSb().auth.signOut();setAuthToken("");location.reload();}} style={{width:"100%"}}><i className="ti ti-logout" style={{marginRight:6}}/>Logout</Btn>

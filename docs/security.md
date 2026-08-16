@@ -104,7 +104,6 @@ side only, never sent to the browser.
 | Endpoint | Limit |
 |---|---|
 | `generate-prompt` | 10 / hour per account |
-| `demo-chat` | 30 / 5 min per account |
 | `import-url` | 20 / hour per account |
 | `import-one`, `add-product` | 60 / hour per account |
 

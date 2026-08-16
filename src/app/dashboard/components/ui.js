@@ -40,7 +40,42 @@ export function useIsMobile(){
 export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:small?10:12,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:600,background:danger?T.danger:gold?T.accGrad:T.goldBg,color:danger?"#fff":gold?"#fff":T.gold,boxShadow:gold?T.accGlow:"none",...style}}>{children}</button>; }
 export function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:`color-mix(in srgb, ${color} 11%, transparent)`,color}}>{children}</span>; }
 export function Card({children,style,...p}){ return <div {...p} className="ui-card" style={{background:T.card,borderRadius:18,border:`1px solid ${T.border}`,boxShadow:T.nmSm,padding:"1.25rem",...style}}>{children}</div>; }
-export function Inp({label,textarea,style,inputStyle,...p}){ return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} className="ui-inp" style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,resize:"vertical",minHeight:100,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>:<input {...p} className="ui-inp" style={{width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...inputStyle}}/>}</div>; }
+// `emb` gives the field the pressed-in look of the auth page — used on every
+// first-run screen so signup, onboarding and the dashboard read as one product.
+export function Inp({label,textarea,emb,style,inputStyle,...p}){
+  const base={width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:emb?14:8,padding:emb?"13px 16px":"10px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box",...(emb?{boxShadow:T.nmIn,border:`1px solid ${T.border}`}:{})};
+  return <div style={{marginBottom:16,...style}}>{label&&<label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{label}</label>}{textarea?<textarea {...p} className="ui-inp" style={{...base,resize:"vertical",minHeight:100,...inputStyle}}/>:<input {...p} className="ui-inp" style={{...base,...inputStyle}}/>}</div>;
+}
+
+// The first-run frame: one soft slab in the middle of the page, a red icon
+// tile, a title, and the step pills. Auth, onboarding and connect all sit in
+// it, so a new owner sees the same product from the first screen on.
+export function Steps({step,of}){
+  return <div style={{display:"flex",gap:6,justifyContent:"center",margin:"14px 0 2px"}} aria-label={`Step ${step} of ${of}`}>
+    {Array.from({length:of}).map((_,i)=><span key={i} style={{width:i+1===step?26:9,height:6,borderRadius:3,
+      background:i<step?T.accGrad:T.inset,boxShadow:i+1===step?T.accGlow:"none",transition:"width .25s cubic-bezier(.16,1,.3,1)"}}/>)}
+  </div>;
+}
+export function OnboardFrame({icon,title,sub,step,of,width=460,scroll,children}){
+  return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:T.bg}}>
+    <div className="ui-page" style={{width:"100%",maxWidth:width,background:T.card,borderRadius:26,border:`1px solid ${T.border}`,
+      boxShadow:T.nmOut,padding:"clamp(22px, 4vw, 34px) clamp(18px, 4vw, 32px)",...(scroll?{maxHeight:"94dvh",overflowY:"auto"}:{})}}>
+      <div style={{display:"inline-flex",alignItems:"center",gap:8,fontSize:13,fontWeight:700,color:T.text,marginBottom:18}}>
+        <span style={{width:26,height:26,borderRadius:8,background:T.accGrad,boxShadow:T.accGlow,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:14}}><i className="ti ti-bolt"/></span>
+        Autologic
+      </div>
+      <div style={{textAlign:"center",marginBottom:22}}>
+        <div style={{width:56,height:56,borderRadius:18,background:T.card,boxShadow:T.nmSm,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>
+          <i className={`ti ${icon}`} style={{fontSize:26,color:T.gold}}/>
+        </div>
+        <div style={{fontSize:20,fontWeight:700,letterSpacing:"-.02em",color:T.text}}>{title}</div>
+        {sub&&<div style={{fontSize:13,color:T.textMuted,marginTop:5,lineHeight:1.55}}>{sub}</div>}
+        {step&&<Steps step={step} of={of}/>}
+      </div>
+      {children}
+    </div>
+  </div>;
+}
 
 // Plan catalogue and formatting used by several tabs.
 export const PLAN_META={
@@ -200,7 +235,7 @@ export function Select({ value, options, onChange, placeholder = "Select", style
 // 120 and 300ms: long enough to be noticed, short enough never to be waited on.
 export function Motion() {
   return (
-    <style>{`
+    <style dangerouslySetInnerHTML={{__html:`
       /* Hover only where a pointer exists. On iOS a tapped element keeps its
          hover style until you tap elsewhere, which looks like a stuck button —
          this one media query is the difference between "polished" and "buggy"
@@ -218,6 +253,9 @@ export function Motion() {
         .ui-btn:hover .ti-arrow-right, .ui-btn:hover .ti-send { transform: translateX(2px) }
         .ui-btn:hover .ti-download, .ui-btn:hover .ti-upload { transform: translateY(2px) }
         .ui-btn:hover .ti-copy { transform: translate(1px,-1px) }
+        /* First-run rows and chips answer the pointer the way the sidebar does. */
+        .ob-row:hover { border-color: ${T.gold} !important; box-shadow: var(--nm-out) !important; transform: translateY(-1px) }
+        .ob-chip:hover { color: ${T.gold} !important; border-color: ${T.gold} !important }
       }
 
       /* Every icon shares one curve, so the whole app moves the same way. */
@@ -256,7 +294,9 @@ export function Motion() {
       button, a, [role="button"], select, .ui-opt { -webkit-tap-highlight-color: transparent;
         touch-action: manipulation }
       @media (pointer: coarse) {
-        button, a[role="button"], .ui-opt { min-height: 44px }
+        /* .cal-cell is excluded on purpose: its size must come from the 7-column
+           grid (see the calendar rules), and a 44px floor would overflow it. */
+        button:not(.cal-cell), a[role="button"], .ui-opt { min-height: 44px }
         .ui-menu { max-height: min(60vh, 420px) }
       }
       /* iOS zooms the page when a field under 16px takes focus. */
@@ -287,6 +327,9 @@ export function Motion() {
         .pbtn:hover { background: var(--acc-grad); color: #fff; box-shadow: var(--acc-glow) }
       }
       .pbtn .ti { font-size: 19px }
+      /* Very narrow phones (≤360px): drop the on-screen back button — the
+         phone's own back does the same — so the page title keeps its room. */
+      @media (max-width: 360px) { .hide-xs { display: none !important } }
       .pbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
         padding: 0 5px; border-radius: 9px; background: var(--acc-grad); color: #fff;
         font-size: 10px; font-weight: 700; display: flex; align-items: center;
@@ -295,15 +338,27 @@ export function Motion() {
          happens — so on a wide screen they sit side by side instead of the grid
          hugging one corner, and on a phone the grid stays a compact header above
          the list. Cells are sized from the container, never a fixed pixel width. */
-      .cal-wrap { display: grid; gap: 20px; align-items: start }
+      .cal-wrap { display: grid; gap: 20px; align-items: start; min-width: 0 }
+      .cal-wrap > * { min-width: 0 }
       @media (min-width: 760px) { .cal-wrap { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr) } }
-      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100% }
-      .cal-cell { aspect-ratio: 1; min-height: 40px; border-radius: 10px; cursor: pointer; padding: 0;
+      /* Seven columns that can each shrink to zero — a bare 1fr has a min-content
+         floor, so on a 360px phone the Saturday column was pushed past the card
+         edge and clipped. */
+      .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; width: 100%; min-width: 0 }
+      /* Height comes from the column width (aspect-ratio) — never the other way
+         round: a min-height combined with aspect-ratio put a 44px floor on the
+         cell's WIDTH too, and 7×44 + gaps does not fit a 320px phone, so the
+         Saturday column spilled past the card. Width is always the grid's. */
+      .cal-cell { aspect-ratio: 1; height: auto; min-width: 0; width: 100%; border-radius: 10px; cursor: pointer; padding: 0;
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
         font-family: inherit; font-size: clamp(12px, 1.6vw, 14px); border: 1px solid transparent;
         background: transparent; transition: background .18s ease-out, color .18s ease-out, transform .12s ease-out }
       .cal-cell:active { transform: scale(.92) }
-      @media (pointer: coarse) { .cal-cell { min-height: 44px } }
+      /* Touch target: on a phone the cell is ~38–46px square from the grid
+         alone; the tap area is padded out to 44px without changing layout. */
+      @media (pointer: coarse) { .cal-cell { min-height: 0; position: relative }
+        .cal-cell::after { content: ""; position: absolute; inset: -3px } }
+      @media (max-width: 400px) { .cal-grid { gap: 2px } .cal-cell { border-radius: 8px; font-size: 12px } }
       .cal-dow { text-align: center; font-size: 10.5px; font-weight: 600; padding: 2px 0 }
       .cal-day { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid ${T.border} }
       .cal-day:first-of-type { border-top: none }
@@ -316,7 +371,7 @@ export function Motion() {
         .ti-check, .ti-loader, .ti-loader-2 {
           animation: none !important; transition: none !important; transform: none !important }
       }
-    `}</style>
+    `}}/>
   );
 }
 
@@ -350,7 +405,7 @@ const vars = (p) => Object.entries(p).map(([k, v]) => `--${k}:${v}`).join(";");
 
 export function Theme() {
   return (
-    <style>{`
+    <style dangerouslySetInnerHTML={{__html:`
       :root, [data-theme="light"] { ${vars(PALETTE.light)}; color-scheme: light }
       [data-theme="dark"] { ${vars(PALETTE.dark)}; color-scheme: dark }
       /* Neumorphic depth, derived from the palette's shadow pair so both themes
@@ -363,7 +418,7 @@ export function Theme() {
         --acc-glow: 0 10px 22px color-mix(in srgb, var(--gold) 32%, transparent);
       }
       body { background: var(--bg); color: var(--text) }
-    `}</style>
+    `}}/>
   );
 }
 

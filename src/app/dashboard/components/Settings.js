@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Inp, Accordion, words, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
+import { T, Card, Btn, Inp, Accordion, Select, words, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
 import { api } from "./session.js";
 
 // The Settings tab, moved out of dashboard-client.js unchanged.
@@ -43,7 +43,6 @@ export default function Settings({settings,setSettings}) {
     if(r.error){setGenMsg("Failed: "+r.error);return;}
     setS(v=>({...v,businessPrompt:r.prompt})); setGenMsg("Generated and saved. Review below — you can edit it.");
   };
-  const selStyle={width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:13.5};
   return <div style={{maxWidth:700}}>
     <div style={{marginBottom:10}}/>
     <Card style={{marginBottom:10}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>General</div>
@@ -91,15 +90,13 @@ export default function Settings({settings,setSettings}) {
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
           <div style={{marginBottom:16}}>
             <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
-            <select value={q.tone||"Friendly and helpful"} onChange={e=>setQ({tone:e.target.value})} style={selStyle}>
-              {["Friendly and helpful","Professional and formal","Casual and fun"].map(t=><option key={t}>{t}</option>)}
-            </select>
+            <Select wide value={q.tone||"Friendly and helpful"} onChange={v=>setQ({tone:v})}
+              options={["Friendly and helpful","Professional and formal","Casual and fun"]}/>
           </div>
           <div style={{marginBottom:16}}>
             <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
-            <select value={q.languages||"Follow the customer's language"} onChange={e=>setQ({languages:e.target.value})} style={selStyle}>
-              {["Follow the customer's language","Bangla only","English only"].map(t=><option key={t}>{t}</option>)}
-            </select>
+            <Select wide value={q.languages||"Follow the customer's language"} onChange={v=>setQ({languages:v})}
+              options={["Follow the customer's language","Bangla only","English only"]}/>
           </div>
         </div>
         {isEcom?<>

@@ -4,6 +4,100 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-17) — Demo bot removed, first-run screens themed, premium Inventory
+
+Owner asked (in one message): remove the demo bot everywhere; make the auth
+and post-signup screens match the theme; make Profile "Resources" fit the
+business type; and build a premium, organised Inventory (photos, edit,
+categories, variants). Seven small commits, each built and verified:
+
+- `8048c2a` **Demo bot gone** — `Demo.js`, `/api/demo-chat`, `runDemo()` in
+  `bot.js`, the "Try Demo" onboarding card, and the docs mentions. Onboarding
+  step 3 is now one "Start free trial" card. `public/demo/dress.svg` stays: it
+  is the landing page's marketing phone animation, not the demo bot.
+- `fc9c473` **First-run screens on the theme** — real bug found: Onboarding,
+  ConnectChannel and ConnectCalendar rendered *without* `<Theme/><Motion/>`,
+  so every CSS variable was undefined after signup. They now mount both and
+  share `OnboardFrame` (ui.js: soft slab, brand mark, red icon tile, `Steps`
+  pills). `Inp` gained an `emb` prop (pressed-in field). Raw `<select>` →
+  shared `Select`.
+- `b0b2fca` **Profile resources by type** — `/api/profile` usage now also
+  counts `bookings` and `file_registry`; agency sees Knowledge files/Bookings,
+  shop sees Products/Orders, both see Channels. The last raw `<select>`s
+  (Profile, Settings, Broadcast, conversation tag picker) use `Select`.
+- `5bd7d32` **Inventory API** — new `src/lib/products.js` (form parsing,
+  option/variant normalising, gallery upload, vision step, embedding text now
+  includes category/brand/tags/option values). `POST /api/add-product` takes
+  brand, tags, stock_qty, options, variants, several `images`;
+  `PATCH /api/products` edits in place (only present fields change; vision
+  only when the primary image is new; re-embed only when a searchable field
+  changed); `DELETE` takes `{id}` or `{ids}`; `GET` newest first. Gallery order
+  uses `upload:N` placeholders (`resolveGallery`) so a new photo can be primary
+  in the same save. Both importers store `images[]`, `visual`, timestamps.
+  `FIXED_ECOM` rule 18b: bot lists available variants and uses the chosen
+  variant's price. **Everything lives in `metadata` jsonb — no schema change**
+  (products table had 0 rows at the time).
+- `7ca5bf6` `import-one` duplicate delete now carries `.eq("client_id")`.
+- `19b7045` **Inventory tab rebuilt** — stats strip, category rail (desktop) /
+  scrolling chips (phone) with counts, search over name/code/brand/tags/SKUs,
+  stock filter, sort, grid|list (remembered in `al-inv-view`), bulk select →
+  in/out of stock / delete, one editor drawer (full-screen on phone) with
+  Details / Photos / Variants tabs (options builder → generate matrix),
+  import sheet (URL / WooCommerce), empty state. Verified in Chrome (desktop,
+  light+dark) and at 375px via JS measurement (no overflow; drawer + variant
+  rows fit). `.claude/launch.json` now calls the next binary directly.
+- `8534e26` **SSR `<style>` escaping fix** — React escapes text children of
+  `<style>` on the server (`&quot;`, `&#x27;`); the browser does not decode
+  entities inside `<style>`, so first paint had broken dark-theme rules and a
+  broken Google Fonts `@import`, and every load logged hydration errors (root
+  switched to client render). All inline CSS now uses
+  `dangerouslySetInnerHTML`. Verified on the production build: 0 escaped
+  entities in `<style>`, `@import` valid, `[data-theme="dark"]` present.
+
+Later the same session (owner asks, in order):
+- `b8a254b` **Premium "connected" page for every channel** — new
+  `src/lib/connect-page.js` (`connectedPage` / `connectFailedPage`): brand
+  palette (light+dark via `al-theme`), channel icon tile + green tick, "Facebook
+  Page connected", the exact Page/@account/number/email in a pill,
+  plain-language status rows (never a permission name), "Go to dashboard" +
+  6-second countdown; posts legacy event + `{type:"al-connected"}` to an
+  opener, then returns to `/dashboard?connected=<platform>&name=…#channels`.
+  fb/select, ig/select, wa/select, gcal/callback use it (success + errors);
+  wa/embedded hands off to new `GET /api/wa/finish?done=1`. Dashboard reads
+  `?connected=` / the message → opens Channels and shows a success banner
+  (`Channels.js` `JUST` map, `justConnected` state in dashboard-client).
+- `00f941d` **Admin API** — overview with plan mix, MRR (from `plans.js`),
+  revenue 30d vs prev, signups/messages/orders/bookings 7d vs prev, 14-day
+  Dhaka-day series, platform mixes; `attention` list (pending payments,
+  trials ≤2d/expired, paid plans ≤7d/expired, suspended, no channel, quiet
+  7d); `activity` feed; per-client last_active / days-left / pending_payment;
+  PUT `plan` accepts any catalogue plan (30-day term), new `extend_plan`;
+  client-detail adds payments, contacts, bot name/greeting (from
+  `app_settings.settings`, never the prompt), by-platform + series.
+- `a9cec74` **Admin console rebuilt** on `ui.js` tokens/components — sidebar
+  + header shell, Overview (8 KPIs w/ trends, sparklines, attention,
+  activity, mixes, top clients), Clients (filters + table/cards), client
+  drawer (tabs + Manage + typed-DELETE), Payments (inline approve/reject),
+  Admins (key-locked role control). `AdminApp` is exported so a mock-data
+  dev page can render it without login. Verified desktop light/dark + 375px.
+
+Also: `robots.txt` + `sitemap.xml` added (`c95537e`, canonical
+`www.getvoicium.com`; apex 308→www); Meta app + Google OAuth redirect URIs for
+the new domain explained to the owner (not yet confirmed done by them).
+
+**Not verified (no dashboard credentials locally):** the real logged-in
+Inventory tab against Supabase (add → vision → embed, edit → re-embed,
+gallery upload to `product-images`). Code paths mirror the old add-product
+flow; the owner should add one product with a photo and a Size option and
+check the bot answers with the variant list.
+
+**Found, not fixed:** three *different* vision prompts exist (`bot.js`
+message-time, `products.js` add/edit, `import-one`) although `docs/prompts.md`
+says they must be identical. Matching still works (all produce dense
+descriptions) but drift is real — unify in a dedicated commit.
+
+---
+
 ## Last session (2026-08-16) — Full UI redesign: crimson/white neumorphic
 
 **Owner-directed brand change, applied across the whole surface in one pass.**
@@ -48,8 +142,29 @@ this session) and a real logged-in dashboard (no credentials locally). After
 deploy, the owner should eyeball: sidebar/header on desktop + phone, dark mode
 toggle, the Bookings range calendar, and the landing page in both themes.
 
+**Follow-ups the same day (owner tested on the live site):**
+- *Dark mode did nothing on the landing page* (`2f8c6f7`). Root cause was
+  bigger than the toggle: every bare `<script dangerouslySetInnerHTML>` inside
+  the page tree — theme boot, scroll-reveal, film autoplay, flow animation —
+  is inserted by React via innerHTML and **never executes**. All of that had
+  been silently dead in production since before the redesign. Fix: theme boot
+  is a bare `<script>` in the root layout `<head>` (the one place inline
+  scripts run in the App Router, before first paint), with the toggle
+  delegated on `document` and re-asserted after hydration; the other three
+  moved to `next/script afterInteractive`. Verified live: toggle flips
+  `data-theme` and `--lp-bg`, persists across `/pricing` and `/dashboard`;
+  reveal attaches to 10–13 elements (was 0).
+- *Phone screenshots showed clipped edges* (`0f9c51b`): nav CTA clipped,
+  How-it-works card cut by the fixed "sheet" frame, calendar's Saturday
+  column + next arrow overflowing, header crowded to "Book…", sidebar shadow
+  bleeding as a red sliver. All five fixed and measured at 360 and 320px:
+  no horizontal overflow, CTA fully on-screen, calendar cells 37×37 inside
+  the card. The calendar bug's real cause is worth remembering:
+  `aspect-ratio:1` + a 44px `min-height` (also from the global coarse-pointer
+  `button` rule) put a 44px floor on cell *width*, and 7×44 > a 320px card.
+
 ### What's next
-1. Owner eyeballs the deployed redesign on a phone and a laptop, both themes.
+1. Owner re-checks the phone views (both themes) after `0f9c51b` deploys.
 2. Separate task exists for the pre-existing console errors (fonts + hydration).
 3. Everything under earlier "What's next" sections still stands.
 
@@ -958,6 +1073,22 @@ automation looks natural to a reviewer.
 
 ### Also pending
 
+- **New domain follow-ups (owner's hands):** add `getvoicium.com` +
+  `www.getvoicium.com` to Meta App Domains and the six `/api/{fb,ig,wa}/callback`
+  redirect URIs (both hosts) to Facebook Login for Business; add the two
+  `/api/gcal/callback` URIs to the Google OAuth client. Google Search Console:
+  add domain property, TXT record in Hostinger, submit `sitemap.xml`, request
+  indexing of `https://www.getvoicium.com/`.
+- **Admin console smoke test as the super admin:** open `/admin`, check
+  Overview numbers against Supabase (MRR = sum of monthly prices of active
+  paid, non-suspended clients), approve/reject a test payment, change a
+  plan from the drawer. Only verified with mock data locally.
+- **Re-connect one channel** to see the new "connected" page + dashboard
+  banner end to end (needs Meta login — not testable here).
+- **Inventory smoke test on the real account:** add one product with a photo,
+  a Size option and generated variants; edit it (change primary photo);
+  confirm the bot answers with sizes and the chosen variant's price.
+- **Unify the three vision prompts** (see 2026-08-17 entry).
 - **Booking pipeline** is instrumented but untested end to end. `gcal_connected` is true and a
   refresh token exists, but `gcal_token_expiry` was stale. Unverified Google apps get 7-day
   refresh tokens, so it may simply be dead — `getValidAccessToken` now detects `invalid_grant`,

@@ -4,17 +4,12 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { analyzeImage, generateEmbedding } from "@/lib/gemini.js";
+import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery } from "@/lib/products.js";
 
-function visionPrompt(bType, unit) {
-  return `You are an elite product cataloger for a ${bType || "business"}. Task: produce a precise, search-optimized description of the ${unit || "item"} so a semantic search can match it perfectly.
-
-Step 1: Scan for any printed code, SKU or model number. If present, begin the output with: CODE: <exact code>
-Step 2: Ignore all background, hands, gloves, packaging, boxes, watermarks and logos. Describe ONLY the ${unit || "item"} itself.
-Capture with precision: exact type and subtype, primary and secondary colors, material and finish, shape and silhouette, patterns or motifs, notable components or parts, size cues, and any unique distinguishing features.
-Output one dense technical paragraph. No preamble, no marketing language.`;
-}
-
+// Create one product from the Inventory tab. Multipart form: the fields in
+// readProductForm(), plus `images` (several files) — the first image is the
+// primary one the bot shows. Vision describes the primary image so a customer
+// photo can be matched to it later.
 export async function POST(request) {
   try {
     const { client } = await requireClient(request);
@@ -23,49 +18,33 @@ export async function POST(request) {
     // Each import runs AI calls — cap the burst rate per account.
     const rl = rateLimit(`add-product:${client.id}`, 60, 3600000);
     if (!rl.ok) return tooManyRequests(rl.retryAfter, "You are adding products very quickly. Please wait a moment.");
-    const bType = client.business_type || "ecommerce";
-    const unit = client.item_label || "product";
-    const form = await request.formData();
-    const product_code = form.get("product_code") || "";
-    const product_name = form.get("product_name") || "";
-    const category = form.get("category") || "";
-    const regular_price = form.get("regular_price") || "";
-    const sale_price = form.get("sale_price") || "";
-    const description = form.get("description") || "";
-    const file = form.get("image");
-    if (!product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
-    let image_url = form.get("image_url") || "";
-    if (file && typeof file !== "string") {
-      const ext = (file.name?.split(".").pop() || "jpg").toLowerCase();
-      const path = `${client.id}/${Date.now()}.${ext}`;
-      const buf = Buffer.from(await file.arrayBuffer());
-      const { error: upErr } = await supabase.storage.from("product-images").upload(path, buf, {
-        contentType: file.type || "image/jpeg", upsert: false,
-      });
-      if (upErr) return NextResponse.json({ error: "upload failed: " + upErr.message }, { status: 500 });
-      image_url = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
-    }
+    const { fields, files } = readProductForm(await request.formData());
+    if (!fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
-    let visual = "";
-    let analyzeError = null;
-    if (image_url) {
-      try { visual = await analyzeImage(image_url, visionPrompt(bType, unit)); }
-      catch (e) { analyzeError = e.message; }
-    }
+    const uploaded = [];
+    for (const f of files.slice(0, 8)) uploaded.push(await uploadProductImage(client.id, f));
+    const images = resolveGallery(fields.image_urls || [], uploaded);
+    const image_url = images[0] || "";
 
-    const code = product_code || (visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i)?.[1]?.trim()) || `M-${Date.now()}`;
-    const content = `Product Code: ${code}\nName: ${product_name}\n${visual || description || ""}`;
-    const embedding = await generateEmbedding(content);
+    const { visual, analyzeError } = await describeImage(image_url, client);
+    const code = fields.product_code || (visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i)?.[1]?.trim()) || `M-${Date.now()}`;
 
+    const now = new Date().toISOString();
     const metadata = {
-      client_id: String(client.id), product_code: code, product_name,
-      category, regular_price: String(regular_price), sale_price: String(sale_price),
-      stock_status: "instock", image_url, description,
+      client_id: String(client.id),
+      product_code: code, product_name: fields.product_name,
+      category: fields.category || "", brand: fields.brand || "", tags: fields.tags || [],
+      regular_price: fields.regular_price || "", sale_price: fields.sale_price || "",
+      stock_status: fields.stock_status || "instock", stock_qty: fields.stock_qty ?? null,
+      image_url, images, visual, description: fields.description || "",
+      options: fields.options || [], variants: fields.variants || [],
+      created_at: now, updated_at: now,
     };
-    const { error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id });
+    const { content, embedding } = await embedProduct(metadata);
+    const { data, error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id }).select("id").single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, image_url, analyzed: !!visual, analyzeError });
+    return NextResponse.json({ ok: true, id: data?.id, image_url, analyzed: !!visual, analyzeError });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

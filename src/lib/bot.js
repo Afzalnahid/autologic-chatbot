@@ -208,6 +208,7 @@ export const FIXED_ECOM = `
 16. PRODUCT DISPLAY (for each product): first {"type":"image_msg","url":"<image_url>"} ONLY if image_url is a valid http link (otherwise skip the image), then {"type":"text_msg","text":"Product: <name>\\nCode: <code>\\nPrice: <price> BDT"}.
 17. PRICE LOGIC: use sale_price if it is set and not 0, otherwise regular_price. If neither exists, write "যোগাযোগ করুন" (Bangla) or "Contact us" (English). Never state a price that is not in the data.
 18. STOCK: if a product is out of stock, gently say so and suggest the closest available alternative from the search results.
+18b. VARIANTS: if a product has a "variants" list (sizes, colours, models), tell the customer which options are available (skip variants that are out of stock) and ask which one they want before taking the order. Once they choose, use THAT variant's price and name it in the order. Never offer an option that is not in the variants list.
 19. BUYING SIGNAL: when a customer wants to buy / order / confirm, move smoothly to collecting the order - do not keep showing more products.
 20. ORDER COLLECTION: collect exactly these, one at a time, politely: Full Name, then Phone Number, then Full delivery Address. Ask for delivery area if it affects the charge.
 21. ORDER CONFIRMATION: before finalising, read the full order back to the customer in one clear message - product(s), quantity, unit price, delivery charge, and the total written as "Total = <amount> TK". Only confirm after they agree.
@@ -1056,33 +1057,4 @@ export async function handleComment(event) {
       dm_error: dmError,
     });
   } catch (e) { console.error("[comment] save:", e.message); }
-}
-
-export async function runDemo(clientId, userText, history = []) {
-  const client = await getClient(clientId);
-  const isAgency = (client?.business_type || "ecommerce") === "agency";
-  const systemPrompt = await getSystemPrompt(clientId, isAgency ? "agency" : "ecommerce");
-
-  let context;
-  if (isAgency) {
-    const snippets = await searchKnowledge(clientId, userText, 6);
-    context = snippets.length
-      ? "\n\nKNOWLEDGE BASE (answer ONLY from this retrieved context):\n" +
-        snippets.map(s => s.content).join("\n---\n")
-      : "\n\nKNOWLEDGE BASE: no relevant information found.";
-  } else {
-    const products = await searchProducts(clientId, userText, 3);
-    context = products.length
-      ? "\n\nSEARCH RESULTS (source of truth, pick from these only; each has match_score 0-1 — if the best match_score is below 0.5, do NOT guess: say you couldn't find that exact item):\n" +
-        products.map(p => JSON.stringify({ ...(p.metadata || {}), match_score: typeof p.similarity === "number" ? Number(p.similarity.toFixed(2)) : undefined })).join("\n")
-      : "\n\nSEARCH RESULTS: none found.";
-  }
-
-  let raw;
-  try {
-    raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText }]);
-  } catch (e) {
-    return { error: e.message, items: [] };
-  }
-  return { items: parseReply(raw).filter(i => i.type === "text_msg" || i.type === "image_msg") };
 }

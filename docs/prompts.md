@@ -129,7 +129,6 @@ human, not templates for the bot.
 |---|---|---|
 | `visionPrompt(businessType, itemLabel)` | `bot.js` | Describes a product photo. **Must be identical at import time and at message time** — the two descriptions are embedded and compared, so any drift breaks matching. |
 | Audio transcription | `gemini.js` | Transcribes voice notes; keeps Bangla in Bangla script. |
-| `EXPERT_PROMPT` | `api/demo-chat` | The Autologic Demo Bot — a product expert for the platform itself, never a client's bot. |
 | `META` | `api/generate-prompt` | The meta-prompt that writes business profiles. |
 
 ---

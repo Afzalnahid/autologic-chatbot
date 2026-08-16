@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
+import { connectedPage } from "@/lib/connect-page.js";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -104,4 +105,17 @@ export async function POST(request) {
     console.error("[wa/finish]", e?.message || e);
     return NextResponse.json({ error: "Something went wrong finishing the connection." }, { status: 500 });
   }
+}
+
+// After the embedded flow's POST succeeds, the browser lands here so the owner
+// sees the same branded "connected" page every channel gets. Display-only:
+// nothing is saved from these query values.
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const name = String(searchParams.get("name") || "WhatsApp Business").slice(0, 80);
+  const number = String(searchParams.get("number") || "").slice(0, 40);
+  return connectedPage({ platform: "whatsapp", name, detail: number, rows: [
+    { ok: true, title: "WhatsApp replies are live", sub: "Autologic answers every message this number receives, 24/7." },
+    { ok: true, title: "Broadcasts and follow-ups ready", sub: "Reach people who messaged you in the last 24 hours from the Broadcast tab." },
+  ] });
 }
