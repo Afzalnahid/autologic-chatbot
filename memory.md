@@ -48,8 +48,29 @@ this session) and a real logged-in dashboard (no credentials locally). After
 deploy, the owner should eyeball: sidebar/header on desktop + phone, dark mode
 toggle, the Bookings range calendar, and the landing page in both themes.
 
+**Follow-ups the same day (owner tested on the live site):**
+- *Dark mode did nothing on the landing page* (`2f8c6f7`). Root cause was
+  bigger than the toggle: every bare `<script dangerouslySetInnerHTML>` inside
+  the page tree — theme boot, scroll-reveal, film autoplay, flow animation —
+  is inserted by React via innerHTML and **never executes**. All of that had
+  been silently dead in production since before the redesign. Fix: theme boot
+  is a bare `<script>` in the root layout `<head>` (the one place inline
+  scripts run in the App Router, before first paint), with the toggle
+  delegated on `document` and re-asserted after hydration; the other three
+  moved to `next/script afterInteractive`. Verified live: toggle flips
+  `data-theme` and `--lp-bg`, persists across `/pricing` and `/dashboard`;
+  reveal attaches to 10–13 elements (was 0).
+- *Phone screenshots showed clipped edges* (`0f9c51b`): nav CTA clipped,
+  How-it-works card cut by the fixed "sheet" frame, calendar's Saturday
+  column + next arrow overflowing, header crowded to "Book…", sidebar shadow
+  bleeding as a red sliver. All five fixed and measured at 360 and 320px:
+  no horizontal overflow, CTA fully on-screen, calendar cells 37×37 inside
+  the card. The calendar bug's real cause is worth remembering:
+  `aspect-ratio:1` + a 44px `min-height` (also from the global coarse-pointer
+  `button` rule) put a 44px floor on cell *width*, and 7×44 > a 320px card.
+
 ### What's next
-1. Owner eyeballs the deployed redesign on a phone and a laptop, both themes.
+1. Owner re-checks the phone views (both themes) after `0f9c51b` deploys.
 2. Separate task exists for the pre-existing console errors (fonts + hydration).
 3. Everything under earlier "What's next" sections still stands.
 
