@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Sequence, useVideoConfig, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig, interpolate, useCurrentFrame } from "remotion";
 import { COPY } from "./copy.js";
 import { Hook, Connect, Teach, Chat, Acts, Dash, CTA } from "./scenes/Scenes.jsx";
 import { T } from "./theme.js";
@@ -38,6 +38,7 @@ export function Film({ lang = "en" }) {
   let at = 0;
   return (
     <AbsoluteFill style={{ background: T.bg }}>
+      <Audio src={staticFile("music.wav")} volume={0.35} />
       {PLAN.map(({ C, secs }, i) => {
         const from = at;
         const dur = Math.round(secs * fps);

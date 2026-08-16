@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { chatWithGemini, analyzeImageBase64, transcribeAudioBase64 } from "@/lib/gemini.js";
-import { languageRule } from "@/lib/bot.js";
+import { detectLanguage, languageLock } from "@/lib/bot.js";
 
 // The demo bot is always a product expert for Autologic itself — it never uses
 // a client's personal bot configuration.
@@ -84,7 +84,7 @@ export async function POST(request) {
 
     if (!userText) return NextResponse.json({ reply: "", transcript: null });
 
-    const reply = await chatWithGemini(EXPERT_PROMPT, [...history, { role: "user", content: userText + languageRule(userText) }]);
+    const reply = await chatWithGemini(EXPERT_PROMPT, [...history, { role: "user", content: userText + languageLock(detectLanguage(userText)) }]);
     return NextResponse.json({ reply: reply || "Sorry, I couldn't generate a reply.", transcript });
   } catch (e) {
     return NextResponse.json({ reply: "Error: " + e.message, transcript: null }, { status: 500 });

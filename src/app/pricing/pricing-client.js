@@ -1,10 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PLANS, PLAN_ORDER, formatMoney, yearlySavingMonths } from "@/lib/plans.js";
+import { THEME_CSS } from "@/lib/landing.js";
 
+// Reads the shared site palette, so pricing follows the same crimson-on-white
+// theme (and the same light/dark switch) as the landing page and dashboard.
 const T = {
-  bg: "#0A0D14", card: "#0F1420", gold: "#5B8CFF", goldBg: "rgba(91,140,255,0.12)",
-  text: "#E7EAF2", muted: "#98A3BA", dim: "#64748b", border: "#1F2839", green: "#2ED3A7",
+  bg: "var(--lp-bg)", card: "var(--lp-card)", gold: "var(--lp-acc)", goldBg: "var(--lp-accSoft)",
+  text: "var(--lp-ink)", muted: "var(--lp-soft)", dim: "var(--lp-soft)", border: "var(--lp-line)", green: "#0FA97C",
 };
 
 const COMPARE = [
@@ -41,17 +44,27 @@ export default function PricingClient() {
   const wrap = { maxWidth: 1120, margin: "0 auto", padding: "0 20px" };
   const yearly = cycle === "yearly";
 
+  // Same boot as the landing page: saved choice first, then the machine's.
+  useEffect(() => {
+    try {
+      const t = localStorage.getItem("al-theme")
+        || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = t;
+    } catch {}
+  }, []);
+
   return (
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "system-ui, sans-serif" }}>
+      <style>{THEME_CSS}</style>
       <nav style={{ borderBottom: `1px solid ${T.border}` }}>
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px" }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: T.text }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: T.goldBg, border: `1px solid ${T.gold}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤖</div>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: T.goldBg, border: `1px solid color-mix(in srgb, ${T.gold} 27%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤖</div>
             <span style={{ fontSize: 18, fontWeight: 700 }}>Autologic</span>
           </a>
           <div style={{ display: "flex", gap: 9 }}>
             <a href="/dashboard?auth=signin" style={{ padding: "8px 16px", color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, fontWeight: 600, fontSize: 13.5, textDecoration: "none" }}>Log in</a>
-            <a href="/dashboard?auth=signup" style={{ padding: "8px 18px", background: T.gold, color: "#0a0a0a", borderRadius: 8, fontWeight: 600, fontSize: 13.5, textDecoration: "none" }}>Sign up</a>
+            <a href="/dashboard?auth=signup" style={{ padding: "8px 18px", background: T.gold, color: "#fff", borderRadius: 8, fontWeight: 600, fontSize: 13.5, textDecoration: "none" }}>Sign up</a>
           </div>
         </div>
       </nav>
@@ -67,7 +80,7 @@ export default function PricingClient() {
           {[["monthly", "Monthly"], ["yearly", "Yearly"]].map(([id, label]) => (
             <button key={id} onClick={() => setCycle(id)} style={{
               padding: "8px 20px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 600,
-              background: cycle === id ? T.gold : "transparent", color: cycle === id ? "#0a0a0a" : T.muted,
+              background: cycle === id ? T.gold : "transparent", color: cycle === id ? "#fff" : T.muted,
             }}>{label}</button>
           ))}
         </div>
@@ -87,7 +100,7 @@ export default function PricingClient() {
                 background: T.card, border: p.highlight ? `1.5px solid ${T.gold}` : `1px solid ${T.border}`,
                 borderRadius: 14, padding: "26px 22px", display: "flex", flexDirection: "column", position: "relative",
               }}>
-                {p.highlight && <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)", background: T.gold, color: "#0a0a0a", fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>MOST POPULAR</div>}
+                {p.highlight && <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)", background: T.gold, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>MOST POPULAR</div>}
                 <div style={{ fontSize: 17, fontWeight: 700 }}>{p.name}</div>
                 <div style={{ fontSize: 12.5, color: T.muted, marginTop: 4, minHeight: 34 }}>{p.tagline}</div>
                 <div style={{ margin: "14px 0 4px", display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
@@ -102,7 +115,7 @@ export default function PricingClient() {
                   display: "block", textAlign: "center", marginTop: 18, padding: "11px 0", borderRadius: 9,
                   fontWeight: 700, fontSize: 14, textDecoration: "none",
                   background: p.highlight ? T.gold : "transparent",
-                  color: p.highlight ? "#0a0a0a" : T.text,
+                  color: p.highlight ? "#fff" : T.text,
                   border: p.highlight ? "none" : `1px solid ${T.border}`,
                 }}>{free ? "Start free trial" : "Choose " + p.name}</a>
 
@@ -168,7 +181,7 @@ export default function PricingClient() {
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: "36px 24px" }}>
           <div style={{ fontSize: 21, fontWeight: 700, marginBottom: 8 }}>Still deciding?</div>
           <div style={{ fontSize: 14, color: T.muted, marginBottom: 20 }}>Start the 3-day trial — it takes two minutes and costs nothing.</div>
-          <a href="/dashboard?auth=signup" style={{ display: "inline-block", padding: "12px 28px", background: T.gold, color: "#0a0a0a", borderRadius: 10, fontWeight: 700, fontSize: 14.5, textDecoration: "none" }}>Start free trial</a>
+          <a href="/dashboard?auth=signup" style={{ display: "inline-block", padding: "12px 28px", background: T.gold, color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 14.5, textDecoration: "none" }}>Start free trial</a>
         </div>
       </section>
 

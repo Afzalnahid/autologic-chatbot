@@ -3,7 +3,7 @@ export const metadata = { title: "Contact — Autologic" };
 export default function Contact() {
   const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
   const card = { background: "#0F1420", border: "1px solid #1F2839", borderRadius: 14, padding: "22px 24px", marginBottom: 16, display: "flex", gap: 16, alignItems: "flex-start" };
-  const icon = { width: 44, height: 44, borderRadius: 11, background: "rgba(91,140,255,0.12)", border: "1px solid rgba(91,140,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 };
+  const icon = { width: 44, height: 44, borderRadius: 11, background: "rgba(255,107,117,0.13)", border: "1px solid rgba(255,107,117,0.28)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 };
   const label = { fontSize: 12.5, color: "#98A3BA", marginBottom: 3 };
   const val = { fontSize: 15.5, fontWeight: 600 };
   return (
@@ -17,7 +17,7 @@ export default function Contact() {
           <div style={icon}>✉️</div>
           <div>
             <div style={label}>Email</div>
-            <a href="mailto:nahidafzal97@gmail.com" style={{ ...val, color: "#5B8CFF", textDecoration: "none" }}>nahidafzal97@gmail.com</a>
+            <a href="mailto:nahidafzal97@gmail.com" style={{ ...val, color: "#FF6B75", textDecoration: "none" }}>nahidafzal97@gmail.com</a>
             <div style={{ fontSize: 13.5, color: "#98A3BA", marginTop: 4 }}>For support, sales, and general questions. We usually reply within 24 hours.</div>
           </div>
         </div>
@@ -45,7 +45,7 @@ export default function Contact() {
           <div>
             <div style={label}>Existing customer?</div>
             <div style={val}>Sign in to your dashboard</div>
-            <div style={{ fontSize: 13.5, color: "#98A3BA", marginTop: 4 }}>Manage your channels, knowledge base, and bookings anytime from your <a href="/dashboard" style={{ color: "#5B8CFF", textDecoration: "none" }}>Autologic dashboard</a>.</div>
+            <div style={{ fontSize: 13.5, color: "#98A3BA", marginTop: 4 }}>Manage your channels, knowledge base, and bookings anytime from your <a href="/dashboard" style={{ color: "#FF6B75", textDecoration: "none" }}>Autologic dashboard</a>.</div>
           </div>
         </div>
 

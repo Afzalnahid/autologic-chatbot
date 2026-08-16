@@ -54,7 +54,7 @@ export async function GET(request) {
   .search{width:100%;background:#0F1420;border:1px solid #2C374D;border-radius:8px;
           padding:9px 12px;color:#E7EAF2;font-size:13.5px;font-family:inherit;margin-bottom:10px}
   .search::placeholder{color:#5E6B85}
-  .search:focus{outline:0;border-color:#5B8CFF;box-shadow:0 0 0 3px rgba(91,140,255,.12)}
+  .search:focus{outline:0;border-color:#FF6B75;box-shadow:0 0 0 3px rgba(255,107,117,.14)}
   form{flex:1;display:flex;flex-direction:column;min-height:0}
   .list{flex:1;overflow-y:auto;border:1px solid #1F2839;border-radius:10px;padding:6px;background:#0F1420}
   .list::-webkit-scrollbar{width:5px}
@@ -63,13 +63,13 @@ export async function GET(request) {
        cursor:pointer;transition:background .12s}
   .row:hover{background:#151B2A}
   .row.hide{display:none}
-  .row input{accent-color:#5B8CFF;width:15px;height:15px;flex-shrink:0}
+  .row input{accent-color:#FF6B75;width:15px;height:15px;flex-shrink:0}
   .av{width:30px;height:30px;border-radius:8px;background:#1C2436;border:1px solid #2C374D;
       display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;
       color:#98A3BA;flex-shrink:0}
   .nm{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .bar{padding-top:14px}
-  button{width:100%;padding:11px;background:#5B8CFF;color:#07101F;border:0;border-radius:8px;
+  button{width:100%;padding:11px;background:#E23440;color:#fff;border:0;border-radius:8px;
          font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
   button:hover{background:#7BA2FF}
   .empty{padding:22px;text-align:center;color:#5E6B85;font-size:13px;display:none}

@@ -45,9 +45,9 @@ export async function GET() {
   .w{max-width:640px;margin:0 auto}
   h1{font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 6px}
   .sub{color:#98A3BA;font-size:14px;margin-bottom:28px}
-  h2{font-size:16px;font-weight:600;color:#5B8CFF;margin:28px 0 6px}
+  h2{font-size:16px;font-weight:600;color:#FF6B75;margin:28px 0 6px}
   p{font-size:14.5px;color:#98A3BA;margin:0 0 12px}
-  a{color:#5B8CFF}
+  a{color:#FF6B75}
 </style></head><body><div class="w">
   <h1>Data Deletion</h1>
   <div class="sub">Autologic · Kandirpar, Cumilla, Bangladesh</div>

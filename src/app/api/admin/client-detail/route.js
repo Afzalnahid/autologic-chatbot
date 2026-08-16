@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
+import { startOfDayDhaka } from "@/lib/time.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -55,7 +56,7 @@ export const GET = withErrors(async (request) => {
 
   const msgs = msgsQ.data || [];
   const now = Date.now();
-  const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+  const dayStart = startOfDayDhaka();
   const d7 = now - 7 * 86400000, d30 = now - 30 * 86400000;
   const inRange = (m, from) => new Date(m.created_at).getTime() > from;
   const byRole = (arr, r) => arr.filter((m) => (m.role || "customer") === r).length;

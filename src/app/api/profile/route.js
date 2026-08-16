@@ -45,7 +45,6 @@ export const PUT = withErrors(async (request) => {
 async function getUsage(client) {
   const { count: products } = await supabase.from("products").select("id", { count: "exact", head: true }).eq("client_id", client.id);
   const { count: orders } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("client_id", client.id);
-  const { data: chans } = await supabase.from("channels").select("id,client_id").limit(500);
-  const channels = (chans || []).filter(c => c.client_id === client.id).length;
-  return { products: products || 0, orders: orders || 0, channels };
+  const { count: channels } = await supabase.from("channels").select("id", { count: "exact", head: true }).eq("client_id", client.id);
+  return { products: products || 0, orders: orders || 0, channels: channels || 0 };
 }

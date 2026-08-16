@@ -62,7 +62,7 @@
     ":host{all:initial}" +
     "*{box-sizing:border-box;font-family:'Hind Siliguri',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
     ".btn{position:fixed;bottom:20px;" + SIDE + ":20px;width:56px;height:56px;border-radius:50%;" +
-    "background:#5B8CFF;color:#0A0D14;border:none;cursor:pointer;display:flex;align-items:center;" +
+    "background:#D92632;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;" +
     "justify-content:center;box-shadow:0 6px 24px rgba(10,13,20,.35);transition:transform .15s ease}" +
     ".btn:hover{transform:scale(1.05)}" +
     ".btn:active{transform:scale(.94)}" +
@@ -94,8 +94,8 @@
     "animation:in .3s cubic-bezier(.16,1,.3,1) both}" +
     "@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}" +
     ".dots{animation:in .25s ease-out both}" +
-    ".bot{align-self:flex-start;background:#0F1420;border:1px solid #1F2839;border-left:2px solid #5B8CFF}" +
-    ".me{align-self:flex-end;background:#5B8CFF;color:#0A0D14}" +
+    ".bot{align-self:flex-start;background:#0F1420;border:1px solid #1F2839;border-left:2px solid #D92632}" +
+    ".me{align-self:flex-end;background:#D92632;color:#fff}" +
     ".m img{max-width:100%;border-radius:8px;display:block}" +
     ".dots{align-self:flex-start;display:flex;gap:4px;padding:12px 13px}" +
     ".dots i{width:6px;height:6px;border-radius:50%;background:#98A3BA;animation:b 1.2s infinite}" +
@@ -104,8 +104,8 @@
     ".ft{display:flex;gap:8px;padding:12px;border-top:1px solid #1F2839;background:#0F1420}" +
     ".ft input{flex:1;background:#0A0D14;border:1px solid #1F2839;border-radius:9px;padding:10px 12px;" +
     "color:#E7EAF2;font-size:14px;outline:none}" +
-    ".ft input:focus{border-color:#5B8CFF}" +
-    ".ft button{background:#5B8CFF;color:#0A0D14;border:none;border-radius:9px;padding:0 16px;" +
+    ".ft input:focus{border-color:#D92632}" +
+    ".ft button{background:#D92632;color:#fff;border:none;border-radius:9px;padding:0 16px;" +
     "font-weight:600;font-size:14px;cursor:pointer;transition:filter .15s ease-out,transform .15s ease-out}" +
     ".ft button:hover:not(:disabled){filter:brightness(1.08)}" +
     ".ft button:active:not(:disabled){transform:scale(.96)}" +

@@ -202,11 +202,81 @@ App Review requires those URLs to be reachable from the site. The owner caught i
 came along with its layout: cream paper, orange CTA. The result looked accomplished and
 belonged to a different company than the dashboard a visitor lands in one click later.
 
+## 19. Writing a rule down is not the same as enforcing it
+**2026-08-15.** Lesson #14 (2026-08-07) already said it: fix an invariant everywhere
+it's broken, not just where you noticed it, and grep the whole repo before calling it
+done. That grep was never actually run against the rest of the codebase. A full-project
+audit eight days later found the identical "fetch all tenants, filter with `client_id`
+in JavaScript" shape in 8 more places — `api/me`, `api/contacts` (×2, with no filter or
+limit at all), `api/orders`, `api/products`, `api/import-one`, `api/profile`,
+`api/channels`, `api/send-message`/`api/send-media`. Two of the worst (`api/orders`,
+`api/products`) had the exact same failure mode as the already-fixed `pendingFor` bug:
+a busy platform can push a tenant's own rows past a shared cap and they vanish from
+that tenant's own dashboard, silently.
+
+**Rule:** a written rule in `AGENTS.md` or a past lesson is not self-enforcing. After
+fixing an invariant violation, actually run the grep across the whole repo in the same
+session — don't write "grep the whole repo" as future guidance and move on. Better
+still: a rule that recurs a second time after being named once is a candidate for a
+mechanical check (a shared query helper, a lint rule) rather than a fourth round of
+manual fixes later.
+
+## 20. A build warning is a bug report, not noise to scroll past
+**2026-08-15.** `npm run build` had been printing "Attempted import error: 'languageRule'
+is not exported from '@/lib/bot.js'" on every build. It was not a false alarm: the
+import really did resolve to `undefined`, and the only caller — the public demo chat
+bot — threw on every single message and had never once returned a real reply. Nobody
+had read the warning as what it was: a live, on-every-build report that a whole feature
+was broken.
+
+**Rule:** a compiler/bundler warning that names a specific broken import is not
+cosmetic. Read it, trace the caller, and check whether the code path it warns about is
+reachable and used — don't wait for a user report to notice a warning that already told
+you the answer.
+
 **Rule:** a reference contributes typography, rhythm, hierarchy and ideas. Colour comes
 from the product's own tokens — here, the same seven values `ui.js` uses — or the seams
 show the moment a customer signs up.
 
-## 19. Two scheduled agents assigned the same task will silently duplicate it
+## 19. A rebuilt server on the same port can silently serve the old build
+**2026-08-15.** Verifying a responsive-layout fix locally: `npm run build`, kill the dev
+server, rebuild, restart on the same port, re-check with a headless browser. The "after"
+screenshot looked identical to the "before" one. `pkill -f "next start"` had matched
+nothing — the running process's actual name is `next-server`, not `next start` — so the
+old server was still bound to the port, and the "restart" command silently failed to bind
+and did nothing. The re-verification was testing the untouched old build the whole time.
+Caught it by `curl`-ing the served HTML for a string only the new CSS contains, before
+trusting the second round of screenshots.
+
+**Rule:** after changing code and restarting a local server for verification, confirm the
+running process is actually new — check the PID's start time, or grep the served output
+for something only the new code contains — before trusting anything it returns. A restart
+command that "succeeds" with no error is not proof the old process is gone; `pkill -f` in
+particular must match the process's real argv, not the npm script name that launched it.
+
+## 20. A sandboxed session's network is not the open internet
+**2026-08-15.** Asked to download a CC0 music track for the product film. Every
+general-web host tried was blocked by the session's own egress policy — not one
+flaky host, but all of them: pixabay, freesound, archive.org, incompetech,
+opengameart, freepd, soundbible, and even Remotion's own asset CDN
+(`remotion.media`), which broke its normal first-run Chrome download too. Only a
+handful of package registries and `github.com` were reachable.
+
+**Rules:**
+- Before spending time hunting for a "better" source when a download fails, check
+  whether the *class* of host is blocked, not just the one URL — a couple of quick
+  probes to unrelated domains (or the proxy's own status endpoint) tells you in
+  seconds whether this is a dead link or a policy wall.
+- A policy-blocked host is reported, never routed around — no fetching the same
+  asset from an unrelated allowed host as a workaround, no fabricating a
+  placeholder and shipping it as if it were the real (licensed) thing.
+- When a task depends on an external download that might not be reachable, still
+  do everything around it that doesn't depend on the download (wire the code path,
+  verify what can be verified, document exactly what's left) and say plainly what
+  a human needs to finish by hand. A half-finished PR with an honest account beats
+  silence or a fabricated "done".
+
+## 21. Two scheduled agents assigned the same task will silently duplicate it
 **2026-08-15.** Four scheduled tasks were meant to open four PRs. Five opened, because
 two separate scheduled runs both independently picked up "give the bot real Asia/Dhaka
 time awareness" — neither aware the other existed. Both PR #3 and PR #5 edited

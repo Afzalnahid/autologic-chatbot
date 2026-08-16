@@ -4,6 +4,57 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-16) — Full UI redesign: crimson/white neumorphic
+
+**Owner-directed brand change, applied across the whole surface in one pass.**
+The owner supplied three reference videos (neumorphic sidebar, premium dashboard
+header, premium date-range calendar) and asked for a red+white theme with dark
+mode. This replaces the periwinkle brand — CLAUDE.md's invariant was updated to
+match (crimson `#D92632` light / `#FF4D59` dark; mint still means "live" only).
+
+What shipped (single commit):
+- `ui.js` — new `PALETTE` (both themes), neumorphic shadow tokens
+  (`--nm-out/-sm/-in`), red gradient + glow (`--acc-grad`, `--acc-glow`),
+  red `seg-pill`, white-text `Btn gold`, `.pbtn` premium square button with
+  red hover-flood, badge fixes (`${color}18` string concat on a CSS var never
+  worked — replaced with `color-mix`).
+- `dashboard-client.js` — sidebar is now a floating neumorphic card (video 1):
+  brand tile, grouped sections with dividers, red active capsule, live
+  conversation-count badge, Log out at the bottom; opens by default on desktop.
+  Header is a floating rounded bar (video 2): menu/sync/bell(+badge)/theme
+  toggle as premium squares, avatar with red gradient + mint live dot (mint dot
+  only when a channel is connected).
+- `Bookings.js` — premium range calendar (video 3): preset chips
+  (Today / Next 7 days / This month), tap-two-days range with red endpoints and
+  tinted band, start→end→duration summary strip, agenda + list filter follow
+  the range (`day` state is now `{a,b}` keys).
+- `landing.js`/`page.js` — public pages re-tokened to CSS vars (`--lp-*`),
+  light/dark palettes + `THEME_BOOT_JS` (shared `al-theme` storage key with the
+  dashboard), nav theme toggle, rounded neumorphic cards/film frame, red CTAs.
+- `pricing-client.js` re-tokened to the same vars; static pages
+  (terms/privacy/contact/google-calendar), admin, reset, Meta OAuth popups,
+  `public/widget.js`, `dress.svg` all moved off periwinkle.
+
+Verified: `npm run build` clean (no errors/warnings); landing, pricing and the
+dashboard auth screen render locally with the new tokens in the served HTML
+(placeholder env in gitignored `.env.local`). Browser console shows only two
+**pre-existing** errors (broken Google-Fonts `@import` hoisting + React
+hydration #425/#418/#423) — verified byte-identical on production *before* this
+change, so they are not from this redesign. Logged as a separate task; not
+fixed in this commit (one task at a time).
+
+**NOT verified:** pixel-level screenshots (the browser pane could not composite
+this session) and a real logged-in dashboard (no credentials locally). After
+deploy, the owner should eyeball: sidebar/header on desktop + phone, dark mode
+toggle, the Bookings range calendar, and the landing page in both themes.
+
+### What's next
+1. Owner eyeballs the deployed redesign on a phone and a laptop, both themes.
+2. Separate task exists for the pre-existing console errors (fonts + hydration).
+3. Everything under earlier "What's next" sections still stands.
+
+---
+
 ## Last session (2026-08-15) — deadline status check, scheduled run
 
 **Task:** verify the four scheduled-agent PRs opened earlier today before the owner's
@@ -45,10 +96,275 @@ comment posted on each of PR #1–#5. PR #6 is being watched (subscribed to its
 activity) until the owner merges or closes it.
 
 ### What's next
-1. Owner decides: merge PR #6 (the status doc), then work through #1–#5 in light of
-   the report — especially resolving #3 vs #5 before merging either.
-2. Everything under the 2026-08-07 "What's next" below still stands; none of it was
-   touched this session.
+1. **Resolved by the owner** shortly after this report: PR #1, #2, #4, #5 merged;
+   PR #3 (the duplicate timezone PR) closed without merging — exactly matching the
+   recommendation above. See the 2026-08-16 and other 2026-08-15 entries above for
+   what each of those merges actually shipped.
+2. This PR (#6, the status doc itself) still needs merging or closing.
+3. Everything under the 2026-08-07 "What's next" below still stands; none of it was
+   touched in this session.
+
+---
+
+## Last session (2026-08-15) — Responsive audit
+
+**Scheduled responsive audit — PR open, not merged.** Ran as an automated task
+(no live owner watching). Branch `audit/responsive-2026-08-15`, PR #1:
+https://github.com/Afzalnahid/autologic-chatbot/pull/1. Nothing pushed to `main`.
+
+Scope: landing page (`src/app/page.js`, `src/lib/landing.js`) and dashboard shell
+(`src/app/dashboard-client.js`, `src/app/dashboard/components/*`). Owner reported
+"layout errors" on Desktop/Mobile/Mac-Safari without naming them, so this session
+found them: full write-up with file:line in `docs/responsive-audit-2026-08-15.md`.
+
+Four small fixes, each verified against a real production build
+(`npm run build` + `npm run start`), not guessed from CSS reading alone:
+- **Landing nav CTA clipped off-screen below ~340px width** (`page.js` nav +
+  `.navbtn`). Confirmed with a headless-Chromium screenshot at 320px before
+  (button read "START FRE…", cut mid-word — `overflow-x:hidden` was hiding the
+  overflow instead of scrolling to it) and after (fully visible). This is the
+  page's one conversion button, on the phone width class most common among
+  older/budget devices in this market — worth flagging as the most important
+  finding of the four.
+- **Two mobile onboarding screens used `100vh` instead of `100dvh`**
+  (`ConnectChannel`, `ConnectCalendar` in `dashboard-client.js`) — the rest of
+  the dashboard shell already made this switch for mobile Safari's address-bar
+  issue; these two were missed. Now consistent.
+- **Conversations chat grid and Bookings calendar grid used a bare `1fr` next
+  to a fixed column** (`Conversations.js:149`, `ui.js:279`) — no shrink floor,
+  can overflow the container around 768–830px viewports (tablet portrait).
+  Changed to `minmax(0,1fr)`, the standard fix, no visual change when there's
+  room. The Conversations one is reasoned through carefully in the audit doc;
+  the Bookings one is the same pattern applied defensively but **not** screenshot-
+  verified — exercising it needs a logged-in agency account with Google
+  Calendar connected, which this environment has no credentials for.
+- **`backdrop-filter` missing its `-webkit-` twin** on the landing page's video
+  sound button (`page.js`) — `ui.js`'s own `.seg-glass` already pairs the two
+  correctly; this one spot was missed. Added, matching the existing pattern.
+
+**Verification method, for the record:** built and served the app locally with
+placeholder Supabase/Meta/etc. env values (gitignored `.env.local`, never
+committed — the repo has no real credentials in this sandbox), then drove
+headless Chromium (Playwright, installed only into the scratch directory, not
+added to the repo) at 320/360/375/1440px against the real running server and
+diffed screenshots before/after each fix. Caught one of my own mistakes this
+way: a stale `next start` process from an earlier attempt kept answering on
+the test port after a rebuild, so the first "re-verification" was silently
+testing the *old* build — the screenshots and `curl | grep` on a known string
+from the new code caught it before it was reported as done. Also: **no
+WebKit/Safari engine was available in this sandbox** (only Chromium is
+pre-installed here) — the Mac/Safari section of the audit is code review only,
+clearly marked as such in the doc, not claimed as visually verified.
+
+Also checked and found already correct, so left untouched: `position:sticky`,
+`aspect-ratio`, flex/grid `gap` (all fine for a current-Safari target), the
+`<video>` autoplay attributes (`playsInline`+`muted` already present), iOS
+input-zoom prevention in `globals.css`, and every other grid in the dashboard
+(all already `repeat(auto-fit, minmax(Npx,1fr))`, which doesn't have the
+overflow risk the two fixed ones had).
+
+None of the four fixes touch a locked prompt, a database query, or branch on
+`business_type` — same code path for `ecommerce` and `agency` in every case.
+
+Vercel's preview deployment for the PR came back **Ready** — independent
+confirmation beyond the local build.
+
+Subscribed to PR #1's activity (CI, review comments) per the standing PR-watch
+rule; a self check-in is scheduled to follow up if nothing else arrives first.
+
+### What's next
+1. **Owner: review and merge PR #1** (or ask for changes) —
+   https://github.com/Afzalnahid/autologic-chatbot/pull/1. Nothing is live
+   until this merges.
+2. If convenient, a quick look at the mobile nav fix on an actual small phone
+   and the Bookings calendar tab on an actual Mac/Safari would close the two
+   "not independently verified" gaps noted above and in the audit doc.
+3. Everything under the 2026-08-07 "What's next" below still stands unchanged
+   — this session did not touch any of it.
+
+---
+
+## Last session (2026-08-15) — Bug audit
+
+**Full-project bug audit — DONE. PR #4 (`audit/bugs-2026-08-15` → `main`), not merged.**
+
+Scheduled sweep for tenant-isolation bugs (the `client_id`-at-the-DB invariant),
+`bot.js`, API routes, and the broadcast/follow-up 24-hour window. Full write-up:
+`docs/bug-audit-2026-08-15.md`. 9 real bugs found and fixed, all small/reversible.
+
+**The pattern `lessons.md` #14 predicted actually recurred, in 8 more places.**
+The 2026-08-07 session fixed the "fetch all tenants, filter in JS" anti-pattern in
+`bot.js` and wrote down "grep the whole repo for the same shape before calling it
+done" — but that grep was never done. This session did it:
+- `api/me`, `api/contacts` (×2) — **no filter and no limit at all**, fetched entire
+  `message_buffer`/`contacts` tables on every dashboard/Conversations load.
+- `api/orders`, `api/products`, `api/import-one` — global `limit(300/1000)`, no
+  `client_id` filter. Same failure shape as the already-fixed `pendingFor` bug: once
+  other tenants' rows fill the shared cap, a tenant's own orders/products can vanish
+  from their own dashboard, or product re-import can silently duplicate instead of
+  replacing.
+- `api/profile`, `api/channels`, `api/send-message`, `api/send-media` — same anti-
+  pattern on lower-traffic reads (usage counts, outbound-reply channel lookup).
+
+All fixed the same way: move `.eq("client_id", ...)` into the Supabase query, drop
+the JS filter. Return shapes unchanged, no caller updated.
+
+**Unrelated bug also found and fixed: the public demo chat bot was completely
+broken.** `api/demo-chat/route.js` imported `languageRule` from `bot.js`, which does
+not exist — confirmed by a real `npm run build` import-error warning. Every message
+threw and the route always returned `"Error: languageRule is not a function"`
+instead of a reply. The function that was meant (`languageLock`, used by the real
+reply engine for the same purpose) existed but wasn't exported. Exported it, fixed
+the import and call site in `demo-chat/route.js` to match how `composeReply` already
+does this. Build warning confirmed gone afterward.
+
+**Checked and confirmed already correct** (no change): `bot.js`'s seven previously-
+fixed reads, `api/admin` (its cross-tenant reads are the intended, role-gated admin
+view — not a bug), `api/conversations`, `knowledge`, `comments`, `bookings`,
+`bookings/list`, `generate-prompt`, `widget/chat`, `broadcast`, `analytics`,
+`settings`, `billing`, `tags`, and the broadcast/follow-up 24-hour window logic in
+`src/lib/broadcast.js` / `src/lib/followup.js` (still `WINDOW_HOURS - 0.5` anchored on
+the customer's last inbound message, matches what was documented on 2026-08-07).
+
+- Verified: `node --check` on every changed file; `npm run build` clean with
+  placeholder Supabase env vars (this sandbox had none configured — the
+  "supabaseUrl is required" failure reproduces identically on unmodified `main`
+  with no env vars, so it's an environment-config limitation, not caused by this
+  work). Not deployed — task explicitly said not to push to `main` or deploy.
+- **Not yet done:** owner needs to review and merge PR #4, then spot-check Orders,
+  Inventory, Conversations and the demo chat widget live. This session is watching
+  the PR for CI/review activity per the standing PR-subscription rule.
+
+### What's next
+1. Owner reviews and merges (or requests changes on) PR #4.
+2. After merge, spot-check the fixed dashboard tabs and the demo chat widget live —
+   not verified in a browser this session (no deploy).
+3. Everything under the 2026-08-07 "What's next" still stands unless already
+   otherwise resolved: Task 8 (courier, ecommerce only) is the next unblocked
+   feature; Task 3 (SSLCommerz) waits on sandbox credentials.
+4. Idea flagged, not started: a shared query helper or lint rule that makes an
+   unscoped `client_id` read impossible to write by accident, so this class of bug
+   stops recurring file-by-file. See the audit report's "Not fixed" section.
+
+---
+
+## Last session (2026-08-15) — Real Asia/Dhaka time everywhere
+
+**Real Asia/Dhaka time awareness — branch `feat/realtime-timezone-2026-08-15`, PR opened.**
+Not pushed to `main` per the delivery rule for this task; owner needs to review and merge.
+
+The root problem: Vercel runs the server in UTC, and the bot only had a manual,
+hand-rolled Dhaka-time computation wired into the **agency** booking prompt. The
+**ecommerce** reply path (`orderRule` in `composeReply()`) had no time awareness at
+all — "is it open now", "today's offer", etc. were unanswerable for every ecommerce
+tenant, on every channel.
+
+What shipped:
+- New `src/lib/time.js` — one shared, documented helper: `nowInDhaka()`,
+  `formatDhaka()` / `formatDhakaDate()`, `currentTimeLine()`, `todayDhakaISO()`,
+  `startOfDayDhaka()` / `startOfMonthDhaka()`. Fixed +6h offset is safe because
+  Bangladesh has had no daylight saving since 2010.
+- `src/lib/bot.js` `composeReply()` — `currentTimeLine()` is now appended to the
+  prompt for **both** business types, so it reaches all four channels through the
+  one shared function (FB/IG/WhatsApp via `processConversation`, the widget via
+  `/api/widget/chat` calling `composeReply` directly). `bookingRule()` still adds
+  its own worked ISO8601 example (needed for the AI to compute `start`/`end`) but
+  no longer duplicates the current-time computation.
+- Same file: the trial/paid quota "today"/"this month" boundaries in `botAllowed`
+  were computed with `new Date(); x.setHours(0,0,0,0)`, which is **UTC** midnight on
+  Vercel — 6am in Bangladesh. Now use `startOfDayDhaka()` / `startOfMonthDhaka()`.
+- Same fix applied everywhere else the identical bug shape was found by grepping
+  the whole repo: `broadcast.js` `remainingQuota()`, `api/me`, `api/billing`
+  (`usageToday`/`usageThisMonth`), `api/admin/client-detail` (`dayStart`).
+  **Deliberate, owner-visible behaviour change:** daily/monthly quota and usage
+  counters now reset at real Dhaka midnight instead of 6am Dhaka time (UTC
+  midnight) — see the PR body for the full list.
+- `src/lib/email.js` — `notifyPaymentApproved`'s "valid until" and
+  `notifyExpiringSoon`'s expiry date were formatted with no `timeZone`, so they ran
+  in the server's UTC and could show the wrong calendar date near midnight. Now use
+  `formatDhakaDate()`.
+- `api/analytics/route.js` — had its own already-correct ad-hoc `DHAKA_OFFSET`
+  constant for the per-day chart bucketing; consolidated onto the shared helper,
+  zero behaviour change.
+- **Left deliberately unchanged (verified correct):** everything computing an
+  absolute UTC instant or duration (broadcast/follow-up 24-hour window math, token
+  expiry, oauth-state age, rate-limit sweeps, stored timestamps), `gcal.js`'s
+  `timeZone: "Asia/Dhaka"` on calendar events (already correct — it just needed the
+  AI's "now" to be accurate, which the `composeReply` fix provides), and every
+  client-side dashboard component (`Bookings.js`, `Profile.js`, `Billing.js`,
+  `admin-client.js`, ...) — those run in the visitor's own browser and already
+  reflect the visitor's real local timezone.
+
+**Verified (real evidence, not assumption):** `npm run build` passes clean (only a
+pre-existing, unrelated `languageRule` import warning that also reproduces on
+unmodified `main`). Probed `time.js` directly with `node`: at a UTC instant that
+falls in the Dhaka early-morning (`2026-08-15T20:30:00Z`), `formatDhaka()` correctly
+reports `Sunday, August 16, 2026, 2:30 AM` and `startOfDayDhaka()` correctly returns
+`2026-08-15T18:00:00Z` (= Dhaka midnight) — proving it crosses the UTC/Dhaka day
+boundary correctly rather than reusing UTC midnight. `currentTimeLine()` against the
+real system clock also matched: UTC `05:57` → Dhaka `11:57 AM`, exactly +6h.
+
+**NOT verified:** no live message was sent through the deployed build (this was a
+scheduled, unattended run — the branch was not deployed, per the task's delivery
+rule). The owner should merge, let Vercel deploy, then send one ecommerce and one
+agency test message asking something like "is this open right now?" and check the
+bot's answer reflects real Bangladesh time.
+
+### What's next
+1. Owner reviews and merges PR `feat/realtime-timezone-2026-08-15` (or asks for
+   changes).
+2. After merge and deploy: live-test both business types on at least one channel —
+   confirm the bot knows today's real date/day-of-week and the current time.
+3. Everything under the 2026-08-07 "What's next" below still stands.
+4. **Merge-time correction (caught while merging PR #5 into `main`):** this PR's
+   `api/me/route.js` change was written against the pre-#4 `main` and would have
+   *reverted* the just-merged `client_id`-at-the-DB fix for the daily usage count
+   (back to fetch-all-then-filter-in-JS). Resolved by keeping PR #4's DB-level
+   `.eq("client_id", ...)` filter and layering PR #5's `startOfDayDhaka()` boundary
+   on top of it — both fixes now apply together, neither was lost.
+
+---
+
+## Last session (2026-08-15) — Product film background music
+
+**Product film background music — merged into `main`, but not fully done.**
+`feat/film-music-2026-08-15` → https://github.com/Afzalnahid/autologic-chatbot/pull/2
+
+- `video/src/Video.jsx`: added `<Audio src={staticFile("music.mp3")} volume={0.35} />`
+  once at the top level of `Film()`, outside any per-scene `<Sequence>`, so it plays
+  across all seven scenes in both languages.
+- **`video/public/music.mp3` was not obtained.** This session's network egress
+  policy blocked every general-web host tried for a CC0 track (pixabay, freesound,
+  archive.org, incompetech, opengameart, freepd, soundbible) — confirmed via direct
+  HTTPS and via the WebFetch tool, not a fluke. Per this session's own rules, a
+  policy-blocked host is reported, not routed around, so no placeholder/fabricated
+  audio was committed. See `lessons.md` #19.
+- Confirmed the wiring itself is correct: a test render with the `<Audio>` line
+  present bundles and runs fine, failing only with a 404 on the not-yet-supplied
+  `music.mp3` — exactly the expected failure once a real file lands.
+- Bengali font checked independently (this was flagged as a known risk in a fresh
+  sandbox, unrelated to the music task): installed `fonts-noto-core`, rendered a
+  still frame of `AutologicBN`, read the PNG directly — real Bengali letters, not
+  boxes. Also checked the **currently shipped** `public/film-bn.mp4` the same way —
+  it already renders correctly, so no video files needed touching for this.
+- `public/film-en.mp4` / `public/film-bn.mp4` are **unchanged** — there was nothing
+  new to bake in without the audio file.
+- Also hit and documented (not code-fixed): this sandbox can't reach
+  `remotion.media` either, so Remotion's own headless-Chrome download fails the
+  same way the music download did. Worked around it for testing with
+  `--browser-executable=<path to an already-installed Chromium headless shell>`,
+  confirmed the existing `npm run render:en`/`render:bn` scripts already forward
+  that flag with `--` — no code or config change needed. Documented in
+  `video/README.md`.
+
+### What's next
+1. **Owner action required to finish this PR:** download a real CC0/royalty-free
+   track (~47s or loopable) from a reputable source (Pixabay Music, FreePD, Chosic's
+   CC0 collection are all named in the PR body), save as `video/public/music.mp3`,
+   run `cd video && npm run render`, copy the two outputs over
+   `public/film-en.mp4` / `public/film-bn.mp4`, commit, and the PR is done.
+2. PR is being watched for CI/review activity; Vercel preview already deployed
+   READY.
 
 ---
 

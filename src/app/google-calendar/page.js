@@ -2,7 +2,7 @@ export const metadata = { title: "How Autologic uses Google Calendar" };
 
 export default function GoogleCalendar() {
   const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };
-  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#5B8CFF" };
+  const H2 = { fontSize: 18, fontWeight: 600, marginTop: 36, marginBottom: 8, color: "#FF6B75" };
   const P = { marginBottom: 12 };
   return (
     <div style={{ background: "#0A0D14", minHeight: "100vh" }}>
@@ -43,7 +43,7 @@ export default function GoogleCalendar() {
 
         <h2 style={H2}>Limited Use compliance</h2>
         <p style={P}>Autologic's use of information received from Google APIs adheres to the{" "}
-          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: "#5B8CFF" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" style={{ color: "#FF6B75" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
 
         <div style={{ marginTop: 40, display: "flex", gap: 20, fontSize: 13.5 }}>
           <a href="/privacy" style={{ color: "#98A3BA", textDecoration: "none" }}>Privacy Policy</a>

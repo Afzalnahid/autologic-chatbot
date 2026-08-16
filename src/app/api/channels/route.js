@@ -7,8 +7,8 @@ export async function GET(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json([]);
-    const { data } = await supabase.from("channels").select("*").order("created_at", { ascending: false });
-    return NextResponse.json((data || []).filter(c => c.client_id === client.id).map(({ access_token, ...r }) => r));
+    const { data } = await supabase.from("channels").select("*").eq("client_id", client.id).order("created_at", { ascending: false });
+    return NextResponse.json((data || []).map(({ access_token, ...r }) => r));
   } catch {
     return NextResponse.json([]);
   }

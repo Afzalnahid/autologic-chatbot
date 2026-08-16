@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase.js";
 import { PLANS, PAID_PLANS, priceOf, planActive } from "@/lib/plans.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
 import { withErrors } from "@/lib/route-errors.js";
+import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
 
@@ -21,9 +22,7 @@ function paymentMethods() {
 }
 
 async function usageThisMonth(clientId) {
-  const start = new Date();
-  start.setDate(1);
-  start.setHours(0, 0, 0, 0);
+  const start = startOfMonthDhaka();
   const { count } = await supabase
     .from("message_buffer")
     .select("id", { count: "exact", head: true })
@@ -34,8 +33,7 @@ async function usageThisMonth(clientId) {
 }
 
 async function usageToday(clientId) {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const start = startOfDayDhaka();
   const { count } = await supabase
     .from("message_buffer")
     .select("id", { count: "exact", head: true })

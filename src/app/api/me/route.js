@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase.js";
 import { requireClient, trialActive } from "@/lib/auth.js";
 import { notifyExpiringSoon } from "@/lib/email.js";
 import { withErrors } from "@/lib/route-errors.js";
+import { startOfDayDhaka } from "@/lib/time.js";
 
 // Warn the owner when a trial or paid plan ends within 3 days, at most once per
 // plan period (tracked by expiry_warned_at against the current expiry date).
@@ -35,9 +36,12 @@ export const GET = withErrors(async (request) => {
   if (error) return NextResponse.json({ error }, { status: 401 });
   if (!client) return NextResponse.json({ client: null, email });
 
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const { data: msgs } = await supabase.from("message_buffer").select("id,client_id,role,created_at");
-  const used = (msgs || []).filter(m => m.client_id === client.id && (m.role || "customer") === "customer" && new Date(m.created_at) >= today).length;
+  // client_id filtered at the DB (not in JS afterwards — see lessons.md #14),
+  // "today" anchored to Dhaka midnight (not UTC midnight / 6am Dhaka time).
+  const today = startOfDayDhaka();
+  const { count } = await supabase.from("message_buffer").select("id", { count: "exact", head: true })
+    .eq("client_id", client.id).eq("role", "customer").gte("created_at", today.toISOString());
+  const used = count || 0;
 
   // Lazy expiry warning: when the owner opens the dashboard and their plan ends
   // within 3 days, email them once per plan period. No cron needed.

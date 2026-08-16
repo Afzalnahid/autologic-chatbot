@@ -4,8 +4,8 @@ import { createClient as createSb } from "@/utils/supabase/client";
 
 const T = {
   bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420",
-  gold: "#5B8CFF", text: "#E7EAF2", textMuted: "#98A3BA",
-  border: "#1F2839", danger: "#FF5A5F", success: "#2ED3A7", info: "#5B8CFF", warn: "#F0B429", purple: "#8b5cf6",
+  gold: "#FF6B75", text: "#E7EAF2", textMuted: "#98A3BA",
+  border: "#1F2839", danger: "#FF5A5F", success: "#2ED3A7", info: "#FF6B75", warn: "#F0B429", purple: "#8b5cf6",
 };
 
 let sb = null;
@@ -18,7 +18,7 @@ function Btn({ children, onClick, gold, danger, small, disabled, style }) {
   return <button onClick={onClick} disabled={disabled} style={{
     padding: small ? "5px 12px" : "9px 18px", borderRadius: 8, border: "none", cursor: disabled ? "default" : "pointer",
     fontSize: small ? 12 : 13.5, fontWeight: 500, opacity: disabled ? 0.5 : 1,
-    background: gold ? T.gold : danger ? T.danger : "rgba(91,140,255,0.12)",
+    background: gold ? T.gold : danger ? T.danger : "rgba(255,107,117,0.13)",
     color: gold ? "#0a0a0a" : danger ? "#fff" : T.text, ...style
   }}>{children}</button>;
 }
@@ -262,7 +262,7 @@ export default function AdminClient() {
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                       {["viewer", "editor", "full"].map(r => (
                         <Btn key={r} small onClick={() => setRole(a.email, r)} disabled={!superKey || busy === a.email + r || a.role === r}
-                          style={{ background: a.role === r ? ROLE_COLOR[r] : "rgba(91,140,255,0.12)", color: a.role === r ? "#fff" : T.text }}>
+                          style={{ background: a.role === r ? ROLE_COLOR[r] : "rgba(255,107,117,0.13)", color: a.role === r ? "#fff" : T.text }}>
                           {ROLE_LABEL[r]}
                         </Btn>
                       ))}

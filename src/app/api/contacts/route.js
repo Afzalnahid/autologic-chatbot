@@ -7,15 +7,16 @@ export async function GET(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ contacts: [], global_bot_enabled: true });
-    const { data: contactRows, error: e1 } = await supabase.from("contacts").select("*");
-    const contacts = (contactRows || []).filter(c => c.client_id === client.id);
+    const { data: contactRows, error: e1 } = await supabase.from("contacts").select("*").eq("client_id", client.id);
+    const contacts = contactRows || [];
     const { data: chans } = await supabase.from("channels").select("*").eq("status", "connected").eq("client_id", client.id);
     const channels = chans || [];
     const byPlatform = Object.fromEntries(channels.map(c => [c.platform, c]));
     const ch = byPlatform.facebook || channels[0];
 
-    const { data: allMsgs } = await supabase.from("message_buffer").select("sender_id,role,client_id,platform");
-    const senders = (allMsgs || []).filter(m => m.client_id === client.id && (m.role || "customer") === "customer");
+    const { data: allMsgs } = await supabase.from("message_buffer").select("sender_id,role,client_id,platform")
+      .eq("client_id", client.id).eq("role", "customer");
+    const senders = allMsgs || [];
     const uniq = [...new Set(senders.map(s => s.sender_id).filter(Boolean))];
     const platformOf = {};
     for (const m of senders) if (m.sender_id && !platformOf[m.sender_id]) platformOf[m.sender_id] = m.platform || "facebook";
