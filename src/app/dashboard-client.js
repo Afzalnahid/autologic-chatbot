@@ -481,6 +481,14 @@ export default function Dashboard() {
   const pageRef=useRef("analytics");
   const [page,setPageRaw]=useState("analytics");
   const [upgradeIntent,setUpgradeIntent]=useState({plan:null,cycle:"monthly"});
+  const [justConnected,setJustConnected]=useState(null);
+  // A popup (Google Calendar, or a channel opened in a new window) reports
+  // back with a message; a full-page connect comes back with ?connected=.
+  useEffect(()=>{
+    const h=(e)=>{ if(e.data&&e.data.type==="al-connected"&&e.data.platform){ setJustConnected({platform:e.data.platform,name:e.data.name||""}); if(e.data.platform!=="gcal") setPageRaw("channels"); } };
+    window.addEventListener("message",h);
+    return ()=>window.removeEventListener("message",h);
+  },[]);
   // One history entry for "inside a tab", not one per tab visited. Hopping
   // between six tabs used to leave six entries, so getting out took six presses.
   const HOME="analytics";
@@ -514,6 +522,14 @@ export default function Dashboard() {
     };
     window.addEventListener("popstate",onPop);
     const params=new URLSearchParams(window.location.search);
+    // Back from a channel's "connected" page: remember what was connected so
+    // the Channels tab can say so, then drop the query from the address bar.
+    const cp=params.get("connected");
+    if(cp){
+      setJustConnected({platform:cp,name:params.get("name")||""});
+      window.history.replaceState({page:"channels"},"","/dashboard#channels");
+      setPageRaw("channels");
+    }
     const up=params.get("upgrade");
     if(up&&["starter","pro","agency"].includes(up)){
       setUpgradeIntent({plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly"});
@@ -777,7 +793,7 @@ export default function Dashboard() {
             {page==="comments"&&<Comments/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load}/>)}
             {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load}/>)}
-            {page==="channels"&&<Channels onConnect={()=>setStage("connect")}/>}
+            {page==="channels"&&<Channels onConnect={()=>setStage("connect")} justConnected={justConnected} onDismissConnected={()=>setJustConnected(null)}/>}
             {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}
             {page==="profile"&&<Profile/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}

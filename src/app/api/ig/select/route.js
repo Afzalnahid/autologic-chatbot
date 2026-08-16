@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
+import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
 
 export async function POST(request) {
   try {
@@ -34,23 +35,19 @@ export async function POST(request) {
         comment_reply_enabled: true, comment_dm_enabled: true },
       { onConflict: "client_id,platform,page_id" }
     );
-    if (error) return new NextResponse("Save failed: " + error.message, { status: 500 });
+    if (error) return connectFailedPage({ platform: "instagram", reason: "We could not save the connection: " + error.message });
 
-    const subWarn = sub.error ? `<p style="color:#e6a23c">⚠️ Webhook warning: ${sub.error.message}</p>` : "";
     const commentsOk = subscribedFields.includes("comments");
-    const statusMsg = commentsOk
-      ? `<p style="color:#22c55e">✅ Messages + Comment automation active</p>`
-      : `<p style="color:#e6a23c">⚠️ Comment automation requires instagram_manage_comments permission (pending App Review). Messages will work.</p>`;
-
-    const html = `<!DOCTYPE html><html><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:40px;text-align:center">
-  <h3>✅ @${decodeURIComponent(encName || "Instagram")} connected</h3>
-  ${subWarn}${statusMsg}
-  <p>You can close this window.</p>
-  <script>setTimeout(function(){ if(window.opener){window.opener.postMessage("ig_connected","*");window.close();} else {window.location.href="/dashboard#channels";} },1200);</script>
-  </body></html>`;
-    return new NextResponse(html, { headers: { "Content-Type": "text/html" } });
+    const rows = [
+      { ok: true, title: "Direct-message replies are live", sub: "Autologic answers every DM this account receives, 24/7." },
+      commentsOk
+        ? { ok: true, title: "Comment automation is on", sub: "Comments on your posts get a reply and a private message." }
+        : { ok: false, title: "Comment automation is waiting for Meta", sub: "DMs work now; comment replies switch on once Meta approves the app." },
+    ];
+    if (sub.error) rows.push({ ok: false, title: "Updates could not be registered", sub: "Disconnect and connect the account again. If it repeats, tell us: " + sub.error.message });
+    return connectedPage({ platform: "instagram", name: "@" + decodeURIComponent(encName || "Instagram"), rows });
   } catch (e) {
     console.error("[ig-select]", e?.message || e);
-    return new NextResponse(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:40px;text-align:center"><h3>Something went wrong</h3><p style="color:#8b9cbd">We could not finish connecting. Please close this window and try again from your dashboard.</p></body></html>`, { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } });
+    return connectFailedPage({ platform: "instagram" });
   }
 }

@@ -2,16 +2,17 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
+import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
 
 export async function POST(request) {
   try {
     const form = await request.formData();
     const clientId = verifyState(form.get("state"));
     if (!clientId) {
-      return new NextResponse("This connect session has expired or is invalid. Please start again from your dashboard.", { status: 403 });
+      return connectFailedPage({ platform: "facebook", status: 403, reason: "This connect link has expired. Please start again from your dashboard." });
     }
     const [pageId, encName, pageToken] = String(form.get("page") || "").split("|");
-    if (!clientId || !pageId || !pageToken) return new NextResponse("Invalid selection", { status: 400 });
+    if (!clientId || !pageId || !pageToken) return connectFailedPage({ platform: "facebook", status: 400, reason: "No Page was selected. Please go back and choose a Page." });
 
     // Subscribe to messages + comments (feed). Log the result so we can
     // diagnose missing permissions during App Review.
@@ -38,22 +39,20 @@ export async function POST(request) {
         comment_reply_enabled: true, comment_dm_enabled: true },
       { onConflict: "client_id,platform,page_id" }
     );
-    if (error) return new NextResponse("Save failed: " + error.message, { status: 500 });
+    if (error) return connectFailedPage({ platform: "facebook", reason: "We could not save the connection: " + error.message });
 
-    const subWarn = sub.error ? `<p style="color:#e6a23c">⚠️ Webhook warning: ${sub.error.message}</p>` : "";
-    const feedWarn = !feedOk
-      ? `<p style="color:#e6a23c">⚠️ Comment automation requires <b>pages_read_engagement</b> and <b>pages_manage_engagement</b> permissions. These are pending App Review — messages will work but comment replies won't until approved.</p>`
-      : `<p style="color:#22c55e">✅ Comment automation active</p>`;
-
-    const html = `<!DOCTYPE html><html><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:40px;text-align:center">
-  <h3>✅ ${decodeURIComponent(encName || "Page")} connected</h3>
-  ${subWarn}${feedWarn}
-  <p>You can close this window.</p>
-  <script>setTimeout(function(){ if(window.opener){window.opener.postMessage("fb_connected","*");window.close();} else {window.location.href="/dashboard#channels";} },1200);</script>
-  </body></html>`;
-    return new NextResponse(html, { headers: { "Content-Type": "text/html" } });
+    // Plain-language status — the owner reads what the bot will do, never a
+    // permission name. Comment automation waits on Meta App Review.
+    const rows = [
+      { ok: true, title: "Messenger replies are live", sub: "Autologic answers every message this Page receives, 24/7." },
+      feedOk
+        ? { ok: true, title: "Comment automation is on", sub: "Comments on your posts get a reply and a private message." }
+        : { ok: false, title: "Comment automation is waiting for Meta", sub: "Messages work now; comment replies switch on once Meta approves the app." },
+    ];
+    if (sub.error) rows.push({ ok: false, title: "Updates could not be registered", sub: "Disconnect and connect the Page again. If it repeats, tell us: " + sub.error.message });
+    return connectedPage({ platform: "facebook", name: decodeURIComponent(encName || "Page"), rows });
   } catch (e) {
     console.error("[fb-select]", e?.message || e);
-    return new NextResponse(`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:40px;text-align:center"><h3>Something went wrong</h3><p style="color:#8b9cbd">We could not finish connecting. Please close this window and try again from your dashboard.</p></body></html>`, { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } });
+    return connectFailedPage({ platform: "facebook" });
   }
 }

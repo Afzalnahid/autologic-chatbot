@@ -185,11 +185,11 @@ export async function GET(request) {
     .then(function(r){ return r.json(); })
     .then(function(res){
       if (res.error) { say(res.error, 'err'); btn.disabled = false; done = false; return; }
-      say('✓ WhatsApp connected' + (res.number ? ' — ' + res.number : '') + '. Returning to your dashboard…', 'ok');
-      setTimeout(function(){
-        if (window.opener) { window.opener.postMessage('wa_connected','*'); window.close(); }
-        else { window.location.href = '/dashboard#channels'; }
-      }, 1400);
+      // Hand over to the branded "connected" page, which names the number,
+      // explains what the bot now does and returns to the dashboard.
+      say('✓ Connected. One moment…', 'ok');
+      var q = '/api/wa/finish?done=1&name=' + encodeURIComponent(res.name || 'WhatsApp Business') + '&number=' + encodeURIComponent(res.number || '');
+      setTimeout(function(){ window.location.href = q; }, 500);
     })
     .catch(function(e){ say('Could not finish setup: ' + e.message, 'err'); btn.disabled = false; done = false; });
   }

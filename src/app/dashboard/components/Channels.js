@@ -6,12 +6,24 @@ import WebsiteWidget from "./WebsiteWidget.js";
 
 // The Channels tab, moved out of dashboard-client.js unchanged.
 
-export default function Channels({onConnect}) {
+// What the owner sees right after a channel connects: the brand's own colour,
+// the name that was connected, and one plain sentence about what happens now.
+const JUST = {
+  facebook:  { label:"Facebook Page connected",     icon:"ti-brand-facebook",  color:"#1877F2", what:"Autologic now answers every Messenger message this Page receives." },
+  instagram: { label:"Instagram account connected", icon:"ti-brand-instagram", color:"#E1306C", what:"Autologic now answers every DM this account receives." },
+  whatsapp:  { label:"WhatsApp number connected",   icon:"ti-brand-whatsapp",  color:"#25D366", what:"Autologic now answers every WhatsApp message on this number." },
+  gcal:      { label:"Google Calendar connected",   icon:"ti-brand-google",    color:"#4285F4", what:"Bookings land in this calendar with a Google Meet link, automatically." },
+};
+
+export default function Channels({onConnect,justConnected,onDismissConnected}) {
   const [channels,setChannels]=useState([]);
   const [busyId,setBusyId]=useState(null);
   const load=()=>api("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{});
   useEffect(()=>{load();},[]);
+  // A fresh connection reloads the list so the new channel is in it at once.
+  useEffect(()=>{ if(justConnected) load(); },[justConnected]);
   const icons={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp",website:"ti-world"};
+  const jc = justConnected && JUST[justConnected.platform];
 
   const toggle=async(ch)=>{
     setBusyId(ch.id);
@@ -38,6 +50,17 @@ export default function Channels({onConnect}) {
   // Every channel used to be open at once, so the tab was a wall of controls.
   // Each is a folder now: the header carries name and status, the rest waits.
   return <div style={{display:"flex",flexDirection:"column",gap:10,maxWidth:700}}>
+    {jc&&<Card style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderColor:`color-mix(in srgb, ${T.success} 35%, transparent)`,boxShadow:`0 10px 26px color-mix(in srgb, ${T.success} 18%, transparent)`}}>
+      <div style={{position:"relative",width:46,height:46,borderRadius:15,background:T.card,boxShadow:T.nmSm,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        <i className={`ti ${jc.icon}`} style={{fontSize:24,color:jc.color}}/>
+        <span style={{position:"absolute",right:-5,bottom:-5,width:20,height:20,borderRadius:"50%",background:T.success,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,border:`2px solid ${T.card}`}}><i className="ti ti-check"/></span>
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:14,fontWeight:700,letterSpacing:"-.01em"}}>{jc.label}{justConnected.name?<span style={{fontWeight:500,color:T.textMuted}}> · {justConnected.name}</span>:null}</div>
+        <div style={{fontSize:12.5,color:T.textMuted,marginTop:2,lineHeight:1.5}}>{jc.what}</div>
+      </div>
+      <button onClick={onDismissConnected} aria-label="Dismiss" className="ui-btn" style={{background:"none",border:"none",color:T.textDim,cursor:"pointer",fontSize:17,padding:6,flexShrink:0}}><i className="ti ti-x"/></button>
+    </Card>}
     <Btn gold onClick={onConnect} style={{alignSelf:"flex-start"}}><i className="ti ti-plus" style={{marginRight:6}}/>Connect new channel</Btn>
 
     <Accordion icon="ti-world" title="Website widget" subtitle="One line of code on your own site">
