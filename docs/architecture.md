@@ -109,7 +109,7 @@ it would add import churn without changing the bundle.
 `me`, `profile`, `profile-logo`, `settings`, `products`, `add-product`,
 `import-products`, `import-one`, `import-url`, `orders`, `conversations`,
 `contacts`, `channels`, `knowledge`, `bookings`, `analytics`, `billing`,
-`generate-prompt`, `demo-chat`, `send-message`, `send-media`.
+`generate-prompt`, `send-message`, `send-media`.
 
 **Channel webhooks** (no JWT — verified by Meta signature/token):
 `messenger` (direct messages **and** Facebook Page comments via the `feed` field),
@@ -181,7 +181,7 @@ shared state and routes between tabs.
 
 Every tab lives in `src/app/dashboard/components/`:
 `Analytics`, `Billing`, `Bookings`, `Broadcast`, `Channels`, `Comments`,
-`Conversations`, `Demo`, `Inventory`, `KnowledgeBase`, `Orders`, `Profile`,
+`Conversations`, `Inventory`, `KnowledgeBase`, `Orders`, `Profile`,
 `Settings`, `WebsiteWidget`.
 
 Two modules are shared by all of them:

@@ -1057,32 +1057,3 @@ export async function handleComment(event) {
     });
   } catch (e) { console.error("[comment] save:", e.message); }
 }
-
-export async function runDemo(clientId, userText, history = []) {
-  const client = await getClient(clientId);
-  const isAgency = (client?.business_type || "ecommerce") === "agency";
-  const systemPrompt = await getSystemPrompt(clientId, isAgency ? "agency" : "ecommerce");
-
-  let context;
-  if (isAgency) {
-    const snippets = await searchKnowledge(clientId, userText, 6);
-    context = snippets.length
-      ? "\n\nKNOWLEDGE BASE (answer ONLY from this retrieved context):\n" +
-        snippets.map(s => s.content).join("\n---\n")
-      : "\n\nKNOWLEDGE BASE: no relevant information found.";
-  } else {
-    const products = await searchProducts(clientId, userText, 3);
-    context = products.length
-      ? "\n\nSEARCH RESULTS (source of truth, pick from these only; each has match_score 0-1 — if the best match_score is below 0.5, do NOT guess: say you couldn't find that exact item):\n" +
-        products.map(p => JSON.stringify({ ...(p.metadata || {}), match_score: typeof p.similarity === "number" ? Number(p.similarity.toFixed(2)) : undefined })).join("\n")
-      : "\n\nSEARCH RESULTS: none found.";
-  }
-
-  let raw;
-  try {
-    raw = await chatWithGemini(systemPrompt + context, [...history, { role: "user", content: userText }]);
-  } catch (e) {
-    return { error: e.message, items: [] };
-  }
-  return { items: parseReply(raw).filter(i => i.type === "text_msg" || i.type === "image_msg") };
-}

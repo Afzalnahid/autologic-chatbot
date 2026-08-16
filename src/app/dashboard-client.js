@@ -12,24 +12,22 @@ import Inventory from "./dashboard/components/Inventory.js";
 import Comments from "./dashboard/components/Comments.js";
 import Profile from "./dashboard/components/Profile.js";
 import Settings from "./dashboard/components/Settings.js";
-import Demo from "./dashboard/components/Demo.js";
 import KnowledgeBase from "./dashboard/components/KnowledgeBase.js";
 import Bookings from "./dashboard/components/Bookings.js";
 import Channels from "./dashboard/components/Channels.js";
 import Conversations from "./dashboard/components/Conversations.js";
 
-const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","demo"];
+const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile"];
 // Grouped and ordered the way the day runs: see how it is going, handle people,
-// reach out, then the shop, then the plumbing. "demo" sits apart — it is a tool,
-// not a place.
+// reach out, then the shop, then the plumbing.
 const GROUPS = [
   { title: "Overview",  pages: ["analytics","conversations","comments"] },
   { title: "Outreach",  pages: ["broadcast","channels"] },
   { title: "Business",  pages: ["orders","inventory"] },
   { title: "Account",   pages: ["settings","billing","profile"] },
 ];
-const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-settings","ti-user","ti-robot"];
-const LABELS = ["Analytics","Conversations","Comments","Broadcast","Inventory","Orders","Channels","Billing","Settings","Profile","Demo"];
+const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-settings","ti-user"];
+const LABELS = ["Analytics","Conversations","Comments","Broadcast","Inventory","Orders","Channels","Billing","Settings","Profile"];
 
 
 
@@ -230,8 +228,8 @@ function AuthGate({onReady}) {
   </div>;
 }
 
-function Onboarding({me,onTrial,onDemo}) {
-  // New signups complete their business profile first, then choose trial or demo.
+function Onboarding({me,onTrial}) {
+  // New signups complete their business profile first, teach the bot, then start the trial.
   const c=me?.client||{};
   const needProfile=!c.phone&&!c.address;
   const [step,setStep]=useState(needProfile?"profile":"choose");
@@ -408,20 +406,14 @@ function Onboarding({me,onTrial,onDemo}) {
     <div style={{maxWidth:640,width:"100%"}}>
       <div style={{textAlign:"center",marginBottom:24}}>
         <div style={{fontSize:20,fontWeight:600}}>Welcome, {form.business_name||c.business_name}</div>
-        <div style={{fontSize:13,color:T.textMuted}}>Step 3 of 3 — choose how you want to start</div>
+        <div style={{fontSize:13,color:T.textMuted}}>Step 3 of 3 — you are ready to go live</div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16}}>
-        <Card style={{textAlign:"center",padding:"2rem 1.5rem",cursor:"pointer"}} onClick={onDemo}>
-          <i className="ti ti-message-chatbot" style={{fontSize:34,color:T.gold}}/>
-          <div style={{fontSize:16,fontWeight:600,margin:"12px 0 6px"}}>Try Demo</div>
-          <div style={{fontSize:12.5,color:T.textMuted}}>Chat with the Autologic Demo Bot — learn every feature instantly. No setup needed.</div>
-        </Card>
-        <Card style={{textAlign:"center",padding:"2rem 1.5rem",cursor:"pointer",border:`1px solid color-mix(in srgb, ${T.gold} 31%, transparent)`}} onClick={startTrial}>
-          <i className="ti ti-rocket" style={{fontSize:34,color:T.gold}}/>
-          <div style={{fontSize:16,fontWeight:600,margin:"12px 0 6px"}}>{busy?"Starting...":"Start 3-Day Free Trial"}</div>
-          <div style={{fontSize:12.5,color:T.textMuted}}>All features unlocked. 30 messages/day. Connect Facebook, Instagram or WhatsApp.</div>
-        </Card>
-      </div>
+      <Card style={{textAlign:"center",padding:"2rem 1.5rem",maxWidth:440,margin:"0 auto"}}>
+        <i className="ti ti-rocket" style={{fontSize:34,color:T.gold}}/>
+        <div style={{fontSize:16,fontWeight:600,margin:"12px 0 6px"}}>Start your 3-day free trial</div>
+        <div style={{fontSize:12.5,color:T.textMuted,marginBottom:18}}>All features unlocked. 30 messages/day. Connect Facebook, Instagram or WhatsApp next.</div>
+        <Btn gold onClick={startTrial} disabled={busy} style={{width:"100%"}}>{busy?"Starting...":"Start free trial"}</Btn>
+      </Card>
     </div>
   </div>;
 }
@@ -669,7 +661,7 @@ export default function Dashboard() {
 
   if(!authChecked||stage==="loading") return null;
   if(stage==="auth") return <AuthGate onReady={async()=>{setAuthed(true);await loadMe();}}/>;
-  if(stage==="onboarding") return <Onboarding me={me} onDemo={()=>{setStage("app");setPage("demo");}} onTrial={async()=>{await loadMe();setStage("connect");}}/>;
+  if(stage==="onboarding") return <Onboarding me={me} onTrial={async()=>{await loadMe();setStage("connect");}}/>;
   if(stage==="connect") return <ConnectChannel clientId={me?.client?.id} onDone={async()=>{const bt=me?.client?.business_type;await loadMe();setStage(bt==="agency"?"connect-cal":"app");}}/>;
   if(stage==="connect-cal") return <ConnectCalendar clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/>;
 
@@ -824,7 +816,6 @@ export default function Dashboard() {
             {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}
             {page==="profile"&&<Profile/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}
-            {page==="demo"&&<Demo onBack={()=>setPage("analytics")}/>}
           </div>
         )}
       </div>
