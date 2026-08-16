@@ -40,7 +40,10 @@ export async function POST(request) {
       sale_price: p.sale_price || "",
       stock_status: p.stock_status || "instock",
       image_url: p.image_url || "",
+      images: p.image_url ? [p.image_url] : [],
+      visual,
       description: p.description || "",
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
 
     const { data: existing } = await supabase.from("products").select("id,metadata,client_id").eq("client_id", client.id).limit(1000);

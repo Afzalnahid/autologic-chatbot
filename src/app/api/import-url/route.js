@@ -50,7 +50,12 @@ export async function POST(request) {
       sale_price: String(p.sale_price || ""),
       stock_status: p.stock_status || "instock",
       image_url,
+      // Gallery + vision text, so the Inventory editor can show every photo
+      // and re-embed on edit without another vision call.
+      images: (p.images || []).map(i => i?.src).filter(Boolean).slice(0, 12),
+      visual,
       description: String(p.description || "").replace(/<[^>]*>/g, " ").trim(),
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
 
     const { error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id });
