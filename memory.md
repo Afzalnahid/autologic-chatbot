@@ -54,6 +54,33 @@ categories, variants). Seven small commits, each built and verified:
   `dangerouslySetInnerHTML`. Verified on the production build: 0 escaped
   entities in `<style>`, `@import` valid, `[data-theme="dark"]` present.
 
+Later the same session (owner asks, in order):
+- `b8a254b` **Premium "connected" page for every channel** — new
+  `src/lib/connect-page.js` (`connectedPage` / `connectFailedPage`): brand
+  palette (light+dark via `al-theme`), channel icon tile + green tick, "Facebook
+  Page connected", the exact Page/@account/number/email in a pill,
+  plain-language status rows (never a permission name), "Go to dashboard" +
+  6-second countdown; posts legacy event + `{type:"al-connected"}` to an
+  opener, then returns to `/dashboard?connected=<platform>&name=…#channels`.
+  fb/select, ig/select, wa/select, gcal/callback use it (success + errors);
+  wa/embedded hands off to new `GET /api/wa/finish?done=1`. Dashboard reads
+  `?connected=` / the message → opens Channels and shows a success banner
+  (`Channels.js` `JUST` map, `justConnected` state in dashboard-client).
+- `00f941d` **Admin API** — overview with plan mix, MRR (from `plans.js`),
+  revenue 30d vs prev, signups/messages/orders/bookings 7d vs prev, 14-day
+  Dhaka-day series, platform mixes; `attention` list (pending payments,
+  trials ≤2d/expired, paid plans ≤7d/expired, suspended, no channel, quiet
+  7d); `activity` feed; per-client last_active / days-left / pending_payment;
+  PUT `plan` accepts any catalogue plan (30-day term), new `extend_plan`;
+  client-detail adds payments, contacts, bot name/greeting (from
+  `app_settings.settings`, never the prompt), by-platform + series.
+- `a9cec74` **Admin console rebuilt** on `ui.js` tokens/components — sidebar
+  + header shell, Overview (8 KPIs w/ trends, sparklines, attention,
+  activity, mixes, top clients), Clients (filters + table/cards), client
+  drawer (tabs + Manage + typed-DELETE), Payments (inline approve/reject),
+  Admins (key-locked role control). `AdminApp` is exported so a mock-data
+  dev page can render it without login. Verified desktop light/dark + 375px.
+
 Also: `robots.txt` + `sitemap.xml` added (`c95537e`, canonical
 `www.getvoicium.com`; apex 308→www); Meta app + Google OAuth redirect URIs for
 the new domain explained to the owner (not yet confirmed done by them).
@@ -1001,6 +1028,12 @@ automation looks natural to a reviewer.
   `/api/gcal/callback` URIs to the Google OAuth client. Google Search Console:
   add domain property, TXT record in Hostinger, submit `sitemap.xml`, request
   indexing of `https://www.getvoicium.com/`.
+- **Admin console smoke test as the super admin:** open `/admin`, check
+  Overview numbers against Supabase (MRR = sum of monthly prices of active
+  paid, non-suspended clients), approve/reject a test payment, change a
+  plan from the drawer. Only verified with mock data locally.
+- **Re-connect one channel** to see the new "connected" page + dashboard
+  banner end to end (needs Meta login — not testable here).
 - **Inventory smoke test on the real account:** add one product with a photo,
   a Size option and generated variants; edit it (change primary photo);
   confirm the bot answers with sizes and the chosen variant's price.
