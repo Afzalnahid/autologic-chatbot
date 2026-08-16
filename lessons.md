@@ -314,3 +314,18 @@ time went into retrying instead of looking.
 - When a "known flaky" failure repeats more than twice in a row, stop retrying
   and read the tail of the log — a *different* cause is likely. Here a clean
   `rm -rf .next` fixed it on the first try.
+
+## 23. Two scheduled agents assigned the same task will silently duplicate it
+**2026-08-15.** Four scheduled tasks were meant to open four PRs. Five opened, because
+two separate scheduled runs both independently picked up "give the bot real Asia/Dhaka
+time awareness" — neither aware the other existed. Both PR #3 and PR #5 edited
+`src/lib/bot.js`'s time handling; merging both together would have produced a real
+`git merge-tree` conflict, silently, at whatever moment the owner tried to merge the
+second one.
+
+**Rule:** when multiple scheduled/automated agents can run against the same repo
+concurrently, name each task distinctly enough that overlap is visible before the work
+starts, and check open PRs/branches for a same-shaped diff before assuming a task is
+still unclaimed. A final status check should always diff every open PR against every
+other open PR for a shared touched-file, not just each PR against `main` — two branches
+can each merge cleanly alone and still conflict with each other.
