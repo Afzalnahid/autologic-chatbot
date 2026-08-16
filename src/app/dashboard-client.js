@@ -141,7 +141,7 @@ function AuthGate({onReady}) {
       </div>
     </div>
 
-    <style>{`
+    <style dangerouslySetInnerHTML={{__html:`
       .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center;
         padding: 20px; background: ${T.bg} }
       .auth-card { display: grid; grid-template-columns: 1fr 1fr; width: min(880px, 100%);
@@ -224,7 +224,7 @@ function AuthGate({onReady}) {
       @media (prefers-reduced-motion: reduce) {
         .auth-ghost, .auth-go, .emb input { transition: none !important; transform: none !important }
       }
-    `}</style>
+    `}}/>
   </div>;
 }
 

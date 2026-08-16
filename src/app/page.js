@@ -163,7 +163,7 @@ export default function Home({ searchParams }) {
     <div style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
       {/* Theme boot lives in the root layout (a script here never executes). */}
-      <style>{`
+      <style dangerouslySetInnerHTML={{__html:`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
         ${THEME_CSS}
         html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
@@ -284,7 +284,7 @@ export default function Home({ searchParams }) {
         @media (prefers-reduced-motion: reduce) {
           [class^="fch"], [class^="fsrc"], [class^="fout"], .core-ring, .wire { animation: none !important; opacity: 1 !important }
         }
-      ` + BOARD_CSS + FLOW_CSS}</style>
+      ` + BOARD_CSS + FLOW_CSS}}/>
       {/* next/script, not a bare <script>: inline scripts rendered by a server
           component through dangerouslySetInnerHTML are inserted by React and
           never executed by the browser (innerHTML rule), so scroll-reveal, the

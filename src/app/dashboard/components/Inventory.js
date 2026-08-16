@@ -262,14 +262,14 @@ function ProductCard({ p, on, toggle, open, isMobile }) {
       </div>
     </div>
     <span className="inv-edit" style={{ position: "absolute", right: 10, bottom: 10, width: 30, height: 30, borderRadius: 10, background: T.accGrad, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: T.accGlow, opacity: 0, transition: "opacity .18s ease-out" }}><i className="ti ti-pencil" style={{ fontSize: 14 }} /></span>
-    <style>{`
+    <style dangerouslySetInnerHTML={{__html:`
       @media (hover:hover) and (pointer:fine) {
         .inv-card:hover .inv-img { transform: scale(1.04) }
         .inv-card:hover .inv-edit { opacity: 1 }
         .inv-card .inv-check { opacity: 0; transition: opacity .15s }
         .inv-card:hover .inv-check { opacity: 1 }
       }
-    `}</style>
+    `}}/>
   </div>;
 }
 
@@ -493,8 +493,8 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
         </div>
       </div>
     </div>
-    <style>{`@keyframes inv-slide { from { transform: translateX(40px); opacity: 0 } to { transform: none; opacity: 1 } }
-      @media (prefers-reduced-motion: reduce) { .inv-drawer { animation: none !important } }`}</style>
+    <style dangerouslySetInnerHTML={{__html:`@keyframes inv-slide { from { transform: translateX(40px); opacity: 0 } to { transform: none; opacity: 1 } }
+      @media (prefers-reduced-motion: reduce) { .inv-drawer { animation: none !important } }`}}/>
   </div>;
 }
 

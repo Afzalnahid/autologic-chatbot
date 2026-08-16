@@ -55,7 +55,7 @@ export default function PricingClient() {
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "system-ui, sans-serif" }}>
-      <style>{THEME_CSS}</style>
+      <style dangerouslySetInnerHTML={{__html:THEME_CSS}}/>
       <nav style={{ borderBottom: `1px solid ${T.border}` }}>
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px" }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: T.text }}>

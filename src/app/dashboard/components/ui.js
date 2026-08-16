@@ -235,7 +235,7 @@ export function Select({ value, options, onChange, placeholder = "Select", style
 // 120 and 300ms: long enough to be noticed, short enough never to be waited on.
 export function Motion() {
   return (
-    <style>{`
+    <style dangerouslySetInnerHTML={{__html:`
       /* Hover only where a pointer exists. On iOS a tapped element keeps its
          hover style until you tap elsewhere, which looks like a stuck button —
          this one media query is the difference between "polished" and "buggy"
@@ -371,7 +371,7 @@ export function Motion() {
         .ti-check, .ti-loader, .ti-loader-2 {
           animation: none !important; transition: none !important; transform: none !important }
       }
-    `}</style>
+    `}}/>
   );
 }
 
@@ -405,7 +405,7 @@ const vars = (p) => Object.entries(p).map(([k, v]) => `--${k}:${v}`).join(";");
 
 export function Theme() {
   return (
-    <style>{`
+    <style dangerouslySetInnerHTML={{__html:`
       :root, [data-theme="light"] { ${vars(PALETTE.light)}; color-scheme: light }
       [data-theme="dark"] { ${vars(PALETTE.dark)}; color-scheme: dark }
       /* Neumorphic depth, derived from the palette's shadow pair so both themes
@@ -418,7 +418,7 @@ export function Theme() {
         --acc-glow: 0 10px 22px color-mix(in srgb, var(--gold) 32%, transparent);
       }
       body { background: var(--bg); color: var(--text) }
-    `}</style>
+    `}}/>
   );
 }
 
