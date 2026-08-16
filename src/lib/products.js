@@ -108,10 +108,26 @@ export function readProductForm(form) {
   if (has("stock_qty")) { const q = str(g("stock_qty")); set("stock_qty", q === "" ? null : Math.max(0, Math.floor(num(q)))); }
   if (has("options")) set("options", normalizeOptions(parseJSON(g("options"), [])));
   if (has("variants")) set("variants", normalizeVariants(parseJSON(g("variants"), [])));
-  // Existing gallery URLs the owner kept (edit) or pasted (add).
-  if (has("image_urls")) set("image_urls", parseJSON(g("image_urls"), []).map(str).filter((u) => /^https?:\/\//.test(u)).slice(0, 12));
+  // The gallery in the owner's order: kept/pasted URLs and "upload:N"
+  // placeholders standing for the Nth file in `images`, so a new photo can be
+  // made primary in the same save.
+  if (has("image_urls")) set("image_urls", parseJSON(g("image_urls"), []).map(str).filter((u) => /^https?:\/\//.test(u) || /^upload:\d+$/.test(u)).slice(0, 12));
   else if (has("image_url") && str(g("image_url"))) set("image_urls", [str(g("image_url"))]);
   return { fields, files };
+}
+
+// Turns the ordered gallery (URLs + "upload:N" placeholders) into final URLs.
+// Uploaded files nobody referenced are appended, nothing is listed twice.
+export function resolveGallery(order, uploaded) {
+  const out = [];
+  const seen = new Set();
+  const push = (u) => { if (u && !seen.has(u)) { seen.add(u); out.push(u); } };
+  for (const item of order || []) {
+    const m = /^upload:(\d+)$/.exec(item);
+    push(m ? uploaded[Number(m[1])] : item);
+  }
+  for (const u of uploaded) push(u);
+  return out.slice(0, 12);
 }
 
 // Vision runs once per new primary image; the description is stored in

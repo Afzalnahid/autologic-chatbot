@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { readProductForm, uploadProductImage, describeImage, embedProduct } from "@/lib/products.js";
+import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery } from "@/lib/products.js";
 
 // Create one product from the Inventory tab. Multipart form: the fields in
 // readProductForm(), plus `images` (several files) — the first image is the
@@ -22,8 +22,9 @@ export async function POST(request) {
     const { fields, files } = readProductForm(await request.formData());
     if (!fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
-    const images = [...(fields.image_urls || [])];
-    for (const f of files.slice(0, 8)) images.push(await uploadProductImage(client.id, f));
+    const uploaded = [];
+    for (const f of files.slice(0, 8)) uploaded.push(await uploadProductImage(client.id, f));
+    const images = resolveGallery(fields.image_urls || [], uploaded);
     const image_url = images[0] || "";
 
     const { visual, analyzeError } = await describeImage(image_url, client);

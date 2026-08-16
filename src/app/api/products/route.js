@@ -5,7 +5,7 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
-import { readProductForm, uploadProductImage, describeImage, embedProduct } from "@/lib/products.js";
+import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery } from "@/lib/products.js";
 
 export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
@@ -38,11 +38,12 @@ export const PATCH = withErrors(async (request) => {
   delete next.image_urls;
   if (fields.product_name !== undefined && !fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
-  // Gallery: kept URLs (in the owner's order) followed by new uploads.
+  // Gallery in the owner's order; "upload:N" placeholders become the new files.
   if (fields.image_urls !== undefined || files.length) {
-    const images = [...(fields.image_urls ?? (prev.images?.length ? prev.images : (prev.image_url ? [prev.image_url] : [])))];
-    for (const f of files.slice(0, 8)) images.push(await uploadProductImage(client.id, f));
-    next.images = images.slice(0, 12);
+    const uploaded = [];
+    for (const f of files.slice(0, 8)) uploaded.push(await uploadProductImage(client.id, f));
+    const order = fields.image_urls ?? (prev.images?.length ? prev.images : (prev.image_url ? [prev.image_url] : []));
+    next.images = resolveGallery(order, uploaded);
     next.image_url = next.images[0] || "";
   }
 
