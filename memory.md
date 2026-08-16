@@ -4,6 +4,73 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-17) — Demo bot removed, first-run screens themed, premium Inventory
+
+Owner asked (in one message): remove the demo bot everywhere; make the auth
+and post-signup screens match the theme; make Profile "Resources" fit the
+business type; and build a premium, organised Inventory (photos, edit,
+categories, variants). Seven small commits, each built and verified:
+
+- `8048c2a` **Demo bot gone** — `Demo.js`, `/api/demo-chat`, `runDemo()` in
+  `bot.js`, the "Try Demo" onboarding card, and the docs mentions. Onboarding
+  step 3 is now one "Start free trial" card. `public/demo/dress.svg` stays: it
+  is the landing page's marketing phone animation, not the demo bot.
+- `fc9c473` **First-run screens on the theme** — real bug found: Onboarding,
+  ConnectChannel and ConnectCalendar rendered *without* `<Theme/><Motion/>`,
+  so every CSS variable was undefined after signup. They now mount both and
+  share `OnboardFrame` (ui.js: soft slab, brand mark, red icon tile, `Steps`
+  pills). `Inp` gained an `emb` prop (pressed-in field). Raw `<select>` →
+  shared `Select`.
+- `b0b2fca` **Profile resources by type** — `/api/profile` usage now also
+  counts `bookings` and `file_registry`; agency sees Knowledge files/Bookings,
+  shop sees Products/Orders, both see Channels. The last raw `<select>`s
+  (Profile, Settings, Broadcast, conversation tag picker) use `Select`.
+- `5bd7d32` **Inventory API** — new `src/lib/products.js` (form parsing,
+  option/variant normalising, gallery upload, vision step, embedding text now
+  includes category/brand/tags/option values). `POST /api/add-product` takes
+  brand, tags, stock_qty, options, variants, several `images`;
+  `PATCH /api/products` edits in place (only present fields change; vision
+  only when the primary image is new; re-embed only when a searchable field
+  changed); `DELETE` takes `{id}` or `{ids}`; `GET` newest first. Gallery order
+  uses `upload:N` placeholders (`resolveGallery`) so a new photo can be primary
+  in the same save. Both importers store `images[]`, `visual`, timestamps.
+  `FIXED_ECOM` rule 18b: bot lists available variants and uses the chosen
+  variant's price. **Everything lives in `metadata` jsonb — no schema change**
+  (products table had 0 rows at the time).
+- `7ca5bf6` `import-one` duplicate delete now carries `.eq("client_id")`.
+- `19b7045` **Inventory tab rebuilt** — stats strip, category rail (desktop) /
+  scrolling chips (phone) with counts, search over name/code/brand/tags/SKUs,
+  stock filter, sort, grid|list (remembered in `al-inv-view`), bulk select →
+  in/out of stock / delete, one editor drawer (full-screen on phone) with
+  Details / Photos / Variants tabs (options builder → generate matrix),
+  import sheet (URL / WooCommerce), empty state. Verified in Chrome (desktop,
+  light+dark) and at 375px via JS measurement (no overflow; drawer + variant
+  rows fit). `.claude/launch.json` now calls the next binary directly.
+- `8534e26` **SSR `<style>` escaping fix** — React escapes text children of
+  `<style>` on the server (`&quot;`, `&#x27;`); the browser does not decode
+  entities inside `<style>`, so first paint had broken dark-theme rules and a
+  broken Google Fonts `@import`, and every load logged hydration errors (root
+  switched to client render). All inline CSS now uses
+  `dangerouslySetInnerHTML`. Verified on the production build: 0 escaped
+  entities in `<style>`, `@import` valid, `[data-theme="dark"]` present.
+
+Also: `robots.txt` + `sitemap.xml` added (`c95537e`, canonical
+`www.getvoicium.com`; apex 308→www); Meta app + Google OAuth redirect URIs for
+the new domain explained to the owner (not yet confirmed done by them).
+
+**Not verified (no dashboard credentials locally):** the real logged-in
+Inventory tab against Supabase (add → vision → embed, edit → re-embed,
+gallery upload to `product-images`). Code paths mirror the old add-product
+flow; the owner should add one product with a photo and a Size option and
+check the bot answers with the variant list.
+
+**Found, not fixed:** three *different* vision prompts exist (`bot.js`
+message-time, `products.js` add/edit, `import-one`) although `docs/prompts.md`
+says they must be identical. Matching still works (all produce dense
+descriptions) but drift is real — unify in a dedicated commit.
+
+---
+
 ## Last session (2026-08-16) — Full UI redesign: crimson/white neumorphic
 
 **Owner-directed brand change, applied across the whole surface in one pass.**
@@ -928,6 +995,16 @@ automation looks natural to a reviewer.
 
 ### Also pending
 
+- **New domain follow-ups (owner's hands):** add `getvoicium.com` +
+  `www.getvoicium.com` to Meta App Domains and the six `/api/{fb,ig,wa}/callback`
+  redirect URIs (both hosts) to Facebook Login for Business; add the two
+  `/api/gcal/callback` URIs to the Google OAuth client. Google Search Console:
+  add domain property, TXT record in Hostinger, submit `sitemap.xml`, request
+  indexing of `https://www.getvoicium.com/`.
+- **Inventory smoke test on the real account:** add one product with a photo,
+  a Size option and generated variants; edit it (change primary photo);
+  confirm the bot answers with sizes and the chosen variant's price.
+- **Unify the three vision prompts** (see 2026-08-17 entry).
 - **Booking pipeline** is instrumented but untested end to end. `gcal_connected` is true and a
   refresh token exists, but `gcal_token_expiry` was stale. Unverified Google apps get 7-day
   refresh tokens, so it may simply be dead — `getValidAccessToken` now detects `invalid_grant`,

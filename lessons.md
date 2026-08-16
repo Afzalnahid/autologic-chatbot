@@ -275,3 +275,42 @@ handful of package registries and `github.com` were reachable.
   verify what can be verified, document exactly what's left) and say plainly what
   a human needs to finish by hand. A half-finished PR with an honest account beats
   silence or a fabricated "done".
+
+## 21. React escapes what you put inside `<style>` — and the browser will not undo it
+
+**2026-08-17.** Every inline stylesheet in the app was written as
+`<style>{`…`}</style>`. On the server React HTML-escapes text children, so the
+shipped HTML read `[data-theme=&quot;dark&quot;]` and
+`@import url(&#x27;https://fonts…&#x27;)`. Inside `<style>` the HTML parser does
+*not* decode entities, so on first paint those rules were invalid: dark theme
+missing, fonts not loading, attribute selectors dead. It only ever looked right
+because React patches text mismatches during hydration — at the cost of a
+hydration error on every page load and the whole root re-rendering on the
+client. Two earlier "pre-existing console warnings" (fonts URL with literal
+quotes; hydration #418/#423) were this one bug, noticed twice and fixed never.
+
+**Rules:**
+- Inline CSS in React goes through `dangerouslySetInnerHTML={{__html: css}}`,
+  never as a text child of `<style>`. Same for `<script>` (already the case here).
+- "Pre-existing console warning" is not a category that excuses anything. When
+  the same warning shows up in two sessions, it is a bug with a root cause;
+  read the served HTML (`curl` the page, look at the raw bytes) instead of the
+  live DOM, because hydration can hide what the server actually sent.
+- A hydration warning that names a `<style>` element is this bug. Check the
+  raw HTML for `&quot;` inside `<style>` first.
+
+## 22. Do not run `next build` while `next dev` is serving the same `.next`
+
+**2026-08-17.** A production build was run for verification while the dev
+server (started for browser checks) was still up. Both write into `.next`; the
+dev server then 500'd with `Cannot find module './8948.js'` and the next four
+production builds crashed their page-data worker (exit 3221225477) — which
+looked exactly like this machine's known random Windows access violation, so
+time went into retrying instead of looking.
+
+**Rules:**
+- One process per `.next` at a time. Stop the dev server before `next build`,
+  or build into a separate dir.
+- When a "known flaky" failure repeats more than twice in a row, stop retrying
+  and read the tail of the log — a *different* cause is likely. Here a clean
+  `rm -rf .next` fixed it on the first try.
