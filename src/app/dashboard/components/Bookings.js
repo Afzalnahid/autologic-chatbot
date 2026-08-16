@@ -151,10 +151,11 @@ function MonthGrid({ bookings, selected, onSelect }) {
                   <i className="ti ti-x" style={{ fontSize: 12, marginRight: 4 }}/>Clear</button>}
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <Btn small onClick={() => shift(-1)} aria-label="Previous month"><i className="ti ti-chevron-left"/></Btn>
-                <div style={{ flex: 1, textAlign: "center", fontSize: 14, fontWeight: 600 }}>{monthName}</div>
-                <Btn small onClick={() => shift(1)} aria-label="Next month"><i className="ti ti-chevron-right"/></Btn>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, minWidth: 0 }}>
+                <Btn small onClick={() => shift(-1)} aria-label="Previous month" style={{ flexShrink: 0, padding: "6px 10px" }}><i className="ti ti-chevron-left"/></Btn>
+                <div style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: 14, fontWeight: 600,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{monthName}</div>
+                <Btn small onClick={() => shift(1)} aria-label="Next month" style={{ flexShrink: 0, padding: "6px 10px" }}><i className="ti ti-chevron-right"/></Btn>
               </div>
 
               <div className="cal-grid" style={{ marginBottom: 4 }}>

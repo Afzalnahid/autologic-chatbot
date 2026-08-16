@@ -192,7 +192,10 @@ export default function Home({ searchParams }) {
         .sheet i:nth-child(1) { top: -5px; left: -5px } .sheet i:nth-child(2) { top: -5px; right: -5px }
         .sheet i:nth-child(3) { bottom: -5px; left: -5px } .sheet i:nth-child(4) { bottom: -5px; right: -5px }
 
-        @media (max-width: 620px) { .sheet { inset: 7px } }
+        /* On a phone the fixed frame has no margin to live in — it just draws a
+           line across whatever card is at the edge (and its crop marks land on
+           the content). The drawing-sheet idea only reads at desktop widths. */
+        @media (max-width: 760px) { .sheet { display: none } }
 
         @keyframes rise { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
         .r { animation: rise .55s cubic-bezier(.22,.61,.36,1) both }
@@ -208,15 +211,29 @@ export default function Home({ searchParams }) {
         .navcta { background: var(--lp-grad); border-color: transparent; color: ${P.onAccent};
           box-shadow: var(--lp-glow) }
         .navcta:hover { filter: brightness(1.06); box-shadow: var(--lp-glow) }
-        @media (max-width: 400px) { .navbtn { font-size: 9.5px; padding: 7px 9px; letter-spacing: .06em } }
-        /* Below ~340px (older/budget phones — iPhone SE 1st/2nd gen, many
-           entry-level Android handsets) the three nav buttons plus the wordmark
-           no longer fit and the "Start free" CTA — the page's one conversion
-           action — was clipped off the right edge. Tighten spacing further
-           rather than let it wrap or hide, so it stays one row and reachable. */
+        /* Phones: the row is wordmark + four controls. Nothing may be clipped
+           and nothing may wrap, so at each step something gives way in order
+           of importance. The red CTA is the page's one conversion action and
+           is the last thing to shrink. */
+        @media (max-width: 560px) {
+          .navwrap { gap: 8px !important }
+          .navbtns { gap: 6px !important }
+          .navbtn { font-size: 9.5px; padding: 8px 9px; letter-spacing: .05em; border-radius: 10px }
+          .navword { font-size: 17px !important }
+          .navmark { width: 26px !important; height: 26px !important }
+        }
+        @media (max-width: 420px) {
+          .navwrap { padding-left: 12px !important; padding-right: 12px !important }
+          .navbtns { gap: 5px !important }
+          .navbtn { font-size: 9px; padding: 8px 8px; letter-spacing: .03em }
+          /* Log in loses its label; the icon says it. */
+          .navlogin span { display: none }
+          .navlogin { padding: 8px 9px }
+        }
         @media (max-width: 340px) {
-          .navwrap { padding-left: 10px !important; padding-right: 10px !important; gap: 6px !important }
-          .navbtn { font-size: 8.5px; padding: 6px 6px; letter-spacing: .02em }
+          .navwrap { padding-left: 8px !important; padding-right: 8px !important; gap: 5px !important }
+          .navword { display: none }
+          .navbtn { font-size: 8.5px; padding: 7px 7px; letter-spacing: .02em }
         }
 
         .flink { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .1em;
@@ -335,20 +352,20 @@ export default function Home({ searchParams }) {
       <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 4, background: P.paper }}>
         <div className="navwrap" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
-          <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0 }}>
-            <div style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9,
+          <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0, minWidth: 0 }}>
+            <div className="navmark" style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9, flexShrink: 0,
               boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <i className="ti ti-robot" style={{ fontSize: 15, color: P.onAccent }} />
             </div>
-            <span className="fr" style={{ fontSize: 19 }}>Autologic</span>
+            <span className="fr navword" style={{ fontSize: 19 }}>Autologic</span>
           </a>
 
-          {/* Three buttons that stay buttons: nothing wraps, nothing collides. */}
-          <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+          {/* Four controls that stay controls: nothing wraps, nothing collides. */}
+          <div className="navbtns" style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
             <a href="/pricing" className="navbtn hide-sm">{lang === "bn" ? "দাম" : "Pricing"}</a>
 
-            {/* Three buttons, three different jobs: change language, come back, or
-                start. "Sign up" and "Try free" were the same door twice, so one went. */}
+            {/* Four buttons, four different jobs: switch theme, change language,
+                come back, or start. */}
             <button id="al-mode" type="button" className="navbtn" aria-label="Switch theme"
               style={{ display: "inline-flex", alignItems: "center", fontFamily: "inherit" }}>
               <i id="al-mode-ic" className="ti ti-moon" style={{ fontSize: 13 }} />
@@ -358,7 +375,11 @@ export default function Home({ searchParams }) {
               <i className="ti ti-language" style={{ fontSize: 13 }} />
               {lang === "bn" ? "EN" : "বাং"}
             </a>
-            <a href="/dashboard?auth=signin" className="navbtn">{lang === "bn" ? "লগ ইন" : "Log in"}</a>
+            <a href="/dashboard?auth=signin" className="navbtn navlogin" aria-label={lang === "bn" ? "লগ ইন" : "Log in"}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <i className="ti ti-user" style={{ fontSize: 13 }} />
+              <span>{lang === "bn" ? "লগ ইন" : "Log in"}</span>
+            </a>
             <a href="/dashboard?auth=signup" className="navbtn navcta">
               {lang === "bn" ? "ফ্রি ট্রায়াল" : "Start free"}
             </a>

@@ -256,7 +256,9 @@ export function Motion() {
       button, a, [role="button"], select, .ui-opt { -webkit-tap-highlight-color: transparent;
         touch-action: manipulation }
       @media (pointer: coarse) {
-        button, a[role="button"], .ui-opt { min-height: 44px }
+        /* .cal-cell is excluded on purpose: its size must come from the 7-column
+           grid (see the calendar rules), and a 44px floor would overflow it. */
+        button:not(.cal-cell), a[role="button"], .ui-opt { min-height: 44px }
         .ui-menu { max-height: min(60vh, 420px) }
       }
       /* iOS zooms the page when a field under 16px takes focus. */
@@ -287,6 +289,9 @@ export function Motion() {
         .pbtn:hover { background: var(--acc-grad); color: #fff; box-shadow: var(--acc-glow) }
       }
       .pbtn .ti { font-size: 19px }
+      /* Very narrow phones (≤360px): drop the on-screen back button — the
+         phone's own back does the same — so the page title keeps its room. */
+      @media (max-width: 360px) { .hide-xs { display: none !important } }
       .pbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
         padding: 0 5px; border-radius: 9px; background: var(--acc-grad); color: #fff;
         font-size: 10px; font-weight: 700; display: flex; align-items: center;
@@ -295,15 +300,27 @@ export function Motion() {
          happens — so on a wide screen they sit side by side instead of the grid
          hugging one corner, and on a phone the grid stays a compact header above
          the list. Cells are sized from the container, never a fixed pixel width. */
-      .cal-wrap { display: grid; gap: 20px; align-items: start }
+      .cal-wrap { display: grid; gap: 20px; align-items: start; min-width: 0 }
+      .cal-wrap > * { min-width: 0 }
       @media (min-width: 760px) { .cal-wrap { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr) } }
-      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100% }
-      .cal-cell { aspect-ratio: 1; min-height: 40px; border-radius: 10px; cursor: pointer; padding: 0;
+      /* Seven columns that can each shrink to zero — a bare 1fr has a min-content
+         floor, so on a 360px phone the Saturday column was pushed past the card
+         edge and clipped. */
+      .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; width: 100%; min-width: 0 }
+      /* Height comes from the column width (aspect-ratio) — never the other way
+         round: a min-height combined with aspect-ratio put a 44px floor on the
+         cell's WIDTH too, and 7×44 + gaps does not fit a 320px phone, so the
+         Saturday column spilled past the card. Width is always the grid's. */
+      .cal-cell { aspect-ratio: 1; height: auto; min-width: 0; width: 100%; border-radius: 10px; cursor: pointer; padding: 0;
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
         font-family: inherit; font-size: clamp(12px, 1.6vw, 14px); border: 1px solid transparent;
         background: transparent; transition: background .18s ease-out, color .18s ease-out, transform .12s ease-out }
       .cal-cell:active { transform: scale(.92) }
-      @media (pointer: coarse) { .cal-cell { min-height: 44px } }
+      /* Touch target: on a phone the cell is ~38–46px square from the grid
+         alone; the tap area is padded out to 44px without changing layout. */
+      @media (pointer: coarse) { .cal-cell { min-height: 0; position: relative }
+        .cal-cell::after { content: ""; position: absolute; inset: -3px } }
+      @media (max-width: 400px) { .cal-grid { gap: 2px } .cal-cell { border-radius: 8px; font-size: 12px } }
       .cal-dow { text-align: center; font-size: 10.5px; font-weight: 600; padding: 2px 0 }
       .cal-day { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid ${T.border} }
       .cal-day:first-of-type { border-top: none }

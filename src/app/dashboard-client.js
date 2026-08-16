@@ -684,9 +684,17 @@ export default function Dashboard() {
     {/* The sidebar is the reference's neumorphic card: a soft slab floating off
         the page, grouped sections with quiet labels, and one red capsule marking
         where you are. */}
-    <div style={{position:"fixed",zIndex:50,top:14,bottom:14,left:14,width:252,background:T.rail,
-      borderRadius:24,boxShadow:T.nmOut,display:"flex",flexDirection:"column",flexShrink:0,
-      transform:sidebarOpen?"translateX(0)":"translateX(calc(-100% - 28px))",transition:"transform 0.28s cubic-bezier(.22,.61,.36,1)",
+    <div style={{position:"fixed",zIndex:50,top:isMobile?10:14,bottom:isMobile?10:14,left:isMobile?10:14,
+      width:isMobile?"min(272px, calc(100vw - 20px))":252,background:T.rail,
+      borderRadius:24,boxShadow:sidebarOpen?T.nmOut:"none",display:"flex",flexDirection:"column",flexShrink:0,
+      transform:sidebarOpen?"translateX(0)":"translateX(calc(-100% - 60px))",
+      // visibility flips after the slide finishes on close (0.28s delay), and
+      // at once on open — so the closed sidebar's soft shadow can never bleed
+      // onto the page (it did, as a red sliver above the calendar).
+      visibility:sidebarOpen?"visible":"hidden",
+      transition:sidebarOpen
+        ?"transform 0.28s cubic-bezier(.22,.61,.36,1), box-shadow .2s ease-out, visibility 0s"
+        :"transform 0.28s cubic-bezier(.22,.61,.36,1), box-shadow .2s ease-out, visibility 0s .28s",
       paddingBottom:"env(safe-area-inset-bottom)"}}>
       <div style={{padding:"20px 18px 14px",display:"flex",alignItems:"center",gap:12}}>
         <div style={{width:44,height:44,borderRadius:14,background:T.card,boxShadow:T.nmSm,
@@ -726,14 +734,22 @@ export default function Dashboard() {
         ))}
       </nav>
 
-      {/* The bottom of the reference sidebar: parted from the menu, always reachable. */}
-      <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`}}>
+      {/* The bottom of the reference sidebar: parted from the menu, always reachable.
+          On a phone this is also where sync and the theme switch live. */}
+      <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6}}>
         <button onClick={async()=>{try{await getSb().auth.signOut();}catch{} window.location.href="/";}}
-          className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,width:"100%",
-            padding:"10px 14px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
+          className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,
+            padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
             fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left"}}>
           <i className="ti ti-logout" style={{fontSize:17}}/>Log out
         </button>
+        {isMobile&&<>
+          <button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
+            title="Sync" aria-label="Sync" style={{width:38,height:38,borderRadius:12}}>
+            <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>
+          </button>
+          <ThemeToggle mode={mode} toggle={toggleTheme} style={{width:38,height:38,borderRadius:12}}/>
+        </>}
       </div>
     </div>
 
@@ -746,11 +762,13 @@ export default function Dashboard() {
 
         <div style={{display:"flex",alignItems:"center",gap:isMobile?6:10,flexShrink:0}}>
           {!sidebarOpen&&<button onClick={()=>setSidebarOpen(true)} className="pbtn" aria-label="Menu"
-            style={isMobile?{width:38,height:38,borderRadius:12}:undefined}>
+            style={isMobile?{width:36,height:36,borderRadius:11}:undefined}>
             <i className="ti ti-menu-2"/>
           </button>}
-          {isMobile&&page!==HOME&&<button onClick={()=>setPage(HOME)} className="pbtn" aria-label="Back"
-            style={{width:38,height:38,borderRadius:12}}>
+          {/* The phone's own back button does the same job; on screen it only
+              earns a slot when it will not squeeze the title into an ellipsis. */}
+          {isMobile&&page!==HOME&&<button onClick={()=>setPage(HOME)} className="pbtn hide-xs" aria-label="Back"
+            style={{width:36,height:36,borderRadius:11}}>
             <i className="ti ti-arrow-left" style={{fontSize:16}}/>
           </button>}
         </div>
@@ -766,23 +784,25 @@ export default function Dashboard() {
           </div>}
         </div>
 
+        {/* On a phone the row holds only what is used every minute: bell,
+            avatar. Sync and the theme switch move into the sidebar footer —
+            still one tap away, no longer crowding the title off the bar. */}
         <div style={{display:"flex",alignItems:"center",gap:isMobile?7:10,flexShrink:0}}>
-          <button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
-            title="Sync" aria-label="Sync"
-            style={isMobile?{width:38,height:38,borderRadius:12}:undefined}>
+          {!isMobile&&<button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
+            title="Sync" aria-label="Sync">
             <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>
-          </button>
+          </button>}
           <button onClick={()=>setPage("conversations")} className="pbtn" title="Active conversations"
             aria-label={`Notifications${activeCount?`, ${activeCount} active`:""}`}
-            style={isMobile?{width:38,height:38,borderRadius:12}:undefined}>
+            style={isMobile?{width:36,height:36,borderRadius:11}:undefined}>
             <i className="ti ti-bell"/>
             {activeCount>0&&<span className="pbadge">{activeCount>9?"9+":activeCount}</span>}
           </button>
-          <ThemeToggle mode={mode} toggle={toggleTheme} style={isMobile?{width:38,height:38,borderRadius:12}:undefined}/>
+          {!isMobile&&<ThemeToggle mode={mode} toggle={toggleTheme}/>}
           <div title={botLive?"Bot is live":"No channel connected"}
-            style={{position:"relative",width:isMobile?38:42,height:isMobile?38:42,borderRadius:"50%",
+            style={{position:"relative",width:isMobile?36:42,height:isMobile?36:42,borderRadius:"50%",
               background:T.accGrad,boxShadow:T.accGlow,display:"flex",alignItems:"center",
-              justifyContent:"center",flexShrink:0,overflow:"visible"}}>
+              justifyContent:"center",flexShrink:0,overflow:"visible",marginRight:isMobile?2:0}}>
             {me?.client?.logo_url
               ?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:"50%"}}/>
               :<span style={{fontSize:isMobile?13:15,fontWeight:700,color:"#fff",letterSpacing:".02em"}}>{initials}</span>}
@@ -791,7 +811,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?12:20),minHeight:0}}>
+      }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <div key={page} className="ui-page">
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
