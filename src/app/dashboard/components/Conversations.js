@@ -203,15 +203,15 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
           {isMobile&&<button onClick={()=>setSel(-1)} style={{background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:20,padding:0,flexShrink:0}}><i className="ti ti-chevron-left"/></button>}
           <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}><i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:13}}/>{c.platform}
-            {!!tagData?.available?.length&&<select value={tagsOf(c.id)[0]||""} onChange={async e=>{
-              const t=e.target.value;
-              if(!t) return;
-              await api("/api/tags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,tag:t})});
-              loadTags();
-            }} onClick={e=>e.stopPropagation()} style={{marginLeft:6,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,color:T.textMuted,fontSize:11,padding:"2px 6px",outline:"none",fontFamily:"inherit"}}>
-              <option value="">Tag...</option>
-              {tagData.available.map(t=><option key={t} value={t}>{t}</option>)}
-            </select>}
+            {!!tagData?.available?.length&&<span onClick={e=>e.stopPropagation()} style={{marginLeft:6,display:"inline-block"}}>
+              <Select value={tagsOf(c.id)[0]||""} placeholder="Tag…" style={{fontSize:11}}
+                options={tagData.available.map(t=>({value:t,label:t,icon:"ti-tag"}))}
+                onChange={async t=>{
+                  if(!t) return;
+                  await api("/api/tags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,tag:t})});
+                  loadTags();
+                }}/>
+            </span>}
             </div></div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>

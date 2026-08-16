@@ -1,12 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Inp, Badge } from "./ui.js";
+import { T, Card, Btn, Inp, Badge, Select } from "./ui.js";
 import { api } from "./session.js";
 
 // The Broadcast tab, moved out of dashboard-client.js unchanged.
 
 const SEG_HOURS=[{v:6,l:"Active in the last 6 hours"},{v:12,l:"Active in the last 12 hours"},{v:24,l:"Active in the last 24 hours"}];
-const selStyle={width:"100%",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:"10px 12px",color:T.text,fontSize:14,outline:"none",fontFamily:"inherit"};
 const fieldLabel={display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1};
 
 
@@ -109,31 +108,24 @@ export default function Broadcast(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(180px, 1fr))",gap:14,marginBottom:16}}>
         <div>
           <label style={fieldLabel}>Channel</label>
-          <select value={channel} onChange={e=>{setChannel(e.target.value);setPrev(null);}} style={selStyle}>
-            <option value="all">All connected channels</option>
-            {channels.map(c=><option key={c.platform} value={c.platform}>{c.platform.charAt(0).toUpperCase()+c.platform.slice(1)}</option>)}
-          </select>
+          <Select wide value={channel} onChange={v=>{setChannel(v);setPrev(null);}}
+            options={[{value:"all",label:"All connected channels",icon:"ti-broadcast"},
+              ...channels.map(c=>({value:c.platform,label:c.platform.charAt(0).toUpperCase()+c.platform.slice(1),icon:`ti-brand-${c.platform}`}))]}/>
         </div>
         <div>
           <label style={fieldLabel}>Who</label>
-          <select value={hours} onChange={e=>{setHours(Number(e.target.value));setPrev(null);}} style={selStyle}>
-            {SEG_HOURS.map(h=><option key={h.v} value={h.v}>{h.l}</option>)}
-          </select>
+          <Select wide value={hours} onChange={v=>{setHours(Number(v));setPrev(null);}}
+            options={SEG_HOURS.map(h=>({value:h.v,label:h.l}))}/>
         </div>
         <div>
           <label style={fieldLabel}>{bt==="agency"?"Booking history":"Order history"}</label>
-          <select value={conv} onChange={e=>{setConv(e.target.value);setPrev(null);}} style={selStyle}>
-            <option value="any">{convWords.any}</option>
-            <option value="yes">{convWords.yes}</option>
-            <option value="no">{convWords.no}</option>
-          </select>
+          <Select wide value={conv} onChange={v=>{setConv(v);setPrev(null);}}
+            options={[{value:"any",label:convWords.any},{value:"yes",label:convWords.yes},{value:"no",label:convWords.no}]}/>
         </div>
         {!!d?.available_tags?.length&&<div>
           <label style={fieldLabel}>Tag</label>
-          <select value={tag} onChange={e=>{setTag(e.target.value);setPrev(null);}} style={selStyle}>
-            <option value="">Any tag</option>
-            {d.available_tags.map(t=><option key={t} value={t}>{t}</option>)}
-          </select>
+          <Select wide value={tag} onChange={v=>{setTag(v);setPrev(null);}}
+            options={[{value:"",label:"Any tag"},...d.available_tags.map(t=>({value:t,label:t}))]}/>
         </div>}
       </div>
 
