@@ -37,14 +37,17 @@ export const GET = withErrors(async (request) => {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
 
-  const [clientQ, channelsQ, msgsQ, ordersQ, bookingsQ, productsQ, filesQ] = await Promise.all([
+  const [clientQ, channelsQ, msgsQ, ordersQ, bookingsQ, productsQ, filesQ, payQ, contactsQ, settingsQ] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
     supabase.from("channels").select("platform,page_id,status,connected_at").eq("client_id", id),
-    supabase.from("message_buffer").select("role,created_at").eq("client_id", id),
+    supabase.from("message_buffer").select("role,created_at,platform").eq("client_id", id),
     supabase.from("orders").select("order_code,customer_name,total_price,status,created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(50),
     supabase.from("bookings").select("customer_name,service_want,meeting_date,meeting_time,status,created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(50),
     supabase.from("products").select("metadata").eq("client_id", id).limit(200),
     supabase.from("file_registry").select("file_name,file_type,chunks,created_at").eq("client_id", id).order("created_at", { ascending: false }),
+    supabase.from("payment_requests").select("id,plan,billing_cycle,amount,method,txn_id,status,created_at,reviewed_at,reviewed_by,admin_note").eq("client_id", id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("contacts").select("sender_id", { count: "exact", head: true }).eq("client_id", id),
+    supabase.from("app_settings").select("settings").eq("id", String(id)).maybeSingle(),
   ]);
 
   const client = clientQ.data;
@@ -61,8 +64,15 @@ export const GET = withErrors(async (request) => {
   const inRange = (m, from) => new Date(m.created_at).getTime() > from;
   const byRole = (arr, r) => arr.filter((m) => (m.role || "customer") === r).length;
 
+  const byPlatform = {};
+  for (const m of msgs) { const k = m.platform || "unknown"; byPlatform[k] = (byPlatform[k] || 0) + 1; }
+  // Last 14 days, oldest first, for the small chart in the drawer.
+  const series = [];
+  for (let i = 13; i >= 0; i--) { const s0 = dayStart.getTime() - i * 86400000, e0 = s0 + 86400000; series.push({ day: new Date(s0).toISOString().slice(0, 10), value: msgs.filter((m) => { const t = new Date(m.created_at).getTime(); return t >= s0 && t < e0; }).length }); }
   const messages = {
     total: msgs.length,
+    by_platform: byPlatform, series,
+    last_at: msgs.length ? msgs.reduce((a, m) => (new Date(m.created_at) > new Date(a) ? m.created_at : a), msgs[0].created_at) : null,
     today: msgs.filter((m) => new Date(m.created_at) >= dayStart).length,
     week: msgs.filter((m) => inRange(m, d7)).length,
     month: msgs.filter((m) => inRange(m, d30)).length,
@@ -85,5 +95,9 @@ export const GET = withErrors(async (request) => {
     bookings: bookingsQ.data || [],
     products,
     files: filesQ.data || [],
+    payments: payQ.data || [],
+    contacts: contactsQ.count || 0,
+    // Only the bot's public face — never the business prompt itself.
+    settings: settingsQ.data?.settings ? { botName: settingsQ.data.settings.botName || null, greeting: settingsQ.data.settings.greeting || null, hasPrompt: !!settingsQ.data.settings.businessPrompt } : null,
   }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } });
 }, "admin-client-detail");

@@ -5,6 +5,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
 import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentApproved, notifyPaymentRejected } from "@/lib/email.js";
+import { PLANS } from "@/lib/plans.js";
+import { startOfDayDhaka } from "@/lib/time.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -46,46 +48,124 @@ export async function GET(request) {
     return NextResponse.json({ role: role || "pending", email });
   }
 
-  const [clientsQ, msgsQ, ordersQ, bookingsQ, channelsQ, filesQ, productsQ] = await Promise.all([
-    supabase.from("clients").select("id,owner_email,business_name,business_type,plan,trial_end,suspended,created_at,gcal_connected"),
-    supabase.from("message_buffer").select("client_id,created_at"),
-    supabase.from("orders").select("client_id"),
-    supabase.from("bookings").select("client_id"),
-    supabase.from("channels").select("client_id,platform,status"),
+  const [clientsQ, msgsQ, ordersQ, bookingsQ, channelsQ, filesQ, productsQ, contactsQ, payQ] = await Promise.all([
+    supabase.from("clients").select("id,owner_email,business_name,business_type,plan,trial_end,plan_expires_at,suspended,created_at,gcal_connected,logo_url,phone,address,website"),
+    supabase.from("message_buffer").select("client_id,created_at,role,platform"),
+    supabase.from("orders").select("client_id,created_at,total_price,status,customer_name,order_code"),
+    supabase.from("bookings").select("client_id,created_at,status,customer_name,meeting_date"),
+    supabase.from("channels").select("client_id,platform,status,connected_at"),
     supabase.from("file_registry").select("client_id"),
     supabase.from("products").select("client_id"),
+    supabase.from("contacts").select("client_id"),
+    supabase.from("payment_requests").select("*").order("created_at", { ascending: false }).limit(200),
   ]);
 
   const clients = clientsQ.data || [], msgs = msgsQ.data || [], orders = ordersQ.data || [];
-  const bookings = bookingsQ.data || [], channels = channelsQ.data || [], files = filesQ.data || [], products = productsQ.data || [];
-  const now = Date.now(), d7 = now - 7 * 86400000;
-  const cnt = (arr, id) => arr.filter((x) => x.client_id === id).length;
+  const bookings = bookingsQ.data || [], channels = channelsQ.data || [], files = filesQ.data || [];
+  const products = productsQ.data || [], contacts = contactsQ.data || [], payRows = payQ.data || [];
+  const now = Date.now(), DAY = 86400000;
+  const d1 = now - DAY, d7 = now - 7 * DAY, d14 = now - 14 * DAY, d30 = now - 30 * DAY;
+  const dayStart = startOfDayDhaka().getTime();
+  const ts = (x) => new Date(x.created_at).getTime();
+  const after = (arr, t) => arr.filter((x) => ts(x) > t);
+  const between = (arr, a, b) => arr.filter((x) => { const t = ts(x); return t > a && t <= b; });
+
+  // Per-client counters, one pass each instead of a filter per client.
+  const tally = (arr, pick) => { const m = new Map(); for (const x of arr) { const k = x.client_id; if (!m.has(k)) m.set(k, 0); if (!pick || pick(x)) m.set(k, m.get(k) + 1); } return m; };
+  const mAll = tally(msgs), m7 = tally(msgs, (x) => ts(x) > d7), m30 = tally(msgs, (x) => ts(x) > d30), mToday = tally(msgs, (x) => ts(x) >= dayStart);
+  const mPrev7 = tally(msgs, (x) => { const t = ts(x); return t > d14 && t <= d7; });
+  const oAll = tally(orders), o7 = tally(orders, (x) => ts(x) > d7), bAll = tally(bookings), b7 = tally(bookings, (x) => ts(x) > d7);
+  const pAll = tally(products), fAll = tally(files), cAll = tally(contacts);
+  const lastActive = new Map();
+  for (const x of msgs) { const t = ts(x); if (!lastActive.has(x.client_id) || lastActive.get(x.client_id) < t) lastActive.set(x.client_id, t); }
+  const chByClient = new Map();
+  for (const ch of channels) { if (!chByClient.has(ch.client_id)) chByClient.set(ch.client_id, []); chByClient.get(ch.client_id).push({ platform: ch.platform, status: ch.status, connected_at: ch.connected_at }); }
+  const g = (m, id) => m.get(id) || 0;
+  const daysLeft = (iso) => iso ? Math.ceil((new Date(iso).getTime() - now) / DAY) : null;
 
   const rows = clients.map((c) => ({
     ...c,
-    messages: cnt(msgs, c.id),
-    messages_7d: msgs.filter((m) => m.client_id === c.id && new Date(m.created_at).getTime() > d7).length,
-    orders: cnt(orders, c.id), bookings: cnt(bookings, c.id),
-    products: cnt(products, c.id), kb_files: cnt(files, c.id),
-    channels: channels.filter((ch) => ch.client_id === c.id).map((ch) => ({ platform: ch.platform, status: ch.status })),
+    messages: g(mAll, c.id), messages_7d: g(m7, c.id), messages_30d: g(m30, c.id), messages_today: g(mToday, c.id), messages_prev7: g(mPrev7, c.id),
+    orders: g(oAll, c.id), orders_7d: g(o7, c.id), bookings: g(bAll, c.id), bookings_7d: g(b7, c.id),
+    products: g(pAll, c.id), kb_files: g(fAll, c.id), contacts: g(cAll, c.id),
+    channels: chByClient.get(c.id) || [],
+    last_active: lastActive.has(c.id) ? new Date(lastActive.get(c.id)).toISOString() : null,
+    trial_days_left: c.plan === "trial" ? daysLeft(c.trial_end) : null,
+    plan_days_left: ["starter", "pro", "agency"].includes(c.plan) ? daysLeft(c.plan_expires_at) : null,
+    pending_payment: payRows.some((p) => p.client_id === c.id && p.status === "pending"),
   }));
+
+  // Recurring revenue estimate from active paid plans (monthly price; the
+  // catalogue is the single source of truth). Revenue = approved payments.
+  const monthlyOf = (plan) => Number(PLANS[plan]?.monthly || 0);
+  const paid = rows.filter((c) => ["starter", "pro", "agency"].includes(c.plan) && !c.suspended && (c.plan_days_left === null || c.plan_days_left > 0));
+  const approved = payRows.filter((p) => p.status === "approved");
+  const sum = (arr) => arr.reduce((n, p) => n + Number(p.amount || 0), 0);
+  const revenue_30d = sum(approved.filter((p) => new Date(p.reviewed_at || p.created_at).getTime() > d30));
+  const revenue_prev30 = sum(approved.filter((p) => { const t = new Date(p.reviewed_at || p.created_at).getTime(); return t > now - 60 * DAY && t <= d30; }));
+
+  // Daily series for the last 14 days (Dhaka days), oldest first.
+  const series = (arr, days = 14) => {
+    const out = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const start = dayStart - i * DAY, end = start + DAY;
+      out.push({ day: new Date(start).toISOString().slice(0, 10), value: between(arr, start - 1, end - 1).length });
+    }
+    return out;
+  };
+  const platformMix = {};
+  for (const ch of channels) if (ch.status === "connected") platformMix[ch.platform] = (platformMix[ch.platform] || 0) + 1;
+  const msgPlatform = {};
+  for (const m of after(msgs, d30)) { const k = m.platform || "unknown"; msgPlatform[k] = (msgPlatform[k] || 0) + 1; }
+  const planMix = {};
+  for (const c of clients) planMix[c.plan || "none"] = (planMix[c.plan || "none"] || 0) + 1;
 
   const overview = {
     total_clients: clients.length,
-    trial: clients.filter((c) => c.plan === "trial").length,
-    pro: clients.filter((c) => c.plan === "pro").length,
-    suspended: clients.filter((c) => c.suspended).length,
-    total_messages: msgs.length,
-    messages_7d: msgs.filter((m) => new Date(m.created_at).getTime() > d7).length,
-    total_orders: orders.length, total_bookings: bookings.length,
-    connected_channels: channels.filter((ch) => ch.status === "connected").length,
+    new_clients_7d: after(clients, d7).length, new_clients_prev7: between(clients, d14, d7).length, new_clients_30d: after(clients, d30).length,
+    plan_mix: planMix,
+    trial: planMix.trial || 0, starter: planMix.starter || 0, pro: planMix.pro || 0, agency: planMix.agency || 0, none: planMix.none || 0,
+    paid_clients: paid.length, suspended: rows.filter((c) => c.suspended).length,
+    ecommerce: clients.filter((c) => c.business_type !== "agency").length, agencies: clients.filter((c) => c.business_type === "agency").length,
+    total_messages: msgs.length, messages_today: msgs.filter((m) => ts(m) >= dayStart).length,
+    messages_7d: after(msgs, d7).length, messages_prev7: between(msgs, d14, d7).length, messages_30d: after(msgs, d30).length,
+    customer_messages_7d: after(msgs, d7).filter((m) => (m.role || "customer") === "customer").length,
+    total_orders: orders.length, orders_7d: after(orders, d7).length, orders_prev7: between(orders, d14, d7).length,
+    total_bookings: bookings.length, bookings_7d: after(bookings, d7).length, bookings_prev7: between(bookings, d14, d7).length,
+    total_contacts: contacts.length, total_products: products.length, total_kb_files: files.length,
+    connected_channels: channels.filter((ch) => ch.status === "connected").length, platform_mix: platformMix, message_platform_30d: msgPlatform,
+    mrr: paid.reduce((n, c) => n + monthlyOf(c.plan), 0), revenue_30d, revenue_prev30,
+    pending_payments: payRows.filter((p) => p.status === "pending").length,
+    series: { messages: series(msgs), signups: series(clients), orders: series(orders), bookings: series(bookings) },
   };
 
-  // Payments awaiting verification, newest first, with the business attached.
-  const { data: payRows } = await supabase.from("payment_requests")
-    .select("*").order("created_at", { ascending: false }).limit(100);
-  const clientById = new Map((clients || []).map((c) => [c.id, c]));
-  const payments = (payRows || []).map((p) => {
+  // What needs a human today, most urgent first.
+  const attention = [];
+  const money = (n) => "\u09F3" + Number(n || 0).toLocaleString("en-IN");
+  for (const p of payRows.filter((p) => p.status === "pending")) attention.push({ kind: "payment", level: "high", client_id: p.client_id, title: "Payment waiting for review", sub: `${p.plan} · ${money(p.amount)} via ${p.method}`, at: p.created_at });
+  for (const c of rows) {
+    const who = c.business_name || c.owner_email;
+    if (c.plan === "trial" && c.trial_days_left !== null && c.trial_days_left <= 2) attention.push({ kind: "trial", level: c.trial_days_left <= 0 ? "high" : "mid", client_id: c.id, title: c.trial_days_left <= 0 ? "Trial expired" : `Trial ends in ${c.trial_days_left} day${c.trial_days_left === 1 ? "" : "s"}`, sub: who, at: c.trial_end });
+    if (c.plan_days_left !== null && c.plan_days_left <= 7) attention.push({ kind: "expiry", level: c.plan_days_left <= 0 ? "high" : "mid", client_id: c.id, title: c.plan_days_left <= 0 ? `${c.plan} plan expired` : `${c.plan} plan ends in ${c.plan_days_left} day${c.plan_days_left === 1 ? "" : "s"}`, sub: who, at: c.plan_expires_at });
+    if (c.suspended) attention.push({ kind: "suspended", level: "mid", client_id: c.id, title: "Account suspended", sub: who, at: c.created_at });
+    if (!c.channels.some((ch) => ch.status === "connected") && ts(c) < d1) attention.push({ kind: "nochannel", level: "low", client_id: c.id, title: "No channel connected", sub: `${who} · joined ${new Date(c.created_at).toLocaleDateString("en-GB")}`, at: c.created_at });
+    else if (c.channels.some((ch) => ch.status === "connected") && c.messages_7d === 0 && c.messages > 0) attention.push({ kind: "quiet", level: "low", client_id: c.id, title: "No messages in 7 days", sub: who, at: c.last_active });
+  }
+  const rank = { high: 0, mid: 1, low: 2 };
+  attention.sort((a, b) => rank[a.level] - rank[b.level] || new Date(b.at || 0) - new Date(a.at || 0));
+
+  // One feed of what happened lately across the platform.
+  const nameOf = new Map(clients.map((c) => [c.id, c.business_name || c.owner_email]));
+  const activity = [
+    ...clients.map((c) => ({ kind: "signup", at: c.created_at, client_id: c.id, title: `${c.business_name || c.owner_email} signed up`, sub: c.business_type === "agency" ? "Agency" : "E-commerce" })),
+    ...payRows.map((p) => ({ kind: "payment", at: p.created_at, client_id: p.client_id, title: `${nameOf.get(p.client_id) || "Unknown"} paid ${money(p.amount)}`, sub: `${p.plan} · ${p.method} · ${p.status}` })),
+    ...orders.map((o) => ({ kind: "order", at: o.created_at, client_id: o.client_id, title: `Order for ${nameOf.get(o.client_id) || "Unknown"}`, sub: `${o.customer_name || "Customer"}${o.total_price ? ` · ${money(o.total_price)}` : ""}` })),
+    ...bookings.map((b) => ({ kind: "booking", at: b.created_at, client_id: b.client_id, title: `Booking for ${nameOf.get(b.client_id) || "Unknown"}`, sub: `${b.customer_name || "Customer"}${b.meeting_date ? ` · ${b.meeting_date}` : ""}` })),
+    ...channels.filter((ch) => ch.connected_at).map((ch) => ({ kind: "channel", at: ch.connected_at, client_id: ch.client_id, title: `${nameOf.get(ch.client_id) || "Unknown"} connected ${ch.platform}`, sub: ch.status })),
+  ].filter((a) => a.at).sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 40);
+
+  const clientById = new Map(clients.map((c) => [c.id, c]));
+  const payments = payRows.map((p) => {
     const c = clientById.get(p.client_id);
     return { ...p, business_name: c?.business_name || "Unknown", owner_email: c?.owner_email || "" };
   });
@@ -97,7 +177,7 @@ export async function GET(request) {
   }
 
   return NextResponse.json(
-    { role, email, overview, clients: rows, admins, payments, server_time: new Date().toISOString() },
+    { role, email, overview, clients: rows, admins, payments, attention, activity, server_time: new Date().toISOString() },
     { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } }
   );
 }
@@ -214,8 +294,25 @@ export async function PUT(request) {
   const { id, action, value } = body;
   if (!id || !action) return NextResponse.json({ error: "missing id/action" }, { status: 400 });
   let patch = null;
-  if (action === "plan") patch = { plan: value === "pro" ? "pro" : "trial" };
-  else if (action === "extend_trial") {
+  const PLAN_IDS = ["trial", "starter", "pro", "agency"];
+  if (action === "plan") {
+    // Any catalogue plan. Moving onto a paid plan by hand starts a 30-day
+    // term from today unless one is still running; back to trial clears it.
+    const plan = PLAN_IDS.includes(value) ? value : "trial";
+    patch = { plan };
+    if (plan === "trial") patch.plan_expires_at = null;
+    else {
+      const { data: c } = await supabase.from("clients").select("plan_expires_at").eq("id", id).single();
+      const cur = c?.plan_expires_at ? new Date(c.plan_expires_at) : null;
+      if (!(cur && cur > new Date())) { const b = new Date(); b.setDate(b.getDate() + 30); patch.plan_expires_at = b.toISOString(); }
+      patch.suspended = false;
+    }
+  } else if (action === "extend_plan") {
+    const { data: c } = await supabase.from("clients").select("plan_expires_at").eq("id", id).single();
+    const base = c?.plan_expires_at && new Date(c.plan_expires_at) > new Date() ? new Date(c.plan_expires_at) : new Date();
+    base.setDate(base.getDate() + (parseInt(value, 10) || 30));
+    patch = { plan_expires_at: base.toISOString() };
+  } else if (action === "extend_trial") {
     const { data: c } = await supabase.from("clients").select("trial_end").eq("id", id).single();
     const base = c?.trial_end && new Date(c.trial_end) > new Date() ? new Date(c.trial_end) : new Date();
     base.setDate(base.getDate() + (parseInt(value, 10) || 7));
