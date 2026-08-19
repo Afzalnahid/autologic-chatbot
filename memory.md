@@ -4,6 +4,75 @@ Update the top two sections after every session.
 
 ---
 
+## Last session (2026-08-20, second thread) — Channel exclusivity, multi-account, tab redesigns
+
+Verified first (evidence, not assumption): the admin secret-key fix (`84d02f6`)
+works — owner tested Give/Remove API key access, zero 403s in Vercel logs after
+the fix deployed (the only 403s were pre-fix). `client_ai` is EMPTY again —
+the owner's Remove test deleted Broker's BD's permission row, so the BYOK smoke
+test now starts from "Give access" again.
+
+- `9ea95a9` **BYOK success is now visible in logs.** `[ai]` was only written on
+  failure; a working client key was silent, so the smoke test had nothing to
+  look for. `strict()` in `src/lib/ai.js` now logs
+  `[ai] client <id> used their OWN key (provider/model) for chat — ok`.
+- `ff9d1be` **One Page = one client, and channels have names.** The unique index
+  was `(client_id, platform, page_id)` so the same Page could join two clients,
+  and `getChannelByPage` picks `limit(1)` — silent cross-tenant misrouting.
+  Migration `channel_identity_and_exclusivity`: unique `(platform, page_id)`
+  (verified by a rolled-back duplicate insert), `channels.name`,
+  `message_buffer.page_id`, `broadcast_recipients.page_id`. All connect flows
+  (fb/ig/wa select, wa/finish, channels POST) refuse a taken page with a
+  branded 409 page and save the human name. **wa/finish had a fatal hidden
+  bug**: `onConflict: "client_id,platform"` matches no unique index → every
+  embedded-signup save had been failing (lesson 25). Existing rows keep a null
+  name until reconnect; the UI falls back to the id.
+- `25b4332` **Send through the page the customer wrote to.** All 8 bot.js
+  bufferInserts + widget/chat record `page_id`; send-message/send-media,
+  broadcast-send and followup resolve (platform, page_id) first, platform as
+  fallback for old rows. /api/conversations exposes per-thread `page_id`.
+- `f8f32ac` **Channels tab rebuilt**: per-platform sections (brand icon, count,
+  Add), one row per account with saved name + live dot + Live/Paused switch,
+  expandable detail (id, date, comment toggles, disconnect). Website is its own
+  section (widget rows with domains/pause/remove; `WebsiteWidget` gained `bare`).
+- `ab8f3a4` **Conversations tab**: search (name + last message), relative time
+  per row, platform icon, per-account chip + filter entries (`facebook|<page>`)
+  when a platform has >1 account, account name in the chat header.
+- `7f6f46b` **Settings → "Bot Training"** (nav label + ti-wand; page key stays
+  "settings"): training checklist (4 honest checks), numbered sections — Bot
+  identity (tone/language promoted out of the fold) → Teach it your business →
+  Guardrails → Automation (follow-up) → AI key → Advanced (raw profile), and a
+  floating save bar on JSON-diff dirty detection.
+
+Every stage: production build passed locally before push (the 0xC0000005 build
+worker crash appeared once; clean on retry — lesson 22 territory), each commit
+pushed separately, Vercel READY confirmed per stage (last stage confirmed at
+session close).
+
+### What's next — resume exactly here
+
+1. **Visual pass (owner's eyes, ~5 min):** open the dashboard → Channels,
+   Conversations, Bot Training tabs, desktop + phone, light + dark. Nothing
+   could be viewed in this environment (no dashboard login exists here). The
+   save bar on Bot Training assumes the phone bottom nav is ~66px tall —
+   check it doesn't overlap.
+2. **BYOK smoke test** (permission row is GONE — start from step 1):
+   /admin → Broker's BD → AI key tab → type secret key → Give API key access →
+   client Settings (Bot Training tab now) → paste real Google key → Verify &
+   activate → **wait 60s** (ai.js memo) → message the bot → look for
+   `[ai] client 93963074-… used their OWN key (google) for chat — ok` in
+   Vercel logs. Wrong key must refuse to save.
+3. **Google Cloud billing** — still the single biggest blocker (free tier,
+   20 req/model/day; bot dies after ~10 messages/day on every tenant at once).
+4. **BYOK gap found, deliberately not fixed in those commits:**
+   `import-url`'s `extractProductsFromUrl` (the biggest AI call, 15k chars) and
+   `tags.js`'s `chatWithGemini` fallback still run on the PLATFORM key for
+   BYOK clients — breaks hard cost separation. Fix in its own commit.
+5. WhatsApp Embedded Signup can now actually SAVE (lesson 25 fix) — worth a
+   real connect test when Meta setup allows.
+
+---
+
 ## Last session (2026-08-17) — Demo bot removed, first-run screens themed, premium Inventory
 
 Owner asked (in one message): remove the demo bot everywhere; make the auth

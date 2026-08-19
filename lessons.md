@@ -364,3 +364,20 @@ var, which was never the cause.
 - A "silently does nothing" action is almost always a request that *was* sent
   and *was* refused. Look at what the client actually put in the request
   before theorising about the server's configuration.
+
+## 25. An upsert''s onConflict must name a real unique index
+
+**2026-08-20.** `wa/finish` (WhatsApp Embedded Signup) saved its channel with
+`onConflict: "client_id,platform"`. No unique index on those two columns has
+ever existed — the real one is `(client_id, platform, page_id)` — so Postgres
+rejected the ON CONFLICT clause and **every** embedded-signup save failed, not
+just conflicting ones. Nobody noticed for weeks because the owner''s own number
+had been saved earlier through the other path (`wa/select`), so a WhatsApp row
+existed and everything looked connected.
+
+**Rules:**
+- Before writing `onConflict`, read the table''s actual indexes
+  (`select indexdef from pg_indexes where tablename = ''...''`). PostgREST does
+  not warn you; it fails the whole upsert with error 42P10.
+- A save path whose failure is masked by data from ANOTHER path is invisible.
+  When two flows write the same row, test each flow against an empty table.
