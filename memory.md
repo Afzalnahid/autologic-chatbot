@@ -1117,18 +1117,18 @@ automation looks natural to a reviewer.
   (client_ai was empty — lost in the identity chaos); permission for
   Broker's BD was granted directly by SQL, so its Settings now shows the
   API key box, ready for the owner's test.
-- **2026-08-20 (later): admin "Remove API key access" did nothing** — DB row
-  untouched, and the earlier "Give access" click had never landed either.
-  Common gate: `x-admin-key === ADMIN_PASSWORD`. Trap: if the env var is
-  missing in Vercel, EVERY attempt 403s as "invalid key" regardless of what
-  is typed. `86deb1e`: checkSuperKey() now returns a message naming the real
-  failure (env missing → tells the owner to set ADMIN_PASSWORD in Vercel and
-  redeploy; otherwise → wrong key). AIKeyBox re-checks /api/ai-key on
-  focus/visibility + no-store, so a removed access vanishes from an open
-  client tab. ⚠️ UNRESOLVED until the owner retries: whether their
-  ADMIN_PASSWORD env is set/matches — the retry error will now say which.
-  The Broker's BD permission row was left in place on purpose so the retry
-  exercises the real Remove path.
+- **2026-08-20 (later): admin "Give / Remove API key access" silently did
+  nothing — ROOT CAUSE FOUND (`b6cf47e`).** The AI tab's secret-key card was
+  rendered as `{locked && <Card>…<PwInput/></Card>}` with `locked = !superKey`,
+  so the FIRST keystroke flipped `locked` and unmounted the field. Only one
+  character ever reached the server → every action 403'd as "wrong key". The
+  owner saw the box "vanish" when typing. Fix: the gate card is always
+  mounted (the Admins page already did this correctly), with a green
+  "Key entered" state and a clear button. My earlier guess that
+  ADMIN_PASSWORD was missing in Vercel was NOT the cause — but the better
+  error messages from `86deb1e` (which name env-missing vs wrong-key) are
+  worth keeping. AIKeyBox also re-checks /api/ai-key on focus + no-store.
+  Broker's BD's permission row is still in place, ready for the real test.
 - **BYOK smoke test (owner will do):** /admin → test client → AI key tab →
   secret key → Allow → log in as that client → Settings → "Your AI API key"
   box appears → paste a real Google AI Studio key → Verify & activate →

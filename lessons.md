@@ -342,3 +342,25 @@ customer product photo had been failing silently too.
   "try again later" reads as broken and loses the customer.
 - Runtime logs are the cheapest diagnosis available. Read them *before*
   theorising about the code.
+
+## 24. Never gate an input on the value it collects
+
+**2026-08-20.** The admin AI tab's secret-key field was written as
+`{locked && <Card>…<PwInput/></Card>}` with `locked = !superKey`. The first
+keystroke set `superKey`, flipped `locked` to false and unmounted the card —
+so the field could only ever hold **one character**. Every "Give / Remove API
+key access" then sent a one-character secret and came back 403. From the
+outside this looked like two different bugs ("the box vanishes when I type"
+and "removing access does nothing"); they were the same line. I had already
+"fixed" the second symptom once, guessing at a missing `ADMIN_PASSWORD` env
+var, which was never the cause.
+
+**Rules:**
+- A form control must never live inside a condition derived from its own
+  value. Render it always; change its *appearance* (icon, border, helper
+  text) for the entered state, the way the Admins page already did.
+- When two reports look unrelated but share a screen, check whether one line
+  explains both before fixing either.
+- A "silently does nothing" action is almost always a request that *was* sent
+  and *was* refused. Look at what the client actually put in the request
+  before theorising about the server's configuration.

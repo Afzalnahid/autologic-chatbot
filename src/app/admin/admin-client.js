@@ -601,12 +601,24 @@ function AITab({ ai, clientId, superKey, setSuperKey, allow, revoke, busy }) {
       </div>}
     </Card>
 
-    {/* The secret key gate, inline so the super admin never has to leave */}
-    {locked && <Card style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-      <span style={{ width: 38, height: 38, borderRadius: 12, background: T.goldBg, color: T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><i className="ti ti-lock" /></span>
-      <div style={{ flex: "1 1 200px", fontSize: 12.5, color: T.textMuted }}>Giving or removing API key access needs your <b style={{ color: T.text }}>secret admin key</b> — the same one role changes use. It is never stored.</div>
-      <PwInput value={superKey} onChange={(e) => setSuperKey(e.target.value)} placeholder="Secret admin key" style={{ flex: "1 1 240px" }} />
-    </Card>}
+    {/* The secret key gate, inline so the super admin never has to leave.
+        It stays mounted once a key is typed: rendering it only while locked
+        unmounted the field on the FIRST keystroke, so only one character ever
+        reached the server and every action came back "wrong key". */}
+    <Card style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", borderColor: locked ? T.border : `color-mix(in srgb, ${T.success} 40%, transparent)` }}>
+      <span style={{ width: 38, height: 38, borderRadius: 12, background: locked ? T.goldBg : `color-mix(in srgb, ${T.success} 12%, transparent)`, color: locked ? T.gold : T.success, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+        <i className={`ti ${locked ? "ti-lock" : "ti-lock-open"}`} /></span>
+      <div style={{ flex: "1 1 200px", fontSize: 12.5, color: T.textMuted }}>
+        {locked
+          ? <>Giving or removing API key access needs your <b style={{ color: T.text }}>secret admin key</b> — the same one role changes use. It is never stored.</>
+          : <>Key entered — the buttons above are enabled. It is never stored.</>}
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flex: "1 1 240px" }}>
+        <PwInput value={superKey} onChange={(e) => setSuperKey(e.target.value)} placeholder="Secret admin key" style={{ flex: 1 }} />
+        {!locked && <button type="button" onClick={() => setSuperKey("")} title="Clear" className="ui-btn"
+          style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 16, padding: 6, minHeight: 0 }}><i className="ti ti-x" /></button>}
+      </div>
+    </Card>
 
     {msg && <Card style={{ padding: "10px 14px", display: "flex", gap: 9, alignItems: "center", borderColor: `color-mix(in srgb, ${msg.ok ? T.success : T.danger} 35%, transparent)` }}>
       <i className={`ti ${msg.ok ? "ti-check" : "ti-alert-circle"}`} style={{ color: msg.ok ? T.success : T.danger, fontSize: 17, flexShrink: 0 }} />
