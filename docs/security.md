@@ -131,12 +131,15 @@ the dashboard only ever sees connection *status*.
 
 Disconnecting a channel or calendar deletes the stored token immediately.
 
-Client AI keys (BYOK, `client_ai` table) go further: they are encrypted at rest
-with AES-256-GCM (`src/lib/crypt.js`, key derived from `AI_KEY_SECRET` or, when
-unset, the Supabase service-role key), verified with the provider before being
-saved, and only a masked form (`key_mask`) is ever returned to any dashboard —
-and only to the super admin. Setting or removing one requires the super admin
-role **and** the `x-admin-key` secret, same as role changes.
+Client AI keys (BYOK, `client_ai` table) go further: the super admin grants
+permission (`/api/admin`, super role **and** `x-admin-key`, same as role
+changes); the client then pastes their own key via `/api/ai-key`
+(requireClient-scoped, 403 without permission, 10 attempts/hour). The key is
+verified with the provider before being saved, encrypted at rest with
+AES-256-GCM (`src/lib/crypt.js`, key derived from `AI_KEY_SECRET` or, when
+unset, the Supabase service-role key), and only a masked form (`key_mask`) is
+ever returned — to that client and to the super admin. A client key is never
+substituted with the platform key when it fails (hard cost separation).
 
 ---
 

@@ -45,10 +45,13 @@ Google Calendar · Vercel (`getvoicium.com`)
 - Embeddings stay 768-dimensional, and always run on the platform's Gemini key
   — even for a client on their own AI key (BYOK). Another provider's embeddings
   are a different vector space and would silently break search.
-- Client AI keys (BYOK): only the super admin sets or removes them (secret
-  admin key required), they are stored encrypted, and no dashboard ever sees
-  more than a masked form. A failing client key falls back to the platform key
-  — the bot never goes silent because of it.
+- Client AI keys (BYOK): the super admin only grants or revokes PERMISSION
+  (secret admin key required); the client pastes their own key in their
+  dashboard. Keys are verified with the provider before saving, stored
+  encrypted, and no dashboard ever sees more than a masked form. Hard cost
+  separation: a client on their own key runs ONLY on it — an exhausted or
+  broken key pauses their bot politely and is never routed to the platform
+  key. Embeddings are the sole exception (previous invariant).
 - Client setup is one click. Never ask a business owner to find an ID or paste a token.
 - Broadcasts and follow-ups only ever send inside Meta's 24-hour window.
 

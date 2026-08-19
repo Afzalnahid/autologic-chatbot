@@ -145,6 +145,20 @@ Later the same session (owner asks, in order):
   table). Verified with mock data in the browser (3 states + form).
   NOT yet exercised with a real customer key — set one on a test client and
   send a message; check the row's status and Vercel logs for `[ai]` lines.
+- `3e5c2c6` **BYOK v2 — the owner's actual design** (replaces the v1 flow in
+  the same session): super admin only **grants/revokes permission** (admin
+  drawer AI-key tab → allow/revoke, super + x-admin-key); the permitted
+  client gets an **API key box in their own dashboard** (Settings →
+  `AIKeyBox`, served by new `/api/ai-key` GET/POST/DELETE, requireClient +
+  permission check + 10/h rate limit, provider-verified before save).
+  **Hard separation:** ai.js has NO platform fallback any more — an
+  exhausted/broken client key throws into the bot's normal error paths
+  (customer gets the polite "team will reply" line), status → "failing"
+  with the provider error (shown in both dashboards), and self-heals to
+  "verified" on the next success. Removing the key (client) keeps the
+  permission; revoking (admin) deletes everything. Migration
+  `client_ai_permission_flow` made key columns nullable + `key_added_at`.
+  CLAUDE.md + security.md updated to the new invariant wording.
 
 Also: `robots.txt` + `sitemap.xml` added (`c95537e`, canonical
 `www.getvoicium.com`; apex 308→www); Meta app + Google OAuth redirect URIs for
