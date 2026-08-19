@@ -31,7 +31,7 @@ export const GET = withErrors(async (request) => {
   const { client } = await requireClient(request);
   if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data } = await supabase.from("client_ai").select("*").eq("client_id", client.id).maybeSingle();
-  return NextResponse.json(shape(data));
+  return NextResponse.json(shape(data), { headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } });
 }, "ai-key");
 
 export const POST = withErrors(async (request) => {

@@ -183,7 +183,15 @@ export function AIKeyBox({ preview }) {
 
   useEffect(() => {
     if (preview) return;
-    api("/api/ai-key").then(r => r.json()).then(setSt).catch(() => {});
+    const load = () => api("/api/ai-key", { cache: "no-store" }).then(r => r.json()).then(setSt).catch(() => {});
+    load();
+    // The super admin can remove this account's access while the tab is open;
+    // re-check whenever the owner comes back to it so the box vanishes (or
+    // appears) without needing a full reload.
+    const onFocus = () => { if (!document.hidden) load(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => { window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onFocus); };
   }, []);
 
   if (!st || !st.allowed) return null;

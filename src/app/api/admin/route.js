@@ -38,6 +38,18 @@ async function callerRole(email) {
 const CAN_EDIT = ["super", "full", "editor"];
 const CAN_DELETE = ["super", "full"];
 
+// The super admin's second factor. Distinguishes the two failure modes so the
+// owner can act on the error instead of retyping the key forever: a missing
+// env var means EVERY attempt fails as "invalid key" no matter what is typed.
+function checkSuperKey(request) {
+  if (!process.env.ADMIN_PASSWORD) {
+    return "The server has no ADMIN_PASSWORD configured. Add it in Vercel → Settings → Environment Variables, redeploy, then try again.";
+  }
+  const key = request.headers.get("x-admin-key") || "";
+  if (key !== process.env.ADMIN_PASSWORD) return "The secret admin key you entered is wrong.";
+  return null;
+}
+
 export async function GET(request) {
   const email = await callerEmail(request);
   if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -190,8 +202,8 @@ export async function PUT(request) {
 
   if (body.type === "set_role") {
     if (role !== "super") return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    const key = request.headers.get("x-admin-key") || "";
-    if (key !== process.env.ADMIN_PASSWORD) return NextResponse.json({ error: "invalid key" }, { status: 403 });
+    const keyErr = checkSuperKey(request);
+    if (keyErr) return NextResponse.json({ error: keyErr }, { status: 403 });
     const { target_email, new_role } = body;
     if (!target_email || !["full", "editor", "viewer", "pending", "blocked"].includes(new_role))
       return NextResponse.json({ error: "bad request" }, { status: 400 });
@@ -214,8 +226,8 @@ export async function PUT(request) {
   // the same secret key as role changes.
   if (body.type === "ai_key") {
     if (role !== "super") return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    const key = request.headers.get("x-admin-key") || "";
-    if (key !== process.env.ADMIN_PASSWORD) return NextResponse.json({ error: "invalid key" }, { status: 403 });
+    const keyErr = checkSuperKey(request);
+    if (keyErr) return NextResponse.json({ error: keyErr }, { status: 403 });
     const { client_id, action } = body;
     if (!client_id) return NextResponse.json({ error: "missing client" }, { status: 400 });
 
@@ -239,8 +251,8 @@ export async function PUT(request) {
   // Remove an admin entirely — super admin only, requires secret key.
   if (body.type === "remove_admin") {
     if (role !== "super") return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    const key = request.headers.get("x-admin-key") || "";
-    if (key !== process.env.ADMIN_PASSWORD) return NextResponse.json({ error: "invalid key" }, { status: 403 });
+    const keyErr = checkSuperKey(request);
+    if (keyErr) return NextResponse.json({ error: keyErr }, { status: 403 });
     const { target_email } = body;
     if (!target_email) return NextResponse.json({ error: "missing target" }, { status: 400 });
     const tEmail = target_email.toLowerCase();
