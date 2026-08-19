@@ -94,9 +94,15 @@ function build(clientId, cfg) {
   // Hard separation: no platform fallback. Record failures (both dashboards
   // read the status), heal the status on the next success (a daily quota
   // resets by itself), and rethrow so the caller's error path answers.
+  //
+  // Success is logged too, not only failure. Without it a working BYOK client
+  // is completely silent in the runtime logs, so "did that reply ride their
+  // key or ours?" had no answer — the one question every BYOK test asks.
+  // Only BYOK clients log here, so this is a handful of lines, not every reply.
   const strict = (name, fn) => async (...args) => {
     try {
       const out = await fn(...args);
+      console.log(`[ai] client ${clientId} used their OWN key (${cfg.provider}${cfg.model ? "/" + cfg.model : ""}) for ${name} — ok`);
       if (cfg.status === "failing") { cfg.status = "verified"; markOk(clientId); }
       return out;
     } catch (e) {
