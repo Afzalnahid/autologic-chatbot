@@ -4,7 +4,10 @@ import { signState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 
 const APP_ID = process.env.FB_APP_ID || "914246304594380";
-const CONFIG_ID = process.env.WA_CONFIG_ID;
+// The WhatsApp Embedded Signup configuration id. Like FB_APP_ID and
+// FB_CONFIG_ID above, this is a public value (it appears in the Embedded
+// Signup URL in the browser), so a hardcoded fallback is safe.
+const CONFIG_ID = process.env.WA_CONFIG_ID || "1417283913551939";
 
 // WhatsApp Embedded Signup.
 //
