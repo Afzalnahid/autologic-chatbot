@@ -1,16 +1,20 @@
-// Per-client AI routing (BYOK). Every AI-touching feature asks this module
-// which key to use; by default that is the platform's Gemini key, but a client
-// the super admin has given their own key (client_ai table) runs chat, vision
-// and voice on that key instead — Google AI Studio or OpenAI.
+// Per-client AI routing (BYOK). The super admin grants a client permission
+// (a client_ai row); the client then pastes their own key — Google AI Studio
+// or OpenAI — in their dashboard. Until a key is saved, they run on the
+// platform key like everyone else.
 //
-// Two hard rules:
-//   1. Embeddings ALWAYS run on the platform's Gemini key. All saved product
+// Three hard rules:
+//   1. A client with their own key runs ONLY on it. If it hits its quota or
+//      breaks, the calls fail — they are never routed to the platform key.
+//      That is the whole point of the feature: their AI cost is completely
+//      separated from the platform's. The bot's existing error handling turns
+//      the failure into a polite "the team will get back to you", and the
+//      failure is recorded so both dashboards show WHY.
+//   2. Embeddings ALWAYS run on the platform's Gemini key. All saved product
 //      and knowledge vectors live in gemini-embedding-001's 768-d space;
 //      another provider's embeddings are a different space and would silently
 //      break search for everything already stored (CLAUDE.md invariant).
-//   2. A failing client key never silences the bot. The call falls back to the
-//      platform key, and the failure is recorded on the client_ai row so the
-//      super admin sees "failing" plus the provider's own error text.
+//   3. No dashboard ever sees the key again — only its masked form.
 import { supabase } from "@/lib/supabase.js";
 import { decryptSecret } from "@/lib/crypt.js";
 import {
@@ -30,11 +34,14 @@ export async function getClientAI(clientId) {
   let cfg = null;
   try {
     const { data } = await supabase.from("client_ai")
-      .select("provider,api_key_enc,model").eq("client_id", clientId).maybeSingle();
-    if (data?.api_key_enc) cfg = { provider: data.provider, key: decryptSecret(data.api_key_enc), model: data.model || undefined };
+      .select("provider,api_key_enc,model,status").eq("client_id", clientId).maybeSingle();
+    // Permission without a key yet → platform, same as everyone else.
+    if (data?.api_key_enc && data?.provider) {
+      cfg = { provider: data.provider, key: decryptSecret(data.api_key_enc), model: data.model || undefined, status: data.status };
+    }
   } catch (e) {
-    // A missing row, a decryption error after a secret rotation — the bot must
-    // still answer, so the platform key covers it.
+    // A decryption error (e.g. after a secret rotation) must not crash a
+    // reply; it surfaces as "failing" the first time the key is used.
     console.error("[ai] config load:", String(e.message || "").slice(0, 160));
   }
   const ai = build(id, cfg);
@@ -45,6 +52,7 @@ export async function getClientAI(clientId) {
 function build(clientId, cfg) {
   const platform = {
     provider: "platform",
+    ownKey: false,
     chat: (sys, msgs) => chatWithGemini(sys, msgs),
     visionUrl: (url, prompt) => analyzeImage(url, prompt),
     visionB64: (b64, mime, prompt) => analyzeImageBase64(b64, mime, prompt),
@@ -83,30 +91,44 @@ function build(clientId, cfg) {
     };
   }
 
-  const guard = (name, fn, fallback) => async (...args) => {
-    try { return await fn(...args); }
-    catch (e) {
-      console.error(`[ai] client ${clientId} own key (${cfg.provider}/${name}) failed, using platform:`, String(e.message || "").slice(0, 200));
+  // Hard separation: no platform fallback. Record failures (both dashboards
+  // read the status), heal the status on the next success (a daily quota
+  // resets by itself), and rethrow so the caller's error path answers.
+  const strict = (name, fn) => async (...args) => {
+    try {
+      const out = await fn(...args);
+      if (cfg.status === "failing") { cfg.status = "verified"; markOk(clientId); }
+      return out;
+    } catch (e) {
+      console.error(`[ai] client ${clientId} own key (${cfg.provider}/${name}) failed — NOT falling back:`, String(e.message || "").slice(0, 200));
+      if (cfg.status !== "failing") { cfg.status = "failing"; }
       markFailing(clientId, e);
-      return fallback(...args);
+      throw e;
     }
   };
 
   return {
     provider: cfg.provider,
-    chat: guard("chat", own.chat, platform.chat),
-    visionUrl: guard("vision", own.visionUrl, platform.visionUrl),
-    visionB64: guard("vision", own.visionB64, platform.visionB64),
-    transcribeUrl: guard("voice", own.transcribeUrl, platform.transcribeUrl),
-    transcribeB64: guard("voice", own.transcribeB64, platform.transcribeB64),
+    ownKey: true,
+    chat: strict("chat", own.chat),
+    visionUrl: strict("vision", own.visionUrl),
+    visionB64: strict("vision", own.visionB64),
+    transcribeUrl: strict("voice", own.transcribeUrl),
+    transcribeB64: strict("voice", own.transcribeB64),
     embed: platform.embed,
   };
 }
 
-// Fire-and-forget: the customer's reply never waits on this bookkeeping.
+// Fire-and-forget bookkeeping: the customer's reply never waits on it.
 function markFailing(clientId, e) {
   supabase.from("client_ai")
     .update({ status: "failing", last_error: String(e?.message || "unknown").slice(0, 300), last_error_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("client_id", clientId)
+    .then(() => {}, () => {});
+}
+function markOk(clientId) {
+  supabase.from("client_ai")
+    .update({ status: "verified", last_error: null, last_error_at: null, updated_at: new Date().toISOString() })
     .eq("client_id", clientId)
     .then(() => {}, () => {});
 }

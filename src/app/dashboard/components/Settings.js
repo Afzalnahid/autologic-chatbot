@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Inp, Accordion, Select, words, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
+import { T, Card, Btn, Inp, Badge, Accordion, Select, words, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
 import { api } from "./session.js";
 
 // The Settings tab, moved out of dashboard-client.js unchanged.
@@ -150,6 +150,8 @@ export default function Settings({settings,setSettings}) {
       </>}
     </Card>
 
+    <AIKeyBox/>
+
     <Accordion icon="ti-file-text" title="Business prompt" subtitle="What the bot knows about you">
       <div style={{height:6}}/>
       <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>This is your bot's business knowledge. Edit freely — the locked core rules above are added automatically on top.</div>
@@ -157,4 +159,112 @@ export default function Settings({settings,setSettings}) {
     </Accordion>
     <Btn gold onClick={save}><i className="ti ti-check" style={{marginRight:6}}/>{saved?"Saved!":"Save settings"}</Btn>
   </div>;
+}
+
+// ── Your AI API key (BYOK) ───────────────────────────────────────────────────
+// Renders NOTHING unless the super admin has enabled this account for its own
+// key (/api/ai-key answers allowed:false otherwise). With permission, the
+// owner pastes a Google AI Studio or OpenAI key here; it is verified with the
+// provider before saving, stored encrypted, and shown only masked afterwards.
+// From then on their bot runs exclusively on that key — an exhausted or broken
+// key pauses the bot politely, it never spends the platform's key.
+const AI_PROVIDERS = {
+  google: { label: "Google AI Studio", icon: "ti-brand-google", color: "#4285F4", ph: "AIza…", help: "aistudio.google.com → Get API key" },
+  openai: { label: "OpenAI", icon: "ti-brand-openai", color: "#10A37F", ph: "sk-…", help: "platform.openai.com → API keys" },
+};
+
+export function AIKeyBox({ preview }) {
+  const [st, setSt] = useState(preview || null);      // /api/ai-key shape
+  const [form, setForm] = useState(null);              // {provider, api_key, model}
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);                // {ok, text}
+  const [confirmRm, setConfirmRm] = useState(false);
+
+  useEffect(() => {
+    if (preview) return;
+    api("/api/ai-key").then(r => r.json()).then(setSt).catch(() => {});
+  }, []);
+
+  if (!st || !st.allowed) return null;
+  const hasKey = !!st.has_key;
+  const P = hasKey ? AI_PROVIDERS[st.provider] : null;
+
+  const save = async (f) => {
+    if (!f?.api_key?.trim() || busy) return;
+    setBusy(true); setMsg({ ok: true, text: "Checking your key with " + AI_PROVIDERS[f.provider].label + "…" });
+    const r = await api("/api/ai-key", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: f.provider, api_key: f.api_key.trim(), model: f.model?.trim() || null }) }).then(x => x.json()).catch(() => ({ error: "network" }));
+    setBusy(false);
+    if (r.error) { setMsg({ ok: false, text: r.error }); return; }
+    setSt(r); setForm(null);
+    setMsg({ ok: true, text: "Verified and saved. Your bot now runs on your own key." });
+  };
+  const removeKey = async () => {
+    setBusy(true);
+    const r = await api("/api/ai-key", { method: "DELETE" }).then(x => x.json()).catch(() => ({ error: "network" }));
+    setBusy(false); setConfirmRm(false);
+    if (r.error) { setMsg({ ok: false, text: r.error }); return; }
+    setSt(r); setMsg({ ok: true, text: "Key removed — your bot is back on the platform." });
+  };
+
+  return <Card style={{ marginBottom: 10, border: `1px solid color-mix(in srgb, ${T.gold} 25%, transparent)` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+      <span style={{ width: 40, height: 40, borderRadius: 13, background: hasKey ? `${P.color}1a` : T.goldBg, color: hasKey ? P.color : T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+        <i className={`ti ${hasKey ? P.icon : "ti-key"}`} /></span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>Your AI API key</div>
+        <div style={{ fontSize: 12, color: T.textMuted }}>Your account is enabled to run the bot on your own key — your AI usage bills to you, not the platform.</div>
+      </div>
+    </div>
+
+    {hasKey && !form && <div style={{ padding: "12px 14px", borderRadius: 14, background: T.bgAlt, boxShadow: T.nmIn, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{P.label} <span style={{ fontFamily: "monospace", fontWeight: 400, color: T.textMuted, marginLeft: 6 }}>{st.key_mask}</span>{st.model ? <span style={{ color: T.textMuted, fontWeight: 400 }}> · {st.model}</span> : null}</div>
+        <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          {st.status === "failing"
+            ? <Badge color={T.danger}>Not working — bot paused</Badge>
+            : <Badge color={T.success}>Active</Badge>}
+          {st.status === "failing" && st.last_error && <span style={{ fontSize: 11.5, color: T.textDim, maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={st.last_error}>{st.last_error}</span>}
+        </div>
+        {st.status === "failing" && <div style={{ fontSize: 11.5, color: T.warn, marginTop: 6, lineHeight: 1.5 }}>Your key hit its limit or was rejected, so your bot cannot answer right now. Top up / fix billing with the provider, or paste a new key — replies resume automatically.</div>}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Btn small onClick={() => { setForm({ provider: st.provider, api_key: "", model: st.model || "" }); setMsg(null); }} disabled={busy}>Replace</Btn>
+        {confirmRm
+          ? <><Btn small danger onClick={removeKey} disabled={busy}>{busy ? "…" : "Yes, remove"}</Btn><Btn small onClick={() => setConfirmRm(false)}>Cancel</Btn></>
+          : <Btn small onClick={() => setConfirmRm(true)} disabled={busy} style={{ color: T.danger, background: T.dangerBg }}>Remove</Btn>}
+      </div>
+    </div>}
+
+    {(!hasKey || form) && (() => {
+      const f = form || { provider: "google", api_key: "", model: "" };
+      const setF = (patch) => setForm({ ...f, ...patch });
+      const PP = AI_PROVIDERS[f.provider];
+      return <div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ display: "block", fontSize: 12, color: T.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Provider</label>
+          <Select wide value={f.provider} onChange={(v) => setForm({ provider: v, api_key: f.api_key, model: "" })}
+            options={Object.entries(AI_PROVIDERS).map(([v, p]) => ({ value: v, label: p.label, icon: p.icon }))} />
+          <div style={{ fontSize: 11, color: T.textDim, marginTop: 5 }}>Get your key: {PP.help}</div>
+        </div>
+        <div style={{ position: "relative", marginBottom: 14 }}>
+          <input type={show ? "text" : "password"} value={f.api_key} onChange={(e) => setF({ api_key: e.target.value })} placeholder={`Paste your ${PP.label} key — ${PP.ph}`} className="ui-inp"
+            style={{ width: "100%", background: T.bgAlt, boxShadow: T.nmIn, border: `1px solid ${T.border}`, borderRadius: 14, padding: "13px 56px 13px 16px", color: T.text, fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit" }} />
+          <button type="button" onClick={() => setShow(v => !v)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.textMuted, fontSize: 12, padding: 6, minHeight: 0 }}>{show ? "Hide" : "Show"}</button>
+        </div>
+        <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 14, lineHeight: 1.6 }}>
+          We check the key with {PP.label} before saving, store it encrypted, and never show it again — only a masked form. From then on your bot's replies, photo matching and voice run entirely on your key; if it runs out, your bot pauses until you top it up.
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Btn gold onClick={() => save(f)} disabled={busy || !f.api_key.trim()} style={{ borderRadius: 12 }}>{busy ? "Verifying…" : "Verify & activate"}</Btn>
+          {form && hasKey && <Btn onClick={() => { setForm(null); setMsg(null); }} disabled={busy} style={{ borderRadius: 12 }}>Cancel</Btn>}
+        </div>
+      </div>;
+    })()}
+
+    {msg && <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: msg.ok ? T.success : T.danger }}>
+      <i className={`ti ${msg.ok ? "ti-check" : "ti-alert-circle"}`} style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />
+      <span>{msg.text}</span>
+    </div>}
+  </Card>;
 }

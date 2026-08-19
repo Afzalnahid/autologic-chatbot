@@ -48,7 +48,7 @@ export const GET = withErrors(async (request) => {
     supabase.from("payment_requests").select("id,plan,billing_cycle,amount,method,txn_id,status,created_at,reviewed_at,reviewed_by,admin_note").eq("client_id", id).order("created_at", { ascending: false }).limit(50),
     supabase.from("contacts").select("sender_id", { count: "exact", head: true }).eq("client_id", id),
     supabase.from("app_settings").select("settings").eq("id", String(id)).maybeSingle(),
-    supabase.from("client_ai").select("provider,model,key_mask,status,last_verified_at,last_error,last_error_at").eq("client_id", id).maybeSingle(),
+    supabase.from("client_ai").select("provider,model,key_mask,status,last_verified_at,key_added_at,last_error,last_error_at,created_at").eq("client_id", id).maybeSingle(),
   ]);
 
   const client = clientQ.data;
