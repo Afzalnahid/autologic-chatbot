@@ -129,6 +129,23 @@ Later the same session (owner asks, in order):
   two calls per message (transcribe + reply), so the bot still dies daily until
   billing is enabled on the Google Cloud project.
 
+- `82b5126` **BYOK — per-client AI keys (Google AI Studio / OpenAI), super
+  admin only.** New: `client_ai` table (AES-256-GCM encrypted key via
+  `src/lib/crypt.js`, master from `AI_KEY_SECRET` or service-role key;
+  masked copy for display), `src/lib/ai.js` `getClientAI()` resolver (60s
+  memo; failing own key → platform fallback + row marked "failing" with
+  provider error), `src/lib/openai.js` (REST, gpt-4o-mini→gpt-4.1-mini chain,
+  whisper-1, key verify). gemini.js takes optional `opts.apiKey`. Wired:
+  bot reply/vision/voice/language-rewrite/comments, tags, products vision,
+  import-one/url, generate-prompt. **Embeddings always platform Gemini**
+  (768-d space — new CLAUDE.md invariant). Admin: PUT type `ai_key`
+  set/remove (super + x-admin-key, provider-verified before save);
+  client-detail returns masked `ai` to super only; drawer "AI key" tab
+  (status card, replace/remove, add form, inline secret-key gate, coverage
+  table). Verified with mock data in the browser (3 states + form).
+  NOT yet exercised with a real customer key — set one on a test client and
+  send a message; check the row's status and Vercel logs for `[ai]` lines.
+
 Also: `robots.txt` + `sitemap.xml` added (`c95537e`, canonical
 `www.getvoicium.com`; apex 308→www); Meta app + Google OAuth redirect URIs for
 the new domain explained to the owner (not yet confirmed done by them).
