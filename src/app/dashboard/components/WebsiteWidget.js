@@ -3,9 +3,11 @@ import { useState, useEffect } from "react";
 import { T, Card, Btn, Inp } from "./ui.js";
 import { api } from "./session.js";
 
-// The website widget card from the Channels tab, moved out unchanged.
+// The website widget card from the Channels tab. `bare` renders just the
+// setup/config body, for embedding inside the Channels tab's Website section
+// (which brings its own header) instead of as a standalone card.
 
-export default function WebsiteWidget({onChanged}) {
+export default function WebsiteWidget({onChanged,bare}) {
   const [ch,setCh]=useState(null);
   const [loading,setLoading]=useState(true);
   const [domain,setDomain]=useState("");
@@ -55,18 +57,8 @@ export default function WebsiteWidget({onChanged}) {
 
   if(loading) return null;
 
-  return <Card style={{display:"flex",flexDirection:"column",gap:0}}>
-    <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:4}}>
-      <div style={{width:40,height:40,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-        <i className="ti ti-world" style={{fontSize:20,color:T.gold}}/>
-      </div>
-      <div>
-        <div style={{fontSize:14,fontWeight:500}}>Your website</div>
-        <div style={{fontSize:12,color:T.textMuted}}>Add the chat to your own site with one line of code</div>
-      </div>
-    </div>
-
-    {!ch ? <div style={{marginTop:14}}>
+  const body = <>
+    {!ch ? <div style={{marginTop:bare?0:14}}>
       <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,marginBottom:12}}>
         Enter the website where the chat should appear. Only this address will be able to use it.
       </div>
@@ -76,7 +68,7 @@ export default function WebsiteWidget({onChanged}) {
         </div>
         <Btn gold onClick={create} disabled={busy}>{busy?"Creating...":"Create widget"}</Btn>
       </div>
-    </div> : <div style={{marginTop:14,paddingTop:14,borderTop:`0.5px solid ${T.border}`}}>
+    </div> : <div style={bare?{}:{marginTop:14,paddingTop:14,borderTop:`0.5px solid ${T.border}`}}>
       <div style={{fontSize:12,color:T.textMuted,marginBottom:8}}>Paste this once, just before <code style={{fontFamily:"monospace"}}>&lt;/body&gt;</code> on your website</div>
       <div style={{background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:9,padding:"11px 12px",fontFamily:"monospace",fontSize:11.5,color:T.text,wordBreak:"break-all",lineHeight:1.6,marginBottom:10}}>
         {snippet}
@@ -108,5 +100,20 @@ export default function WebsiteWidget({onChanged}) {
     </div>}
 
     {err&&<div style={{fontSize:12.5,color:T.danger,marginTop:12}}>{err}</div>}
+  </>;
+
+  if(bare) return <div>{body}</div>;
+
+  return <Card style={{display:"flex",flexDirection:"column",gap:0}}>
+    <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:4}}>
+      <div style={{width:40,height:40,borderRadius:10,background:T.goldBg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        <i className="ti ti-world" style={{fontSize:20,color:T.gold}}/>
+      </div>
+      <div>
+        <div style={{fontSize:14,fontWeight:500}}>Your website</div>
+        <div style={{fontSize:12,color:T.textMuted}}>Add the chat to your own site with one line of code</div>
+      </div>
+    </div>
+    {body}
   </Card>;
 }
