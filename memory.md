@@ -1107,6 +1107,12 @@ automation looks natural to a reviewer.
   `/api/gcal/callback` URIs to the Google OAuth client. Google Search Console:
   add domain property, TXT record in Hostinger, submit `sitemap.xml`, request
   indexing of `https://www.getvoicium.com/`.
+- **BYOK smoke test (owner will do):** /admin → test client → AI key tab →
+  secret key → Allow → log in as that client → Settings → "Your AI API key"
+  box appears → paste a real Google AI Studio key → Verify & activate →
+  message the bot (reply should ride the client key; check Vercel logs for
+  `[ai]` lines). Also try a wrong key (must refuse to save) and watch the
+  failing→verified self-heal after a quota reset.
 - **Voice smoke test:** send a voice note on WhatsApp and on Messenger to a
   connected channel; inbox should show "🎤 <transcript>" and the bot should
   answer the words. Try a mumbled one → expect the "couldn't hear clearly"
