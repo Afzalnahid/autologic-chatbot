@@ -49,26 +49,43 @@ worker crash appeared once; clean on retry — lesson 22 territory), each commit
 pushed separately, Vercel READY confirmed per stage (last stage confirmed at
 session close).
 
+Later the same day, one more commit:
+
+- `eca4465` **Bot Training templates: 3 → 10 per business type.** Owner asked
+  whether the sparse "Start from an example" chips should exist or be many
+  more. Decision: keep them (a good example beats an empty textarea for a
+  non-technical owner) and grow to ten each, all written like an owner briefs
+  a new employee — real taka prices, delivery inside/outside Dhaka,
+  bKash/COD, and the one policy customers always ask about (exchange,
+  warranty, advance). Ecommerce adds cosmetics, electronics, shoes & bags,
+  baby & kids, furniture, grocery, books. Agency adds travel, real estate,
+  beauty salon, photography, software & web, event management, law. Same
+  list is rendered on the onboarding step too, so both surfaces got it in
+  one edit.
+
+### What's confirmed working (owner tested this session — do NOT re-litigate)
+
+- Admin Give / Remove API key access. Ran through /admin fully; DB + Vercel
+  agree with the owner's report.
+- BYOK smoke test end-to-end: permission granted, client key saved and
+  verified, replies rode the client's own key. The `[ai] … used their OWN
+  key` log line landed as expected.
+- Visual pass on Channels, Conversations and Bot Training tabs (desktop and
+  phone, light and dark). Nothing to redo here.
+
 ### What's next — resume exactly here
 
-1. **Visual pass (owner's eyes, ~5 min):** open the dashboard → Channels,
-   Conversations, Bot Training tabs, desktop + phone, light + dark. Nothing
-   could be viewed in this environment (no dashboard login exists here). The
-   save bar on Bot Training assumes the phone bottom nav is ~66px tall —
-   check it doesn't overlap.
-2. **BYOK smoke test** (permission row is GONE — start from step 1):
-   /admin → Broker's BD → AI key tab → type secret key → Give API key access →
-   client Settings (Bot Training tab now) → paste real Google key → Verify &
-   activate → **wait 60s** (ai.js memo) → message the bot → look for
-   `[ai] client 93963074-… used their OWN key (google) for chat — ok` in
-   Vercel logs. Wrong key must refuse to save.
-3. **Google Cloud billing** — still the single biggest blocker (free tier,
-   20 req/model/day; bot dies after ~10 messages/day on every tenant at once).
-4. **BYOK gap found, deliberately not fixed in those commits:**
-   `import-url`'s `extractProductsFromUrl` (the biggest AI call, 15k chars) and
+1. **Google Cloud billing** — the single biggest blocker (free tier is 20
+   req per model per day; the bot dies after ~10 messages/day per tenant).
+   Enable billing on the Gemini API project in Google Cloud Console → then
+   confirm from Vercel runtime logs that 429s stop appearing. No code
+   change needed to turn it on; may want to raise the model chain once real
+   quota exists.
+2. **BYOK gap found, deliberately not fixed yet:** `import-url`'s
+   `extractProductsFromUrl` (the biggest AI call, 15k HTML chars) and
    `tags.js`'s `chatWithGemini` fallback still run on the PLATFORM key for
    BYOK clients — breaks hard cost separation. Fix in its own commit.
-5. WhatsApp Embedded Signup can now actually SAVE (lesson 25 fix) — worth a
+3. WhatsApp Embedded Signup can now actually SAVE (lesson 25 fix) — worth a
    real connect test when Meta setup allows.
 
 ---
