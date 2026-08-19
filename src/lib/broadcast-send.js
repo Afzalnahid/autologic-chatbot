@@ -67,6 +67,7 @@ export async function createBroadcast(client, { channel, message, segment }) {
     client_id: client.id,
     sender_id: r.sender_id,
     platform: r.platform,
+    page_id: r.page_id || null,
     status: "pending",
   }));
 
@@ -102,6 +103,10 @@ export async function processBroadcast(client, broadcastId, limit = BATCH) {
     .order("id", { ascending: true }).limit(limit);
 
   const channels = await sendableChannels(client.id);
+  // Send through the SAME page/account/number the customer wrote to. The
+  // platform map is the fallback for recipients queued before page_id existed
+  // — exact whenever the client has one account per platform.
+  const byPage = new Map(channels.map((c) => [`${c.platform}:${c.page_id}`, c]));
   const byPlatform = new Map(channels.map((c) => [c.platform, c]));
 
   for (const r of pending || []) {
@@ -113,7 +118,7 @@ export async function processBroadcast(client, broadcastId, limit = BATCH) {
       .select();
     if (!claimed?.length) continue;
 
-    const ch = byPlatform.get(r.platform);
+    const ch = (r.page_id && byPage.get(`${r.platform}:${r.page_id}`)) || byPlatform.get(r.platform);
     if (!ch) {
       await supabase.from("broadcast_recipients")
         .update({ status: "skipped", error: "That channel is paused or disconnected." })

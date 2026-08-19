@@ -36,7 +36,7 @@ export async function sendableChannels(clientId) {
 async function lastInboundBySender(clientId, lookbackHours) {
   const { data } = await supabase
     .from("message_buffer")
-    .select("sender_id, platform, created_at")
+    .select("sender_id, platform, page_id, created_at")
     .eq("client_id", clientId).eq("role", "customer")
     .gte("created_at", hoursAgo(Math.max(lookbackHours, WINDOW_HOURS)))
     .order("created_at", { ascending: false })
@@ -46,7 +46,9 @@ async function lastInboundBySender(clientId, lookbackHours) {
   for (const r of data || []) {
     if (!r.sender_id) continue;
     if (!map.has(r.sender_id)) {
-      map.set(r.sender_id, { sender_id: r.sender_id, platform: r.platform, last_at: r.created_at });
+      // page_id says WHICH page/account/number they wrote to, so the send
+      // goes back out through the same one (null on old rows → platform match).
+      map.set(r.sender_id, { sender_id: r.sender_id, platform: r.platform, page_id: r.page_id || null, last_at: r.created_at });
     }
   }
   return map;
@@ -112,6 +114,7 @@ export async function resolveAudience(clientId, businessType, segment = {}) {
     const row = {
       sender_id: person.sender_id,
       platform: person.platform,
+      page_id: person.page_id || null,
       name: ct?.name || "User " + String(person.sender_id).slice(-4),
       last_at: person.last_at,
     };

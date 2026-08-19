@@ -113,7 +113,7 @@ async function handleUnavailable(channel, senderId, block, platform) {
       }
       await bufferInsert({
         sender_id: senderId, client_id: client.id, role: "bot", status: "Replied",
-        message_content: msg, platform: platform || "facebook",
+        message_content: msg, platform: platform || "facebook", page_id: channel.page_id || null,
       });
       await sb().from("contacts").upsert(
         { sender_id: senderId, client_id: client.id, last_unavailable_at: now.toISOString() },
@@ -737,7 +737,7 @@ export async function processConversation(channel, senderId, myRowId) {
       sender_id: senderId, client_id: clientId, role: "bot", status: "Replied",
       message_content: it.type === "image_msg" ? "📷 Photo" : it.text,
       attachments: it.type === "image_msg" ? it.url : null,
-      platform: channel.platform || "facebook",
+      platform: channel.platform || "facebook", page_id: channel.page_id || null,
     });
   }
 
@@ -849,10 +849,10 @@ export async function handleIncoming(event) {
     const { sendTextMessage } = await import("@/lib/messenger.js");
     const msg = "দুঃখিত, আমরা ভিডিও মেসেজ প্রসেস করতে পারি না। পণ্যের ছবি বা কোড পাঠান।";
     const isWa = (event.platform || channel.platform) === "whatsapp";
-    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎥 Video", platform: event.platform || channel.platform || "facebook" });
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎥 Video", platform: event.platform || channel.platform || "facebook", page_id: channel.page_id || null });
     if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
     else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform, channel.page_id);
-    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook" });
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook", page_id: channel.page_id || null });
     return;
   }
 
@@ -916,10 +916,10 @@ export async function handleIncoming(event) {
     const { sendTextMessage } = await import("@/lib/messenger.js");
     const isWa = (event.platform || channel.platform) === "whatsapp";
     const msg = "দুঃখিত, আপনার ভয়েস মেসেজটি স্পষ্ট শোনা যায়নি। একটু কাছ থেকে আবার বলুন, অথবা লিখে পাঠান। 🙏\nSorry, I couldn't hear that voice message clearly — please record again a little closer, or type it.";
-    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎤 (voice message — unclear)", platform: event.platform || channel.platform || "facebook", wa_msg_id: event.msgId || null });
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎤 (voice message — unclear)", platform: event.platform || channel.platform || "facebook", wa_msg_id: event.msgId || null, page_id: channel.page_id || null });
     if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
     else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform, channel.page_id);
-    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook" });
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook", page_id: channel.page_id || null });
     return;
   }
 
@@ -928,7 +928,7 @@ export async function handleIncoming(event) {
   const row = await bufferInsert({
     sender_id: event.senderId, client_id: clientId, role: "customer", status: "Pending",
     message_content: content, attachments, platform: event.platform || channel.platform || "facebook",
-    wa_msg_id: event.msgId || null,
+    wa_msg_id: event.msgId || null, page_id: channel.page_id || null,
   });
 
   const block = await botAllowed(channel, event.senderId);
@@ -1135,7 +1135,7 @@ export async function handleComment(event) {
         // The DM lands in the customer's inbox, so it belongs in the DM thread.
         await bufferInsert({
           sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied",
-          message_content: dmText, platform: channel.platform,
+          message_content: dmText, platform: channel.platform, page_id: channel.page_id || null,
         });
       }
     }

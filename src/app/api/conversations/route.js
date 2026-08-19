@@ -82,7 +82,9 @@ export async function GET(request) {
       if (!grouped[sid]) {
         const platform = m.platform || "facebook";
         grouped[sid] = {
-          id: sid, sender: displayName(sid, platform), platform,
+          // page_id = which Page/account/number this thread lives on (messages
+          // are newest-first, so the first row wins; null on old threads).
+          id: sid, sender: displayName(sid, platform), platform, page_id: m.page_id || null,
           status: m.status === "Pending" ? "active" : "resolved",
           lastMsg: shown.slice(0, 60), time: m.created_at, messages: [],
         };

@@ -72,12 +72,15 @@ export async function runFollowups(client, settings) {
 
   const channels = await sendableChannels(client.id);
   if (!channels.length) return { skipped: "no_channel" };
+  // Same page/account/number the customer wrote to; platform map is the
+  // fallback for rows from before page_id existed.
+  const byPage = new Map(channels.map((c) => [`${c.platform}:${c.page_id}`, c]));
   const byPlatform = new Map(channels.map((c) => [c.platform, c]));
 
   // The window is anchored on the customer's own last message.
   const { data: inbound } = await supabase
     .from("message_buffer")
-    .select("sender_id, platform, created_at")
+    .select("sender_id, platform, page_id, created_at")
     .eq("client_id", client.id).eq("role", "customer")
     .gte("created_at", hoursAgo(SAFE_WINDOW_HOURS))
     .lte("created_at", hoursAgo(cfg.delay_hours))
@@ -133,7 +136,7 @@ export async function runFollowups(client, settings) {
 
   for (const row of due) {
     if (!quota.unlimited && sent >= quota.remaining) break;
-    const ch = byPlatform.get(row.platform);
+    const ch = (row.page_id && byPage.get(`${row.platform}:${row.page_id}`)) || byPlatform.get(row.platform);
     if (!ch) continue;
 
     let res;

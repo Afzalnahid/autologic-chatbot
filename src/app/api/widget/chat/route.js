@@ -84,7 +84,7 @@ export const POST = withErrors(async (request) => {
   // even when the bot is not allowed to answer.
   await bufferInsert({
     sender_id: senderId, client_id: clientId, role: "customer", status: "Pending",
-    message_content: text, platform: PLATFORM,
+    message_content: text, platform: PLATFORM, page_id: channel.page_id || null,
   });
   await supabase.from("contacts").upsert(
     { sender_id: senderId, client_id: clientId, name: `Website visitor · ${String(sessionId).slice(-4)}` },
@@ -98,7 +98,7 @@ export const POST = withErrors(async (request) => {
     const note = "ধন্যবাদ! আপনার মেসেজটি পৌঁছেছে — আমাদের টিম শিগগিরই উত্তর দেবে। / Thanks! Your message has reached us and our team will reply shortly.";
     await bufferInsert({
       sender_id: senderId, client_id: clientId, role: "bot", status: "Replied",
-      message_content: note, platform: PLATFORM,
+      message_content: note, platform: PLATFORM, page_id: channel.page_id || null,
     });
     console.log("[widget] bot not allowed:", block.reason, { clientId });
     return NextResponse.json({ items: [{ type: "text_msg", text: note }], bot: false }, { headers: head });
@@ -125,7 +125,7 @@ export const POST = withErrors(async (request) => {
       sender_id: senderId, client_id: clientId, role: "bot", status: "Replied",
       message_content: it.type === "image_msg" ? "📷 Photo" : it.text,
       attachments: it.type === "image_msg" ? it.url : null,
-      platform: PLATFORM,
+      platform: PLATFORM, page_id: channel.page_id || null,
     });
   }
 

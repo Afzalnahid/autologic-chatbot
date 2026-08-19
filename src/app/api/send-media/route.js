@@ -13,11 +13,15 @@ export async function POST(request) {
     const kind = form.get("kind") || "image";
     if (!sender_id || !file) return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
-    const { data: mb } = await supabase.from("message_buffer").select("platform,client_id,sender_id")
+    const { data: mb } = await supabase.from("message_buffer").select("platform,page_id,client_id,sender_id")
       .eq("client_id", client.id).eq("sender_id", sender_id).order("created_at",{ascending:false}).limit(1);
     const platform = mb?.[0]?.platform || "facebook";
+    const pageId = mb?.[0]?.page_id || null;
+    // Same page the conversation lives on; platform match for older rows.
     const { data: chans } = await supabase.from("channels").select("*").eq("status", "connected").eq("client_id", client.id);
-    const ch = (chans || []).find(c => c.platform === platform) || (chans || [])[0];
+    const ch = (pageId && (chans || []).find(c => c.platform === platform && c.page_id === pageId))
+      || (chans || []).find(c => c.platform === platform)
+      || (chans || [])[0];
     if (!ch) return NextResponse.json({ error: "no channel" }, { status: 400 });
 
     if (platform === "whatsapp") {
@@ -38,7 +42,7 @@ export async function POST(request) {
       if (wa.error) return NextResponse.json({ error: wa.error.message }, { status: 502 });
       await supabase.from("message_buffer").insert({
         sender_id, message_content: kind === "audio" ? "🎤 Voice message" : "📷 Photo",
-        status: "Replied", role: "agent", client_id: client.id, platform,
+        status: "Replied", role: "agent", client_id: client.id, platform, page_id: ch.page_id || null,
       });
       return NextResponse.json({ ok: true });
     }
@@ -61,6 +65,7 @@ export async function POST(request) {
       role: "agent",
       client_id: client.id,
       platform,
+      page_id: ch.page_id || null,
     });
     return NextResponse.json({ ok: true });
   } catch (e) {
