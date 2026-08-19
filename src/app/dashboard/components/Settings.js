@@ -1,9 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Inp, Badge, Accordion, Select, words, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
+import { T, Card, Btn, Inp, Badge, Accordion, Select, useIsMobile, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
 import { api } from "./session.js";
 
-// The Settings tab, moved out of dashboard-client.js unchanged.
+// The Bot Training tab (page key "settings"). Everything here teaches or tunes
+// the bot, so the page walks the owner through it in order: who the bot is,
+// what it knows, what it may never do, what runs on its own — with a training
+// checklist up top and a save bar that appears when something changed.
 
 const CORE_BASE_DISPLAY = `IDENTITY: Acts as a real human team member · never reveals it is automated · stays focused on your business only
 OUTPUT: Platform message format only · no markdown, lists or links inside text · short, natural, human replies
@@ -27,12 +30,14 @@ export default function Settings({settings,setSettings}) {
   const [genMsg,setGenMsg]=useState("");
   const [showMore,setShowMore]=useState(false);
   const [me,setMe]=useState(null);
+  const isMobile=useIsMobile();
   useEffect(()=>{setS(settings);},[settings]);
   useEffect(()=>{api("/api/me").then(r=>r.json()).then(setMe).catch(()=>{});},[]);
   const bType=me?.client?.business_type||"ecommerce";
   const isEcom=bType==="ecommerce";
   const q=s.questionnaire||{};
   const setQ=(patch)=>setS(v=>({...v,questionnaire:{...(v.questionnaire||{}),...patch}}));
+  const dirty=JSON.stringify(s)!==JSON.stringify(settings);
   const save=async()=>{setSettings(s); await api("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(s)}); setSaved(true); setTimeout(()=>setSaved(false),2000);};
   const regenerate=async()=>{
     if(gen) return;
@@ -43,25 +48,75 @@ export default function Settings({settings,setSettings}) {
     if(r.error){setGenMsg("Failed: "+r.error);return;}
     setS(v=>({...v,businessPrompt:r.prompt})); setGenMsg("Generated and saved. Review below — you can edit it.");
   };
-  return <div style={{maxWidth:700}}>
-    <div style={{marginBottom:10}}/>
-    <Card style={{marginBottom:10}}><div style={{fontSize:15,fontWeight:500,marginBottom:16}}>General</div>
+
+  // The training checklist. Four honest checks, no invented percentages: each
+  // one flips when the owner has actually given the bot that material.
+  const checks=[
+    { label:"Identity",  done:!!(s.botName&&s.greeting),                                        hint:"bot name + greeting" },
+    { label:"Business",  done:!!(q.description||"").trim(),                                     hint:"describe your business" },
+    { label:isEcom?"Policies":"Services", done:isEcom?!!(q.delivery&&q.payment):!!(q.services||"").trim(), hint:isEcom?"delivery + payment":"services you offer" },
+    { label:"Q&A",       done:!!(q.faq||"").trim(),                                             hint:"common questions" },
+  ];
+  const doneCount=checks.filter(c=>c.done).length;
+
+  // One numbered section header, used by every card so the page reads as a
+  // guided course rather than a pile of settings.
+  const Sec=({n,icon,title,sub,right})=>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+      <span style={{width:38,height:38,borderRadius:12,background:T.goldBg,color:T.gold,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,position:"relative"}}>
+        <i className={`ti ${icon}`}/>
+        <span style={{position:"absolute",top:-6,left:-6,width:17,height:17,borderRadius:"50%",background:T.gold,color:"#fff",fontSize:10.5,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{n}</span>
+      </span>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:14.5,fontWeight:700}}>{title}</div>
+        <div style={{fontSize:11.5,color:T.textMuted,marginTop:1}}>{sub}</div>
+      </div>
+      {right}
+    </div>;
+
+  return <div style={{maxWidth:700,paddingBottom:isMobile?90:70}}>
+    {/* Checklist strip: where the training stands, at a glance. */}
+    <Card style={{marginBottom:12,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+      <div style={{flex:"1 1 220px",minWidth:0}}>
+        <div style={{fontSize:14.5,fontWeight:700}}>Train your bot</div>
+        <div style={{fontSize:12,color:T.textMuted,marginTop:2,lineHeight:1.5}}>
+          {doneCount===checks.length
+            ?"All four training steps are done — keep refining anytime."
+            :`${doneCount} of ${checks.length} training steps done. The more you give it, the better it sells.`}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {checks.map(c=><span key={c.label} title={c.hint} style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11.5,fontWeight:600,padding:"4px 10px",borderRadius:20,background:c.done?`color-mix(in srgb, ${T.success} 12%, transparent)`:T.bgAlt,color:c.done?T.success:T.textDim,border:`0.5px solid ${c.done?`color-mix(in srgb, ${T.success} 35%, transparent)`:T.border}`}}>
+          <i className={`ti ${c.done?"ti-check":"ti-point"}`} style={{fontSize:12}}/>{c.label}
+        </span>)}
+      </div>
+    </Card>
+
+    {/* 1 — who the bot is */}
+    <Card style={{marginBottom:12}}>
+      <Sec n={1} icon="ti-id-badge-2" title="Bot identity" sub="Who answers your customers, and how it sounds"/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
         <Inp label="Bot name" value={s.botName||""} onChange={e=>setS({...s,botName:e.target.value})}/>
         <Inp label="Business name" value={s.businessName||""} onChange={e=>setS({...s,businessName:e.target.value})}/>
       </div>
       <Inp label="Greeting" value={s.greeting||""} onChange={e=>setS({...s,greeting:e.target.value})}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
+        <div>
+          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
+          <Select wide value={q.tone||"Friendly and helpful"} onChange={v=>setQ({tone:v})}
+            options={["Friendly and helpful","Professional and formal","Casual and fun"]}/>
+        </div>
+        <div>
+          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
+          <Select wide value={q.languages||"Follow the customer's language"} onChange={v=>setQ({languages:v})}
+            options={["Follow the customer's language","Bangla only","English only"]}/>
+        </div>
+      </div>
     </Card>
 
-    <Accordion icon="ti-lock" title="Core rules" subtitle="Always active, cannot be changed">
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:10}}>These platform rules keep every bot accurate and safe. They are always active and cannot be changed.</div>
-      <pre style={{fontSize:12,color:T.textMuted,whiteSpace:"pre-wrap",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:12,margin:0,lineHeight:1.7}}>{CORE_BASE_DISPLAY+"\n"+(isEcom?CORE_ECOM_DISPLAY:CORE_AGENCY_DISPLAY)}</pre>
-      <div style={{fontSize:11.5,color:T.textDim,marginTop:8}}><i className="ti ti-info-circle" style={{marginRight:4}}/>{isEcom?"E-commerce rules active — product matching, display and order flow.":"Agency rules active — knowledge-base answers and meeting booking flow."}</div>
-    </Accordion>
-
-    <Accordion icon="ti-wand" title="Bot training" subtitle="Describe your business in your own words">
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Describe your business in your own words — AI rewrites the business profile below, inside the locked structure.</div>
-
+    {/* 2 — what the bot knows */}
+    <Card style={{marginBottom:12}}>
+      <Sec n={2} icon="ti-wand" title="Teach it your business" sub="Write it in your own words — AI turns it into the bot's business profile"/>
       <Inp textarea label="Describe your business" value={q.description||""} onChange={e=>setQ({description:e.target.value})}
         inputStyle={{minHeight:140,lineHeight:1.65}}
         placeholder={isEcom
@@ -82,23 +137,11 @@ export default function Settings({settings,setSettings}) {
       </div>
 
       <div onClick={()=>setShowMore(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"11px 13px",borderRadius:9,background:T.bgAlt,border:`0.5px solid ${T.border}`,marginBottom:16}}>
-        <span style={{fontSize:12.5,color:T.text}}>More details <span style={{color:T.textDim}}>— optional, improves accuracy</span></span>
+        <span style={{fontSize:12.5,color:T.text}}>{isEcom?"Delivery, payment, hours & FAQ":"Services, booking, hours & FAQ"} <span style={{color:T.textDim}}>— optional, improves accuracy</span></span>
         <i className={`ti ti-chevron-${showMore?"up":"down"}`} style={{fontSize:15,color:T.textMuted}}/>
       </div>
 
       {showMore&&<>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
-          <div style={{marginBottom:16}}>
-            <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Bot tone</label>
-            <Select wide value={q.tone||"Friendly and helpful"} onChange={v=>setQ({tone:v})}
-              options={["Friendly and helpful","Professional and formal","Casual and fun"]}/>
-          </div>
-          <div style={{marginBottom:16}}>
-            <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Customer languages</label>
-            <Select wide value={q.languages||"Follow the customer's language"} onChange={v=>setQ({languages:v})}
-              options={["Follow the customer's language","Bangla only","English only"]}/>
-          </div>
-        </div>
         {isEcom?<>
           <Inp label="Delivery (time & charge)" value={q.delivery||""} onChange={e=>setQ({delivery:e.target.value})}/>
           <Inp label="Payment methods" value={q.payment||""} onChange={e=>setQ({payment:e.target.value})}/>
@@ -114,17 +157,26 @@ export default function Settings({settings,setSettings}) {
       </>}
       <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?"Generating...":"Regenerate with AI"}</Btn>
       {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
-    </Accordion>
+    </Card>
 
-    <Card style={{marginBottom:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:6}}>
-        <div style={{fontSize:15,fontWeight:500}}>Follow-up message</div>
-        <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,color:T.textMuted,cursor:"pointer"}}>
+    {/* 3 — what it may never do */}
+    <Card style={{marginBottom:12}}>
+      <Sec n={3} icon="ti-lock" title="Guardrails" sub="Platform rules that keep every bot safe — always on, cannot be changed"/>
+      <Accordion icon="ti-shield-check" title="See the rules" subtitle={isEcom?"E-commerce rules active":"Agency rules active"}>
+        <pre style={{fontSize:12,color:T.textMuted,whiteSpace:"pre-wrap",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:8,padding:12,margin:0,lineHeight:1.7}}>{CORE_BASE_DISPLAY+"\n"+(isEcom?CORE_ECOM_DISPLAY:CORE_AGENCY_DISPLAY)}</pre>
+        <div style={{fontSize:11.5,color:T.textDim,marginTop:8}}><i className="ti ti-info-circle" style={{marginRight:4}}/>{isEcom?"E-commerce rules active — product matching, display and order flow.":"Agency rules active — knowledge-base answers and meeting booking flow."}</div>
+      </Accordion>
+    </Card>
+
+    {/* 4 — what runs on its own */}
+    <Card style={{marginBottom:12}}>
+      <Sec n={4} icon="ti-repeat" title="Automation" sub="What the bot does without being asked"
+        right={<label style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,color:T.textMuted,cursor:"pointer",flexShrink:0}}>
           <input type="checkbox" checked={!!s.followup?.enabled} onChange={e=>setS(v=>({...v,followup:{...(v.followup||{}),enabled:e.target.checked}}))}/>
           {s.followup?.enabled?"On":"Off"}
-        </label>
-      </div>
-      <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,marginBottom:14}}>
+        </label>}/>
+      <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,marginBottom:s.followup?.enabled?14:0}}>
+        <b style={{color:T.text}}>Follow-up message.</b>{" "}
         {isEcom
           ?"Someone asked about a product but never ordered — send them one reminder."
           :"Someone asked about a service but never booked — send them one reminder."}
@@ -152,12 +204,24 @@ export default function Settings({settings,setSettings}) {
 
     <AIKeyBox/>
 
-    <Accordion icon="ti-file-text" title="Business prompt" subtitle="What the bot knows about you">
+    <Accordion icon="ti-file-text" title="Advanced — the bot's business profile" subtitle="The exact text the bot works from; edit only if you know why">
       <div style={{height:6}}/>
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>This is your bot's business knowledge. Edit freely — the locked core rules above are added automatically on top.</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>Step 2 writes this for you. Edit freely — the guardrails above are added automatically on top.</div>
       <Inp textarea value={s.businessPrompt||s.systemPrompt||""} onChange={e=>setS({...s,businessPrompt:e.target.value})} style={{marginBottom:0}}/>
     </Accordion>
-    <Btn gold onClick={save}><i className="ti ti-check" style={{marginRight:6}}/>{saved?"Saved!":"Save settings"}</Btn>
+
+    {/* The save bar. Appears the moment anything differs from what is stored,
+        so leaving without saving is a choice, never an accident. */}
+    <div style={{position:"fixed",left:0,right:0,bottom:isMobile?66:0,display:"flex",justifyContent:"center",pointerEvents:"none",zIndex:40,padding:"0 16px"}}>
+      <div style={{width:"100%",maxWidth:700,display:"flex",justifyContent:"flex-end",padding:"0 0 12px"}}>
+        {(dirty||saved)&&<div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:12,background:T.card,border:`1px solid ${saved?`color-mix(in srgb, ${T.success} 40%, transparent)`:T.border}`,borderRadius:14,boxShadow:"0 10px 30px rgba(0,0,0,.14)",padding:"10px 12px 10px 16px"}}>
+          <span style={{fontSize:12.5,color:saved?T.success:T.textMuted,display:"flex",alignItems:"center",gap:6}}>
+            <i className={`ti ${saved?"ti-check":"ti-pencil"}`} style={{fontSize:14}}/>{saved?"Saved":"Unsaved changes"}
+          </span>
+          {!saved&&<Btn gold onClick={save}><i className="ti ti-check" style={{marginRight:6}}/>Save</Btn>}
+        </div>}
+      </div>
+    </div>
   </div>;
 }
 

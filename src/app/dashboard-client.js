@@ -26,8 +26,11 @@ const GROUPS = [
   { title: "Business",  pages: ["orders","inventory"] },
   { title: "Account",   pages: ["settings","billing","profile"] },
 ];
-const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-settings","ti-user"];
-const LABELS = ["Analytics","Conversations","Comments","Broadcast","Inventory","Orders","Channels","Billing","Settings","Profile"];
+const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user"];
+// "Bot Training" is the settings page: everything on it teaches or tunes the
+// bot, and owners looked straight past a tab called "Settings" for exactly
+// that. The page key stays "settings" so links and code paths are untouched.
+const LABELS = ["Analytics","Conversations","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile"];
 
 
 
