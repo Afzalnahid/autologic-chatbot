@@ -332,9 +332,26 @@ function parseReply(raw) {
   return [{ type: "text_msg", text: cleaned }];
 }
 
-async function maybeSaveOrder(items, clientId, senderId) {
+const num = (v) => { const n = Number(String(v ?? "").replace(/[^\d.]/g, "")); return Number.isFinite(n) ? n : 0; };
+
+async function maybeSaveOrder(items, clientId, senderId, platform) {
   for (const it of items) {
     if (it.type !== "order" || !it.order_code) continue;
+    // Item lines: prefer the structured list; fall back to the flat fields the
+    // older prompt produced so nothing is lost either way.
+    let lines = Array.isArray(it.items) ? it.items.map(l => ({
+      code: String(l?.code || "").trim(), name: String(l?.name || "").trim(), variant: String(l?.variant || "").trim(),
+      qty: Math.max(1, Math.round(num(l?.qty) || 1)), unit_price: num(l?.unit_price), image_url: String(l?.image_url || "").trim(),
+    })).filter(l => l.name || l.code) : [];
+    if (!lines.length && (it.product_names || it.product_ids)) {
+      const names = String(it.product_names || "").split(",").map(s => s.trim()).filter(Boolean);
+      const codes = String(it.product_ids || "").split(",").map(s => s.trim());
+      const imgs = String(it.image_urls || "").split(",").map(s => s.trim());
+      lines = names.map((n, i) => ({ code: codes[i] || "", name: n, variant: "", qty: names.length === 1 ? Math.max(1, Math.round(num(it.quantity) || 1)) : 1, unit_price: 0, image_url: imgs[i] || "" }));
+    }
+    const subtotal = it.subtotal !== undefined ? num(it.subtotal) : lines.reduce((n, l) => n + l.qty * l.unit_price, 0);
+    const delivery = num(it.delivery_charge), discount = num(it.discount);
+    const total = num(it.total_price) || Math.max(0, subtotal + delivery - discount);
     await sb().from("orders").insert({
       client_id: clientId,
       sender_id: senderId || null,
@@ -342,11 +359,19 @@ async function maybeSaveOrder(items, clientId, senderId) {
       customer_name: it.customer_name || "",
       phone_number: it.phone_number || "",
       address: it.address || "",
-      product_ids: it.product_ids || "",
-      product_names: it.product_names || "",
-      quantity: it.quantity || "",
-      total_price: it.total_price || "",
-      image_urls: it.image_urls || "",
+      delivery_area: it.delivery_area || null,
+      items: lines.length ? lines : null,
+      subtotal: subtotal || null,
+      delivery_charge: it.delivery_charge !== undefined ? delivery : null,
+      discount: discount || null,
+      payment_method: it.payment_method || null,
+      notes: it.notes || null,
+      platform: platform || null,
+      product_ids: it.product_ids || lines.map(l => l.code).filter(Boolean).join(","),
+      product_names: it.product_names || lines.map(l => l.name).join(", "),
+      quantity: it.quantity || String(lines.reduce((n, l) => n + l.qty, 0) || ""),
+      total_price: String(total || it.total_price || ""),
+      image_urls: it.image_urls || lines.map(l => l.image_url).filter(Boolean).join(","),
       status: "Pending",
     });
   }
@@ -592,7 +617,16 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     systemPrompt = DEFAULT_PROMPT; history = []; context = "";
   }
 
-  const orderRule = "\n\nORDER SAVING: When the customer finally confirms an order with name, phone and address, ALSO append one object to the JSON array: {\"type\":\"order\",\"order_code\":\"<unique alphanumeric>\",\"customer_name\":\"..\",\"phone_number\":\"..\",\"address\":\"..\",\"product_ids\":\"codes comma separated\",\"product_names\":\"..\",\"quantity\":\"..\",\"total_price\":\"..\",\"image_urls\":\"..\"}. Never mention this object in text.";
+  // The saved order must carry everything the owner needs to ship it: every
+  // line with code, name, chosen variant, quantity, unit price and image; the
+  // money split into subtotal, delivery and total; how they will pay; any
+  // instruction the customer gave. Numbers are digits only (no currency sign).
+  const orderRule = "\n\nORDER SAVING: When the customer finally confirms an order with name, phone and address, ALSO append one object to the JSON array: " +
+    "{\"type\":\"order\",\"order_code\":\"<unique alphanumeric>\",\"customer_name\":\"..\",\"phone_number\":\"..\",\"address\":\"..\",\"delivery_area\":\"inside Dhaka / outside Dhaka / area name\"," +
+    "\"items\":[{\"code\":\"<product code>\",\"name\":\"<product name>\",\"variant\":\"<size/colour chosen, or empty>\",\"qty\":<number>,\"unit_price\":<number>,\"image_url\":\"<image url or empty>\"}]," +
+    "\"subtotal\":<number>,\"delivery_charge\":<number>,\"discount\":<number or 0>,\"total_price\":<number>,\"payment_method\":\"cash on delivery / bKash / Nagad / card / ..\",\"notes\":\"<any delivery instruction or special request, or empty>\"," +
+    "\"product_ids\":\"codes comma separated\",\"product_names\":\"names comma separated\",\"quantity\":\"total qty\",\"image_urls\":\"urls comma separated\"}. " +
+    "Use the exact prices from SEARCH RESULTS (the chosen variant's price when there is one) and the delivery charge from the BUSINESS FACTS; if the delivery charge is unknown, set delivery_charge to 0 and say in text that it will be confirmed. total_price = subtotal + delivery_charge - discount. Never mention this object in text.";
 
   let didAct = false;
   let raw;
@@ -627,7 +661,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     if (r.booked) { bookingNote = r.bookingNote; didAct = true; }
   } else {
     const before = items.length;
-    items = await maybeSaveOrder(items, clientId, senderId);
+    items = await maybeSaveOrder(items, clientId, senderId, platform);
     if (items.length !== before) didAct = true;
   }
   items = await enforceLanguage(items, forcedLang || detectLanguage(combined));
@@ -833,8 +867,7 @@ export async function handleIncoming(event) {
     } catch (e) { console.error("transcribe:", e.message); }
     if (!transcript || transcript === UNCLEAR_AUDIO) { voiceUnclear = true; transcript = ""; }
     // The mic marks it as a voice note in the inbox; the bot reads the words.
-    content = transcript ? `🎤 ${transcript}${event.text ? `
-${event.text}` : ""}` : (event.text || "");
+    content = transcript ? `🎤 ${transcript}${event.text ? `\n${event.text}` : ""}` : (event.text || "");
   }
 
   if (event.mediaId && channel.platform === "whatsapp") {
@@ -870,8 +903,7 @@ ${event.text}` : ""}` : (event.text || "");
   if (!content && voiceUnclear) {
     const { sendTextMessage } = await import("@/lib/messenger.js");
     const isWa = (event.platform || channel.platform) === "whatsapp";
-    const msg = "দুঃখিত, আপনার ভয়েস মেসেজটি স্পষ্ট শোনা যায়নি। একটু কাছ থেকে আবার বলুন, অথবা লিখে পাঠান। 🙏
-Sorry, I couldn't hear that voice message clearly — please record again a little closer, or type it.";
+    const msg = "দুঃখিত, আপনার ভয়েস মেসেজটি স্পষ্ট শোনা যায়নি। একটু কাছ থেকে আবার বলুন, অথবা লিখে পাঠান। 🙏\nSorry, I couldn't hear that voice message clearly — please record again a little closer, or type it.";
     await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎤 (voice message — unclear)", platform: event.platform || channel.platform || "facebook", wa_msg_id: event.msgId || null });
     if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
     else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform, channel.page_id);
