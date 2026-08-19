@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
+import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
 
 const fail = (reason, status = 400) => connectFailedPage({ platform: "whatsapp", reason, status });
 
@@ -47,6 +48,11 @@ export async function POST(request) {
       ({ phoneId, displayNumber, verifiedName, token } = selected);
     }
 
+    // One WhatsApp number powers exactly one Autologic account.
+    if (await ownedByAnotherClient("whatsapp", phoneId, clientId)) {
+      return fail(ALREADY_CONNECTED.whatsapp, 409);
+    }
+
     // Subscribe the app to this WhatsApp number's webhooks
     const sub = await fetch(
       `https://graph.facebook.com/v24.0/${phoneId}/subscribed_apps`,
@@ -61,6 +67,7 @@ export async function POST(request) {
         platform: "whatsapp",
         page_id: phoneId,
         access_token: token,
+        name: [verifiedName, displayNumber].filter(Boolean).join(" · ") || null,
         status: "connected",
         connected_at: new Date().toISOString(),
         bot_enabled: true,

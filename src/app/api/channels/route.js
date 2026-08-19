@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
+import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
 
 export async function GET(request) {
   try {
@@ -49,10 +50,14 @@ export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    const { platform, page_id, access_token } = await request.json();
+    const { platform, page_id, access_token, name } = await request.json();
     if (!platform || !page_id || !access_token) return NextResponse.json({ error: "missing fields" }, { status: 400 });
+    // One page/account/number powers exactly one Autologic account.
+    if (await ownedByAnotherClient(platform, page_id, client.id)) {
+      return NextResponse.json({ error: ALREADY_CONNECTED[platform] || "This account is already connected to another Autologic account." }, { status: 409 });
+    }
     const { error } = await supabase.from("channels").upsert(
-      { client_id: client.id, platform, page_id, access_token, status: "connected", connected_at: new Date().toISOString() },
+      { client_id: client.id, platform, page_id, access_token, name: name || null, status: "connected", connected_at: new Date().toISOString() },
       { onConflict: "client_id,platform,page_id" }
     );
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

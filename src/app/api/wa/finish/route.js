@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { connectedPage } from "@/lib/connect-page.js";
+import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -36,6 +37,12 @@ export async function POST(request) {
         { error: "Meta did not return a phone number. Please complete the phone verification step." },
         { status: 400 }
       );
+    }
+
+    // One WhatsApp number powers exactly one Autologic account. Checked before
+    // any Meta call so a taken number costs nothing.
+    if (await ownedByAnotherClient("whatsapp", phoneId, clientId)) {
+      return NextResponse.json({ error: ALREADY_CONNECTED.whatsapp }, { status: 409 });
     }
 
     // 1. Exchange the code for a business integration token. Embedded Signup
@@ -84,16 +91,20 @@ export async function POST(request) {
       console.error("[wa/finish] could not read number details:", e.message);
     }
 
+    // onConflict must name a real unique index. "client_id,platform" never
+    // was one, so this upsert errored on every embedded-signup save; the
+    // actual index is (client_id, platform, page_id).
     const { error: dbErr } = await supabase.from("channels").upsert(
       {
         client_id: clientId,
         platform: "whatsapp",
         page_id: phoneId,
         access_token: token,
+        name: [verifiedName, displayNumber].filter(Boolean).join(" · ") || null,
         status: "connected",
         connected_at: new Date().toISOString(),
       },
-      { onConflict: "client_id,platform" }
+      { onConflict: "client_id,platform,page_id" }
     );
     if (dbErr) {
       console.error("[wa/finish] save failed:", dbErr.message);

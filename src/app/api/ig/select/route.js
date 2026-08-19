@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
+import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
 
 export async function POST(request) {
   try {
@@ -13,6 +14,11 @@ export async function POST(request) {
     }
     const [igId, encName, pageToken] = String(form.get("acct") || "").split("|");
     if (!clientId || !igId || !pageToken) return new NextResponse("Invalid selection", { status: 400 });
+
+    // One Instagram account powers exactly one Autologic account.
+    if (await ownedByAnotherClient("instagram", igId, clientId)) {
+      return connectFailedPage({ platform: "instagram", status: 409, reason: ALREADY_CONNECTED.instagram });
+    }
 
     // Subscribe to messages AND comments for full automation coverage.
     const sub = await fetch(
@@ -31,6 +37,7 @@ export async function POST(request) {
 
     const { error } = await supabase.from("channels").upsert(
       { client_id: clientId, platform: "instagram", page_id: igId, access_token: pageToken,
+        name: decodeURIComponent(encName || "") ? "@" + decodeURIComponent(encName) : null,
         status: "connected", connected_at: new Date().toISOString(),
         comment_reply_enabled: true, comment_dm_enabled: true },
       { onConflict: "client_id,platform,page_id" }

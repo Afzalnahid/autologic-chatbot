@@ -39,7 +39,7 @@ export const GET = withErrors(async (request) => {
 
   const [clientQ, channelsQ, msgsQ, ordersQ, bookingsQ, productsQ, filesQ, payQ, contactsQ, settingsQ, aiQ] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
-    supabase.from("channels").select("platform,page_id,status,connected_at").eq("client_id", id),
+    supabase.from("channels").select("platform,page_id,name,status,connected_at").eq("client_id", id),
     supabase.from("message_buffer").select("role,created_at,platform").eq("client_id", id),
     supabase.from("orders").select("order_code,customer_name,total_price,status,created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(50),
     supabase.from("bookings").select("customer_name,service_want,meeting_date,meeting_time,status,created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(50),

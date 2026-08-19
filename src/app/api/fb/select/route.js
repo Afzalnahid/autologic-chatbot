@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
+import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
 
 export async function POST(request) {
   try {
@@ -13,6 +14,11 @@ export async function POST(request) {
     }
     const [pageId, encName, pageToken] = String(form.get("page") || "").split("|");
     if (!clientId || !pageId || !pageToken) return connectFailedPage({ platform: "facebook", status: 400, reason: "No Page was selected. Please go back and choose a Page." });
+
+    // One Page powers exactly one Autologic account.
+    if (await ownedByAnotherClient("facebook", pageId, clientId)) {
+      return connectFailedPage({ platform: "facebook", status: 409, reason: ALREADY_CONNECTED.facebook });
+    }
 
     // Subscribe to messages + comments (feed). Log the result so we can
     // diagnose missing permissions during App Review.
@@ -35,6 +41,7 @@ export async function POST(request) {
 
     const { error } = await supabase.from("channels").upsert(
       { client_id: clientId, platform: "facebook", page_id: pageId, access_token: pageToken,
+        name: decodeURIComponent(encName || "") || null,
         status: "connected", connected_at: new Date().toISOString(),
         comment_reply_enabled: true, comment_dm_enabled: true },
       { onConflict: "client_id,platform,page_id" }
