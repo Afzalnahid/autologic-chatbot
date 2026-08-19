@@ -558,7 +558,7 @@ function AITab({ ai, clientId, superKey, setSuperKey, allow, revoke, busy }) {
   };
   const doRevoke = async () => {
     const r = await revoke(clientId);
-    setMsg(r.ok ? { ok: true, text: "Permission revoked and any saved key deleted — this client is back on the platform key." } : { ok: false, text: r.error });
+    setMsg(r.ok ? { ok: true, text: "API key access removed. The box is gone from their dashboard, any saved key was deleted, and their bot is back on the platform key." } : { ok: false, text: r.error });
     setConfirmRevoke(false);
   };
 
@@ -587,18 +587,24 @@ function AITab({ ai, clientId, superKey, setSuperKey, allow, revoke, busy }) {
           </div>}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {!permitted && <Btn gold small onClick={doAllow} disabled={locked || busy}>{busy ? "Saving…" : "Allow own API key"}</Btn>}
-          {permitted && (confirmRevoke
-            ? <><Btn small danger onClick={doRevoke} disabled={busy}>{busy ? "Revoking…" : "Yes, revoke"}</Btn><Btn small onClick={() => setConfirmRevoke(false)}>Cancel</Btn></>
-            : <Btn small onClick={() => setConfirmRevoke(true)} disabled={locked || busy} style={{ color: T.danger, background: T.dangerBg }}>Revoke permission</Btn>)}
+          {!permitted && <Btn gold small onClick={doAllow} disabled={locked || busy}>{busy ? "Saving…" : "Give API key access"}</Btn>}
+          {permitted && !confirmRevoke &&
+            <Btn small onClick={() => setConfirmRevoke(true)} disabled={locked || busy} style={{ color: T.danger, background: T.dangerBg }}>Remove API key access</Btn>}
         </div>
       </div>
+      {confirmRevoke && <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12.5, flex: "1 1 240px", lineHeight: 1.55 }}>Remove this client's API key access? The box disappears from their dashboard, any saved key is deleted, and their bot goes back to your platform key.</span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn small danger onClick={doRevoke} disabled={busy}>{busy ? "Removing…" : "Yes, remove access"}</Btn>
+          <Btn small onClick={() => setConfirmRevoke(false)}>Cancel</Btn>
+        </div>
+      </div>}
     </Card>
 
     {/* The secret key gate, inline so the super admin never has to leave */}
     {locked && <Card style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
       <span style={{ width: 38, height: 38, borderRadius: 12, background: T.goldBg, color: T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><i className="ti ti-lock" /></span>
-      <div style={{ flex: "1 1 200px", fontSize: 12.5, color: T.textMuted }}>Granting or revoking needs your <b style={{ color: T.text }}>secret admin key</b> — the same one role changes use. It is never stored.</div>
+      <div style={{ flex: "1 1 200px", fontSize: 12.5, color: T.textMuted }}>Giving or removing API key access needs your <b style={{ color: T.text }}>secret admin key</b> — the same one role changes use. It is never stored.</div>
       <PwInput value={superKey} onChange={(e) => setSuperKey(e.target.value)} placeholder="Secret admin key" style={{ flex: "1 1 240px" }} />
     </Card>}
 
