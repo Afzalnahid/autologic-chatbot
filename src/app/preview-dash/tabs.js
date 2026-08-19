@@ -346,7 +346,7 @@ function Widget() {
         </p>
         <div style={{ background: D.rail, borderRadius: 10, padding: 14, fontFamily: "'IBM Plex Mono', monospace",
           fontSize: 12, color: "#C8D3EA", lineHeight: 1.7, overflowX: "auto", marginBottom: 14 }}>
-          &lt;script src=&quot;https://autologic-chatbot.vercel.app/widget.js&quot;<br />
+          &lt;script src=&quot;https://www.getvoicium.com/widget.js&quot;<br />
           &nbsp;&nbsp;data-client=&quot;wk_FxRNUxXx-05kbCbnZZX4KT_kn5wVugqd&quot;&gt;&lt;/script&gt;
         </div>
         <Btn kind="primary" icon="ti-copy">Copy the line</Btn>

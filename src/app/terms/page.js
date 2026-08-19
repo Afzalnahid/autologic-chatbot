@@ -9,7 +9,7 @@ export default function Terms() {
       <div style={S}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>Terms of Service</h1>
         <p style={{ color: "#98A3BA", marginBottom: 32 }}>Last updated: July 18, 2026</p>
-        <p style={P}>These Terms of Service ("Terms") govern your use of Autologic ("we", "our", "us"), an AI-powered customer service chatbot platform operated at autologic-chatbot.vercel.app. By creating an account or using the platform, you agree to these Terms.</p>
+        <p style={P}>These Terms of Service ("Terms") govern your use of Autologic ("we", "our", "us"), an AI-powered customer service chatbot platform operated at getvoicium.com. By creating an account or using the platform, you agree to these Terms.</p>
 
         <h2 style={H2}>1. The Service</h2>
         <p style={P}>Autologic provides an AI-powered chatbot platform that businesses ("clients") connect to their messaging channels (Facebook, Instagram, WhatsApp) and optionally their Google Calendar to automate customer service, meeting scheduling, and order management.</p>

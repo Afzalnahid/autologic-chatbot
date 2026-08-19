@@ -9,7 +9,7 @@ export default function Privacy() {
       <div style={S}>
         <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>Privacy Policy</h1>
         <p style={{ color: "#98A3BA", marginBottom: 32 }}>Last updated: July 18, 2026</p>
-        <p style={P}>Autologic ("we", "our", "us") operates an AI-powered chatbot platform at autologic-chatbot.vercel.app. This Privacy Policy explains how we collect, use, store, and protect data.</p>
+        <p style={P}>Autologic ("we", "our", "us") operates an AI-powered chatbot platform at getvoicium.com. This Privacy Policy explains how we collect, use, store, and protect data.</p>
         <h2 style={H2}>1. Information We Collect</h2>
         <p style={P}><strong>From clients (business owners):</strong> Email and business name at registration. Facebook, Instagram, and WhatsApp access tokens and account IDs when channels are connected. Google Calendar OAuth tokens (access token and refresh token) when a client connects their Google Calendar — used exclusively to check availability and create meeting events on that client's own calendar. Business logo, product catalogue, and knowledge base documents uploaded by the client.</p>
         <p style={P}><strong>From end users (customers):</strong> Messages sent through connected channels. Sender ID and public profile name as provided by the respective platform. Order or booking information provided during a conversation.</p>

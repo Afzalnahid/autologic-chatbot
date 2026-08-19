@@ -45,7 +45,7 @@ export const COPY = {
     ],
 
     ctaTitle: "Start free. No card needed.",
-    ctaSub: "3-day trial · Bangla and English · autologic-chatbot.vercel.app",
+    ctaSub: "3-day trial · Bangla and English · getvoicium.com",
     ctaButton: "Start free trial",
   },
 
@@ -91,7 +91,7 @@ export const COPY = {
     ],
 
     ctaTitle: "ফ্রিতে শুরু করুন। কার্ড লাগবে না।",
-    ctaSub: "৩ দিনের ট্রায়াল · বাংলা ও ইংরেজি · autologic-chatbot.vercel.app",
+    ctaSub: "৩ দিনের ট্রায়াল · বাংলা ও ইংরেজি · getvoicium.com",
     ctaButton: "ফ্রি ট্রায়াল শুরু করুন",
   },
 };

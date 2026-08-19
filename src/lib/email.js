@@ -47,7 +47,7 @@ export async function notifyNewAdminSignup(newEmail) {
     html: wrap(
       "New admin access request",
       `<strong style="color:#f0c040">${newEmail}</strong> has signed up and is awaiting approval.
-       <br/><br/>Open the <a href="https://autologic-chatbot.vercel.app/admin" style="color:#f0c040">Admin panel</a>,
+       <br/><br/>Open the <a href="https://www.getvoicium.com/admin" style="color:#f0c040">Admin panel</a>,
        enter your secret key, and assign them a role (Viewer, Editor, or Full Access) to approve — or leave them pending to deny.`
     ),
   });
@@ -64,7 +64,7 @@ export async function notifyAdminApproved(adminEmail, role) {
       `Your admin access has been approved with the role
        <strong style="color:#22c55e">${labels[role] || role}</strong>.
        <br/><br/>You can now sign in at the
-       <a href="https://autologic-chatbot.vercel.app/admin" style="color:#f0c040">Admin panel</a>
+       <a href="https://www.getvoicium.com/admin" style="color:#f0c040">Admin panel</a>
        using the email and password you registered with.`
     ),
   });
@@ -84,7 +84,7 @@ export async function notifyPaymentRequest({ business, email, plan, cycle, amoun
        Method: <strong>${method}</strong><br/>
        Transaction ID: <strong>${txnId}</strong>
        <br/><br/>Verify the transaction, then approve it in the
-       <a href="https://autologic-chatbot.vercel.app/admin" style="color:#f0c040">Admin panel</a>.`
+       <a href="https://www.getvoicium.com/admin" style="color:#f0c040">Admin panel</a>.`
     ),
   });
 }
@@ -99,7 +99,7 @@ export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
       "\u{1F389} Payment confirmed",
       `Your payment has been verified and your <strong style="color:#22c55e">${planName}</strong> plan is now active.
        ${until ? `<br/><br/>Valid until <strong>${until}</strong>.` : ""}
-       <br/><br/>Open your <a href="https://autologic-chatbot.vercel.app/dashboard" style="color:#f0c040">dashboard</a> to keep going.`
+       <br/><br/>Open your <a href="https://www.getvoicium.com/dashboard" style="color:#f0c040">dashboard</a> to keep going.`
     ),
   });
 }
@@ -155,7 +155,7 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
        <strong style="color:#f0c040">Customers messaging you right now are not getting answers.</strong>
        We are replying to them with a short holding message so they are not left waiting, but that is not a substitute for your bot.
        <br/><br/>
-       <a href="https://autologic-chatbot.vercel.app/dashboard#billing" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
+       <a href="https://www.getvoicium.com/dashboard#billing" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
        <br/><br/>
        <span style="font-size:12px;color:#8b9cbd">You will get this reminder at most once a day.</span>`
     ),
@@ -178,7 +178,7 @@ export async function notifyExpiringSoon(clientEmail, { business, plan, daysLeft
          ? "Pick a plan to keep everything running — your products, knowledge base and conversations all stay exactly as they are."
          : "Renew to keep your bot answering without a break."}
        <br/><br/>
-       <a href="https://autologic-chatbot.vercel.app/dashboard#billing" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">${isTrial ? "Choose a plan" : "Renew now"}</a>`
+       <a href="https://www.getvoicium.com/dashboard#billing" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">${isTrial ? "Choose a plan" : "Renew now"}</a>`
     ),
   });
 }

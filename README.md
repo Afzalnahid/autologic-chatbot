@@ -2,7 +2,7 @@
 
 AI-powered multi-channel chatbot SaaS platform built with Next.js, Supabase, and Google Gemini.
 
-**Live:** https://autologic-chatbot.vercel.app
+**Live:** https://www.getvoicium.com
 
 ## Features
 - E-commerce bot (inventory + product image matching + orders)

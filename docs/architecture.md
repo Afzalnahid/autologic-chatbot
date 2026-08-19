@@ -3,7 +3,7 @@
 Autologic is a multi-tenant SaaS AI chatbot platform. One deployment serves every
 business ("client"); all data is separated by `client_id`.
 
-Live: https://autologic-chatbot.vercel.app
+Live: https://www.getvoicium.com
 
 ---
 

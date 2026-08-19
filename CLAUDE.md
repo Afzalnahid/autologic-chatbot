@@ -28,7 +28,7 @@ something goes wrong.
 ## Stack
 Next.js 14 App Router · Supabase (project `cchvsgouqqxibhubioch`, pgvector) ·
 Google Gemini (`gemini-embedding-001`, 768 dimensions) · Meta Graph API · Resend ·
-Google Calendar · Vercel (`autologic-chatbot.vercel.app`)
+Google Calendar · Vercel (`getvoicium.com`)
 
 ## Invariants — never break these
 - Every database query filters `client_id` at the database with `.eq()`. Never filter
