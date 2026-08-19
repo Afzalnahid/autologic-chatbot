@@ -243,7 +243,36 @@ async function getSystemPrompt(clientId, bType) {
   if (st.botName) {
     prompt += `\n\n[BOT NAME] Your name is "${st.botName}". Use it if the customer asks who you are.`;
   }
-  return prompt + "\n\n[BUSINESS PROFILE - provided by the owner]\n" + biz;
+  // The owner's Settings and Profile tabs are the live source of truth. The
+  // narrative profile above is generated once by AI and can go stale when a
+  // field is edited later — so every structured fact is restated here, from
+  // the current settings, and declared to win over the narrative.
+  const facts = await businessFacts(clientId, st);
+  return prompt + "\n\n[BUSINESS PROFILE - provided by the owner]\n" + biz + (facts ? "\n\n" + facts : "");
+}
+
+async function businessFacts(clientId, st) {
+  const c = await getClient(clientId).catch(() => null);
+  const q = st.questionnaire || {};
+  const line = (k, v) => (v && String(v).trim() ? `- ${k}: ${String(v).trim()}` : null);
+  const rows = [
+    line("Business name", c?.business_name || st.businessName),
+    line("Phone", c?.phone),
+    line("Address", c?.address),
+    line("Website / catalog link", q.catalogLink || c?.website),
+    line("Working hours", q.hours),
+    line("Delivery (time & charge)", q.delivery),
+    line("Payment methods", q.payment),
+    line("Return / refund policy", q.returnPolicy),
+    line("Services offered", q.services),
+    line("Meeting / booking info", q.meetingInfo),
+    line("Languages", q.languages || st.languages),
+    line("Tone", q.tone || st.tone),
+    line("Special brand rules", q.special),
+  ].filter(Boolean);
+  const faq = q.faq && String(q.faq).trim() ? `\nFrequently asked questions (owner-written, answer from these first):\n${String(q.faq).trim()}` : "";
+  if (!rows.length && !faq) return "";
+  return "[BUSINESS FACTS - live from the owner's Settings and Profile; if anything in the profile above disagrees with these, THESE are correct]\n" + rows.join("\n") + faq;
 }
 
 async function searchProducts(clientId, query, k = 3) {
