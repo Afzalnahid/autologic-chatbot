@@ -314,3 +314,31 @@ time went into retrying instead of looking.
 - When a "known flaky" failure repeats more than twice in a row, stop retrying
   and read the tail of the log — a *different* cause is likely. Here a clean
   `rm -rf .next` fixed it on the first try.
+
+## 23. A fallback that is never exercised is not a fallback
+
+**2026-08-19.** A voice note came back with "দুঃখিত, একটু পরে আবার চেষ্টা করুন।".
+The production logs gave the whole chain in one line: the primary model hit
+`429` (Google free tier — **20 requests per model per day**), the code fell back
+to `gemini-2.0-flash`, and Google answered `404 … no longer available. Please
+update your code to use models/gemini-3.6-flash`. The single fallback had been
+dead for some time and nobody knew, because it only runs when the primary fails.
+The same retired id was also wired directly into `analyzeImage()`, so every
+customer product photo had been failing silently too.
+
+**Rules:**
+- Never depend on one model/provider id. Walk a **chain** and treat 404 / 429 /
+  503 as "try the next one"; make the list an env var so a retirement is a
+  config change, not a deploy.
+- A code path that only runs on failure needs its own proof. If the fallback has
+  never been seen working in production logs, assume it is broken.
+- Vendors announce retirements *inside the error body*. Read the whole error
+  string — Google literally named the replacement model.
+- Free-tier quotas are a product risk, not a dev detail: 20 requests/day means
+  the bot dies every day after ~10 customer messages (each message can cost two
+  calls — transcription plus reply). Surface that to the owner instead of
+  treating the 429 as noise.
+- When the AI genuinely cannot answer, apologise **and promise a human**. A bare
+  "try again later" reads as broken and loses the customer.
+- Runtime logs are the cheapest diagnosis available. Read them *before*
+  theorising about the code.

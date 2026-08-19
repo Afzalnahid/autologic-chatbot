@@ -113,6 +113,22 @@ Later the same session (owner asks, in order):
   CSV, cards, drawer with progress/edit/items/status/private note). Verified
   visually with mock data (desktop light).
 
+- `9c7efea` **the bot was answering "দুঃখিত, একটু পরে আবার চেষ্টা করুন।"** —
+  root cause found in Vercel runtime logs, not guessed: primary model 429
+  (Google **free tier, 20 requests per model per day**) → fell back to
+  `gemini-2.0-flash` → **404, retired** ("use models/gemini-3.6-flash"). The
+  only fallback was dead, so `chatWithGemini` threw, `parseReply` returned []
+  and the generic apology went out. `analyzeImage()` used that retired id
+  **directly**, so customer photo matching had been silently failing too.
+  Fix: `gemini.js` walks a model chain (`GEMINI_MODELS` env, default
+  `gemini-2.5-flash,gemini-3.6-flash`); 404/429/503 → next id, other errors
+  surface. Chat, both vision entry points, transcription and URL extraction all
+  use it. Fallback message now promises a human, in Bangla + English.
+  ⚠️ **Still open: Google billing.** The chain widens the daily ceiling
+  (one free quota per model) but cannot fix a free-tier account — voice costs
+  two calls per message (transcribe + reply), so the bot still dies daily until
+  billing is enabled on the Google Cloud project.
+
 Also: `robots.txt` + `sitemap.xml` added (`c95537e`, canonical
 `www.getvoicium.com`; apex 308→www); Meta app + Google OAuth redirect URIs for
 the new domain explained to the owner (not yet confirmed done by them).
@@ -1082,8 +1098,14 @@ automation looks natural to a reviewer.
   refresh tokens, so it may simply be dead — `getValidAccessToken` now detects `invalid_grant`,
   clears `gcal_connected` and logs it. Reconnect Calendar, book a meeting, read the
   `[booking]` log lines to see which step fails.
-- **Google Cloud billing** — Gemini is 429ing. Comment replies are landing on the fallback
-  rather than real AI output. Fix before recording if the videos should show the bot at its best.
+- **Google Cloud billing — now the single biggest blocker (confirmed 2026-08-19
+  in production logs).** The key is on the free tier: `limit: 20, model:
+  gemini-2.5-flash`, per day. Every customer message costs one call, a voice
+  note costs two (transcribe + reply), a photo costs two. So the bot goes down
+  after roughly ten messages a day, on every tenant at once. The model chain
+  buys one free quota per model in the list, nothing more. **Enable billing on
+  the Google Cloud project** (Gemini API → billing) before any demo, video or
+  paying customer.
 - **Custom domain** — still blocks Resend email verification and Google Calendar OAuth
   verification.
 
