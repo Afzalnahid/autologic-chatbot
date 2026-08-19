@@ -12,6 +12,8 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   const cap=(w)=>String(w||"").charAt(0).toUpperCase()+String(w||"").slice(1);
   const [chFilter,setChFilter]=useState("all");
   const [tagFilter,setTagFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const [contacts,setContacts]=useState({});
   const [tagData,setTagData]=useState(null);
   const loadTags=async()=>{
     try{
@@ -22,10 +24,27 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   };
   useEffect(()=>{loadTags();},[]);
   const tagsOf=(id)=>(tagData?.tags?.[id]||[]).map(x=>x.tag);
-  const byChannel=chFilter==="all"?allConvos:allConvos.filter(c=>(c.platform||"facebook")===chFilter);
-  const convos=tagFilter==="all"?byChannel:byChannel.filter(c=>tagsOf(c.id).includes(tagFilter));
+  // With several Pages/accounts on one platform, the filter can narrow to one
+  // of them ("facebook|<page_id>") and each row says which one it lives on.
+  const perPlatform={};
+  channels.forEach(c=>{ if(!perPlatform[c.platform]) perPlatform[c.platform]=[]; perPlatform[c.platform].push(c); });
+  const acctName=(p,pid)=>{ const ch=(perPlatform[p]||[]).find(x=>x.page_id===pid); return ch?.name||(pid?"…"+String(pid).slice(-4):null); };
+  const chMatch=(c)=>{
+    if(chFilter==="all") return true;
+    const p=c.platform||"facebook";
+    if(chFilter.includes("|")){ const [fp,fpid]=chFilter.split("|"); return p===fp&&String(c.page_id||"")===fpid; }
+    return p===chFilter;
+  };
+  const q=search.trim().toLowerCase();
+  const convos=allConvos.filter(c=>chMatch(c)
+    &&(tagFilter==="all"||tagsOf(c.id).includes(tagFilter))
+    &&(!q||(((contacts[c.id]?.name||c.sender||"")+" "+(c.lastMsg||"")).toLowerCase().includes(q))));
   const PICON={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp"};
   const avail=[...new Set([...channels.map(c=>c.platform),...allConvos.map(c=>c.platform||"facebook")].filter(Boolean))];
+  // "2m / 3h / 5d" — enough to scan the list; the full date lives in the chat.
+  const ago=(t)=>{ if(!t) return ""; const s=(Date.now()-new Date(t).getTime())/1000;
+    if(s<60) return "now"; if(s<3600) return Math.floor(s/60)+"m"; if(s<86400) return Math.floor(s/3600)+"h";
+    if(s<604800) return Math.floor(s/86400)+"d"; return new Date(t).toLocaleDateString("en-GB",{day:"numeric",month:"short"}); };
   const isMobile=useIsMobile();
   const [sel,setSel]=useState(-1);
   // The open conversation answers the back press before the tab does, so one
@@ -41,7 +60,6 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   useEffect(()=>{ if(sel>=convos.length) setSel(convos.length?0:-1); },[convos.length]);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
-  const [contacts,setContacts]=useState({});
   const [globalBot,setGlobalBot]=useState(true);
   const chatRef=useRef(null);
   const galleryRef=useRef(null);
@@ -112,7 +130,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     await api("/api/contacts",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isGlobal?{global:true,bot_enabled:val}:{sender_id,bot_enabled:val})});
   };
 
-  const filtered = chFilter!=="all"||tagFilter!=="all";
+  const filtered = chFilter!=="all"||tagFilter!=="all"||!!q;
   if(!convos.length&&!filtered) return <Card style={{textAlign:"center",padding:"48px 24px"}}>
     <i className="ti ti-inbox" style={{fontSize:32,color:T.textDim}}/>
     <div style={{fontSize:15,fontWeight:600,color:T.text,margin:"14px 0 7px"}}>No conversations yet</div>
@@ -152,15 +170,28 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
         <Toggle on={globalBot} onClick={()=>toggle(null,!globalBot,true)} label={globalBot?"Bot ON":"Bot OFF"}/>
       </div>
+      {/* Search first — with a long inbox it is the fastest way in. */}
+      <div style={{padding:"10px 12px 0"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"0 10px"}}>
+          <i className="ti ti-search" style={{fontSize:14,color:T.textDim,flexShrink:0}}/>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or message"
+            style={{flex:1,background:"none",border:"none",outline:"none",color:T.text,fontSize:12.5,padding:"8px 0",minWidth:0}}/>
+          {search&&<button onClick={()=>setSearch("")} aria-label="Clear search" style={{background:"none",border:"none",cursor:"pointer",color:T.textDim,fontSize:14,padding:2,flexShrink:0}}><i className="ti ti-x"/></button>}
+        </div>
+      </div>
       {/* Two dropdowns instead of two rows of chips. On a phone the chips were
           eating half the screen before a single conversation appeared, and the
-          counts are more readable inside the menu than crammed into a pill. */}
+          counts are more readable inside the menu than crammed into a pill.
+          A platform with several accounts also lists each one. */}
       {(avail.length>1||!!tagData?.available?.length)&&
         <div style={{display:"flex",gap:8,padding:"10px 12px",borderBottom:`1px solid ${T.border}`,flexWrap:"wrap"}}>
           {avail.length>1&&
             <Select value={chFilter} onChange={setChFilter} style={{flex:"1 1 140px",minWidth:0}}
               options={[{value:"all",label:`All channels (${allConvos.length})`,icon:"ti-inbox"},
-                ...avail.map(f=>({value:f,label:cap(f),icon:CH_ICON[f]||"ti-message"}))]}/>}
+                ...avail.flatMap(f=>[
+                  {value:f,label:cap(f),icon:CH_ICON[f]||"ti-message"},
+                  ...(((perPlatform[f]||[]).length>1)?(perPlatform[f]||[]).map(ch=>({value:`${f}|${ch.page_id}`,label:`— ${ch.name||"…"+String(ch.page_id||"").slice(-4)}`,icon:CH_ICON[f]||"ti-message"})):[]),
+                ])]}/>}
           {!!tagData?.available?.length&&
             <Select value={tagFilter} onChange={setTagFilter} style={{flex:"1 1 140px",minWidth:0}}
               options={[{value:"all",label:"All tags",icon:"ti-tag"},
@@ -175,26 +206,34 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         <i className="ti ti-inbox" style={{fontSize:30,color:T.textDim}}/>
         <div style={{fontSize:14,fontWeight:600,color:T.text,margin:"12px 0 6px"}}>Nothing here yet</div>
         <div style={{fontSize:13,color:T.textMuted,lineHeight:1.6,maxWidth:300,margin:"0 auto 16px"}}>
-          {chFilter!=="all"||tagFilter!=="all"
+          {filtered
             ? "No conversation matches these filters."
             : "Conversations will appear here as soon as a customer writes to you."}
         </div>
-        {(chFilter!=="all"||tagFilter!=="all")&&
-          <button onClick={()=>{setChFilter("all");setTagFilter("all");}} className="ui-btn"
+        {filtered&&
+          <button onClick={()=>{setChFilter("all");setTagFilter("all");setSearch("");}} className="ui-btn"
             style={{padding:"9px 16px",borderRadius:9,border:`1px solid ${T.border}`,background:T.card,
               color:T.text,fontSize:13.5,fontWeight:600,cursor:"pointer"}}>Clear filters</button>}
       </div>}
       {convos.map((cv,i)=>{
         const cvt=contacts[cv.id]||{};
+        const multi=(perPlatform[cv.platform]||[]).length>1;
         return <div key={cv.id} onClick={()=>setSel(i)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:sel===i?T.goldBg:"transparent",borderLeft:sel===i?`3px solid ${T.gold}`:"3px solid transparent"}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-            <span style={{fontSize:13,fontWeight:500}}>{cvt.name||cv.sender}</span>
-            <Badge color={cvt.bot_enabled===false?T.warn:T.success}>{cvt.bot_enabled===false?"manual":"bot"}</Badge>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:4}}>
+            <span style={{fontSize:13,fontWeight:500,display:"flex",alignItems:"center",gap:6,minWidth:0}}>
+              <i className={`ti ${CH_ICON[cv.platform]||"ti-message"}`} style={{fontSize:13,color:T.textMuted,flexShrink:0}}/>
+              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cvt.name||cv.sender}</span>
+            </span>
+            <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
+              <span style={{fontSize:10.5,color:T.textDim}}>{ago(cv.time)}</span>
+              <Badge color={cvt.bot_enabled===false?T.warn:T.success}>{cvt.bot_enabled===false?"manual":"bot"}</Badge>
+            </span>
           </div>
           <span style={{fontSize:12,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{cv.lastMsg}</span>
-          {!!tagsOf(cv.id).length&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6}}>
+          {(multi&&cv.page_id)||tagsOf(cv.id).length?<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6,alignItems:"center"}}>
+            {multi&&cv.page_id&&<span style={{fontSize:10.5,padding:"2px 8px",borderRadius:10,background:T.bgAlt,color:T.textDim,border:`0.5px solid ${T.border}`,display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-arrow-narrow-right" style={{fontSize:11}}/>{acctName(cv.platform,cv.page_id)}</span>}
             {tagsOf(cv.id).map(t=><span key={t} style={{fontSize:10.5,padding:"2px 8px",borderRadius:10,background:t===tagData?.complaint_tag?T.dangerBg:T.bgAlt,color:t===tagData?.complaint_tag?T.danger:T.textMuted,border:`0.5px solid ${t===tagData?.complaint_tag?T.danger+"40":T.border}`}}>{t}</span>)}
-          </div>}
+          </div>:null}
         </div>;
       })}
     </Card>}
@@ -202,7 +241,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
       <div style={{padding:"14px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
           {isMobile&&<button onClick={()=>setSel(-1)} style={{background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:20,padding:0,flexShrink:0}}><i className="ti ti-chevron-left"/></button>}
-          <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}><i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:13}}/>{c.platform}
+          <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}><i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:13}}/>{c.platform}{(perPlatform[c.platform]||[]).length>1&&c.page_id?<span style={{color:T.textDim}}> · {acctName(c.platform,c.page_id)}</span>:null}
             {!!tagData?.available?.length&&<span onClick={e=>e.stopPropagation()} style={{marginLeft:6,display:"inline-block"}}>
               <Select value={tagsOf(c.id)[0]||""} placeholder="Tag…" style={{fontSize:11}}
                 options={tagData.available.map(t=>({value:t,label:t,icon:"ti-tag"}))}
