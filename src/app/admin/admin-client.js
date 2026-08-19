@@ -114,6 +114,26 @@ export default function AdminClient() {
   const del = (c) => run(c.id + "del", () => api("DELETE", { id: c.id, confirm: "DELETE" }));
   const setRole = (target_email, new_role) => run(target_email + new_role, () => api("PUT", { type: "set_role", target_email, new_role }, { "x-admin-key": superKey }));
   const removeAdmin = (target_email) => run(target_email + "remove", () => api("PUT", { type: "remove_admin", target_email }, { "x-admin-key": superKey }));
+  // BYOK: set or remove a client's own AI key. Errors come back to the drawer
+  // (the global banner sits underneath it), so these return {ok, error}.
+  const setAiKey = async (client_id, provider, api_key, model) => {
+    setBusy(client_id + "aikey");
+    const res = await api("PUT", { type: "ai_key", action: "set", client_id, provider, api_key, model }, { "x-admin-key": superKey });
+    const d = await res.json().catch(() => ({}));
+    setBusy("");
+    if (!res.ok) return { ok: false, error: d.error || "Could not save the key" };
+    await openDetail(client_id);
+    return { ok: true };
+  };
+  const removeAiKey = async (client_id) => {
+    setBusy(client_id + "aikey");
+    const res = await api("PUT", { type: "ai_key", action: "remove", client_id }, { "x-admin-key": superKey });
+    const d = await res.json().catch(() => ({}));
+    setBusy("");
+    if (!res.ok) return { ok: false, error: d.error || "Could not remove the key" };
+    await openDetail(client_id);
+    return { ok: true };
+  };
   const openDetail = async (id) => {
     setDetailLoading(true); setDetail({ id, loading: true });
     const res = await fetch(`/api/admin/client-detail?id=${id}&t=${Date.now()}`, { cache: "no-store", headers: { Authorization: `Bearer ${session?.access_token || ""}` } });
@@ -150,6 +170,7 @@ export default function AdminClient() {
   }
   return <AdminApp data={data} refreshing={refreshing} onRefresh={() => load()} busy={busy} err={err} clearErr={() => setErr("")}
     act={act} reviewPayment={reviewPayment} del={del} setRole={setRole} removeAdmin={removeAdmin} superKey={superKey} setSuperKey={setSuperKey}
+    setAiKey={setAiKey} removeAiKey={removeAiKey}
     openDetail={openDetail} detail={detail} detailLoading={detailLoading} closeDetail={() => setDetail(null)} logout={logout} />;
 }
 
@@ -161,7 +182,7 @@ const NAV = [
 ];
 
 export function AdminApp(props) {
-  const { data, refreshing, onRefresh, busy, err, clearErr, act, reviewPayment, del, setRole, removeAdmin, superKey, setSuperKey, openDetail, detail, detailLoading, closeDetail, logout } = props;
+  const { data, refreshing, onRefresh, busy, err, clearErr, act, reviewPayment, del, setRole, removeAdmin, superKey, setSuperKey, setAiKey, removeAiKey, openDetail, detail, detailLoading, closeDetail, logout } = props;
   const isMobile = useIsMobile();
   const [mode, toggleTheme] = useTheme();
   const [page, setPage] = useState("overview");
@@ -242,7 +263,8 @@ export function AdminApp(props) {
       </div>
     </div>
 
-    {detail && <ClientDrawer detail={detail} loading={detailLoading} onClose={closeDetail} canEdit={canEdit} canDelete={canDelete} busy={busy} act={act} del={del} isMobile={isMobile} row={clients.find((c) => c.id === detail.id)} />}
+    {detail && <ClientDrawer detail={detail} loading={detailLoading} onClose={closeDetail} canEdit={canEdit} canDelete={canDelete} busy={busy} act={act} del={del} isMobile={isMobile} row={clients.find((c) => c.id === detail.id)}
+      isSuper={isSuper} superKey={superKey} setSuperKey={setSuperKey} setAiKey={setAiKey} removeAiKey={removeAiKey} />}
   </div>;
 }
 
@@ -365,13 +387,14 @@ function Clients({ clients, openDetail, isMobile }) {
 }
 
 // ── Client drawer ────────────────────────────────────────────────────────────
-function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act, del, isMobile, row }) {
+function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act, del, isMobile, row, isSuper, superKey, setSuperKey, setAiKey, removeAiKey }) {
   const [tab, setTab] = useState("overview");
   const [confirmDel, setConfirmDel] = useState("");
   useEffect(() => { const k = (e) => { if (e.key === "Escape") onClose(); }; document.addEventListener("keydown", k); document.body.style.overflow = "hidden"; return () => { document.removeEventListener("keydown", k); document.body.style.overflow = ""; }; }, []);
   const c = detail.client, r = row || {};
   const isAgency = c?.business_type === "agency";
-  const tabs = [{ value: "overview", label: "Overview", icon: "ti-id" }, { value: "channels", label: "Channels", icon: "ti-plug", badge: detail.channels?.length || undefined }, isAgency ? { value: "knowledge", label: "Knowledge", icon: "ti-database", badge: detail.files?.length || undefined } : { value: "catalogue", label: "Catalogue", icon: "ti-package", badge: detail.products?.length || undefined }, isAgency ? { value: "bookings", label: "Bookings", icon: "ti-calendar-event", badge: detail.bookings?.length || undefined } : { value: "orders", label: "Orders", icon: "ti-shopping-bag", badge: detail.orders?.length || undefined }, { value: "payments", label: "Payments", icon: "ti-cash", badge: detail.payments?.length || undefined }];
+  const tabs = [{ value: "overview", label: "Overview", icon: "ti-id" }, { value: "channels", label: "Channels", icon: "ti-plug", badge: detail.channels?.length || undefined }, isAgency ? { value: "knowledge", label: "Knowledge", icon: "ti-database", badge: detail.files?.length || undefined } : { value: "catalogue", label: "Catalogue", icon: "ti-package", badge: detail.products?.length || undefined }, isAgency ? { value: "bookings", label: "Bookings", icon: "ti-calendar-event", badge: detail.bookings?.length || undefined } : { value: "orders", label: "Orders", icon: "ti-shopping-bag", badge: detail.orders?.length || undefined }, { value: "payments", label: "Payments", icon: "ti-cash", badge: detail.payments?.length || undefined },
+    ...(isSuper ? [{ value: "ai", label: "AI key", icon: "ti-key" }] : [])];
   const Row = ({ k, v }) => <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span style={{ color: T.textMuted }}>{k}</span><span style={{ textAlign: "right", wordBreak: "break-word", fontWeight: 500 }}>{v || "—"}</span></div>;
   const Mini = ({ icon, label, value, color = T.gold }) => <div style={{ padding: "12px 12px", borderRadius: 14, background: T.bgAlt, boxShadow: T.nmIn }}><div style={{ fontSize: 10.5, color: T.textMuted, textTransform: "uppercase", letterSpacing: .7, display: "flex", alignItems: "center", gap: 6 }}><i className={`ti ${icon}`} style={{ color }} />{label}</div><div style={{ fontSize: 20, fontWeight: 700, marginTop: 4 }}>{value}</div></div>;
   const m = detail.messages || {};
@@ -420,6 +443,7 @@ function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act,
           {tab === "knowledge" && <Card>{detail.files?.length ? detail.files.map((f, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><i className="ti ti-file-text" style={{ marginRight: 6, color: T.gold }} />{f.file_name}</span><span style={{ color: T.textMuted, flexShrink: 0, fontSize: 12 }}>{f.chunks} chunks · {shortDate(f.created_at)}</span></div>) : <Empty icon="ti-database" text="No documents uploaded." />}</Card>}
           {tab === "orders" && <Card>{detail.orders?.length ? detail.orders.map((o, i) => <div key={i} style={{ padding: "9px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={{ fontWeight: 600 }}>{o.customer_name || "—"} <span style={{ color: T.textDim, fontWeight: 400, fontFamily: "monospace", fontSize: 11.5 }}>#{o.order_code}</span></span><Badge color={o.status === "Pending" ? T.warn : T.success}>{o.status}</Badge></div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>{o.total_price ? `${taka(o.total_price)} · ` : ""}{shortDate(o.created_at)}</div></div>) : <Empty icon="ti-shopping-bag" text="No orders yet." />}</Card>}
           {tab === "bookings" && <Card>{detail.bookings?.length ? detail.bookings.map((b, i) => <div key={i} style={{ padding: "9px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={{ fontWeight: 600 }}>{b.customer_name || "—"}</span><Badge color={b.status === "Confirmed" ? T.success : T.textDim}>{b.status}</Badge></div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>{b.service_want} · {b.meeting_date} {b.meeting_time}</div></div>) : <Empty icon="ti-calendar-event" text="No bookings yet." />}</Card>}
+          {tab === "ai" && isSuper && <AITab ai={detail.ai || null} clientId={c.id} superKey={superKey} setSuperKey={setSuperKey} save={setAiKey} remove={removeAiKey} busy={busy === c.id + "aikey"} />}
           {tab === "payments" && <Card>{detail.payments?.length ? detail.payments.map((p, i) => <div key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "9px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13, flexWrap: "wrap" }}><span><b>{taka(p.amount)}</b> <span style={{ color: T.textMuted }}>· {planName(p.plan)} · {p.billing_cycle} · {p.method}</span><div style={{ fontSize: 11.5, color: T.textDim, fontFamily: "monospace" }}>{p.txn_id}</div></span><span style={{ textAlign: "right" }}><Badge color={p.status === "approved" ? T.success : p.status === "rejected" ? T.danger : T.warn}>{p.status}</Badge><div style={{ fontSize: 11.5, color: T.textDim, marginTop: 3 }}>{shortDate(p.created_at)}{p.reviewed_by ? ` · by ${p.reviewed_by}` : ""}</div></span></div>) : <Empty icon="ti-cash" text="No payment requests." />}</Card>}
         </div>
       </>}
@@ -507,6 +531,112 @@ function Admins({ admins, superKey, setSuperKey, setRole, removeAdmin, busy }) {
             </div>)}
         </div>; })}
       </div>
+    </Card>
+  </div>;
+}
+
+// ── AI key (BYOK, super admin only) ─────────────────────────────────────────
+// Give one client their own Google AI Studio or OpenAI key: their chat, photo
+// and voice AI then runs (and bills) on that key. Product-search embeddings
+// always stay on the platform's Gemini key — a different embedding space would
+// silently break search for everything the client already saved.
+const AI_PROVIDERS = {
+  google: { label: "Google AI Studio", icon: "ti-brand-google", color: "#4285F4", modelHint: "gemini-2.5-flash (default)" },
+  openai: { label: "OpenAI", icon: "ti-brand-openai", color: "#10A37F", modelHint: "gpt-4o-mini (default)" },
+};
+
+function AITab({ ai, clientId, superKey, setSuperKey, save, remove, busy }) {
+  const [form, setForm] = useState(null); // null | {provider, api_key, model}
+  const [msg, setMsg] = useState(null);   // {ok, text}
+  const [confirmRm, setConfirmRm] = useState(false);
+  const locked = !superKey;
+  const P = ai ? AI_PROVIDERS[ai.provider] : null;
+
+  const submit = async () => {
+    if (!form?.api_key?.trim()) { setMsg({ ok: false, text: "Paste the API key first." }); return; }
+    setMsg({ ok: true, text: "Checking the key with the provider…" });
+    const r = await save(clientId, form.provider, form.api_key.trim(), form.model?.trim() || null);
+    setMsg(r.ok ? { ok: true, text: "Key verified and saved. This client now runs on it." } : { ok: false, text: r.error });
+    if (r.ok) setForm(null);
+  };
+  const doRemove = async () => {
+    const r = await remove(clientId);
+    setMsg(r.ok ? { ok: true, text: "Key removed — back on the platform key." } : { ok: false, text: r.error });
+    setConfirmRm(false);
+  };
+
+  return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    {/* Which key answers today */}
+    <Card>
+      <div style={{ display: "flex", alignItems: "center", gap: 13, flexWrap: "wrap" }}>
+        <span style={{ width: 46, height: 46, borderRadius: 15, background: ai ? `${P.color}1a` : T.goldBg, color: ai ? P.color : T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 23, flexShrink: 0 }}>
+          <i className={`ti ${ai ? P.icon : "ti-server"}`} /></span>
+        <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 700 }}>{ai ? `${P.label} — this client's own key` : "Platform key (default)"}</div>
+          <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 3, lineHeight: 1.55 }}>
+            {ai
+              ? <>Chat, photos and voice run and bill on this key.<span style={{ fontFamily: "monospace", marginLeft: 6 }}>{ai.key_mask}</span>{ai.model ? <> · model <b>{ai.model}</b></> : " · default models"}</>
+              : "This client's AI runs on your platform key. Give them their own key and their usage bills to them instead."}
+          </div>
+          {ai && <div style={{ marginTop: 8, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            {ai.status === "failing"
+              ? <Badge color={T.danger}>Failing — falling back to platform</Badge>
+              : <Badge color={T.success}>Verified {shortDate(ai.last_verified_at)}</Badge>}
+            {ai.status === "failing" && ai.last_error && <span style={{ fontSize: 11.5, color: T.textDim, maxWidth: 380, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={ai.last_error}>{ai.last_error}</span>}
+          </div>}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {ai && !confirmRm && <Btn small onClick={() => { setForm({ provider: ai.provider, api_key: "", model: ai.model || "" }); setMsg(null); }} disabled={locked || busy}>Replace key</Btn>}
+          {ai && (confirmRm
+            ? <><Btn small danger onClick={doRemove} disabled={busy}>{busy ? "Removing…" : "Yes, remove"}</Btn><Btn small onClick={() => setConfirmRm(false)}>Cancel</Btn></>
+            : <Btn small onClick={() => setConfirmRm(true)} disabled={locked || busy} style={{ color: T.danger, background: T.dangerBg }}>Remove</Btn>)}
+          {!ai && !form && <Btn gold small onClick={() => { setForm({ provider: "google", api_key: "", model: "" }); setMsg(null); }} disabled={locked}>Add their own key</Btn>}
+        </div>
+      </div>
+    </Card>
+
+    {/* The secret key gate, right here so the super admin never has to leave */}
+    {locked && <Card style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <span style={{ width: 38, height: 38, borderRadius: 12, background: T.goldBg, color: T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}><i className="ti ti-lock" /></span>
+      <div style={{ flex: "1 1 200px", fontSize: 12.5, color: T.textMuted }}>Changing a client's AI key needs your <b style={{ color: T.text }}>secret admin key</b> — the same one role changes use. It is never stored.</div>
+      <PwInput value={superKey} onChange={(e) => setSuperKey(e.target.value)} placeholder="Secret admin key" style={{ flex: "1 1 240px" }} />
+    </Card>}
+
+    {/* Set / replace form */}
+    {form && <Card>
+      <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 12 }}><i className="ti ti-key" style={{ color: T.gold, marginRight: 7 }} />{ai ? "Replace this client's key" : "Give this client their own key"}</div>
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Provider</label>
+        <Select wide value={form.provider} onChange={(v) => setForm({ ...form, provider: v, model: "" })}
+          options={Object.entries(AI_PROVIDERS).map(([v, p]) => ({ value: v, label: p.label, icon: p.icon }))} />
+      </div>
+      <PwInput value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })}
+        placeholder={form.provider === "openai" ? "sk-…" : "AIza…"} style={{ marginBottom: 14 }} />
+      <Inp emb label="Model (optional)" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })}
+        placeholder={AI_PROVIDERS[form.provider].modelHint} />
+      <div style={{ fontSize: 11.5, color: T.textDim, margin: "-6px 0 14px", lineHeight: 1.6 }}>
+        The key is checked with {AI_PROVIDERS[form.provider].label} before saving, stored encrypted, and shown only masked after this. If it ever fails, the bot falls back to the platform key automatically and this tab shows the error.
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Btn gold onClick={submit} disabled={busy || locked || !form.api_key.trim()} style={{ borderRadius: 12 }}>{busy ? "Verifying…" : "Verify & save"}</Btn>
+        <Btn onClick={() => { setForm(null); setMsg(null); }} disabled={busy} style={{ borderRadius: 12 }}>Cancel</Btn>
+      </div>
+    </Card>}
+
+    {msg && <Card style={{ padding: "10px 14px", display: "flex", gap: 9, alignItems: "center", borderColor: `color-mix(in srgb, ${msg.ok ? T.success : T.danger} 35%, transparent)` }}>
+      <i className={`ti ${msg.ok ? "ti-check" : "ti-alert-circle"}`} style={{ color: msg.ok ? T.success : T.danger, fontSize: 17, flexShrink: 0 }} />
+      <span style={{ fontSize: 12.5 }}>{msg.text}</span>
+    </Card>}
+
+    {/* What runs where — so a support question never needs the code */}
+    <Card>
+      <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: .8 }}>What the client's key covers</div>
+      {[["ti-messages", "Chat replies on every channel", true], ["ti-photo", "Photo understanding & product matching", true], ["ti-microphone", "Voice message transcription", true], ["ti-wand", "Bot profile generation & auto-tags", true], ["ti-database", "Product-search embeddings", false]].map(([ic, t, own]) =>
+        <div key={t} style={{ display: "flex", gap: 10, alignItems: "center", padding: "7px 0", borderTop: `1px solid ${T.border}`, fontSize: 12.5 }}>
+          <i className={`ti ${ic}`} style={{ color: T.textDim, width: 18 }} /><span style={{ flex: 1 }}>{t}</span>
+          <Badge color={own ? T.success : T.textMuted}>{own ? "Client's key" : "Platform key — always"}</Badge>
+        </div>)}
+      <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 10, lineHeight: 1.6 }}>Embeddings stay on the platform's Gemini key because every saved product lives in that vector space — switching it would silently break search. They cost a fraction of a taka.</div>
     </Card>
   </div>;
 }

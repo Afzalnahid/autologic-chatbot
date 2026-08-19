@@ -86,7 +86,7 @@ const RANK = { Complaint: 5, Booking: 4, Order: 4, Delivery: 3, "Product Inquiry
 // Returns null when the model could not answer, so the caller can leave the
 // existing tag alone. Previously a quota error was written to the database as
 // "Other", which is how three booking conversations ended up mislabelled.
-export async function aiTag(text, businessType) {
+export async function aiTag(text, businessType, chatFn) {
   const allowed = tagsFor(businessType);
   const system =
     `Classify the customer message into exactly one label from this list: ${allowed.join(", ")}. ` +
@@ -94,7 +94,7 @@ export async function aiTag(text, businessType) {
     `no explanation. If it does not clearly fit any label, answer Other.`;
 
   try {
-    const raw = await chatWithGemini(system, [{ role: "user", content: String(text).slice(0, 800) }]);
+    const raw = await (chatFn || chatWithGemini)(system, [{ role: "user", content: String(text).slice(0, 800) }]);
     const answer = String(raw || "").trim().replace(/[."']/g, "");
     const hit = allowed.find((a) => a.toLowerCase() === answer.toLowerCase());
     if (hit) return hit;
@@ -109,7 +109,7 @@ export async function aiTag(text, businessType) {
 // Classify the conversation, not the latest line. Intent lives a few messages
 // back: "can we meet Thursday?" then "yes" then "where is the link?" is one
 // booking, and only the first line says so.
-export async function classify(texts, businessType) {
+export async function classify(texts, businessType, chatFn) {
   const list = (Array.isArray(texts) ? texts : [texts]).filter(Boolean).map(String);
   if (!list.length) return { tag: null, by: "none" };
 
@@ -123,7 +123,7 @@ export async function classify(texts, businessType) {
   if (best) return { tag: best, by: "rule" };
 
   const joined = list.slice(0, 6).reverse().join("\n");
-  const tag = await aiTag(joined, businessType);
+  const tag = await aiTag(joined, businessType, chatFn);
   return { tag, by: tag ? "ai" : "unavailable" };
 }
 
@@ -142,7 +142,10 @@ export async function applyAutoTag(clientId, senderId, texts, businessType, opts
     if (opts.forced && tagsFor(businessType).includes(opts.forced)) {
       tag = opts.forced; by = "action";
     } else {
-      ({ tag, by } = await classify(texts, businessType));
+      // Classification rides the client's own key when they have one.
+      const { getClientAI } = await import("@/lib/ai.js");
+      const aiFor = await getClientAI(clientId).catch(() => null);
+      ({ tag, by } = await classify(texts, businessType, aiFor?.chat));
     }
 
     // The model was unavailable. Leaving yesterday's tag is better than writing

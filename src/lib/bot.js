@@ -1,12 +1,12 @@
 import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
-import { analyzeImage, transcribeAudio, transcribeAudioBase64, chatWithGemini, generateEmbedding, UNCLEAR_AUDIO } from "@/lib/gemini.js";
+import { chatWithGemini, generateEmbedding, UNCLEAR_AUDIO } from "@/lib/gemini.js";
 import { PLANS, PAID_PLANS } from "@/lib/plans.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
-import { analyzeImageBase64 } from "@/lib/gemini.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
 import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
+import { getClientAI } from "@/lib/ai.js";
 
 function visionPrompt(businessType, itemLabel) {
   const unit = itemLabel || "item";
@@ -543,7 +543,8 @@ export function languageLock(lang) {
 // answers an English question in Bangla anyway. So the reply is checked, and
 // rewritten when it came back in the wrong language. A failed rewrite keeps the
 // original — a reply in the wrong language still beats no reply at all.
-async function enforceLanguage(items, lang) {
+async function enforceLanguage(items, lang, aiFor) {
+  const rewrite = aiFor ? aiFor.chat : chatWithGemini;
   const hasBengali = (t) => /[\u0980-\u09FF]/.test(String(t || ""));
   const wrong = items.some(it =>
     it.text && (lang === "Bangla" ? !hasBengali(it.text) : hasBengali(it.text))
@@ -566,7 +567,7 @@ async function enforceLanguage(items, lang) {
     // in the wrong language.
     for (let attempt = 0; attempt < 2 && !done; attempt++) {
       try {
-        const fixed = await chatWithGemini(system, [{ role: "user", content: it.text }]);
+        const fixed = await rewrite(system, [{ role: "user", content: it.text }]);
         const clean = String(fixed || "").trim();
         const stillWrong = lang === "Bangla" ? !hasBengali(clean) : hasBengali(clean);
         if (clean && !stillWrong) done = clean;
@@ -584,6 +585,9 @@ async function enforceLanguage(items, lang) {
 // this one function so a new channel cannot drift from the others.
 export async function composeReply({ clientId, client, bType, senderId, combined, platform }) {
   const isAgency = bType === "agency";
+  // Which key answers for this client — the platform's, or their own (BYOK).
+  // The widget calls composeReply directly, so this must resolve here too.
+  const aiFor = await getClientAI(clientId);
 
   let systemPrompt, history, context, forcedLang = null;
   try {
@@ -641,7 +645,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     // Also on the user turn. A system instruction loses to the visible pattern of
     // the conversation: with a history of Bangla replies the model simply copies
     // the previous answer, whatever the system prompt says.
-    raw = await chatWithGemini(systemPrompt + context + rules + lock,
+    raw = await aiFor.chat(systemPrompt + context + rules + lock,
       [...history, { role: "user", content: combined + `\n\n[Reply in ${lang} only.]` }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
@@ -664,7 +668,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     items = await maybeSaveOrder(items, clientId, senderId, platform);
     if (items.length !== before) didAct = true;
   }
-  items = await enforceLanguage(items, forcedLang || detectLanguage(combined));
+  items = await enforceLanguage(items, forcedLang || detectLanguage(combined), aiFor);
   // Every model in the chain refused (or the reply was unparseable). Say so like
   // a shop would — and promise a human — instead of a bare "try again later",
   // which reads as broken and loses the customer.
@@ -855,6 +859,8 @@ export async function handleIncoming(event) {
   let content = event.text || "";
   let attachments = null;
   let voiceUnclear = false;
+  // Which key answers for this client — the platform's, or their own (BYOK).
+  const ai = await getClientAI(clientId);
 
   // Voice notes — Facebook/Instagram hand us a CDN url, WhatsApp a media id
   // that needs the channel token. Both end in the same transcription.
@@ -862,13 +868,13 @@ export async function handleIncoming(event) {
     let transcript = "";
     try {
       if (event.audio) {
-        transcript = await transcribeAudio(event.audio);
+        transcript = await ai.transcribeUrl(event.audio);
       } else {
         const meta = await fetch(`https://graph.facebook.com/v24.0/${event.audioId}`, { headers: { Authorization: `Bearer ${channel.access_token}` } }).then(r => r.json());
         if (!meta.url) throw new Error("no media url");
         const bin = await fetch(meta.url, { headers: { Authorization: `Bearer ${channel.access_token}` } });
         const b64 = Buffer.from(await bin.arrayBuffer()).toString("base64");
-        transcript = await transcribeAudioBase64(b64, bin.headers.get("content-type") || meta.mime_type || "audio/ogg");
+        transcript = await ai.transcribeB64(b64, bin.headers.get("content-type") || meta.mime_type || "audio/ogg");
       }
     } catch (e) { console.error("transcribe:", e.message); }
     if (!transcript || transcript === UNCLEAR_AUDIO) { voiceUnclear = true; transcript = ""; }
@@ -883,7 +889,7 @@ export async function handleIncoming(event) {
         const bin = await fetch(meta.url, { headers: { Authorization: `Bearer ${channel.access_token}` } });
         const b64 = Buffer.from(await bin.arrayBuffer()).toString("base64");
         const mime = bin.headers.get("content-type") || "image/jpeg";
-        const desc = await analyzeImageBase64(b64, mime, visionPrompt(bType, iLabel));
+        const desc = await ai.visionB64(b64, mime, visionPrompt(bType, iLabel));
         const idBlock = `IDENTIFIED ITEMS:\n--- ITEM 1 ---\n${desc}`;
         content = content ? `${content}\n${idBlock}` : idBlock;
         attachments = "whatsapp-media";
@@ -896,7 +902,7 @@ export async function handleIncoming(event) {
     const parts = [];
     for (let i = 0; i < event.images.length; i++) {
       try {
-        const desc = await analyzeImage(event.images[i], visionPrompt(bType, iLabel));
+        const desc = await ai.visionUrl(event.images[i], visionPrompt(bType, iLabel));
         parts.push(`--- ITEM ${i + 1} ---\n${desc}`);
       } catch (e) { console.error("vision:", e.message); }
     }
@@ -1052,7 +1058,8 @@ export async function handleComment(event) {
 
   let reply = "";
   try {
-    reply = await chatWithGemini(
+    const aiFor = await getClientAI(clientId);
+    reply = await aiFor.chat(
       commentInstruction + "\n\n" + persona + context,
       [{ role: "user", content:
         (postText ? `The post says: "${postText}"\n\n` : "") +

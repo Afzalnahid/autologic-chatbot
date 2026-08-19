@@ -42,7 +42,13 @@ Google Calendar · Vercel (`getvoicium.com`)
 - Design tokens are CSS variables: the dashboard's live in
   `src/app/dashboard/components/ui.js` (`PALETTE`), the public pages' in
   `src/lib/landing.js` (`THEME_CSS`). Never hard-code a brand colour in a component.
-- Embeddings stay 768-dimensional.
+- Embeddings stay 768-dimensional, and always run on the platform's Gemini key
+  — even for a client on their own AI key (BYOK). Another provider's embeddings
+  are a different vector space and would silently break search.
+- Client AI keys (BYOK): only the super admin sets or removes them (secret
+  admin key required), they are stored encrypted, and no dashboard ever sees
+  more than a masked form. A failing client key falls back to the platform key
+  — the bot never goes silent because of it.
 - Client setup is one click. Never ask a business owner to find an ID or paste a token.
 - Broadcasts and follow-ups only ever send inside Meta's 24-hour window.
 

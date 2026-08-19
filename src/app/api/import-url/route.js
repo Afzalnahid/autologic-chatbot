@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { analyzeImage, generateEmbedding, extractProductsFromUrl } from "@/lib/gemini.js";
+import { generateEmbedding, extractProductsFromUrl } from "@/lib/gemini.js";
+import { getClientAI } from "@/lib/ai.js";
 
 function visionPrompt(bType, unit) {
   return `You are an elite product cataloger for a ${bType || "business"}. Produce a precise, search-optimized description of the ${unit || "item"} for perfect semantic matching. First scan for a printed code or SKU; if present begin with: CODE: <exact code>. Ignore background, hands, packaging, watermarks and logos. Describe ONLY the ${unit || "item"}: exact type and subtype, colors, material and finish, shape, patterns, components, size cues and unique features. One dense technical paragraph, no preamble.`;
@@ -34,7 +35,7 @@ export async function POST(request) {
 
     const image_url = p.images?.[0]?.src || "";
     let visual = "";
-    if (image_url) { try { visual = await analyzeImage(image_url, visionPrompt(bType, unit)); } catch {} }
+    if (image_url) { try { const ai = await getClientAI(client.id); visual = await ai.visionUrl(image_url, visionPrompt(bType, unit)); } catch {} }
 
     const codeMatch = visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i);
     const product_code = (codeMatch ? codeMatch[1].trim() : "") || `URL-${Date.now()}`;

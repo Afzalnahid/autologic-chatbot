@@ -37,7 +37,7 @@ export const GET = withErrors(async (request) => {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
 
-  const [clientQ, channelsQ, msgsQ, ordersQ, bookingsQ, productsQ, filesQ, payQ, contactsQ, settingsQ] = await Promise.all([
+  const [clientQ, channelsQ, msgsQ, ordersQ, bookingsQ, productsQ, filesQ, payQ, contactsQ, settingsQ, aiQ] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
     supabase.from("channels").select("platform,page_id,status,connected_at").eq("client_id", id),
     supabase.from("message_buffer").select("role,created_at,platform").eq("client_id", id),
@@ -48,6 +48,7 @@ export const GET = withErrors(async (request) => {
     supabase.from("payment_requests").select("id,plan,billing_cycle,amount,method,txn_id,status,created_at,reviewed_at,reviewed_by,admin_note").eq("client_id", id).order("created_at", { ascending: false }).limit(50),
     supabase.from("contacts").select("sender_id", { count: "exact", head: true }).eq("client_id", id),
     supabase.from("app_settings").select("settings").eq("id", String(id)).maybeSingle(),
+    supabase.from("client_ai").select("provider,model,key_mask,status,last_verified_at,last_error,last_error_at").eq("client_id", id).maybeSingle(),
   ]);
 
   const client = clientQ.data;
@@ -99,5 +100,8 @@ export const GET = withErrors(async (request) => {
     contacts: contactsQ.count || 0,
     // Only the bot's public face — never the business prompt itself.
     settings: settingsQ.data?.settings ? { botName: settingsQ.data.settings.botName || null, greeting: settingsQ.data.settings.greeting || null, hasPrompt: !!settingsQ.data.settings.businessPrompt } : null,
+    // BYOK config, masked, super admin only. `undefined` (stripped from the
+    // JSON) tells the UI the caller may not even see the section.
+    ai: email === SUPER_ADMIN ? (aiQ.data || null) : undefined,
   }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } });
 }, "admin-client-detail");

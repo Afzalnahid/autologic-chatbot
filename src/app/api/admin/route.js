@@ -7,6 +7,9 @@ import { supabase } from "@/lib/supabase.js";
 import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentApproved, notifyPaymentRejected } from "@/lib/email.js";
 import { PLANS } from "@/lib/plans.js";
 import { startOfDayDhaka } from "@/lib/time.js";
+import { encryptSecret, maskKey } from "@/lib/crypt.js";
+import { verifyOpenAIKey } from "@/lib/openai.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -37,6 +40,21 @@ async function callerRole(email) {
 
 const CAN_EDIT = ["super", "full", "editor"];
 const CAN_DELETE = ["super", "full"];
+
+// A tiny real call proves the key works before it is saved — an invalid key
+// would otherwise only show up as customer-facing fallbacks days later.
+async function verifyAIKey(provider, apiKey, model) {
+  try {
+    if (provider === "google") {
+      const m = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: model || "gemini-2.5-flash" });
+      await m.countTokens("ping");
+      return { ok: true };
+    }
+    return await verifyOpenAIKey(apiKey, model);
+  } catch (e) {
+    return { ok: false, error: String(e.message || "unknown").slice(0, 200) };
+  }
+}
 
 export async function GET(request) {
   const email = await callerEmail(request);
@@ -206,6 +224,45 @@ export async function PUT(request) {
       notifyAdminApproved(target_email.toLowerCase(), new_role).catch(() => {});
     }
     return NextResponse.json({ ok: true });
+  }
+
+  // Give a client their own AI key (BYOK), or take it away. Super admin only,
+  // guarded by the same secret key as role changes. The key is verified with a
+  // real call to the provider before it is saved, stored encrypted, and only
+  // ever returned masked.
+  if (body.type === "ai_key") {
+    if (role !== "super") return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const key = request.headers.get("x-admin-key") || "";
+    if (key !== process.env.ADMIN_PASSWORD) return NextResponse.json({ error: "invalid key" }, { status: 403 });
+    const { client_id, action } = body;
+    if (!client_id) return NextResponse.json({ error: "missing client" }, { status: 400 });
+
+    if (action === "remove") {
+      const { error } = await supabase.from("client_ai").delete().eq("client_id", client_id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "set") {
+      const provider = body.provider === "openai" ? "openai" : body.provider === "google" ? "google" : null;
+      const apiKey = String(body.api_key || "").trim();
+      const model = String(body.model || "").trim() || null;
+      if (!provider || !apiKey) return NextResponse.json({ error: "provider and api_key required" }, { status: 400 });
+
+      const check = await verifyAIKey(provider, apiKey, model);
+      if (!check.ok) return NextResponse.json({ error: "Key check failed: " + check.error }, { status: 400 });
+
+      const now = new Date().toISOString();
+      const { error } = await supabase.from("client_ai").upsert({
+        client_id, provider, model,
+        api_key_enc: encryptSecret(apiKey), key_mask: maskKey(apiKey),
+        status: "verified", last_verified_at: now, last_error: null, last_error_at: null,
+        created_by: email, updated_at: now,
+      }, { onConflict: "client_id" });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true, ai: { provider, model, key_mask: maskKey(apiKey), status: "verified", last_verified_at: now } });
+    }
+    return NextResponse.json({ error: "bad action" }, { status: 400 });
   }
 
   // Remove an admin entirely — super admin only, requires secret key.

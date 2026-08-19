@@ -10,7 +10,8 @@
 //   options[] ({name, values[]}) and variants[] ({id, name, sku, attrs{},
 //   regular_price, sale_price, stock_qty, stock_status, image_url}).
 import { supabase } from "@/lib/supabase.js";
-import { analyzeImage, generateEmbedding } from "@/lib/gemini.js";
+import { generateEmbedding } from "@/lib/gemini.js";
+import { getClientAI } from "@/lib/ai.js";
 
 // Must stay identical to the prompt used at message time (docs/prompts.md):
 // both descriptions are embedded and compared, so any drift breaks matching.
@@ -132,10 +133,14 @@ export function resolveGallery(order, uploaded) {
 
 // Vision runs once per new primary image; the description is stored in
 // metadata.visual so later edits can re-embed without another vision call.
+// It runs on the client's own key when they have one — the same provider then
+// describes photos at import time and at message time, so the embedded
+// descriptions stay stylistically comparable (docs/prompts.md).
 export async function describeImage(url, client) {
   if (!url) return { visual: "", analyzeError: null };
   try {
-    return { visual: await analyzeImage(url, visionPrompt(client.business_type || "ecommerce", client.item_label || "product")), analyzeError: null };
+    const ai = await getClientAI(client.id);
+    return { visual: await ai.visionUrl(url, visionPrompt(client.business_type || "ecommerce", client.item_label || "product")), analyzeError: null };
   } catch (e) { return { visual: "", analyzeError: e.message }; }
 }
 

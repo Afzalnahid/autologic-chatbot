@@ -3,7 +3,7 @@ export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
-import { chatWithGemini } from "@/lib/gemini.js";
+import { getClientAI } from "@/lib/ai.js";
 import { supabase } from "@/lib/supabase.js";
 import { composeProfile } from "@/lib/profile.js";
 
@@ -81,7 +81,7 @@ export async function POST(request) {
     let generated = false;
     if (body.mode !== "raw") {
       try {
-        prompt = String(await chatWithGemini(META, [{ role: "user", content: input }])).replace(/```/g, "").trim();
+        prompt = String(await (await getClientAI(client.id)).chat(META, [{ role: "user", content: input }])).replace(/```/g, "").trim();
         generated = Boolean(prompt);
       } catch (e) {
         console.error("[generate-prompt] AI failed, using composed profile:", e.message);

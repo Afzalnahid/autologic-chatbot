@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { analyzeImage, generateEmbedding } from "@/lib/gemini.js";
+import { generateEmbedding } from "@/lib/gemini.js";
+import { getClientAI } from "@/lib/ai.js";
 
 function visionPrompt(bType, unit) {
   return `You are an elite product cataloger for a ${bType || "business"}. Produce a precise, search-optimized description of the ${unit || "item"} for perfect semantic matching. First scan for a printed code or SKU; if present begin with: CODE: <exact code>. Ignore background, hands, packaging, watermarks and logos. Describe ONLY the ${unit || "item"}: exact type and subtype, colors, material and finish, shape, patterns, components, size cues and unique features. One dense technical paragraph, no preamble.`;
@@ -25,7 +26,10 @@ export async function POST(request) {
 
     let visual = "";
     if (p.image_url) {
-      try { visual = await analyzeImage(p.image_url, visionPrompt(bType, unit)); } catch {}
+      try {
+        const ai = await getClientAI(client.id);
+        visual = await ai.visionUrl(p.image_url, visionPrompt(bType, unit));
+      } catch {}
     }
     const content = `Product Code: ${p.product_code}\nName: ${p.product_name}\n${visual || p.description || ""}`;
     const embedding = await generateEmbedding(content);

@@ -1,9 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-let _genAI = null;
-function getGenAI() {
-  if (!_genAI) _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  return _genAI;
+// One SDK instance per API key. The platform key is the default; a client on
+// their own Google key (src/lib/ai.js) passes it through `opts.apiKey`.
+const _genAIs = new Map();
+function getGenAI(apiKey) {
+  const k = apiKey || process.env.GEMINI_API_KEY || "";
+  let inst = _genAIs.get(k);
+  if (!inst) { inst = new GoogleGenerativeAI(k); _genAIs.set(k, inst); }
+  return inst;
 }
 
 // Model chain, tried in order. Google retires model ids without warning —
@@ -34,9 +38,9 @@ async function onChain(run) {
   throw last;
 }
 
-export async function chatWithGemini(systemPrompt, messages, model) {
+export async function chatWithGemini(systemPrompt, messages, model, opts = {}) {
   const run = async (id) => {
-    const m = getGenAI().getGenerativeModel({ model: id, systemInstruction: systemPrompt });
+    const m = getGenAI(opts.apiKey).getGenerativeModel({ model: id, systemInstruction: systemPrompt });
     const history = messages.slice(0, -1).map(msg => ({
       role: msg.role === "assistant" ? "model" : "user",
       parts: [{ text: msg.content }],
@@ -55,9 +59,9 @@ export async function chatWithGemini(systemPrompt, messages, model) {
 
 
 
-export async function analyzeImageBase64(base64, mimeType, prompt) {
+export async function analyzeImageBase64(base64, mimeType, prompt, opts = {}) {
   return onChain(async (id) => {
-    const model = getGenAI().getGenerativeModel({ model: id });
+    const model = getGenAI(opts.apiKey).getGenerativeModel({ model: id });
     const result = await withRetry(() => model.generateContent([
       prompt,
       { inlineData: { data: base64, mimeType } },
@@ -68,13 +72,13 @@ export async function analyzeImageBase64(base64, mimeType, prompt) {
 
 // Product photo matching. This ran on the retired lite model, so every customer
 // photo silently failed to describe — it now uses the same chain as everything else.
-export async function analyzeImage(imageUrl, prompt = "Describe this product in detail for product matching.") {
+export async function analyzeImage(imageUrl, prompt = "Describe this product in detail for product matching.", opts = {}) {
   const response = await fetch(imageUrl);
   if (!response.ok) throw new Error(`image download failed: ${response.status}`);
   const buffer = await response.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
   const mimeType = response.headers.get("content-type") || "image/jpeg";
-  return analyzeImageBase64(base64, mimeType, prompt);
+  return analyzeImageBase64(base64, mimeType, prompt, opts);
 }
 
 
@@ -156,9 +160,9 @@ function normalizeAudioMime(mime) {
   return m;
 }
 
-async function transcribeParts(base64, mimeType) {
+async function transcribeParts(base64, mimeType, opts = {}) {
   return onChain(async (id) => {
-    const model = getGenAI().getGenerativeModel({ model: id, generationConfig: { temperature: 0 } });
+    const model = getGenAI(opts.apiKey).getGenerativeModel({ model: id, generationConfig: { temperature: 0 } });
     const result = await withRetry(() => model.generateContent([
       TRANSCRIBE_PROMPT,
       { inlineData: { data: base64, mimeType: normalizeAudioMime(mimeType) } },
@@ -167,14 +171,14 @@ async function transcribeParts(base64, mimeType) {
   });
 }
 
-export async function transcribeAudioBase64(base64, mimeType = "audio/webm") {
-  return transcribeParts(base64, mimeType);
+export async function transcribeAudioBase64(base64, mimeType = "audio/webm", opts = {}) {
+  return transcribeParts(base64, mimeType, opts);
 }
 
-export async function transcribeAudio(audioUrl, headers) {
+export async function transcribeAudio(audioUrl, headers, opts = {}) {
   const res = await fetch(audioUrl, headers ? { headers } : undefined);
   if (!res.ok) throw new Error(`audio download failed: ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer()).toString("base64");
   const mime = res.headers.get("content-type") || "audio/mp4";
-  return transcribeParts(buf, mime);
+  return transcribeParts(buf, mime, opts);
 }
