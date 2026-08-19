@@ -6,12 +6,37 @@ function getGenAI() {
   return _genAI;
 }
 
-const PRIMARY_MODEL = "gemini-2.5-flash";
-const LITE_MODEL = "gemini-2.0-flash";
+// Model chain, tried in order. Google retires model ids without warning —
+// `gemini-2.0-flash` started answering 404 ("no longer available … use
+// models/gemini-3.6-flash") and, because it was the only fallback, every reply
+// that hit the primary model's daily free-tier cap died with it. The bot must
+// never depend on one id again: each call walks this list until one answers.
+// Override without a deploy by setting GEMINI_MODELS to a comma-separated list.
+export const MODEL_CHAIN = (process.env.GEMINI_MODELS || "gemini-2.5-flash,gemini-3.6-flash")
+  .split(",").map(s => s.trim()).filter(Boolean);
+const PRIMARY_MODEL = MODEL_CHAIN[0];
 
-export async function chatWithGemini(systemPrompt, messages, model = PRIMARY_MODEL) {
-  try {
-    const m = getGenAI().getGenerativeModel({ model, systemInstruction: systemPrompt });
+// A model id that is gone (404), out of quota (429) or overloaded (503) means
+// "try the next model". Anything else is a real fault and must surface.
+const isModelUnavailable = (e) =>
+  /\b404\b|\b429\b|\b503\b|not found|no longer available|quota|overload|unavailable/i.test(String(e?.message || ""));
+
+async function onChain(run) {
+  let last;
+  for (const id of MODEL_CHAIN) {
+    try { return await run(id); }
+    catch (e) {
+      last = e;
+      if (!isModelUnavailable(e)) throw e;
+      console.warn(`[gemini] model ${id} unavailable, trying next:`, String(e.message || "").slice(0, 160));
+    }
+  }
+  throw last;
+}
+
+export async function chatWithGemini(systemPrompt, messages, model) {
+  const run = async (id) => {
+    const m = getGenAI().getGenerativeModel({ model: id, systemInstruction: systemPrompt });
     const history = messages.slice(0, -1).map(msg => ({
       role: msg.role === "assistant" ? "model" : "user",
       parts: [{ text: msg.content }],
@@ -20,38 +45,36 @@ export async function chatWithGemini(systemPrompt, messages, model = PRIMARY_MOD
     const lastMsg = messages[messages.length - 1];
     const result = await chat.sendMessage(lastMsg.content);
     return result.response.text();
-  } catch (e) {
-    if (model === PRIMARY_MODEL) {
-      console.warn("Primary model failed, falling back to lite:", e.message);
-      return chatWithGemini(systemPrompt, messages, LITE_MODEL);
-    }
-    throw e;
+  };
+  // An explicit model still gets the chain as a safety net.
+  if (model && model !== PRIMARY_MODEL) {
+    try { return await run(model); } catch (e) { if (!isModelUnavailable(e)) throw e; }
   }
+  return onChain(run);
 }
 
 
 
 export async function analyzeImageBase64(base64, mimeType, prompt) {
-  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL });
-  const result = await withRetry(() => model.generateContent([
-    prompt,
-    { inlineData: { data: base64, mimeType } },
-  ]));
-  return result.response.text();
+  return onChain(async (id) => {
+    const model = getGenAI().getGenerativeModel({ model: id });
+    const result = await withRetry(() => model.generateContent([
+      prompt,
+      { inlineData: { data: base64, mimeType } },
+    ]));
+    return result.response.text();
+  });
 }
 
-export async function analyzeImage(imageUrl, prompt = "Describe this jewelry product in detail for product matching.") {
-  const model = getGenAI().getGenerativeModel({ model: LITE_MODEL });
+// Product photo matching. This ran on the retired lite model, so every customer
+// photo silently failed to describe — it now uses the same chain as everything else.
+export async function analyzeImage(imageUrl, prompt = "Describe this product in detail for product matching.") {
   const response = await fetch(imageUrl);
+  if (!response.ok) throw new Error(`image download failed: ${response.status}`);
   const buffer = await response.arrayBuffer();
   const base64 = Buffer.from(buffer).toString("base64");
   const mimeType = response.headers.get("content-type") || "image/jpeg";
-
-  const result = await withRetry(() => model.generateContent([
-    prompt,
-    { inlineData: { data: base64, mimeType } },
-  ]));
-  return result.response.text();
+  return analyzeImageBase64(base64, mimeType, prompt);
 }
 
 
@@ -78,7 +101,6 @@ export async function generateEmbedding(text) {
 }
 
 export async function extractProductsFromUrl(htmlContent, url) {
-  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL });
   const prompt = `Extract ALL product data from this webpage HTML. The URL is: ${url}
 
 Return a JSON array of products. Each product must have:
@@ -97,8 +119,11 @@ ${htmlContent.substring(0, 15000)}
 
 Return ONLY the JSON array, no markdown or explanation.`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().replace(/```json|```/g, "").trim();
+  const text = await onChain(async (id) => {
+    const model = getGenAI().getGenerativeModel({ model: id });
+    const result = await model.generateContent(prompt);
+    return result.response.text().replace(/```json|```/g, "").trim();
+  });
   return JSON.parse(text);
 }
 
@@ -132,13 +157,14 @@ function normalizeAudioMime(mime) {
 }
 
 async function transcribeParts(base64, mimeType) {
-  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL, generationConfig: { temperature: 0 } });
-  const result = await withRetry(() => model.generateContent([
-    TRANSCRIBE_PROMPT,
-    { inlineData: { data: base64, mimeType: normalizeAudioMime(mimeType) } },
-  ]));
-  const text = (result.response.text() || "").replace(/^["'`\s]+|["'`\s]+$/g, "").trim();
-  return text;
+  return onChain(async (id) => {
+    const model = getGenAI().getGenerativeModel({ model: id, generationConfig: { temperature: 0 } });
+    const result = await withRetry(() => model.generateContent([
+      TRANSCRIBE_PROMPT,
+      { inlineData: { data: base64, mimeType: normalizeAudioMime(mimeType) } },
+    ]));
+    return (result.response.text() || "").replace(/^["'`\s]+|["'`\s]+$/g, "").trim();
+  });
 }
 
 export async function transcribeAudioBase64(base64, mimeType = "audio/webm") {

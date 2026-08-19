@@ -665,7 +665,13 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     if (items.length !== before) didAct = true;
   }
   items = await enforceLanguage(items, forcedLang || detectLanguage(combined));
-  if (!items.length) items = [{ type: "text_msg", text: "দুঃখিত, একটু পরে আবার চেষ্টা করুন।" }];
+  // Every model in the chain refused (or the reply was unparseable). Say so like
+  // a shop would — and promise a human — instead of a bare "try again later",
+  // which reads as broken and loses the customer.
+  if (!items.length) {
+    console.error("[reply] no items produced; raw preview =", String(raw).slice(0, 200));
+    items = [{ type: "text_msg", text: "দুঃখিত, এই মুহূর্তে আমি উত্তর দিতে পারছি না। আমাদের টিমের একজন খুব শীঘ্রই আপনাকে জানাবে। 🙏\nSorry, I can't answer right now — someone from our team will get back to you shortly." }];
+  }
   // Tagging never blocks or breaks a reply: if it fails, the customer still gets
   // their answer and the conversation simply keeps its previous tag.
   try {
