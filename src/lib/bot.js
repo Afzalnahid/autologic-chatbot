@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
-import { analyzeImage, transcribeAudio, chatWithGemini, generateEmbedding } from "@/lib/gemini.js";
+import { analyzeImage, transcribeAudio, transcribeAudioBase64, chatWithGemini, generateEmbedding, UNCLEAR_AUDIO } from "@/lib/gemini.js";
 import { PLANS, PAID_PLANS } from "@/lib/plans.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { analyzeImageBase64 } from "@/lib/gemini.js";
@@ -785,12 +785,27 @@ export async function handleIncoming(event) {
 
   let content = event.text || "";
   let attachments = null;
+  let voiceUnclear = false;
 
-  if (event.audio) {
-    try { content = await transcribeAudio(event.audio); } catch (e) {
-      console.error("transcribe:", e.message);
-      content = event.text || "(voice message)";
-    }
+  // Voice notes — Facebook/Instagram hand us a CDN url, WhatsApp a media id
+  // that needs the channel token. Both end in the same transcription.
+  if (event.audio || (event.audioId && channel.platform === "whatsapp")) {
+    let transcript = "";
+    try {
+      if (event.audio) {
+        transcript = await transcribeAudio(event.audio);
+      } else {
+        const meta = await fetch(`https://graph.facebook.com/v24.0/${event.audioId}`, { headers: { Authorization: `Bearer ${channel.access_token}` } }).then(r => r.json());
+        if (!meta.url) throw new Error("no media url");
+        const bin = await fetch(meta.url, { headers: { Authorization: `Bearer ${channel.access_token}` } });
+        const b64 = Buffer.from(await bin.arrayBuffer()).toString("base64");
+        transcript = await transcribeAudioBase64(b64, bin.headers.get("content-type") || meta.mime_type || "audio/ogg");
+      }
+    } catch (e) { console.error("transcribe:", e.message); }
+    if (!transcript || transcript === UNCLEAR_AUDIO) { voiceUnclear = true; transcript = ""; }
+    // The mic marks it as a voice note in the inbox; the bot reads the words.
+    content = transcript ? `🎤 ${transcript}${event.text ? `
+${event.text}` : ""}` : (event.text || "");
   }
 
   if (event.mediaId && channel.platform === "whatsapp") {
@@ -819,6 +834,20 @@ export async function handleIncoming(event) {
     }
     const idBlock = parts.length ? `IDENTIFIED ITEMS:\n${parts.join("\n")}` : "📷 Photo";
     content = content ? `${content}\n${idBlock}` : idBlock;
+  }
+
+  // A voice note we could not make out: say so, ask for a repeat or text, and
+  // stop — better than guessing at an order from noise.
+  if (!content && voiceUnclear) {
+    const { sendTextMessage } = await import("@/lib/messenger.js");
+    const isWa = (event.platform || channel.platform) === "whatsapp";
+    const msg = "দুঃখিত, আপনার ভয়েস মেসেজটি স্পষ্ট শোনা যায়নি। একটু কাছ থেকে আবার বলুন, অথবা লিখে পাঠান। 🙏
+Sorry, I couldn't hear that voice message clearly — please record again a little closer, or type it.";
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎤 (voice message — unclear)", platform: event.platform || channel.platform || "facebook", wa_msg_id: event.msgId || null });
+    if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
+    else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform, channel.page_id);
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook" });
+    return;
   }
 
   if (!content) return;

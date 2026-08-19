@@ -102,23 +102,53 @@ Return ONLY the JSON array, no markdown or explanation.`;
   return JSON.parse(text);
 }
 
-export async function transcribeAudioBase64(base64, mimeType = "audio/webm") {
-  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL });
-  const result = await withRetry(() => model.generateContent([
-    "Transcribe this audio exactly. If Bangla, write in Bangla script. Output only the transcription.",
-    { inlineData: { data: base64, mimeType } },
-  ]));
-  return result.response.text().trim();
+// Voice notes. One transcription core for every channel (Facebook, Instagram,
+// WhatsApp, widget), on the same Gemini model the bot replies with.
+//
+// The prompt is built for real customer audio: phone recordings, low volume,
+// background noise, Bangla / English / Banglish in one breath. Temperature 0
+// keeps it literal. When the audio is genuinely unintelligible the model says
+// so with a marker instead of inventing words — the bot then asks the
+// customer to repeat or type, rather than answering the wrong question.
+const TRANSCRIBE_PROMPT = `You are a precise speech-to-text engine for a customer-service chat in Bangladesh.
+
+Transcribe the speech in this audio EXACTLY as spoken.
+- The speaker may use Bangla, English, or a mix (Banglish) — keep each word in the language it was spoken. Write Bangla words in Bangla script, English words in Latin script.
+- The recording may be quiet, noisy, clipped, or from a phone held far away: listen carefully through the noise and transcribe what is actually said. Do not skip quiet words.
+- Keep numbers, product codes, sizes, prices, phone numbers and addresses exactly as spoken (digits as digits).
+- Do NOT summarise, translate, correct, or add anything. No commentary, no quotes, no labels.
+- If there is no speech at all, or it is truly impossible to make out, output exactly: [unclear]
+
+Output only the transcript text.`;
+
+export const UNCLEAR_AUDIO = "[unclear]";
+
+function normalizeAudioMime(mime) {
+  const m = String(mime || "").toLowerCase().split(";")[0].trim();
+  if (!m || m === "application/octet-stream") return "audio/ogg";
+  if (m === "audio/mp4a-latm" || m === "audio/x-m4a") return "audio/mp4";
+  if (m === "audio/x-wav") return "audio/wav";
+  return m;
 }
 
-export async function transcribeAudio(audioUrl) {
-  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL });
-  const res = await fetch(audioUrl);
+async function transcribeParts(base64, mimeType) {
+  const model = getGenAI().getGenerativeModel({ model: PRIMARY_MODEL, generationConfig: { temperature: 0 } });
+  const result = await withRetry(() => model.generateContent([
+    TRANSCRIBE_PROMPT,
+    { inlineData: { data: base64, mimeType: normalizeAudioMime(mimeType) } },
+  ]));
+  const text = (result.response.text() || "").replace(/^["'`\s]+|["'`\s]+$/g, "").trim();
+  return text;
+}
+
+export async function transcribeAudioBase64(base64, mimeType = "audio/webm") {
+  return transcribeParts(base64, mimeType);
+}
+
+export async function transcribeAudio(audioUrl, headers) {
+  const res = await fetch(audioUrl, headers ? { headers } : undefined);
+  if (!res.ok) throw new Error(`audio download failed: ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer()).toString("base64");
   const mime = res.headers.get("content-type") || "audio/mp4";
-  const result = await withRetry(() => model.generateContent([
-    "Transcribe this audio exactly. If Bangla, write in Bangla script. Output only the transcription.",
-    { inlineData: { data: buf, mimeType: mime } },
-  ]));
-  return result.response.text().trim();
+  return transcribeParts(buf, mime);
 }
