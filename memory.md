@@ -81,6 +81,38 @@ Later the same session (owner asks, in order):
   Admins (key-locked role control). `AdminApp` is exported so a mock-data
   dev page can render it without login. Verified desktop light/dark + 375px.
 
+2026-08-19 (same thread, owner asks):
+- `f5e8af3` every hardcoded `autologic-chatbot.vercel.app` link → `getvoicium.com`
+  (email.js links, privacy/terms text, preview-dash snippet, video copy, docs).
+  The vercel.app host itself cannot be deleted; Meta redirect/webhook entries
+  for it were deliberately left as a safety net.
+- `bc81518` WhatsApp Embedded Signup config id `1417283913551939` baked in as
+  the `WA_CONFIG_ID` fallback (public value, like FB_APP_ID/FB_CONFIG_ID).
+  Owner's own +880 number sits in the app's API Setup, so it does not appear
+  in the Embedded Signup popup — a developer-only case; real customers see
+  their own WABA/numbers. Meta side still needs: IG redirect URIs (done by
+  owner), FB Login redirect URIs for fb/wa callbacks, "Allowed Domains for
+  the JavaScript SDK" = getvoicium.com (required for the WA popup).
+- `584e8a4` **voice notes**: WhatsApp voice was silently dropped (webhook set
+  `audioId`, bot only read `audio`). Now WA audio is downloaded with the
+  channel token and transcribed; one core `transcribeParts()` in gemini.js
+  (same Gemini model as replies, temperature 0, noise/Banglish prompt, mime
+  normalisation, `[unclear]` marker → bot asks to repeat/type). NOTE: that
+  commit had a multi-line string typo (shell heredoc); fixed in `7e36e04`.
+- `827155d` **bot prompt now appends `[BUSINESS FACTS]`** built live from
+  `app_settings.questionnaire` + `clients` (phone/address/website) and
+  declared to override the narrative `businessPrompt`. Root cause of the bot
+  quoting `evalora.com`: owner's own account had catalogLink=evalora.com
+  baked into the generated prompt. Data fixed by SQL for client
+  `93963074-…` (catalogLink → brokersbd.com, prompt text replaced).
+- `7e36e04` **orders**: migration `orders_detail_columns` (items jsonb,
+  subtotal, delivery_charge, discount, payment_method, notes, owner_note,
+  platform, delivery_area, updated_at + indexes); bot orderRule produces
+  item lines/money split; `/api/orders` normalises old+new, PUT status/note/
+  corrections (total recomputed), DELETE; `Orders.js` rebuilt (KPIs, filters,
+  CSV, cards, drawer with progress/edit/items/status/private note). Verified
+  visually with mock data (desktop light).
+
 Also: `robots.txt` + `sitemap.xml` added (`c95537e`, canonical
 `www.getvoicium.com`; apex 308→www); Meta app + Google OAuth redirect URIs for
 the new domain explained to the owner (not yet confirmed done by them).
@@ -1028,6 +1060,13 @@ automation looks natural to a reviewer.
   `/api/gcal/callback` URIs to the Google OAuth client. Google Search Console:
   add domain property, TXT record in Hostinger, submit `sitemap.xml`, request
   indexing of `https://www.getvoicium.com/`.
+- **Voice smoke test:** send a voice note on WhatsApp and on Messenger to a
+  connected channel; inbox should show "🎤 <transcript>" and the bot should
+  answer the words. Try a mumbled one → expect the "couldn't hear clearly"
+  reply.
+- **Orders smoke test:** place a test order via chat; Orders tab should show
+  item lines with photo/qty/unit price, delivery charge (or "to confirm"),
+  total, payment; try Confirm → Shipped → Delivered and the CSV.
 - **Admin console smoke test as the super admin:** open `/admin`, check
   Overview numbers against Supabase (MRR = sum of monthly prices of active
   paid, non-suspended clients), approve/reject a test payment, change a
