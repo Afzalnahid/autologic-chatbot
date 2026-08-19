@@ -710,7 +710,7 @@ export default function Dashboard() {
       {/* The bottom of the reference sidebar: parted from the menu, always reachable.
           On a phone this is also where sync and the theme switch live. */}
       <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6}}>
-        <button onClick={async()=>{try{await getSb().auth.signOut();}catch{} window.location.href="/";}}
+        <button onClick={async()=>{try{await getSb().auth.signOut({scope:"local"});}catch{} window.location.href="/";}}
           className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,
             padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
             fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left"}}>

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { createClient as createSb } from "@/utils/supabase/client";
+import { createAdminClient as createSb } from "@/utils/supabase/client";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
 
 // The super-admin console. Same design system as the customer dashboard —
@@ -107,7 +107,10 @@ export default function AdminClient() {
     if (error) setAuthMsg(error.message);
     else if (mode === "signup") setAuthMsg("Account created. If email confirmation is on, verify then sign in.");
   };
-  const logout = async () => { await getSb().auth.signOut(); setData(null); setSuperKey(""); };
+  // scope:"local" ends only THIS console's session. The default (global)
+  // revokes every session of the same user server-side — which used to log
+  // the owner out of their client dashboard as a side effect.
+  const logout = async () => { await getSb().auth.signOut({ scope: "local" }); setData(null); setSuperKey(""); };
   const run = async (label, fn) => { setBusy(label); setErr(""); const res = await fn(); if (res && !res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "That did not work — please try again."); } await load(true); setBusy(""); return res?.ok; };
   const act = (id, action, value) => run(id + action, () => api("PUT", { id, action, value }));
   const reviewPayment = (req, decision, note) => run(req.id + decision, () => api("PUT", { type: "payment", request_id: req.id, decision, note: note || null }));
@@ -139,7 +142,7 @@ export default function AdminClient() {
 
   if (session === undefined) return <><Theme /><Motion /><div style={{ minHeight: "100vh", background: T.bg }} /></>;
   if (!session) return <><Theme /><Motion />
-    <OnboardFrame icon="ti-shield-lock" title={<>Autologic <span style={{ color: T.gold }}>Admin</span></>} sub={mode === "signup" ? "Create an admin account — the super admin approves it" : "Sign in to the platform console"} width={420}>
+    <OnboardFrame icon="ti-shield-lock" title={<>Autologic <span style={{ color: T.gold }}>Admin</span></>} sub={mode === "signup" ? "Create an admin account — the super admin approves it" : "Sign in to the platform console. This login is separate from any client dashboard."} width={420}>
       <Inp emb type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" />
       <PwInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" onEnter={auth} style={{ marginBottom: 14 }} />
       {authMsg && <div style={{ fontSize: 12.5, color: authMsg.includes("created") ? T.success : T.danger, marginBottom: 12, display: "flex", gap: 6 }}><i className={`ti ${authMsg.includes("created") ? "ti-check" : "ti-alert-circle"}`} />{authMsg}</div>}
