@@ -1107,6 +1107,16 @@ automation looks natural to a reviewer.
   `/api/gcal/callback` URIs to the Google OAuth client. Google Search Console:
   add domain property, TXT record in Hostinger, submit `sitemap.xml`, request
   indexing of `https://www.getvoicium.com/`.
+- **2026-08-20 session-split fix (`98cdce3`):** owner's test showed /admin and
+  /dashboard shared one login (both on the @supabase/ssr cookie session; his
+  admin email also owns the old "Autologic System" client, so admin login
+  opened the dashboard as that client, and either logout — global scope —
+  killed both). Now `createAdminClient()` (supabase-js, localStorage key
+  `al-admin-auth`) powers /admin; all logouts are `signOut({scope:"local"})`.
+  The two logins are fully independent. The BYOK "Allow" had never landed
+  (client_ai was empty — lost in the identity chaos); permission for
+  Broker's BD was granted directly by SQL, so its Settings now shows the
+  API key box, ready for the owner's test.
 - **BYOK smoke test (owner will do):** /admin → test client → AI key tab →
   secret key → Allow → log in as that client → Settings → "Your AI API key"
   box appears → paste a real Google AI Studio key → Verify & activate →
