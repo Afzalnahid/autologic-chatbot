@@ -405,8 +405,22 @@ function ConnectChannel({onDone,clientId}) {
     window.addEventListener("message",h);
     return ()=>window.removeEventListener("message",h);
   },[]);
+  // A real popup, not a full-tab redirect. instagram.com (and to a lesser
+  // extent facebook.com) is registered as an app link on Android/iOS, so a
+  // top-level navigation there gets intercepted by the installed IG app
+  // instead of staying on the web login — a client testing on their phone
+  // would leave the dashboard entirely and land in the app with no way
+  // back. A window.open()'d popup is a separate browsing context the OS
+  // treats differently, and it's what the postMessage listener above was
+  // already built for (window.opener.postMessage in connect-page.js).
   const openPopup=(url)=>{
-    if(typeof window!=="undefined") window.location.href=url;
+    if(typeof window==="undefined") return;
+    const w=520,h=680;
+    const left=window.screenX+(window.outerWidth-w)/2, top=window.screenY+(window.outerHeight-h)/2;
+    const win=window.open(url,"al-connect",`width=${w},height=${h},left=${left},top=${top}`);
+    // Popup blocked (rare, but happens) — fall back to the old behaviour
+    // rather than leaving the click looking like it did nothing.
+    if(!win) window.location.href=url;
   };
   const opts=[
     {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"One-click connect with Facebook login",color:"#1877f2"},
