@@ -138,15 +138,20 @@ export async function GET(request) {
     // (CLAUDE.md: a client never hunts for an ID or pastes a token):
     //  1. They genuinely have no WhatsApp Business number yet → Embedded
     //     Signup creates one.
-    //  2. They DO have one, but it was never shared with our app. Meta
-    //     never lets a third-party app see a business asset just because
-    //     the OAuth caller owns it — the owner has to explicitly grant our
-    //     app ("AutoLogic") partner access first, in WhatsApp Manager. No
-    //     code path can skip this; it is Meta's own security boundary, not
-    //     a bug. Tested live 2026-08-20: with 0 WABAs shared, both this
-    //     discovery AND Embedded Signup's own "use existing" picker come
-    //     up empty — Embedded Signup only ever offers "create new" until
-    //     the sharing step happens.
+    //  2. They DO have one, but it was never shared with our Business
+    //     Portfolio (id 1214039840198586). Meta never lets a third-party
+    //     app see a business asset just because the OAuth caller owns it —
+    //     the owner has to explicitly Assign Partner access first, in
+    //     WhatsApp Manager. No code path can skip this; it is Meta's own
+    //     security boundary, not a bug. Instructions below use the numeric
+    //     Business ID, not a name: the app is named "AutoLogic" but the
+    //     Business Portfolio's legal name is different ("NORAY AFZAL
+    //     NAHID"), and a client searching by name could pick a wrong
+    //     match — the ID is unambiguous either way.
+    //     Tested live 2026-08-20: with 0 WABAs shared, both this discovery
+    //     AND Embedded Signup's own "use existing" picker come up empty —
+    //     Embedded Signup only ever offers "create new" until the sharing
+    //     step happens.
     if (!phoneNumbers.length) {
       return page(`<div class="card" style="margin-top:6vh">
         <div class="icon">💬</div>
@@ -159,7 +164,8 @@ export async function GET(request) {
           <ol style="margin:0 0 18px 18px;padding:0;color:#98A3BA;font-size:12.5px;line-height:1.9">
             <li>Open <b style="color:#E7EAF2">business.facebook.com/settings/whatsapp-business-accounts</b></li>
             <li>Select your WhatsApp account → <b style="color:#E7EAF2">Assign partner</b></li>
-            <li>Search for <b style="color:#E7EAF2">AutoLogic</b> and confirm access</li>
+            <li>Search by <b style="color:#E7EAF2">Partner Business ID</b> and enter <b style="color:#E7EAF2">1214039840198586</b> — this finds us exactly, even if the name shown differs</li>
+            <li>Confirm access</li>
           </ol>
           <a class="btn" style="background:#1F2839;color:#E7EAF2" href="/api/wa/login?client_id=${encodeURIComponent(clientId)}">I've shared it — check again</a>
         </div>
