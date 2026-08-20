@@ -5,11 +5,59 @@ import { verifyState } from "@/lib/oauth-state.js";
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
 
-function html(body) {
+// Same visual language as fb/callback.js's Page picker — search box, a
+// bounded scrollable list, avatar-style initials, a sticky Connect button —
+// so WhatsApp connect feels like the same product as Facebook connect, not a
+// different, cruder flow bolted on next to it.
+const STYLE = `
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0A0D14;color:#E7EAF2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+       min-height:100vh;display:flex;flex-direction:column;padding:20px}
+  h3{font-size:17px;font-weight:600;letter-spacing:-.02em}
+  .sub{font-size:12.5px;color:#98A3BA;margin:4px 0 14px}
+  .search{width:100%;background:#0F1420;border:1px solid #2C374D;border-radius:8px;
+          padding:9px 12px;color:#E7EAF2;font-size:13.5px;font-family:inherit;margin-bottom:10px}
+  .search::placeholder{color:#5E6B85}
+  .search:focus{outline:0;border-color:#FF6B75;box-shadow:0 0 0 3px rgba(255,107,117,.14)}
+  form{flex:1;display:flex;flex-direction:column;min-height:0}
+  .list{flex:1;overflow-y:auto;border:1px solid #1F2839;border-radius:10px;padding:6px;background:#0F1420}
+  .list::-webkit-scrollbar{width:5px}
+  .list::-webkit-scrollbar-thumb{background:#2C374D;border-radius:4px}
+  .row{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:8px;
+       cursor:pointer;transition:background .12s}
+  .row:hover{background:#151B2A}
+  .row.hide{display:none}
+  .row input{accent-color:#25D366;width:15px;height:15px;flex-shrink:0}
+  .av{width:30px;height:30px;border-radius:8px;background:#1C2436;border:1px solid #2C374D;
+      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;
+      color:#98A3BA;flex-shrink:0}
+  .txt{min-width:0;overflow:hidden}
+  .nm{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .num{font-size:11.5px;color:#98A3BA;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar{padding-top:14px}
+  button,.btn{width:100%;padding:11px;background:#25D366;color:#04170D;border:0;border-radius:8px;
+         font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;text-align:center;
+         text-decoration:none;display:block}
+  button:hover,.btn:hover{background:#3CE07D}
+  .empty{padding:22px;text-align:center;color:#5E6B85;font-size:13px;display:none}
+  .card{max-width:420px;margin:auto;text-align:center}
+  .icon{font-size:34px;margin-bottom:14px}
+  .card p{font-size:13px;color:#98A3BA;line-height:1.6;margin:8px 0 22px}
+`;
+
+function page(bodyHtml) {
   return new NextResponse(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="background:#0b0f1a;color:#eee;font-family:sans-serif;padding:24px;max-width:500px;margin:auto">${body}</body></html>`,
+    `<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connect WhatsApp</title><style>${STYLE}</style></head><body>${bodyHtml}</body></html>`,
     { headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
+}
+
+function errorCard(title, text) {
+  return page(`<div class="card" style="margin-top:20vh">
+    <div class="icon">⚠️</div><h3>${title}</h3><p>${text}</p>
+  </div>`);
 }
 
 export async function GET(request) {
@@ -19,11 +67,11 @@ export async function GET(request) {
     const stateToken = searchParams.get("state") || "";
     const clientId = verifyState(stateToken);
     if (!clientId) {
-      return new NextResponse("This connect link has expired or is invalid. Please start again from your dashboard.", { status: 400 });
+      return errorCard("Link expired", "This connect link has expired or is invalid. Please start again from your dashboard.");
     }
 
-    if (!code) return html(`<h3>Error</h3><p>Missing authorization code.</p>`);
-    if (!APP_ID || !APP_SECRET) return html(`<h3>Error</h3><p>Server misconfigured.</p>`);
+    if (!code) return errorCard("Error", "Missing authorization code.");
+    if (!APP_ID || !APP_SECRET) return errorCard("Error", "Server misconfigured.");
 
     const redirect = `${origin}/api/wa/callback`;
 
@@ -31,17 +79,17 @@ export async function GET(request) {
     const tokRes = await fetch(
       `https://graph.facebook.com/v24.0/oauth/access_token?client_id=${APP_ID}&client_secret=${APP_SECRET}&redirect_uri=${encodeURIComponent(redirect)}&code=${code}`
     ).then(r => r.json());
-    if (tokRes.error) return html(`<h3>Auth failed</h3><p>${tokRes.error.message}</p>`);
+    if (tokRes.error) return errorCard("Auth failed", tokRes.error.message);
 
     const longRes = await fetch(
       `https://graph.facebook.com/v24.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${tokRes.access_token}`
     ).then(r => r.json());
     const userToken = longRes.access_token || tokRes.access_token;
 
-    // 2. Try multiple endpoints to find phone numbers
+    // 2. Try multiple endpoints to find phone numbers under any business
+    // portfolio this person manages — mirrors how fb/callback lists Pages.
     const phoneNumbers = [];
 
-    // Approach A: via /me/businesses -> WABAs -> phones
     try {
       const bizRes = await fetch(
         `https://graph.facebook.com/v24.0/me/businesses?fields=id,name,whatsapp_business_accounts{id,name}&access_token=${userToken}`
@@ -58,7 +106,6 @@ export async function GET(request) {
       }
     } catch(e) { console.error("approach A:", e.message); }
 
-    // Approach B: direct /me/whatsapp_business_accounts
     if (!phoneNumbers.length) {
       try {
         const directRes = await fetch(
@@ -75,7 +122,6 @@ export async function GET(request) {
       } catch(e) { console.error("approach B:", e.message); }
     }
 
-    // Approach C: phone numbers directly via app
     if (!phoneNumbers.length) {
       try {
         const appPhones = await fetch(
@@ -87,57 +133,57 @@ export async function GET(request) {
       } catch(e) { console.error("approach C:", e.message); }
     }
 
-    // If still nothing found — show manual fallback with the token pre-filled
+    // No WABA under any portfolio this person manages — the one-click way
+    // forward is Embedded Signup, never a Phone Number ID typed by hand
+    // (CLAUDE.md: a client never hunts for an ID or pastes a token).
     if (!phoneNumbers.length) {
-      return html(`
-        <h3 style="color:#FF6B75;margin-bottom:6px">Connect WhatsApp</h3>
-        <p style="color:#98A3BA;font-size:13px;margin-bottom:20px">
-          Auto-detection requires <strong>whatsapp_business_management</strong> permission 
-          (pending App Review). Enter your Phone Number ID manually below — 
-          the access token has been filled in automatically.
-        </p>
-        <form method="POST" action="/api/wa/select">
-          <input type="hidden" name="state" value="${stateToken}">
-          <input type="hidden" name="manual_token" value="${userToken}">
-          <div style="margin-bottom:12px">
-            <label style="display:block;font-size:12px;color:#98A3BA;margin-bottom:5px">Phone Number ID</label>
-            <input name="phone_id" required placeholder="e.g. 123456789012345"
-              style="width:100%;box-sizing:border-box;background:#0F1420;border:1px solid #1F2839;border-radius:8px;padding:11px 12px;color:#eee;font-size:14px">
-            <p style="font-size:11px;color:#64748b;margin-top:4px">
-              Find this in: Meta App Dashboard → WhatsApp → API Setup → Phone number ID
-            </p>
-          </div>
-          <button type="submit" style="width:100%;padding:12px;background:#E23440;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
-        </form>
-        <p style="font-size:11px;color:#64748b;margin-top:14px;text-align:center">
-          After App Review is approved, this will be fully automatic.
-        </p>
-      `);
+      return page(`<div class="card" style="margin-top:14vh">
+        <div class="icon">💬</div>
+        <h3>No WhatsApp Business number found</h3>
+        <p>We checked every business portfolio on this account and didn't find one yet.
+           Let's create one — it only takes a couple of minutes.</p>
+        <a class="btn" href="/api/wa/embedded?client_id=${encodeURIComponent(clientId)}">Create a WhatsApp Business number</a>
+      </div>`);
     }
 
-    // Found phone numbers — show selection
-    const opts = phoneNumbers.map((p, i) =>
-      `<label style="display:block;margin:8px 0;padding:14px;border:1px solid #1F2839;border-radius:10px;cursor:pointer;background:#0F1420">
-        <input type="radio" name="phone" value="${i}" required style="margin-right:10px">
-        <strong>${p.verifiedName}</strong><br>
-        <span style="color:#98A3BA;font-size:13px">${p.displayNumber} &middot; ${p.status || "active"}</span>
-      </label>`
-    ).join("");
+    // Found number(s) — same picker experience as Facebook's Page list.
+    const rows = phoneNumbers.map((p, i) => {
+      const initials = String(p.verifiedName || "W").trim().slice(0, 1).toUpperCase();
+      const safeName = String(p.verifiedName || "").replace(/</g, "&lt;");
+      const safeNum = String(p.displayNumber || "").replace(/</g, "&lt;");
+      return `<label class="row" data-name="${(safeName + " " + safeNum).toLowerCase()}">
+        <input type="radio" name="phone" value="${i}" required>
+        <span class="av">${initials}</span>
+        <span class="txt"><span class="nm">${safeName}</span><br><span class="num">${safeNum}${p.status ? " · " + p.status : ""}</span></span>
+      </label>`;
+    }).join("");
 
     const encoded = encodeURIComponent(JSON.stringify(phoneNumbers));
 
-    return html(`
-      <h3 style="color:#FF6B75;margin-bottom:4px">Connect WhatsApp</h3>
-      <p style="color:#98A3BA;font-size:13px;margin-bottom:20px">Select which number to connect</p>
+    return page(`
+      <h3>Select a WhatsApp number to connect</h3>
+      <div class="sub">${phoneNumbers.length} number${phoneNumbers.length === 1 ? "" : "s"} available${phoneNumbers.length > 5 ? " — scroll to see them all" : ""}.</div>
+      ${phoneNumbers.length > 5 ? `<input class="search" id="q" placeholder="Search your numbers" autocomplete="off">` : ""}
       <form method="POST" action="/api/wa/select">
         <input type="hidden" name="state" value="${stateToken}">
         <input type="hidden" name="phones" value="${encoded}">
-        ${opts}
-        <button type="submit" style="margin-top:14px;width:100%;padding:12px;background:#E23440;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:15px">Connect</button>
+        <div class="list" id="list">${rows}<div class="empty" id="empty">No number matches that search.</div></div>
+        <div class="bar"><button type="submit">Connect</button></div>
       </form>
+      <script>
+        var q=document.getElementById('q');
+        if(q){
+          var rows=document.querySelectorAll('.row'),empty=document.getElementById('empty');
+          q.addEventListener('input',function(){
+            var t=q.value.trim().toLowerCase(),shown=0;
+            rows.forEach(function(r){var m=!t||r.dataset.name.indexOf(t)>-1;r.classList.toggle('hide',!m);if(m)shown++;});
+            empty.style.display=shown?'none':'block';
+          });
+        }
+      </script>
     `);
   } catch (e) {
     console.error("[wa-callback]", e?.message || e);
-    return html(`<h3>Something went wrong</h3><p style="color:#98A3BA">We could not finish connecting WhatsApp. Please close this window and try again from your dashboard.</p>`);
+    return errorCard("Something went wrong", "We could not finish connecting WhatsApp. Please close this window and try again from your dashboard.");
   }
 }

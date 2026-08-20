@@ -411,12 +411,14 @@ function ConnectChannel({onDone,clientId}) {
   const opts=[
     {id:"facebook",icon:"ti-brand-facebook",label:"Facebook Page",hint:"One-click connect with Facebook login",color:"#1877f2"},
     {id:"instagram",icon:"ti-brand-instagram",label:"Instagram Business",hint:"One-click connect with Instagram login",color:"#e1306c"},
-    {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"Set up your number with Meta — no account needed first",color:"#25d366"},
+    {id:"whatsapp",icon:"ti-brand-whatsapp",label:"WhatsApp Business",hint:"We'll show your existing number, or help you create one",color:"#25d366"},
   ];
   const handleClick=(id)=>{
     if(id==="facebook") openPopup(`/api/fb/login?client_id=${clientId}`);
     else if(id==="instagram") openPopup(`/api/ig/login?client_id=${clientId}`);
-    else if(id==="whatsapp") openPopup(`/api/wa/embedded?client_id=${clientId}`);
+    // Same shape as Facebook: log in, then a picker shows what was found.
+    // wa/callback sends them on to Embedded Signup itself if nothing turns up.
+    else if(id==="whatsapp") openPopup(`/api/wa/login?client_id=${clientId}`);
   };
   return <OnboardFrame icon="ti-plug" title="Connect a channel" sub="Your bot will reply to customers on this channel" width={520}>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
