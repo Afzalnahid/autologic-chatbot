@@ -133,16 +133,36 @@ export async function GET(request) {
       } catch(e) { console.error("approach C:", e.message); }
     }
 
-    // No WABA under any portfolio this person manages — the one-click way
-    // forward is Embedded Signup, never a Phone Number ID typed by hand
-    // (CLAUDE.md: a client never hunts for an ID or pastes a token).
+    // No WABA visible under any portfolio this person manages. Two real
+    // causes, so two real paths — never a Phone Number ID typed by hand
+    // (CLAUDE.md: a client never hunts for an ID or pastes a token):
+    //  1. They genuinely have no WhatsApp Business number yet → Embedded
+    //     Signup creates one.
+    //  2. They DO have one, but it was never shared with our app. Meta
+    //     never lets a third-party app see a business asset just because
+    //     the OAuth caller owns it — the owner has to explicitly grant our
+    //     app ("AutoLogic") partner access first, in WhatsApp Manager. No
+    //     code path can skip this; it is Meta's own security boundary, not
+    //     a bug. Tested live 2026-08-20: with 0 WABAs shared, both this
+    //     discovery AND Embedded Signup's own "use existing" picker come
+    //     up empty — Embedded Signup only ever offers "create new" until
+    //     the sharing step happens.
     if (!phoneNumbers.length) {
-      return page(`<div class="card" style="margin-top:14vh">
+      return page(`<div class="card" style="margin-top:6vh">
         <div class="icon">💬</div>
         <h3>No WhatsApp Business number found</h3>
-        <p>We checked every business portfolio on this account and didn't find one yet.
-           Let's create one — it only takes a couple of minutes.</p>
-        <a class="btn" href="/api/wa/embedded?client_id=${encodeURIComponent(clientId)}">Create a WhatsApp Business number</a>
+        <p>We checked every business portfolio on this account and didn't find one shared with us yet.</p>
+        <a class="btn" href="/api/wa/embedded?client_id=${encodeURIComponent(clientId)}">Create a new WhatsApp Business number</a>
+        <div style="text-align:left;margin-top:26px;padding-top:22px;border-top:1px solid #1F2839">
+          <p style="margin:0 0 10px;color:#E7EAF2;font-weight:600;font-size:13px">Already have a WhatsApp Business number?</p>
+          <p style="margin:0 0 12px">Share it with us first — takes under a minute, one time only:</p>
+          <ol style="margin:0 0 18px 18px;padding:0;color:#98A3BA;font-size:12.5px;line-height:1.9">
+            <li>Open <b style="color:#E7EAF2">business.facebook.com/settings/whatsapp-business-accounts</b></li>
+            <li>Select your WhatsApp account → <b style="color:#E7EAF2">Assign partner</b></li>
+            <li>Search for <b style="color:#E7EAF2">AutoLogic</b> and confirm access</li>
+          </ol>
+          <a class="btn" style="background:#1F2839;color:#E7EAF2" href="/api/wa/login?client_id=${encodeURIComponent(clientId)}">I've shared it — check again</a>
+        </div>
       </div>`);
     }
 
