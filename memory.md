@@ -73,19 +73,76 @@ Later the same day, one more commit:
 - Visual pass on Channels, Conversations and Bot Training tabs (desktop and
   phone, light and dark). Nothing to redo here.
 
+Later the same day, a third thread — **clients could not connect any
+channel** (owner's own FB/IG/WA connect worked; every client saw Meta's
+"Facebook Login is currently unavailable for this app as we are updating
+additional details for this app."):
+
+- Diagnosed with evidence, not the stale plan: pulled the live Facebook
+  Page token from `channels` and called Meta's `debug_token` endpoint
+  directly — it already carries `pages_manage_engagement` (issued
+  2026-08-19), so the OLD blocker described below at "Blocked on one step"
+  is **already resolved** and that whole "Next up" write-up (App Review
+  plan, disconnect/reconnect step) is now **stale**. Do not act on it.
+- Owner checked Meta App Review → Permissions and Features directly: 8 of
+  10 target permissions are **Approved** (`instagram_business_basic`,
+  `instagram_business_manage_messages`, `pages_read_user_content`,
+  `whatsapp_business_messaging`, `pages_manage_metadata`,
+  `pages_manage_engagement`, `business_management`,
+  `whatsapp_business_management`). Only **`instagram_business_manage_comments`**
+  and **`pages_read_engagement`** are Not approved. App Mode is already
+  **Live**; no restriction banner on the dashboard.
+- Root cause: Meta blocks the WHOLE OAuth call for the general public if
+  ANY permission in that one call is not Advanced-Access-approved — only
+  the app's own admins/developers/testers (the owner) bypass that check.
+  `ig/login.js` requested `instagram_business_manage_comments` in the same
+  call as two fully-approved scopes → every client's IG (and by the same
+  logic, FB/WA) login got refused with Meta's generic "updating additional
+  details" wording.
+- `fecf79d` **fixed the part that lives in code**: `ig/login.js` no longer
+  requests `instagram_business_manage_comments`. DM automation (the two
+  approved scopes) is unaffected; comment automation already shows
+  "waiting for Meta" on the connected page when unsubscribed — same
+  graceful-degrade path, nothing new to build. `pages_read_engagement` is
+  **not referenced anywhere in this repo** (grep confirmed) — it is
+  bundled entirely inside the Facebook Login for Business configuration in
+  Meta's dashboard (`config_id 2178064332957710`), so it cannot be removed
+  from code. Same likely applies to WhatsApp's `WA_LOGIN_CONFIG_ID` config,
+  which this repo cannot introspect.
+
 ### What's next — resume exactly here
 
-1. **Google Cloud billing** — the single biggest blocker (free tier is 20
-   req per model per day; the bot dies after ~10 messages/day per tenant).
-   Enable billing on the Gemini API project in Google Cloud Console → then
-   confirm from Vercel runtime logs that 429s stop appearing. No code
-   change needed to turn it on; may want to raise the model chain once real
-   quota exists.
-2. **BYOK gap found, deliberately not fixed yet:** `import-url`'s
+1. **Confirm the IG fix actually unblocks a real client** (owner's hands —
+   needs a second Facebook/Instagram account playing a customer): try
+   connecting Instagram as a non-admin account. If it now succeeds, the
+   "one unapproved scope blocks the whole call" theory is confirmed for
+   Facebook and WhatsApp too, and the same edit applies there — except
+   those two are **dashboard-only fixes**, not code:
+   - **Facebook:** Meta App Dashboard → Facebook Login for Business →
+     Configurations → edit `config_id 2178064332957710` → remove
+     `pages_read_engagement` from the permission list → Save. Then test a
+     client FB connect again.
+   - **WhatsApp:** find whichever Login Configuration `WA_LOGIN_CONFIG_ID`
+     (Vercel env var) points to, open it in the same Configurations screen,
+     and check for any Not-approved permission bundled in it; remove it the
+     same way.
+   - Once both are clean, re-submit App Review for just the two missing
+     permissions (`instagram_business_manage_comments`,
+     `pages_read_engagement`) to get full comment automation + whatever
+     `pages_read_engagement` was meant for back — this is a MUCH smaller
+     ask than the old "3 videos, 9 permissions" plan below, most of which
+     is already approved. The old video-recording checklist further down
+     this file only needs to cover these two now.
+2. **Google Cloud billing** — still the single biggest blocker (free tier
+   is 20 req per model per day; the bot dies after ~10 messages/day per
+   tenant). Enable billing on the Gemini API project in Google Cloud
+   Console → confirm from Vercel runtime logs that 429s stop appearing. No
+   code change needed to turn it on.
+3. **BYOK gap found, deliberately not fixed yet:** `import-url`'s
    `extractProductsFromUrl` (the biggest AI call, 15k HTML chars) and
    `tags.js`'s `chatWithGemini` fallback still run on the PLATFORM key for
    BYOK clients — breaks hard cost separation. Fix in its own commit.
-3. WhatsApp Embedded Signup can now actually SAVE (lesson 25 fix) — worth a
+4. WhatsApp Embedded Signup can now actually SAVE (lesson 25 fix) — worth a
    real connect test when Meta setup allows.
 
 ---

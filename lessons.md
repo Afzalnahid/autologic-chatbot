@@ -381,3 +381,37 @@ existed and everything looked connected.
   not warn you; it fails the whole upsert with error 42P10.
 - A save path whose failure is masked by data from ANOTHER path is invisible.
   When two flows write the same row, test each flow against an empty table.
+
+## 26. One unapproved permission in an OAuth call blocks the WHOLE call for the public
+
+**2026-08-20.** Every client hit "Facebook Login is currently unavailable for
+this app as we are updating additional details for this app" when connecting
+Facebook, Instagram or WhatsApp — while the owner's own account connected
+fine on all three. The obvious guess (App still in Development Mode) was
+wrong: checked live, App Mode was already **Live**, no dashboard restriction
+banner. The real cause: `ig/login.js` requested three scopes in one call,
+and one of them (`instagram_business_manage_comments`) was still "Not
+approved" in Meta App Review. Meta refuses the **entire** OAuth call for the
+general public when any one requested permission lacks Advanced Access — only
+the app's own admins/developers/testers bypass that check, which is exactly
+why the owner's account was never affected.
+
+**Rules:**
+- When Meta Login works for the owner/admin but fails for everyone else,
+  suspect a permission-approval gap before a Dev/Live mode toggle — check
+  App Review → Permissions and Features for every scope actually requested,
+  not just the ones you remember asking for.
+- A single OAuth call is all-or-nothing: bundling one Not-approved scope with
+  several Approved ones blocks all of them for the public, not just the
+  unapproved one. Drop the unapproved scope from the request until it is
+  approved; do not assume the approved ones still work if not-approved.
+- Where the scope list lives in code (`scope=` in the OAuth URL) you can fix
+  it directly. Where it lives in a Facebook Login for Business
+  **configuration** (`config_id` param, no `scope` in the URL) it is bundled
+  server-side in Meta's dashboard and cannot be edited from the repo at all —
+  grep the string first; if it appears nowhere, say so plainly instead of
+  guessing at a code fix.
+- Verify against the live token, not a memory note: `debug_token` on a stored
+  access token (`input_token=TOKEN&access_token=TOKEN` works for a page
+  token's own self-check) shows exactly which scopes it actually carries and
+  when it was issued — cheaper and more current than trusting a written plan.
