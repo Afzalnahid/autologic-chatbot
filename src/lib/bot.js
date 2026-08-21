@@ -789,11 +789,19 @@ function startTyping(channel, senderId, platform, msgId) {
 export async function handleIncoming(event) {
   const channel = await getChannelByPage(event.pageId);
   if (!channel) return;
-  if (event.platform === "whatsapp" && event.msgId) {
-    const { data: dup } = await sb().from("message_buffer").select("id").eq("wa_msg_id", event.msgId).limit(1);
+  const clientId = channel.client_id;
+  // Meta retries a webhook delivery it didn't get a fast 200 for — and the
+  // LLM call inside this same request can easily take longer than that
+  // timeout. This check used to run for WhatsApp only, so a slow Messenger
+  // or Instagram reply could be generated two or three times over for one
+  // customer message. wa_msg_id holds any platform's provider message id
+  // now (messenger.js sets it too), scoped per client since ids are
+  // per-request, not guaranteed globally unique across tenants.
+  if (event.msgId) {
+    const { data: dup } = await sb().from("message_buffer").select("id")
+      .eq("client_id", clientId).eq("wa_msg_id", event.msgId).limit(1);
     if (dup && dup.length) return;
   }
-  const clientId = channel.client_id;
   const client = await getClient(clientId);
   const bType = client?.business_type || "ecommerce";
   const iLabel = client?.item_label || "product";

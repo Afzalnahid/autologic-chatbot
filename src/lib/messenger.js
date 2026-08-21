@@ -56,6 +56,12 @@ export function parseMessengerEvent(body) {
     platform,
     senderId: m.sender.id,
     pageId: m.recipient?.id,
+    // Meta's own id for this exact message. Without it a slow reply (the
+    // LLM call can take several seconds) makes Meta retry the webhook
+    // delivery before we've answered the first one — handleIncoming had no
+    // way to tell "already working on this" from "brand new message", so
+    // one customer message could produce two or three replies.
+    msgId: m.message.mid || null,
     text: m.message.text || "",
     images: atts.filter(a => (a.type === "image" || a.type === "share") && a.payload?.url).map(a => a.payload.url),
     audio: atts.find(a => a.type === "audio")?.payload?.url || null,
