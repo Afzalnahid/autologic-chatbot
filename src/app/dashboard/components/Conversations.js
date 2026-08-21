@@ -109,11 +109,27 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     refresh&&refresh(true);
   };
 
+  // A message arriving anywhere for this client re-fetches contacts (line
+  // below), which used to blindly overwrite whatever was just toggled: click
+  // "off", a new message's broadcast lands mid-flight, the refetch still
+  // carries the pre-PUT value and stomps the switch back on a few seconds
+  // later. pendingRef remembers what the user just set and for how long, so
+  // a refetch during that window keeps the local value instead of the
+  // possibly-stale fetched one. It clears itself once the PUT has had time
+  // to actually commit, so a genuinely newer change (e.g. from another tab)
+  // still comes through after that.
+  const pendingRef=useRef({});         // { [sender_id]: expiresAt }  ("global" for the whole-account switch)
+  const stillPending=(key)=>{ const exp=pendingRef.current[key]; if(exp&&Date.now()<exp) return true; if(exp) delete pendingRef.current[key]; return false; };
+
   const loadContacts=async()=>{
     try{
       const d=await api("/api/contacts").then(r=>r.json());
-      if(d.contacts) setContacts(Object.fromEntries(d.contacts.map(c=>[c.sender_id,c])));
-      if(typeof d.global_bot_enabled==="boolean") setGlobalBot(d.global_bot_enabled);
+      if(d.contacts) setContacts(prev=>{
+        const next=Object.fromEntries(d.contacts.map(c=>[c.sender_id,c]));
+        for(const sid of Object.keys(next)) if(stillPending(sid)) next[sid]=prev[sid]||next[sid];
+        return next;
+      });
+      if(typeof d.global_bot_enabled==="boolean" && !stillPending("global")) setGlobalBot(d.global_bot_enabled);
     }catch{}
   };
   useEffect(()=>{loadContacts();},[]);
@@ -125,6 +141,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   useEffect(()=>{chatRef.current?.scrollTo(0,chatRef.current.scrollHeight);},[convos,sel]);
 
   const toggle=async(sender_id,val,isGlobal)=>{
+    pendingRef.current[isGlobal?"global":sender_id]=Date.now()+8000;
     if(isGlobal) setGlobalBot(val);
     else setContacts(p=>({...p,[sender_id]:{...p[sender_id],sender_id,bot_enabled:val}}));
     await api("/api/contacts",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isGlobal?{global:true,bot_enabled:val}:{sender_id,bot_enabled:val})});
