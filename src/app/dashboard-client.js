@@ -430,9 +430,12 @@ function ConnectChannel({onDone,clientId}) {
   const handleClick=(id)=>{
     if(id==="facebook") openPopup(`/api/fb/login?client_id=${clientId}`);
     else if(id==="instagram") openPopup(`/api/ig/login?client_id=${clientId}`);
-    // Same shape as Facebook: log in, then a picker shows what was found.
-    // wa/callback sends them on to Embedded Signup itself if nothing turns up.
-    else if(id==="whatsapp") openPopup(`/api/wa/login?client_id=${clientId}`);
+    // WhatsApp starts at the Embedded Signup hub (wa/embedded): "Set up with
+    // Meta" creates a new number or picks an existing one, a second door covers
+    // the WhatsApp Business app (coexistence), and its Advanced section still
+    // offers the older wa/login → wa/callback auto-detect for a shared number.
+    // So wa/callback is no longer the front door — only an advanced landing.
+    else if(id==="whatsapp") openPopup(`/api/wa/embedded?client_id=${clientId}`);
   };
   return <OnboardFrame icon="ti-plug" title="Connect a channel" sub="Your bot will reply to customers on this channel" width={520}>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
