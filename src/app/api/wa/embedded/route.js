@@ -97,10 +97,6 @@ h3{font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
 button{width:100%;padding:15px 18px;background:linear-gradient(135deg,var(--acc),var(--accd));color:#fff;border:0;border-radius:14px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 10px 22px color-mix(in srgb,var(--acc) 32%,transparent);transition:transform .14s,filter .15s}
 button:hover{transform:translateY(-1px);filter:brightness(1.05)}
 button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-.btn-alt{margin-top:10px;background:var(--in);color:var(--text);box-shadow:inset 2px 2px 5px var(--shd),inset -2px -2px 5px var(--shl);font-size:13.5px;font-weight:600}
-.btn-alt:hover{transform:translateY(-1px);filter:none}
-.btn-alt i{color:#25D366}
-.altcap{font-size:11px;color:var(--dim);line-height:1.5;margin-top:8px;text-align:center}
 .status{margin-top:16px;font-size:13px;color:var(--muted);min-height:20px;line-height:1.6}
 .err{color:var(--acc)}
 .ok{color:var(--ok)}
@@ -148,14 +144,12 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
      already filled in.</p>
 
   <ul class="checks">
-    <li><i class="ti ti-check"></i><span>Pick an <b>existing number</b> or create a new one</span></li>
+    <li><i class="ti ti-check"></i><span>Create a new number, pick an existing one, or link your <b>WhatsApp Business app</b> — all in the same window</span></li>
     <li><i class="ti ti-check"></i><span>Verify it with the code Meta sends by SMS or call</span></li>
     <li><i class="ti ti-check"></i><span>Your bot starts replying the moment it's connected</span></li>
   </ul>
 
   <button id="go"><i class="ti ti-brand-meta"></i>Set up with Meta</button>
-  <button id="coex" class="btn-alt"><i class="ti ti-brand-whatsapp"></i>Bring my WhatsApp Business app number</button>
-  <div class="altcap">Already chatting with customers on the green WhatsApp Business app? Keep that same number — the app and the bot work side by side.</div>
   <div class="status" id="status"></div>
   <div class="trust"><i class="ti ti-lock"></i>Meta handles verification — we never see your password.</div>
 
@@ -211,7 +205,6 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
 (function(){
   var STATE = ${JSON.stringify(stateToken)};
   var btn = document.getElementById('go');
-  var btn2 = document.getElementById('coex');
   var status = document.getElementById('status');
   var PREFILL = ${JSON.stringify(prefill)};
   var session = null;   // waba_id + phone_number_id, from the popup
@@ -220,8 +213,8 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
 
   function say(msg, cls){ status.innerHTML = msg; status.className = 'status ' + (cls||''); }
   function busy(msg){ say('<span class="spin"></span>' + msg); }
-  function ready(){ btn.disabled = false; btn2.disabled = false; }
-  function lock(){ btn.disabled = true; btn2.disabled = true; }
+  function ready(){ btn.disabled = false; }
+  function lock(){ btn.disabled = true; }
 
   window.fbAsyncInit = function(){
     FB.init({ appId: ${JSON.stringify(APP_ID)}, cookie:true, xfbml:false, version:'v26.0' });
@@ -289,18 +282,15 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
 
   var stallTimer = null;
 
-  // One flow, two doors, chosen by featureType:
-  //  • ''  → standard Embedded Signup: create a brand-new number, or pick an
-  //          existing WhatsApp Business Account number.
-  //  • 'whatsapp_business_app_onboarding' → Coexistence: onboard a number that
-  //          is live on the consumer WhatsApp Business app, so the app and the
-  //          bot run side by side on the same number.
-  // They are kept as SEPARATE buttons on purpose. Meta replaces the create-new
-  // screen when Coexistence is on, so forcing it globally would block a business
-  // that just wants a fresh number. The extra Coexistence webhooks it brings
-  // (history / smb_message_echoes / smb_app_state_sync) are ignored safely by
-  // parseWhatsAppEvent in lib/messenger.js, which only ever answers a live
-  // customer message on change.field === "messages".
+  // One button, one flow. featureType 'whatsapp_business_app_onboarding' opens
+  // Meta's Coexistence-capable Embedded Signup, which — verified live in the
+  // NORAY AFZAL NAHID portfolio — offers every option in a single window:
+  // "Create a WhatsApp Business account" (new number), an existing WABA number,
+  // AND "Connect a WhatsApp Business App" (a number already live on the consumer
+  // app). So there is no need for a second door. The extra Coexistence webhooks
+  // this can bring (history / smb_message_echoes / smb_app_state_sync) are
+  // ignored safely by parseWhatsAppEvent in lib/messenger.js, which only ever
+  // answers a live customer message on change.field === "messages".
   function startSignup(featureType){
     if (typeof FB === 'undefined') {
       say('Facebook has not loaded yet. Please reload the page.', 'err');
@@ -339,8 +329,7 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
     });
   }
 
-  btn.onclick = function(){ startSignup(''); };
-  btn2.onclick = function(){ startSignup('whatsapp_business_app_onboarding'); };
+  btn.onclick = function(){ startSignup('whatsapp_business_app_onboarding'); };
 })();
 </script>
 </body></html>`;
