@@ -95,19 +95,34 @@ export function connectedPage({ platform, name, detail, lead, rows = [], seconds
   return new NextResponse(shell({ title: `${ch.label} connected — Autologic`, body, script }), { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
-export function connectFailedPage({ platform, reason, status = 500 }) {
+// `title` overrides the default "… could not be connected" heading (e.g. the
+// no-Page case, which is not really a failure). `eyebrow` labels the state.
+// `seconds` > 0 shows a countdown and glides the owner back to the dashboard on
+// its own — for cases where there is nothing to fix on this screen, only to
+// return. Default 0 keeps the old behaviour: a button, no auto-redirect.
+export function connectFailedPage({ platform, reason, status = 500, title, eyebrow = "Not connected", seconds = 0 }) {
   const ch = CHANNELS[platform] || { label: "Channel", icon: "ti-plug-x", color: "#8A91A3" };
   const dest = "/dashboard#channels";
+  const n = Number(seconds) || 0;
   const body = `<main class="card" role="alert">
   <div class="brand"><i class="ti ti-bolt"></i>Autologic</div>
   <div class="hero">
     <div class="tile"><i class="ti ${ch.icon}" style="color:${ch.color}"></i><span class="tick bad"><i class="ti ti-x"></i></span></div>
-    <div class="eyebrow">Not connected</div>
-    <h1>${esc(ch.label)} could not be connected</h1>
+    <div class="eyebrow">${esc(eyebrow)}</div>
+    <h1>${esc(title || `${ch.label} could not be connected`)}</h1>
     <p class="lead">${esc(reason || "Something interrupted the connection. Nothing was changed — please go back to your dashboard and try again.")}</p>
   </div>
-  <button class="btn" id="go" type="button">Back to dashboard <i class="ti ti-arrow-right"></i></button>
+  <button class="btn" id="go" type="button">Go to dashboard <i class="ti ti-arrow-right"></i></button>
+  ${n > 0 ? `<div class="foot">Taking you to your dashboard in <b id="n">${n}</b>s</div>` : ""}
 </main>`;
-  const script = `<script>document.getElementById("go").onclick=function(){ if(window.opener&&window.opener!==window){ try{window.close();}catch(e){} } location.href=${JSON.stringify(dest)}; };</script>`;
-  return new NextResponse(shell({ title: `${ch.label} not connected — Autologic`, body, script }), { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  const script = `<script>
+(function(){
+  var dest=${JSON.stringify(dest)};
+  function go(){ if(window.opener&&window.opener!==window){ try{window.close();}catch(e){} setTimeout(function(){ location.href=dest; },300); } else { location.href=dest; } }
+  document.getElementById("go").onclick=go;
+  var n=${n};
+  if(n>0){ var el=document.getElementById("n"); var t=setInterval(function(){ n--; if(el) el.textContent=n; if(n<=0){ clearInterval(t); go(); } },1000); }
+})();
+</script>`;
+  return new NextResponse(shell({ title: `${esc(title || ch.label)} — Autologic`, body, script }), { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
 }

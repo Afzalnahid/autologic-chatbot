@@ -231,7 +231,17 @@ export async function waSendResponses(token, phoneId, to, items) {
 }
 
 export function parseWhatsAppEvent(body) {
-  const value = body?.entry?.[0]?.changes?.[0]?.value;
+  const change = body?.entry?.[0]?.changes?.[0];
+  // Coexistence (a number running on the WhatsApp Business app AND Cloud API)
+  // delivers extra webhooks the bot must NEVER answer: `history` (old messages
+  // replayed in the minutes after onboarding), `smb_app_state_sync` (contact
+  // sync) and `smb_message_echoes` (messages the OWNER just sent from their own
+  // phone). Each arrives under its own change.field — never "messages" — so we
+  // bail on anything that is not a live customer message. Without this a
+  // coexistence onboard could make the bot reply to months of history, or reply
+  // to the owner's own outgoing messages.
+  if (change?.field && change.field !== "messages") return null;
+  const value = change?.value;
   const m = value?.messages?.[0];
   if (!m?.from) return null;
   return {
