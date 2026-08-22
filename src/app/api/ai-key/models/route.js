@@ -50,22 +50,23 @@ const tierOf = (provider, m) =>
     ? (/pro/i.test(m) ? "smart" : "fast")
     : (/mini|nano|small/i.test(m) ? "fast" : "smart");
 
-// Trim the provider's list to a balanced handful: keep both a few fast models
-// AND a couple of higher-quality ones, so there is always a real fallback. Input
-// is [{id, displayName}]; output carries the official name plus a tier + note.
+// Keep the FULL set of text chat models (with their official names), dropping
+// only the ones a text bot can't use — image, audio, TTS, embedding and other
+// special-purpose variants — since picking those would just break replies.
+// Cheapest/fastest are sorted first so the default main choice stays economical.
+// Input is [{id, displayName}]; output carries the official name + tier + note.
 function curate(provider, all) {
   let good;
   if (provider === "google") {
-    const drop = /embedding|image|tts|audio|vision|thinking|\bexp\b|gemma|learnlm|aqa|dialog|native/i;
-    good = all.filter((m) => /flash|pro/i.test(m.id) && !drop.test(m.id));
+    const drop = /embedding|image|tts|audio|vision|native|dialog|aqa|gemma|learnlm/i;
+    good = all.filter((m) => !drop.test(m.id));
   } else {
     const drop = /instruct|search|audio|realtime|transcribe|tts|image|moderation|embedding|babbage|davinci/i;
-    good = all.filter((m) => /^(gpt-4o|gpt-4\.1|o[0-9])/i.test(m.id) && !drop.test(m.id));
+    good = all.filter((m) => /^(gpt-5|gpt-4\.5|gpt-4\.1|gpt-4o|o[0-9])/i.test(m.id) && !drop.test(m.id));
   }
-  const fast = good.filter((m) => tierOf(provider, m.id) === "fast");
-  const smart = good.filter((m) => tierOf(provider, m.id) === "smart");
-  // Up to 3 fast + up to 2 higher-quality — fast first so the main default is cheap.
-  return [...fast.slice(0, 3), ...smart.slice(0, 2)].map((m) => {
+  // Fast/cheap first, then the higher-quality models.
+  good.sort((a, b) => (tierOf(provider, a.id) === "fast" ? 0 : 1) - (tierOf(provider, b.id) === "fast" ? 0 : 1));
+  return good.slice(0, 24).map((m) => {
     const tier = tierOf(provider, m.id);
     return {
       id: m.id,
