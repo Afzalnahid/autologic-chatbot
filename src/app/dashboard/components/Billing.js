@@ -18,6 +18,10 @@ export default function Billing({initialPlan,initialCycle}) {
   const [err,setErr]=useState("");
   const [copied,setCopied]=useState("");
 
+  // Packages come live from the admin panel (/api/plans), so a new or re-priced
+  // plan shows up to upgrade without a deploy. PLAN_LIST is the fallback.
+  const [plans,setPlans]=useState(PLAN_LIST);
+  const [planMeta,setPlanMeta]=useState(PLAN_META);
   const load=useCallback(async()=>{
     try{
       const r=await api(`/api/billing?t=${Date.now()}`,{cache:"no-store"});
@@ -27,6 +31,12 @@ export default function Billing({initialPlan,initialCycle}) {
     setLoading(false);
   },[method]);
   useEffect(()=>{load();},[]);
+  useEffect(()=>{
+    api("/api/plans").then(r=>r.json()).then(d=>{
+      if(Array.isArray(d?.plans)&&d.plans.length) setPlans(d.plans.filter(p=>Number(p.monthly)>0));
+      if(d?.meta) setPlanMeta({...PLAN_META,...d.meta});
+    }).catch(()=>{});
+  },[]);
 
   const submit=async()=>{
     if(busy) return;
@@ -178,7 +188,7 @@ export default function Billing({initialPlan,initialCycle}) {
 
     {/* Plan cards */}
     {step==="plans"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:14,marginBottom:16}}>
-      {PLAN_LIST.map(p=><Card key={p.id} style={{border:p.highlight?`1px solid color-mix(in srgb, ${T.gold} 33%, transparent)`:undefined,display:"flex",flexDirection:"column"}}>
+      {plans.map(p=><Card key={p.id} style={{border:p.highlight?`1px solid color-mix(in srgb, ${T.gold} 33%, transparent)`:undefined,display:"flex",flexDirection:"column"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{fontSize:16,fontWeight:600}}>{p.name}</span>
           {d.plan===p.id?<Badge color={T.success}>Current</Badge>:p.highlight?<Badge>Popular</Badge>:null}
@@ -209,7 +219,7 @@ export default function Billing({initialPlan,initialCycle}) {
           </tr></thead>
           <tbody>{d.requests.map(r=><tr key={r.id} style={{borderTop:`0.5px solid ${T.border}`}}>
             <td style={{padding:"10px 0",color:T.textMuted}}>{shortDate(r.created_at)}</td>
-            <td style={{padding:"10px 0"}}>{PLAN_META[r.plan]?.name||r.plan}<span style={{color:T.textDim,fontSize:11}}> · {r.billing_cycle}</span></td>
+            <td style={{padding:"10px 0"}}>{planMeta[r.plan]?.name||PLAN_META[r.plan]?.name||r.plan}<span style={{color:T.textDim,fontSize:11}}> · {r.billing_cycle}</span></td>
             <td style={{padding:"10px 0"}}>{taka(r.amount)}</td>
             <td style={{padding:"10px 0",color:T.textMuted,fontFamily:"monospace",fontSize:11.5}}>{r.txn_id}</td>
             <td style={{padding:"10px 0",textAlign:"right"}}>

@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
 import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentApproved, notifyPaymentRejected } from "@/lib/email.js";
 import { PLANS } from "@/lib/plans.js";
+import { loadPlans } from "@/lib/plan-limits.js";
 import { startOfDayDhaka } from "@/lib/time.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
@@ -334,11 +335,12 @@ export async function PUT(request) {
   const { id, action, value } = body;
   if (!id || !action) return NextResponse.json({ error: "missing id/action" }, { status: 400 });
   let patch = null;
-  const PLAN_IDS = ["trial", "starter", "pro", "agency"];
   if (action === "plan") {
-    // Any catalogue plan. Moving onto a paid plan by hand starts a 30-day
-    // term from today unless one is still running; back to trial clears it.
-    const plan = PLAN_IDS.includes(value) ? value : "trial";
+    // Any catalogue plan (from the live plans table, so admin-created packages
+    // are assignable). Moving onto a paid plan by hand starts a 30-day term from
+    // today unless one is still running; back to trial clears it.
+    const catalogue = await loadPlans();
+    const plan = (value === "trial" || (catalogue[value] && catalogue[value].active !== false)) ? value : "trial";
     patch = { plan };
     if (plan === "trial") patch.plan_expires_at = null;
     else {

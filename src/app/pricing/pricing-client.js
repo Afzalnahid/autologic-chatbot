@@ -39,8 +39,17 @@ function Check({ on }) {
     : <span style={{ color: T.dim, fontSize: 15 }}>—</span>;
 }
 
+// The code catalogue, shaped like the /api/plans response, used for the first
+// paint and as a fallback if the API is unreachable.
+const FALLBACK_PLANS = PLAN_ORDER.map((id) => ({
+  id, name: PLANS[id].name, tagline: PLANS[id].tagline,
+  monthly: PLANS[id].monthly, yearly: PLANS[id].yearly,
+  highlight: !!PLANS[id].highlight, features: PLANS[id].features || [],
+}));
+
 export default function PricingClient() {
   const [cycle, setCycle] = useState("monthly");
+  const [plans, setPlans] = useState(FALLBACK_PLANS);
   const wrap = { maxWidth: 1120, margin: "0 auto", padding: "0 20px" };
   const yearly = cycle === "yearly";
 
@@ -51,6 +60,11 @@ export default function PricingClient() {
         || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
       document.documentElement.dataset.theme = t;
     } catch {}
+    // Live packages from the admin panel — so a new or re-priced plan appears
+    // here without a deploy. Falls back to the code catalogue on any error.
+    fetch("/api/plans").then((r) => r.json()).then((d) => {
+      if (Array.isArray(d?.plans) && d.plans.length) setPlans(d.plans);
+    }).catch(() => {});
   }, []);
 
   return (
@@ -90,11 +104,13 @@ export default function PricingClient() {
       {/* Plan cards */}
       <section style={{ ...wrap, padding: "0 20px 56px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, alignItems: "stretch" }}>
-          {PLAN_ORDER.map((id) => {
-            const p = PLANS[id];
+          {plans.map((p) => {
+            const id = p.id;
             const price = yearly ? p.yearly : p.monthly;
             const free = price === 0;
-            const saving = yearlySavingMonths(id);
+            // Months saved by paying yearly, computed from this plan's own prices
+            // so it works for any admin-created package, not just the built-in ones.
+            const saving = p.monthly ? Math.round((p.monthly * 12 - p.yearly) / p.monthly) : 0;
             return (
               <div key={id} style={{
                 background: T.card, border: p.highlight ? `1.5px solid ${T.gold}` : `1px solid ${T.border}`,

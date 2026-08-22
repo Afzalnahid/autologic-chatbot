@@ -4,7 +4,8 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
-import { PLANS, PAID_PLANS, priceOf, planActive } from "@/lib/plans.js";
+import { planActive } from "@/lib/plans.js";
+import { loadPlans, limitsFor } from "@/lib/plan-limits.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
@@ -47,8 +48,8 @@ export const GET = withErrors(async (request) => {
   const { client, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const plan = PLANS[client.plan] || null;
-  const [month, today, reqQ] = await Promise.all([
+  const [limits, month, today, reqQ] = await Promise.all([
+    limitsFor(client),
     usageThisMonth(client.id),
     usageToday(client.id),
     supabase.from("payment_requests").select("*").eq("client_id", client.id).order("created_at", { ascending: false }).limit(10),
@@ -57,12 +58,14 @@ export const GET = withErrors(async (request) => {
   const requests = reqQ.data || [];
   const pending = requests.find((r) => r.status === "pending") || null;
 
-  const limit = plan?.messagesPerMonth ?? null;
-  const dailyLimit = plan?.messagesPerDay ?? null;
+  // Limits merge the client's plan with any per-client override — the same
+  // source the bot enforces — so the usage bar matches reality.
+  const limit = limits.messagesPerMonth ?? null;
+  const dailyLimit = limits.messagesPerDay ?? null;
 
   return NextResponse.json({
     plan: client.plan,
-    plan_name: plan?.name || "No plan",
+    plan_name: limits.planName || "No plan",
     active: planActive(client),
     trial_end: client.trial_end,
     plan_expires_at: client.plan_expires_at,
@@ -89,7 +92,13 @@ export const POST = withErrors(async (request) => {
   const body = await request.json().catch(() => ({}));
   const { plan, cycle = "monthly", method, sender_number, txn_id } = body;
 
-  if (!PAID_PLANS.includes(plan)) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+  // Validate and price the plan against the LIVE catalogue (the plans table),
+  // so a package the admin created is purchasable — and priced correctly —
+  // without a code change.
+  const catalogue = await loadPlans();
+  const chosen = catalogue[plan];
+  const isPaid = chosen && chosen.active !== false && Number(chosen.monthly) > 0;
+  if (!isPaid) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   if (!["monthly", "yearly"].includes(cycle)) return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
   if (!method) return NextResponse.json({ error: "Select a payment method" }, { status: 400 });
   if (!txn_id || String(txn_id).trim().length < 4) {
@@ -103,7 +112,7 @@ export const POST = withErrors(async (request) => {
     return NextResponse.json({ error: "You already have a payment under review. We'll confirm it shortly." }, { status: 409 });
   }
 
-  const amount = priceOf(plan, cycle);
+  const amount = cycle === "yearly" ? (Number(chosen.yearly) || 0) : (Number(chosen.monthly) || 0);
   const { data, error: insErr } = await supabase.from("payment_requests").insert({
     client_id: client.id,
     plan,
@@ -119,7 +128,7 @@ export const POST = withErrors(async (request) => {
   notifyPaymentRequest({
     business: client.business_name,
     email,
-    plan: PLANS[plan]?.name || plan,
+    plan: chosen.name || plan,
     cycle,
     amount,
     method,
