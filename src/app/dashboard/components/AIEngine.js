@@ -121,8 +121,8 @@ function KeyManager({ st, setSt, isMobile }) {
         <span style={{ width: 44, height: 44, borderRadius: 13, background: hasKey ? `${P.color}1a` : T.goldBg, color: hasKey ? P.color : T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 21, flexShrink: 0 }}>
           <i className={`ti ${hasKey ? P.icon : "ti-key"}`} /></span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>Your own API key</div>
-          <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2, lineHeight: 1.5 }}>Your account is enabled to run the bot on your own key — the AI usage bills to you, not the platform.</div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Your own Gemini API key</div>
+          <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2, lineHeight: 1.5 }}>Your account is enabled to run the bot on your own Google AI (Gemini) key — the AI usage bills to you, not the platform.</div>
         </div>
       </div>
 
@@ -179,7 +179,9 @@ function KeyManager({ st, setSt, isMobile }) {
 
 // Provider + key → load the LIVE model list → choose main + fallback → activate.
 function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg }) {
-  const [provider, setProvider] = useState(hasKey ? st.provider : "google");
+  // Gemini-only platform: embeddings need Gemini, and it does chat, vision and
+  // voice in one API too, so a single provider keeps everything self-contained.
+  const provider = "google";
   const [key, setKey] = useState("");
   const [show, setShow] = useState(false);
   const [models, setModels] = useState(null);   // null = not loaded yet
@@ -222,12 +224,14 @@ function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg 
 
   return (
     <div style={{ marginTop: hasKey ? 4 : 0 }}>
-      {/* Provider */}
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ display: "block", fontSize: 12, color: T.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Provider</label>
-        <Select wide value={provider} onChange={(v) => { setProvider(v); setKey(""); resetList(); setMain(""); setFallback(""); }}
-          options={Object.entries(PROVIDERS).map(([v, p]) => ({ value: v, label: p.label, icon: p.icon }))} />
-        <div style={{ fontSize: 11, color: T.textDim, marginTop: 5 }}>Get your key: {P.help}</div>
+      {/* Provider is always Google (Gemini) — one key runs chat, vision, voice
+          and the product/knowledge search. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, padding: "10px 12px", borderRadius: 12, background: T.bgAlt }}>
+        <span style={{ width: 30, height: 30, borderRadius: 9, background: `${P.color}1a`, color: P.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}><i className={`ti ${P.icon}`} /></span>
+        <div style={{ minWidth: 0, fontSize: 12.5 }}>
+          <b>Google AI (Gemini)</b>
+          <div style={{ fontSize: 11, color: T.textDim, marginTop: 1 }}>Get your key: {P.help}</div>
+        </div>
       </div>
 
       {/* Key */}

@@ -28,7 +28,10 @@ const chip = (models, id) => {
 
 export default function AIAdmin({ token, superKey, setSuperKey }) {
   const [st, setSt] = useState(null);
-  const [provider, setProvider] = useState("google");
+  // Gemini-only platform (embeddings need Gemini; it also does chat, vision and
+  // voice in one API). The backend still accepts other providers, but the UI
+  // offers only Google so everything stays on one provider.
+  const provider = "google";
   const [key, setKey] = useState("");
   const [show, setShow] = useState(false);
   const [models, setModels] = useState(null);
@@ -43,7 +46,6 @@ export default function AIAdmin({ token, superKey, setSuperKey }) {
       .then((x) => x.json()).catch(() => ({ error: "network" }));
     if (r.error) { setMsg({ ok: false, text: r.error }); return; }
     setSt(r);
-    setProvider(r.provider || "google");
     const saved = String(r.model_chain || "").split(",").map((s) => s.trim()).filter(Boolean);
     setMain(saved[0] || ""); setFallback(saved[1] || "");
   }, [token]);
@@ -154,10 +156,13 @@ export default function AIAdmin({ token, superKey, setSuperKey }) {
     <Card>
       <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Change the key or models</div>
 
-      <label style={{ display: "block", fontSize: 11, color: T.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Provider</label>
-      <Select wide value={provider} onChange={(v) => { setProvider(v); setModels(null); setKey(""); }}
-        options={Object.entries(PROVIDERS).map(([v, p]) => ({ value: v, label: p.label, icon: p.icon }))} />
-      <div style={{ fontSize: 11, color: T.textDim, margin: "5px 0 12px" }}>Get a key: {P.help}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, padding: "10px 12px", borderRadius: 12, background: T.bgAlt }}>
+        <span style={{ width: 30, height: 30, borderRadius: 9, background: `${P.color}1a`, color: P.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}><i className={`ti ${P.icon}`} /></span>
+        <div style={{ minWidth: 0, fontSize: 12.5 }}>
+          <b>Google AI (Gemini)</b>
+          <div style={{ fontSize: 11, color: T.textDim, marginTop: 1 }}>Get a key: {P.help}</div>
+        </div>
+      </div>
 
       <div style={{ position: "relative", marginBottom: 10 }}>
         <input type={show ? "text" : "password"} value={key} onChange={(e) => { setKey(e.target.value); setModels(null); }}
