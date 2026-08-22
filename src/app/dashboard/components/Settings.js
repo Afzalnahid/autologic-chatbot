@@ -222,18 +222,3 @@ export default function Settings({settings,setSettings}) {
     </div>
   </div>;
 }
-
-    {/* The save bar. Appears the moment anything differs from what is stored,
-        so leaving without saving is a choice, never an accident. */}
-    <div style={{position:"fixed",left:0,right:0,bottom:isMobile?66:0,display:"flex",justifyContent:"center",pointerEvents:"none",zIndex:40,padding:"0 16px"}}>
-      <div style={{width:"100%",maxWidth:700,display:"flex",justifyContent:"flex-end",padding:"0 0 12px"}}>
-        {(dirty||saved)&&<div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:12,background:T.card,border:`1px solid ${saved?`color-mix(in srgb, ${T.success} 40%, transparent)`:T.border}`,borderRadius:14,boxShadow:"0 10px 30px rgba(0,0,0,.14)",padding:"10px 12px 10px 16px"}}>
-          <span style={{fontSize:12.5,color:saved?T.success:T.textMuted,display:"flex",alignItems:"center",gap:6}}>
-            <i className={`ti ${saved?"ti-check":"ti-pencil"}`} style={{fontSize:14}}/>{saved?"Saved":"Unsaved changes"}
-          </span>
-          {!saved&&<Btn gold onClick={save}><i className="ti ti-check" style={{marginRight:6}}/>Save</Btn>}
-        </div>}
-      </div>
-    </div>
-  </div>;
-}
