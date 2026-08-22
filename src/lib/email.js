@@ -118,6 +118,29 @@ export async function notifyPaymentRejected(clientEmail, reason) {
   });
 }
 
+// A client's own AI key just stopped working, so their bot paused. Sent once
+// when the key flips from working to failing (not for every message) — see
+// markFailing in src/lib/ai.js.
+export async function notifyKeyFailing(clientEmail, { business, provider, model, error }) {
+  const prov = provider === "openai" ? "OpenAI" : "Google AI";
+  const safeErr = String(error || "").slice(0, 240).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+  return send({
+    to: clientEmail,
+    subject: `Action needed: your AI key stopped working — ${business}`,
+    html: wrap(
+      "Your AI key stopped working",
+      `Your bot runs on your own <strong>${prov}</strong> key${model ? ` (<strong>${model}</strong>)` : ""}, and it just failed —
+       so your bot has <strong style="color:#f0c040">paused replying to customers</strong>.
+       <br/><br/>Most often this means the key ran out of quota or credit, or its billing needs attention.
+       ${safeErr ? `<br/><br/>What the provider returned:<br/><span style="font-size:12px;color:#8b9cbd">${safeErr}</span>` : ""}
+       <br/><br/>Top up or fix billing with your provider, or paste a new key — your bot resumes automatically once the key works again.
+       <br/><br/>
+       <a href="https://www.getvoicium.com/dashboard#ai" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Open AI Engine</a>
+       <br/><br/><span style="font-size:12px;color:#8b9cbd">You'll get this once per outage, not for every message.</span>`
+    ),
+  });
+}
+
 const PLAN_LABEL = { trial: "Free Trial", starter: "Starter", pro: "Pro", agency: "Agency" };
 
 // The bot has stopped answering customers for a billing reason.

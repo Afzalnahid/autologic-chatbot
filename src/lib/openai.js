@@ -128,10 +128,11 @@ export async function verifyOpenAIKey(apiKey, model) {
   return { ok: true, models };
 }
 
-// Chat-capable OpenAI model ids for a key (same filter as verify). Kept separate
-// so the models endpoint can call it without re-running the model-id check.
+// Chat-capable OpenAI models for a key (same filter as verify), shaped like the
+// Google lister: {id, displayName}. OpenAI has no display name, so the id is
+// used for both. Kept separate so the models endpoint can call it directly.
 export async function listOpenAIModels(apiKey) {
   const out = await verifyOpenAIKey(apiKey);
   if (!out.ok) { const e = new Error(out.error); throw e; }
-  return out.models || [];
+  return (out.models || []).map((id) => ({ id, displayName: id }));
 }

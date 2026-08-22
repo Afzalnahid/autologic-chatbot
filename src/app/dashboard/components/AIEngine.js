@@ -26,7 +26,10 @@ const idsOf = (models) => models.map((m) => m.id);
 const guessMain = (models) => (models.find((m) => m.tier === "fast") || models[0])?.id || "";
 const guessFallback = (models, main) =>
   (models.find((m) => m.tier === "smart" && m.id !== main) || models.find((m) => m.id !== main))?.id || "";
-const optLabel = (m) => `${m.id}${m.tier === "fast" ? "  ·  fast, low cost" : m.tier === "smart" ? "  ·  higher quality" : ""}`;
+// The dropdown shows the provider's OFFICIAL model name, with cost/power in
+// brackets. The raw id is what we store and send; the name is only for display.
+const optLabel = (m) => `${m.name || m.id}${m.tier === "fast" ? "  (Low cost · Fast)" : m.tier === "smart" ? "  (More powerful · Higher cost)" : ""}`;
+const nameOf = (models, id) => (models.find((m) => m.id === id)?.name) || id;
 
 // A small tier badge — green FAST for cheap/quick, gold QUALITY for the stronger
 // models — used in the live summary so the trade-off reads at a glance.
@@ -263,10 +266,10 @@ function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg 
 
           {/* Live summary of the chain, with a tier chip on each side. */}
           <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", fontSize: 12.5, background: T.bgAlt, boxShadow: T.nmIn, borderRadius: 12, padding: "11px 13px", marginBottom: 12 }}>
-            <span style={{ fontFamily: "monospace", color: T.text }}>{main || "—"}</span>{chip(models, main)}
+            <span style={{ fontWeight: 600, color: T.text }}>{main ? nameOf(models, main) : "—"}</span>{chip(models, main)}
             <i className="ti ti-arrow-right" style={{ color: T.textDim, fontSize: 14 }} />
             {fallback
-              ? <><span style={{ fontFamily: "monospace", color: T.text }}>{fallback}</span>{chip(models, fallback)}</>
+              ? <><span style={{ fontWeight: 600, color: T.text }}>{nameOf(models, fallback)}</span>{chip(models, fallback)}</>
               : <span style={{ color: T.textDim }}>no fallback</span>}
           </div>
 

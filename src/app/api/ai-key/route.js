@@ -93,10 +93,11 @@ async function verifyAIKey(provider, apiKey, models) {
     const available = provider === "google"
       ? await listGoogleModels(apiKey)
       : await listOpenAIModels(apiKey);
-    if (!available.length) return { ok: false, error: "This key has no usable chat models." };
+    const ids = available.map((a) => a.id);
+    if (!ids.length) return { ok: false, error: "This key has no usable chat models." };
     for (const m of models) {
-      if (m && !available.includes(m)) {
-        return { ok: false, error: `This key cannot use "${m}". Available: ${available.slice(0, 4).join(", ")}${available.length > 4 ? "…" : ""}` };
+      if (m && !ids.includes(m)) {
+        return { ok: false, error: `This key cannot use "${m}". Available: ${ids.slice(0, 4).join(", ")}${ids.length > 4 ? "…" : ""}` };
       }
     }
     return { ok: true, available };

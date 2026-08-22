@@ -82,8 +82,8 @@ export async function listGoogleModels(apiKey) {
   const j = await r.json();
   return (j.models || [])
     .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
-    .map(m => String(m.name || "").replace(/^models\//, ""))
-    .filter(id => /^gemini/i.test(id));
+    .map(m => ({ id: String(m.name || "").replace(/^models\//, ""), displayName: m.displayName || "" }))
+    .filter(m => /^gemini/i.test(m.id));
 }
 
 

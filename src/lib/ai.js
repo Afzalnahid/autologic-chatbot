@@ -17,6 +17,7 @@
 //   3. No dashboard ever sees the key again — only its masked form.
 import { supabase } from "@/lib/supabase.js";
 import { decryptSecret } from "@/lib/crypt.js";
+import { notifyKeyFailing } from "@/lib/email.js";
 import {
   chatWithGemini, analyzeImage, analyzeImageBase64,
   transcribeAudio, transcribeAudioBase64, generateEmbedding,
@@ -126,11 +127,34 @@ function build(clientId, cfg) {
 }
 
 // Fire-and-forget bookkeeping: the customer's reply never waits on it.
-function markFailing(clientId, e) {
-  supabase.from("client_ai")
-    .update({ status: "failing", last_error: String(e?.message || "unknown").slice(0, 300), last_error_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("client_id", clientId)
-    .then(() => {}, () => {});
+// Also emails the client ONCE when the key flips from working to failing — the
+// transition is detected atomically (the update only matches a row that was not
+// already "failing"), so a healthy→broken event mails them, but the next failed
+// message a minute later does not. Never throws (it is not awaited).
+async function markFailing(clientId, e) {
+  try {
+    const errMsg = String(e?.message || "unknown").slice(0, 300);
+    const now = new Date().toISOString();
+    const { data: flipped } = await supabase.from("client_ai")
+      .update({ status: "failing", last_error: errMsg, last_error_at: now, updated_at: now })
+      .eq("client_id", clientId).neq("status", "failing")
+      .select("provider,model").maybeSingle();
+    if (!flipped) {
+      // Already failing — just keep the latest error text fresh, no new email.
+      await supabase.from("client_ai").update({ last_error: errMsg, last_error_at: now, updated_at: now }).eq("client_id", clientId);
+      return;
+    }
+    // Just broke — tell the client so they can top up / fix billing.
+    const { data: c } = await supabase.from("clients").select("business_name,owner_email").eq("id", clientId).maybeSingle();
+    if (c?.owner_email) {
+      notifyKeyFailing(c.owner_email, {
+        business: c.business_name || "your business",
+        provider: flipped.provider, model: flipped.model, error: errMsg,
+      }).catch(() => {});
+    }
+  } catch (err) {
+    console.error("[ai] markFailing:", String(err?.message || err).slice(0, 160));
+  }
 }
 function markOk(clientId) {
   supabase.from("client_ai")

@@ -36,7 +36,7 @@ export const POST = withErrors(async (request) => {
     // main, higher-quality as fallback). Verification (POST /api/ai-key) still
     // checks against the full live list, so any of these is always valid.
     let models = curate(provider, all);
-    if (!models.length) models = all.slice(0, 6).map((id) => ({ id, tier: "fast", note: "" }));
+    if (!models.length) models = all.slice(0, 6).map((m) => ({ id: m.id, name: m.displayName || m.id, tier: "fast", note: "" }));
     return NextResponse.json({ ok: true, provider, models }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return NextResponse.json({ error: "Could not read models: " + String(e.message || "unknown").slice(0, 200) }, { status: 400 });
@@ -51,22 +51,27 @@ const tierOf = (provider, m) =>
     : (/mini|nano|small/i.test(m) ? "fast" : "smart");
 
 // Trim the provider's list to a balanced handful: keep both a few fast models
-// AND a couple of higher-quality ones, so there is always a real fallback.
-function curate(provider, models) {
+// AND a couple of higher-quality ones, so there is always a real fallback. Input
+// is [{id, displayName}]; output carries the official name plus a tier + note.
+function curate(provider, all) {
   let good;
   if (provider === "google") {
     const drop = /embedding|image|tts|audio|vision|thinking|\bexp\b|gemma|learnlm|aqa|dialog|native/i;
-    good = models.filter((m) => /flash|pro/i.test(m) && !drop.test(m));
+    good = all.filter((m) => /flash|pro/i.test(m.id) && !drop.test(m.id));
   } else {
     const drop = /instruct|search|audio|realtime|transcribe|tts|image|moderation|embedding|babbage|davinci/i;
-    good = models.filter((m) => /^(gpt-4o|gpt-4\.1|o[0-9])/i.test(m) && !drop.test(m));
+    good = all.filter((m) => /^(gpt-4o|gpt-4\.1|o[0-9])/i.test(m.id) && !drop.test(m.id));
   }
-  const fast = good.filter((m) => tierOf(provider, m) === "fast");
-  const smart = good.filter((m) => tierOf(provider, m) === "smart");
+  const fast = good.filter((m) => tierOf(provider, m.id) === "fast");
+  const smart = good.filter((m) => tierOf(provider, m.id) === "smart");
   // Up to 3 fast + up to 2 higher-quality — fast first so the main default is cheap.
-  return [...fast.slice(0, 3), ...smart.slice(0, 2)].map((id) => ({
-    id,
-    tier: tierOf(provider, id),
-    note: tierOf(provider, id) === "fast" ? "Fast · low cost" : "Higher quality · higher cost",
-  }));
+  return [...fast.slice(0, 3), ...smart.slice(0, 2)].map((m) => {
+    const tier = tierOf(provider, m.id);
+    return {
+      id: m.id,
+      name: m.displayName || m.id,
+      tier,
+      note: tier === "fast" ? "Low cost · Fast" : "More powerful · Higher cost",
+    };
+  });
 }
