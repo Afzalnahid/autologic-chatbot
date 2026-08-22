@@ -389,18 +389,47 @@ function Rates({ d, post, busy, rate }) {
     </Card>
 
     <Card>
-      <div style={{ fontSize: 14, fontWeight: 700 }}>Model price book</div>
-      <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 10px" }}>
-        USD per 1 million tokens. Every cost on this page is worked out from these, so keep them matching the provider's pricing page. <b style={{ color: T.text }}>__default__</b> is the fallback for any model not listed.
+      <div style={{ fontSize: 14, fontWeight: 700 }}>What each AI model charges you</div>
+      <div style={{ fontSize: 12.5, color: T.textMuted, margin: "5px 0 12px", lineHeight: 1.75 }}>
+        AI companies bill by the <b style={{ color: T.text }}>token</b> — about 4 letters of text. They charge two
+        separate rates: one for the text you <b style={{ color: T.text }}>send them</b> (the customer's question plus
+        your product data and the bot's instructions), and a higher one for the text the bot
+        <b style={{ color: T.text }}> writes back</b>. Both are prices in US dollars for 1 million tokens, copied
+        straight from the provider's pricing page — that is all the two boxes below hold.
+        Every cost figure on this page is worked out from them, so if a provider changes its
+        prices, change them here too.
       </div>
-      {prices.map((p, i) => <div key={`${p.provider}/${p.model}`} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
-        <span style={{ flex: "1 1 170px", minWidth: 0, fontSize: 12.5, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}>
-          <span style={{ color: T.textDim }}>{p.provider}/</span>{p.model}
-        </span>
-        <label style={{ fontSize: 10.5, color: T.textDim }}>in<input value={p.input_per_1m} onChange={(e) => upd(prices, setPrices, i, "input_per_1m", e.target.value)} style={{ ...box, width: 78, marginLeft: 5 }} /></label>
-        <label style={{ fontSize: 10.5, color: T.textDim }}>out<input value={p.output_per_1m} onChange={(e) => upd(prices, setPrices, i, "output_per_1m", e.target.value)} style={{ ...box, width: 78, marginLeft: 5 }} /></label>
-        <Btn small disabled={busy} onClick={() => post({ action: "save_price", provider: p.provider, model: p.model, input_per_1m: p.input_per_1m, output_per_1m: p.output_per_1m })}>Save</Btn>
-      </div>)}
+      <div style={{ fontSize: 11.5, color: T.textDim, background: T.bgAlt, borderRadius: 10, padding: "9px 12px", marginBottom: 12, lineHeight: 1.65 }}>
+        <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
+        Google's prices: <b style={{ color: T.textMuted }}>ai.google.dev/pricing</b> · OpenAI's: <b style={{ color: T.textMuted }}>openai.com/api/pricing</b>.
+        The row named <b style={{ color: T.textMuted }}>__default__</b> is used for any model that is not listed here, so a new model never looks free by mistake.
+      </div>
+      {prices.map((p, i) => {
+        // A concrete number instead of an abstract rate: what 1,000 bot replies
+        // would cost at these rates, on a typical reply (about 3,000 tokens of
+        // question + product context in, 250 tokens of answer out).
+        const per1000 = ((3000 / 1e6) * (Number(p.input_per_1m) || 0) + (250 / 1e6) * (Number(p.output_per_1m) || 0)) * 1000 * rate;
+        return <div key={`${p.provider}/${p.model}`} style={{ padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ flex: "1 1 160px", minWidth: 0, fontSize: 12.5, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <span style={{ color: T.textDim }}>{p.provider}/</span>{p.model}
+            </span>
+            <label style={{ fontSize: 10.5, color: T.textDim, display: "inline-flex", flexDirection: "column", gap: 3 }} title="Price for the text you send the AI">
+              You send
+              <input value={p.input_per_1m} onChange={(e) => upd(prices, setPrices, i, "input_per_1m", e.target.value)} style={{ ...box, width: 82 }} />
+            </label>
+            <label style={{ fontSize: 10.5, color: T.textDim, display: "inline-flex", flexDirection: "column", gap: 3 }} title="Price for the reply the AI writes back — usually the expensive one">
+              Bot replies
+              <input value={p.output_per_1m} onChange={(e) => upd(prices, setPrices, i, "output_per_1m", e.target.value)} style={{ ...box, width: 82 }} />
+            </label>
+            <Btn small disabled={busy} onClick={() => post({ action: "save_price", provider: p.provider, model: p.model, input_per_1m: p.input_per_1m, output_per_1m: p.output_per_1m })}>Save</Btn>
+          </div>
+          <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 6 }}>
+            At these rates, 1,000 bot replies cost you about <b style={{ color: T.text }}>{bdt(per1000)}</b>
+            <span style={{ color: T.textDim }}> — a typical reply, USD per 1M tokens</span>
+          </div>
+        </div>;
+      })}
     </Card>
 
     <Card>
