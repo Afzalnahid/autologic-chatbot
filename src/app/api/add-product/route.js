@@ -5,6 +5,7 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery } from "@/lib/products.js";
+import { checkProductQuota } from "@/lib/plan-limits.js";
 
 // Create one product from the Inventory tab. Multipart form: the fields in
 // readProductForm(), plus `images` (several files) — the first image is the
@@ -18,6 +19,12 @@ export async function POST(request) {
     // Each import runs AI calls — cap the burst rate per account.
     const rl = rateLimit(`add-product:${client.id}`, 60, 3600000);
     if (!rl.ok) return tooManyRequests(rl.retryAfter, "You are adding products very quickly. Please wait a moment.");
+
+    // The package's product allowance. Checked before any AI call so a client
+    // over their limit is told plainly instead of being charged for work that
+    // is then thrown away.
+    const q = await checkProductQuota(client);
+    if (!q.ok) return NextResponse.json({ error: q.message }, { status: 403 });
 
     const { fields, files } = readProductForm(await request.formData());
     if (!fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });

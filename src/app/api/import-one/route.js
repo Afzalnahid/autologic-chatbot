@@ -6,6 +6,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { generateEmbedding } from "@/lib/gemini.js";
 import { embedMeter } from "@/lib/usage.js";
+import { checkProductQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
 
 function visionPrompt(bType, unit) {
@@ -22,6 +23,9 @@ export async function POST(request) {
     if (!rl.ok) return tooManyRequests(rl.retryAfter, "You have imported many products recently. Please wait a few minutes.");
     const bType = client.business_type || "ecommerce";
     const unit = client.item_label || "product";
+    const q = await checkProductQuota(client);
+    if (!q.ok) return NextResponse.json({ error: q.message }, { status: 403 });
+
     const p = await request.json();
     if (!p?.product_name) return NextResponse.json({ error: "missing product" }, { status: 400 });
 

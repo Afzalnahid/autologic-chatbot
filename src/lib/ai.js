@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase.js";
 import { decryptSecret } from "@/lib/crypt.js";
 import { notifyKeyFailing } from "@/lib/email.js";
 import { recordUsage, geminiTokens } from "@/lib/usage.js";
+import { limitsFor } from "@/lib/plan-limits.js";
 import {
   chatWithGemini, analyzeImage, analyzeImageBase64,
   transcribeAudio, transcribeAudioBase64, generateEmbedding,
@@ -34,6 +35,7 @@ export async function getClientAI(clientId) {
   const hit = memo.get(id);
   if (hit && Date.now() - hit.at < 60_000) return hit.ai;
   let cfg = null;
+  let platformChain = null;
   try {
     const { data } = await supabase.from("client_ai")
       .select("provider,api_key_enc,model,status").eq("client_id", clientId).maybeSingle();
@@ -41,17 +43,26 @@ export async function getClientAI(clientId) {
     if (data?.api_key_enc && data?.provider) {
       cfg = { provider: data.provider, key: decryptSecret(data.api_key_enc), model: data.model || undefined, status: data.status };
     }
+    // Which models the PLATFORM key should use for this client: their own
+    // override first, then their package's, then the built-in chain. Set from
+    // the admin panel (Packages & Costs), so switching everyone to a cheaper
+    // model is a dropdown, not a deploy.
+    if (!cfg) {
+      const { data: c } = await supabase.from("clients")
+        .select("plan,model_chain,limit_overrides").eq("id", clientId).maybeSingle();
+      if (c) platformChain = (await limitsFor(c)).modelChain || null;
+    }
   } catch (e) {
     // A decryption error (e.g. after a secret rotation) must not crash a
     // reply; it surfaces as "failing" the first time the key is used.
     console.error("[ai] config load:", String(e.message || "").slice(0, 160));
   }
-  const ai = build(id, cfg);
+  const ai = build(id, cfg, platformChain);
   memo.set(id, { ai, at: Date.now() });
   return ai;
 }
 
-function build(clientId, cfg) {
+function build(clientId, cfg, platformChain) {
   // Token meter. Every AI call reports through this so the admin panel can
   // answer "what does this client cost me?" — see src/lib/usage.js. ownKey
   // usage is still recorded but is the CLIENT's money, so cost reports exclude
@@ -76,7 +87,7 @@ function build(clientId, cfg) {
   const platform = {
     provider: "platform",
     ownKey: false,
-    chat: (sys, msgs) => chatWithGemini(sys, msgs, undefined, pm),
+    chat: (sys, msgs) => chatWithGemini(sys, msgs, platformChain || undefined, pm),
     visionUrl: (url, prompt) => analyzeImage(url, prompt, pm),
     visionB64: (b64, mime, prompt) => analyzeImageBase64(b64, mime, prompt, pm),
     transcribeUrl: (url, headers) => transcribeAudio(url, headers, pm),

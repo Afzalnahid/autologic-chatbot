@@ -87,3 +87,66 @@ export function can(limits, key) {
 }
 
 export const overLimit = (used, limit) => limit !== null && limit !== undefined && used >= Number(limit);
+
+// ── Quota gates ─────────────────────────────────────────────────────────────
+// Each returns { ok } or { ok:false, message } with a sentence a shop owner can
+// act on — never a raw number with no context.
+
+const monthStartISO = () => {
+  const now = new Date(Date.now() + 6 * 3600 * 1000);          // Dhaka
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) - 6 * 3600 * 1000).toISOString();
+};
+
+// How many products this account may still add.
+export async function checkProductQuota(client, adding = 1) {
+  const limits = await limitsFor(client);
+  const max = limits.maxProducts;
+  if (max === null || max === undefined) return { ok: true, limits };
+  const { count } = await supabase.from("products")
+    .select("id", { count: "exact", head: true }).eq("client_id", client.id);
+  const used = count || 0;
+  if (used + adding > Number(max)) {
+    return {
+      ok: false, used, limit: max, limits,
+      message: `Your ${limits.planName} package includes ${Number(max).toLocaleString("en-IN")} products and you already have ${used.toLocaleString("en-IN")}. Remove some, or upgrade for more room.`,
+    };
+  }
+  return { ok: true, used, limit: max, limits };
+}
+
+// Website scrapes this month. Counted from the metering table (kind "scrape"),
+// which is also what the cost report reads — one source of truth, no separate
+// counter to drift.
+export async function checkScrapeQuota(client) {
+  const limits = await limitsFor(client);
+  const max = limits.maxScrapesPerMonth;
+  if (max === null || max === undefined) return { ok: true, limits };
+  const { data } = await supabase.from("usage_daily")
+    .select("calls").eq("client_id", client.id).eq("kind", "scrape")
+    .gte("day", monthStartISO().slice(0, 10));
+  const used = (data || []).reduce((n, r) => n + (r.calls || 0), 0);
+  if (used >= Number(max)) {
+    return {
+      ok: false, used, limit: max, limits,
+      message: `Your ${limits.planName} package includes ${Number(max).toLocaleString("en-IN")} website imports per month and you have used ${used.toLocaleString("en-IN")}. It resets next month, or upgrade for more.`,
+    };
+  }
+  return { ok: true, used, limit: max, limits };
+}
+
+// Knowledge-base documents.
+export async function checkKbQuota(client, adding = 1) {
+  const limits = await limitsFor(client);
+  const max = limits.maxKbFiles;
+  if (max === null || max === undefined) return { ok: true, limits };
+  const { count } = await supabase.from("file_registry")
+    .select("id", { count: "exact", head: true }).eq("client_id", client.id);
+  const used = count || 0;
+  if (used + adding > Number(max)) {
+    return {
+      ok: false, used, limit: max, limits,
+      message: `Your ${limits.planName} package includes ${Number(max).toLocaleString("en-IN")} knowledge documents and you already have ${used.toLocaleString("en-IN")}. Remove one, or upgrade for more.`,
+    };
+  }
+  return { ok: true, used, limit: max, limits };
+}

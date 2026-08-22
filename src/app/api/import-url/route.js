@@ -6,6 +6,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { generateEmbedding, extractProductsFromUrl } from "@/lib/gemini.js";
 import { embedMeter } from "@/lib/usage.js";
+import { checkProductQuota, checkScrapeQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
 
 function visionPrompt(bType, unit) {
@@ -24,6 +25,14 @@ export async function POST(request) {
     const unit = client.item_label || "product";
     const { url } = await request.json();
     if (!url) return NextResponse.json({ error: "missing url" }, { status: 400 });
+
+    // Two package gates: room for another product, and website imports left
+    // this month. Scraping a page is the single most expensive AI call we make,
+    // so it is checked before we fetch anything.
+    const pq = await checkProductQuota(client);
+    if (!pq.ok) return NextResponse.json({ error: pq.message }, { status: 403 });
+    const sq = await checkScrapeQuota(client);
+    if (!sq.ok) return NextResponse.json({ error: sq.message }, { status: 403 });
 
     const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
     if (!res.ok) return NextResponse.json({ error: `fetch failed ${res.status}` }, { status: 502 });
