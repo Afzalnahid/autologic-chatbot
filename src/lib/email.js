@@ -158,6 +158,10 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
       title: "Daily message limit reached",
       body: `You have used all ${limit} messages for today${used ? ` (${used} received)` : ""}. Your bot will resume tomorrow, or immediately on a paid plan.`,
     },
+    quota_channel: {
+      title: "One channel reached its message limit",
+      body: `This channel has used all ${limit ? Number(limit).toLocaleString("en-IN") : ""} messages allowed on it this month${used ? ` (${Number(used).toLocaleString("en-IN")} received)` : ""}. Your other channels keep working.`,
+    },
     quota_monthly: {
       title: "Monthly message limit reached",
       body: `You have used all ${limit ? limit.toLocaleString("en-IN") : ""} messages included in your ${PLAN_LABEL[plan] || plan} plan this month${used ? ` (${used.toLocaleString("en-IN")} received)` : ""}.`,

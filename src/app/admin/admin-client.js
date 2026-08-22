@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createAdminClient as createSb } from "@/utils/supabase/client";
+import Packages from "./Packages.js";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
 
 // The super-admin console. Same design system as the customer dashboard —
@@ -167,14 +168,14 @@ export default function AdminClient() {
   }
   return <AdminApp data={data} refreshing={refreshing} onRefresh={() => load()} busy={busy} err={err} clearErr={() => setErr("")}
     act={act} reviewPayment={reviewPayment} del={del} setRole={setRole} removeAdmin={removeAdmin} superKey={superKey} setSuperKey={setSuperKey}
-    allowAiKey={allowAiKey} revokeAiKey={revokeAiKey}
+    allowAiKey={allowAiKey} revokeAiKey={revokeAiKey} token={session?.access_token || ""}
     openDetail={openDetail} detail={detail} detailLoading={detailLoading} closeDetail={() => setDetail(null)} logout={logout} />;
 }
 
 // ── The console ──────────────────────────────────────────────────────────────
 const NAV = [
   { group: "Console", items: [{ id: "overview", label: "Overview", icon: "ti-layout-dashboard" }, { id: "clients", label: "Clients", icon: "ti-users" }] },
-  { group: "Money", items: [{ id: "payments", label: "Payments", icon: "ti-cash" }] },
+  { group: "Money", items: [{ id: "payments", label: "Payments", icon: "ti-cash" }, { id: "packages", label: "Packages & Costs", icon: "ti-report-money" }] },
   { group: "Access", items: [{ id: "admins", label: "Admins", icon: "ti-shield-check", superOnly: true }] },
 ];
 
@@ -191,7 +192,7 @@ export function AdminApp(props) {
   const pendingPay = payments.filter((p) => p.status === "pending").length;
   const go = (p) => { setPage(p); if (isMobile) setNav(false); };
   const searchHits = useMemo(() => { const s = q.trim().toLowerCase(); if (!s) return []; return clients.filter((c) => [c.business_name, c.owner_email, c.phone, c.id].join(" ").toLowerCase().includes(s)).slice(0, 6); }, [q, clients]);
-  const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on Autologic`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], admins: ["Admins", "Who can open this console"] };
+  const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on Autologic`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], packages: ["Packages & Costs", "What each package sells for, and what each client costs you"], admins: ["Admins", "Who can open this console"] };
   const badgeFor = { payments: pendingPay || undefined, overview: attention.filter((a) => a.level === "high").length || undefined };
 
   return <div style={{ display: "flex", height: isMobile ? "100dvh" : "100vh", overflow: "hidden", background: T.bg, color: T.text }}>
@@ -255,6 +256,7 @@ export function AdminApp(props) {
           {page === "overview" && <Overview o={o} clients={clients} attention={attention} activity={activity} openDetail={openDetail} go={go} isMobile={isMobile} />}
           {page === "clients" && <Clients clients={clients} openDetail={openDetail} isMobile={isMobile} />}
           {page === "payments" && <Payments payments={payments} canEdit={canEdit} busy={busy} review={reviewPayment} openDetail={openDetail} isMobile={isMobile} />}
+          {page === "packages" && <Packages token={props.token} isSuper={isSuper} />}
           {page === "admins" && isSuper && <Admins admins={admins || []} superKey={superKey} setSuperKey={setSuperKey} setRole={setRole} removeAdmin={removeAdmin} busy={busy} />}
         </div>
       </div>
