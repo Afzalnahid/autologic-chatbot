@@ -42,9 +42,15 @@ Google Calendar · Vercel (`getvoicium.com`)
 - Design tokens are CSS variables: the dashboard's live in
   `src/app/dashboard/components/ui.js` (`PALETTE`), the public pages' in
   `src/lib/landing.js` (`THEME_CSS`). Never hard-code a brand colour in a component.
-- Embeddings stay 768-dimensional, and always run on the platform's Gemini key
-  — even for a client on their own AI key (BYOK). Another provider's embeddings
-  are a different vector space and would silently break search.
+- Embeddings stay 768-dimensional and always use the **`gemini-embedding-001`
+  model** — that model IS the vector space, and every saved vector must share it.
+  The KEY that runs it may differ, because the same model on any Gemini key is the
+  same space: a Gemini BYOK client embeds on their OWN key (their cost), while an
+  OpenAI BYOK client (OpenAI cannot make a compatible vector) and every
+  platform-key client embed on the platform's Gemini key. Never run embeddings on
+  another provider or another model — that is a different space and silently
+  breaks search. All embedding calls route through `getClientAI(clientId).embed`
+  so this decision lives in one place.
 - Client AI keys (BYOK): the super admin only grants or revokes PERMISSION
   (secret admin key required); the client pastes their own key in their
   dashboard. Keys are verified with the provider before saving, stored

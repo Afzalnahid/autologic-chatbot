@@ -50,7 +50,7 @@ export async function POST(request) {
     const codeMatch = visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i);
     const product_code = (codeMatch ? codeMatch[1].trim() : "") || `URL-${Date.now()}`;
     const content = `Product Code: ${product_code}\nName: ${p.name}\n${visual || p.description || ""}`;
-    const embedding = await generateEmbedding(content, embedMeter(client.id));
+    const embedding = await (await getClientAI(client.id)).embed(content);
 
     const metadata = {
       client_id: String(client.id),

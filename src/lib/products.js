@@ -145,10 +145,12 @@ export async function describeImage(url, client) {
   } catch (e) { return { visual: "", analyzeError: e.message }; }
 }
 
-// clientId is optional only so old call sites keep working; pass it whenever it
-// is known so the embedding cost lands on the right client's usage.
+// Embeds through the client's AI so a Gemini BYOK client indexes on their own
+// key (same model, same vector space, their cost), while everyone else uses the
+// platform key. clientId falls back to the one on the metadata.
 export async function embedProduct(metadata, clientId) {
   const content = buildContent(metadata);
-  const embedding = await generateEmbedding(content, embedMeter(clientId || metadata?.client_id));
+  const id = clientId || metadata?.client_id;
+  const embedding = await (await getClientAI(id)).embed(content);
   return { content, embedding };
 }

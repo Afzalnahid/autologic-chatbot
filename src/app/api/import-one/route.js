@@ -37,7 +37,7 @@ export async function POST(request) {
       } catch {}
     }
     const content = `Product Code: ${p.product_code}\nName: ${p.product_name}\n${visual || p.description || ""}`;
-    const embedding = await generateEmbedding(content, embedMeter(client.id));
+    const embedding = await (await getClientAI(client.id)).embed(content);
 
     const metadata = {
       client_id: String(client.id),

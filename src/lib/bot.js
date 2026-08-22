@@ -1,7 +1,6 @@
 import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
 import { chatWithGemini, generateEmbedding, UNCLEAR_AUDIO } from "@/lib/gemini.js";
-import { embedMeter } from "@/lib/usage.js";
 import { limitsFor } from "@/lib/plan-limits.js";
 import { PLANS, PAID_PLANS } from "@/lib/plans.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
@@ -301,7 +300,9 @@ async function businessFacts(clientId, st) {
 
 async function searchProducts(clientId, query, k = 3) {
   try {
-    const emb = await generateEmbedding(query, embedMeter(clientId));
+    // Embeds the search query on the client's own key when they are a Gemini
+    // BYOK client (same model, same vector space), else the platform key.
+    const emb = await (await getClientAI(clientId)).embed(query);
     const { data, error } = await sb().rpc("match_documents", {
       query_embedding: emb, match_count: k, filter: { client_id: String(clientId) },
     });

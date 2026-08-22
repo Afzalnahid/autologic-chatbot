@@ -58,7 +58,7 @@ export const PATCH = withErrors(async (request) => {
   const searchKeys = ["product_code", "product_name", "category", "brand", "tags", "description", "options", "visual"];
   const reembed = primaryChanged || searchKeys.some(k => JSON.stringify(prev[k] ?? null) !== JSON.stringify(next[k] ?? null));
   const patch = { metadata: next };
-  if (reembed) Object.assign(patch, await embedProduct(next));
+  if (reembed) Object.assign(patch, await embedProduct(next, client.id));
 
   const { error } = await supabase.from("products").update(patch).eq("id", id).eq("client_id", client.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
