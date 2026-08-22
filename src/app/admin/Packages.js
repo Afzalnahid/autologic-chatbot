@@ -166,13 +166,95 @@ function Money({ d, rate, revenue, aiCostBdt, fixedBdt, profit, margin, isMobile
       <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 6 }}>What one customer message costs you</div>
       <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7 }}>
         {t.messages > 0 && t.ai_cost_usd > 0
-          ? <>Across the last {d.days} days: <b style={{ color: T.text }}>{bdt((t.ai_cost_usd * rate) / t.messages)}</b> per customer message
-              ({usd(t.ai_cost_usd / t.messages)}). Use this to price a package: a 3,000-message plan costs you about{" "}
-              <b style={{ color: T.text }}>{bdt(((t.ai_cost_usd * rate) / t.messages) * 3000)}</b> in AI.</>
-          : <>Not enough metered usage yet to work this out. Once customers have messaged the bots for a few days, this line shows the real per-message cost — the number your package prices should be built on.</>}
+          ? <>Across the last {d.days} days, blended across every message type actually sent: <b style={{ color: T.text }}>{bdt((t.ai_cost_usd * rate) / t.messages)}</b> per customer message
+              ({usd(t.ai_cost_usd / t.messages)}). This already includes the image and voice messages in the mix.</>
+          : <>Not enough metered usage yet to work this out. Once customers have messaged the bots for a few days, this line shows the real per-message cost — automatically blended across text, image and voice.</>}
       </div>
     </Card>
+
+    <CostPlanner d={d} rate={rate} />
   </div>;
+}
+
+// A "what if" planner: enter a volume and a message mix, get the estimated
+// monthly AI cost and the minimum price to keep a healthy margin. It uses the
+// REAL measured cost of each message kind where there is data, and sensible
+// defaults (from the price book) where there is not — so the estimate is
+// grounded, not a guess, and gets more accurate as real usage accumulates.
+function CostPlanner({ d, rate }) {
+  const [vol, setVol] = useState(3000);
+  const [mix, setMix] = useState({ text: 80, image: 15, voice: 5 });
+  const t = d.totals || {};
+
+  // Measured average USD cost of one call of a kind, or null if never used yet.
+  const perCall = (k) => { const b = t.by_kind?.[k]; return b && b.calls ? b.cost / b.calls : null; };
+
+  // Default text-reply cost from the price book (a typical reply: ~3,000 tokens
+  // in, ~250 out) when there is no measured data yet.
+  const flash = (d.prices || []).find((p) => p.provider === "google" && /flash/i.test(p.model)) || { input_per_1m: 0.3, output_per_1m: 2.5 };
+  const textDefault = (3000 / 1e6) * Number(flash.input_per_1m) + (250 / 1e6) * Number(flash.output_per_1m);
+
+  const chat = perCall("chat") ?? textDefault;
+  const vision = perCall("vision") ?? textDefault * 0.9;   // an image call, on top of the reply
+  const voice = perCall("voice") ?? textDefault * 0.6;     // a transcription, on top of the reply
+
+  // One customer message of each type, in USD. Image and voice each trigger an
+  // extra AI call (describe / transcribe) plus the reply itself.
+  const costText = chat;
+  const costImage = vision + chat;
+  const costVoice = voice + chat;
+
+  const sum = Math.max(1, Number(mix.text) + Number(mix.image) + Number(mix.voice));
+  const w = { text: Number(mix.text) / sum, image: Number(mix.image) / sum, voice: Number(mix.voice) / sum };
+  const perMsgUsd = w.text * costText + w.image * costImage + w.voice * costVoice;
+  const monthlyBdt = perMsgUsd * Number(vol || 0) * rate;
+
+  const measured = ["chat", "vision", "voice"].some((k) => perCall(k) !== null);
+  const setM = (k, v) => setMix((m) => ({ ...m, [k]: Math.max(0, Number(v) || 0) }));
+  const box = { width: 70, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 9px", color: T.text, fontSize: 13, fontFamily: "inherit" };
+  const row = (k, label, hint) => <label key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: T.textMuted }}>
+    <input type="number" min="0" value={mix[k]} onChange={(e) => setM(k, e.target.value)} style={box} />
+    <span>% {label} <span style={{ color: T.textDim, fontSize: 11 }}>{hint}</span></span>
+  </label>;
+
+  const Line = ({ label, value, strong, color }) => <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "6px 0", fontSize: strong ? 14 : 12.5 }}>
+    <span style={{ color: strong ? T.text : T.textMuted, fontWeight: strong ? 700 : 400 }}>{label}</span>
+    <span style={{ fontWeight: strong ? 700 : 600, color: color || T.text }}>{value}</span>
+  </div>;
+
+  return <Card>
+    <div style={{ fontSize: 14, fontWeight: 700 }}>Cost &amp; price planner</div>
+    <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 12px", lineHeight: 1.6 }}>
+      Try a package before you sell it. {measured
+        ? "Using your real measured cost for each message type."
+        : "Using estimates from the price book — the numbers sharpen as real usage builds up."}
+    </div>
+
+    <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+        <label style={{ display: "block", fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Messages / month</label>
+        <input type="number" min="0" value={vol} onChange={(e) => setVol(Math.max(0, Number(e.target.value) || 0))} style={{ ...box, width: 140, fontSize: 15 }} />
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Message mix</div>
+          {row("text", "text", "1 reply")}
+          {row("image", "image", "~2× — match + reply")}
+          {row("voice", "voice", "~1.8× — transcribe + reply")}
+        </div>
+      </div>
+
+      <div style={{ flex: "1 1 240px", minWidth: 0, background: T.bgAlt, borderRadius: 14, padding: "14px 16px" }}>
+        <Line label={`Per message (blended)`} value={bdt(perMsgUsd * rate)} />
+        <Line label={`AI cost for ${Number(vol).toLocaleString()} msgs`} value={bdt(monthlyBdt)} strong color={T.warn} />
+        <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
+        <div style={{ fontSize: 11, color: T.textDim, marginBottom: 4 }}>Suggested minimum price — to keep AI at…</div>
+        <Line label="30% of the price" value={bdt(monthlyBdt / 0.30)} />
+        <Line label="20% of the price" value={bdt(monthlyBdt / 0.20)} />
+        <div style={{ fontSize: 11, color: T.textDim, marginTop: 8, lineHeight: 1.55 }}>
+          The rest covers hosting, support and profit. A healthy SaaS keeps the raw AI cost well under a third of the price.
+        </div>
+      </div>
+    </div>
+  </Card>;
 }
 
 // ── Per client ──────────────────────────────────────────────────────────────
