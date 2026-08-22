@@ -1,3 +1,6 @@
 node_modules/
 .next/
 .env*
+# ...but keep the committed template that documents every variable (it holds no
+# real secrets — only names and placeholders).
+!.env.example
