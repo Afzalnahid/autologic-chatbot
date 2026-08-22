@@ -19,10 +19,26 @@ const PROVIDERS = {
   openai: { label: "OpenAI", icon: "ti-brand-openai", color: "#10A37F", ph: "sk-…", help: "platform.openai.com → API keys" },
 };
 
-// A sensible default main model: prefer a cheap/fast one, else the first listed.
-const guessMain = (provider, models) => {
-  const pref = provider === "google" ? /flash/i : /mini|4o|4\.1/i;
-  return models.find((m) => pref.test(m)) || models[0] || "";
+// The model list is now [{id, tier, note}] (tier: "fast" | "smart"). Smart
+// defaults: main = a fast model (cheap), fallback = a higher-quality one, so a
+// real pro fallback is pre-filled rather than left empty.
+const idsOf = (models) => models.map((m) => m.id);
+const guessMain = (models) => (models.find((m) => m.tier === "fast") || models[0])?.id || "";
+const guessFallback = (models, main) =>
+  (models.find((m) => m.tier === "smart" && m.id !== main) || models.find((m) => m.id !== main))?.id || "";
+const optLabel = (m) => `${m.id}${m.tier === "fast" ? "  ·  fast, low cost" : m.tier === "smart" ? "  ·  higher quality" : ""}`;
+
+// A small tier badge — green FAST for cheap/quick, gold QUALITY for the stronger
+// models — used in the live summary so the trade-off reads at a glance.
+const chip = (models, id) => {
+  const m = models.find((x) => x.id === id);
+  if (!m) return null;
+  const fast = m.tier === "fast";
+  return (
+    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, padding: "2px 7px", borderRadius: 20, background: fast ? `color-mix(in srgb, ${T.success} 15%, transparent)` : T.goldBg, color: fast ? T.success : T.gold }}>
+      {fast ? "FAST" : "QUALITY"}
+    </span>
+  );
 };
 
 export default function AIEngine() {
@@ -178,13 +194,15 @@ function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg 
     const r = await api("/api/ai-key/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, api_key: key.trim() }) }).then((x) => x.json()).catch(() => ({ error: "network" }));
     setBusy(false);
     if (r.error) { setModels(null); setMsg({ ok: false, text: r.error }); return; }
-    const list = r.models || [];
+    const list = r.models || [];   // [{id, tier, note}]
     setModels(list);
-    // Pre-select sensible choices the owner can override.
-    const m = savedModels[0] && list.includes(savedModels[0]) ? savedModels[0] : guessMain(provider, list);
+    // Pre-select sensible choices the owner can override: fast as main, a
+    // higher-quality one as fallback.
+    const ids = idsOf(list);
+    const m = savedModels[0] && ids.includes(savedModels[0]) ? savedModels[0] : guessMain(list);
     setMain(m);
-    setFallback(savedModels[1] && list.includes(savedModels[1]) && savedModels[1] !== m ? savedModels[1] : "");
-    setMsg({ ok: true, text: `Key works — ${list.length} model${list.length === 1 ? "" : "s"} available. Choose your main and fallback.` });
+    setFallback(savedModels[1] && ids.includes(savedModels[1]) && savedModels[1] !== m ? savedModels[1] : guessFallback(list, m));
+    setMsg({ ok: true, text: "Key works — we picked a good main and fallback for you. Change them below if you like." });
   };
 
   const activate = async () => {
@@ -227,19 +245,33 @@ function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg 
         </>
       ) : (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 14 }}>
+          <div style={{ fontSize: 11.5, color: T.textDim, margin: "2px 0 12px", lineHeight: 1.55, display: "flex", gap: 6, alignItems: "flex-start" }}>
+            <i className="ti ti-bulb" style={{ color: T.gold, fontSize: 14, marginTop: 1, flexShrink: 0 }} />
+            <span>A <b style={{ color: T.textMuted }}>fast</b> model as your main keeps costs low; a <b style={{ color: T.textMuted }}>higher-quality</b> one as fallback keeps replies flowing if the main is busy.</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ display: "block", fontSize: 12, color: T.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Main model</label>
-              <Select wide value={main} onChange={setMain} options={models} />
+              <Select wide value={main} onChange={setMain} options={models.map((m) => ({ value: m.id, label: optLabel(m) }))} />
             </div>
             <div>
               <label style={{ display: "block", fontSize: 12, color: T.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Fallback <span style={{ textTransform: "none", letterSpacing: 0, color: T.textDim }}>· optional</span></label>
               <Select wide value={fallback} onChange={setFallback}
-                options={[{ value: "", label: "None" }, ...models.filter((m) => m !== main).map((m) => ({ value: m, label: m }))]} />
+                options={[{ value: "", label: "None" }, ...models.filter((m) => m.id !== main).map((m) => ({ value: m.id, label: optLabel(m) }))]} />
             </div>
           </div>
+
+          {/* Live summary of the chain, with a tier chip on each side. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", fontSize: 12.5, background: T.bgAlt, boxShadow: T.nmIn, borderRadius: 12, padding: "11px 13px", marginBottom: 12 }}>
+            <span style={{ fontFamily: "monospace", color: T.text }}>{main || "—"}</span>{chip(models, main)}
+            <i className="ti ti-arrow-right" style={{ color: T.textDim, fontSize: 14 }} />
+            {fallback
+              ? <><span style={{ fontFamily: "monospace", color: T.text }}>{fallback}</span>{chip(models, fallback)}</>
+              : <span style={{ color: T.textDim }}>no fallback</span>}
+          </div>
+
           <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 14, lineHeight: 1.6 }}>
-            The bot uses your <b style={{ color: T.textMuted }}>main model</b> for every reply. If it is ever unavailable or out of quota, it falls back to your second choice — both on your own key.
+            The bot uses your <b style={{ color: T.textMuted }}>main model</b> for every reply, on your own key. If it is ever unavailable or out of quota, it falls back to your second choice.
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Btn gold onClick={activate} disabled={busy || !main} style={{ borderRadius: 12 }}>{busy === "save" ? "Saving…" : "Verify & activate"}</Btn>

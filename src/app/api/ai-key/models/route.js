@@ -30,30 +30,43 @@ export const POST = withErrors(async (request) => {
   try {
     const all = provider === "google" ? await listGoogleModels(apiKey) : await listOpenAIModels(apiKey);
     if (!all.length) return NextResponse.json({ error: "This key has no usable chat models." }, { status: 400 });
-    // Show a SHORT, sensible menu — the few models that make sense for a bot,
-    // cheapest first — not the provider's full catalogue of dozens (many are
-    // experimental, image/audio-only, or costly). Verification (POST /api/ai-key)
-    // still checks against the full live list, so any of these is always valid.
-    const models = curate(provider, all);
-    return NextResponse.json({ ok: true, provider, models: models.length ? models : all.slice(0, 6) }, { headers: { "Cache-Control": "no-store" } });
+    // Show a SHORT, sensible menu — a few fast/cheap models AND a couple of
+    // higher-quality ones — not the provider's full catalogue of dozens. Each
+    // carries a tier so the UI can label it and pick smart defaults (fast as
+    // main, higher-quality as fallback). Verification (POST /api/ai-key) still
+    // checks against the full live list, so any of these is always valid.
+    let models = curate(provider, all);
+    if (!models.length) models = all.slice(0, 6).map((id) => ({ id, tier: "fast", note: "" }));
+    return NextResponse.json({ ok: true, provider, models }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return NextResponse.json({ error: "Could not read models: " + String(e.message || "unknown").slice(0, 200) }, { status: 400 });
   }
 }, "ai-key-models");
 
-// Trim the provider's list to a handful of chat models that suit a support bot,
-// cheapest/fastest first so the default main choice is cost-efficient.
+// "fast"  = cheap, quick — the right default for most replies.
+// "smart" = higher quality, higher cost — a good fallback / upgrade.
+const tierOf = (provider, m) =>
+  provider === "google"
+    ? (/pro/i.test(m) ? "smart" : "fast")
+    : (/mini|nano|small/i.test(m) ? "fast" : "smart");
+
+// Trim the provider's list to a balanced handful: keep both a few fast models
+// AND a couple of higher-quality ones, so there is always a real fallback.
 function curate(provider, models) {
+  let good;
   if (provider === "google") {
-    // Keep only the general flash/pro chat models; drop experimental, image,
-    // audio, thinking and other special variants.
     const drop = /embedding|image|tts|audio|vision|thinking|\bexp\b|gemma|learnlm|aqa|dialog|native/i;
-    const good = models.filter((m) => /flash|pro/i.test(m) && !drop.test(m));
-    // flash (cheapest) before pro.
-    good.sort((a, b) => (/(flash)/i.test(b) ? 1 : 0) - (/(flash)/i.test(a) ? 1 : 0));
-    return good.slice(0, 6);
+    good = models.filter((m) => /flash|pro/i.test(m) && !drop.test(m));
+  } else {
+    const drop = /instruct|search|audio|realtime|transcribe|tts|image|moderation|embedding|babbage|davinci/i;
+    good = models.filter((m) => /^(gpt-4o|gpt-4\.1|o[0-9])/i.test(m) && !drop.test(m));
   }
-  // OpenAI: the mainstream gpt-4o / gpt-4.1 / o-series chat models only.
-  const drop = /instruct|search|audio|realtime|transcribe|tts|image|moderation|embedding|babbage|davinci/i;
-  return models.filter((m) => /^(gpt-4o|gpt-4\.1|o[0-9])/i.test(m) && !drop.test(m)).sort().slice(0, 6);
+  const fast = good.filter((m) => tierOf(provider, m) === "fast");
+  const smart = good.filter((m) => tierOf(provider, m) === "smart");
+  // Up to 3 fast + up to 2 higher-quality — fast first so the main default is cheap.
+  return [...fast.slice(0, 3), ...smart.slice(0, 2)].map((id) => ({
+    id,
+    tier: tierOf(provider, id),
+    note: tierOf(provider, id) === "fast" ? "Fast · low cost" : "Higher quality · higher cost",
+  }));
 }
