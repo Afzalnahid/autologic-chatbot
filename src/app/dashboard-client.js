@@ -12,25 +12,28 @@ import Inventory from "./dashboard/components/Inventory.js";
 import Comments from "./dashboard/components/Comments.js";
 import Profile from "./dashboard/components/Profile.js";
 import Settings from "./dashboard/components/Settings.js";
+import AIEngine from "./dashboard/components/AIEngine.js";
 import KnowledgeBase from "./dashboard/components/KnowledgeBase.js";
 import Bookings from "./dashboard/components/Bookings.js";
 import Channels from "./dashboard/components/Channels.js";
 import Conversations from "./dashboard/components/Conversations.js";
 
-const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile"];
+const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
 // Grouped and ordered the way the day runs: see how it is going, handle people,
 // reach out, then the shop, then the plumbing.
 const GROUPS = [
   { title: "Overview",  pages: ["analytics","conversations","comments"] },
   { title: "Outreach",  pages: ["broadcast","channels"] },
   { title: "Business",  pages: ["orders","inventory"] },
-  { title: "Account",   pages: ["settings","billing","profile"] },
+  { title: "Account",   pages: ["settings","ai","billing","profile"] },
 ];
-const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user"];
+const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user","ti-cpu"];
 // "Bot Training" is the settings page: everything on it teaches or tunes the
 // bot, and owners looked straight past a tab called "Settings" for exactly
 // that. The page key stays "settings" so links and code paths are untouched.
-const LABELS = ["Analytics","Conversations","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile"];
+// "AI Engine" (key "ai") is the BYOK home — moved out of Bot Training into its
+// own tab so the API key, provider and model choice are easy to find and manage.
+const LABELS = ["Analytics","Conversations","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile","AI Engine"];
 
 
 
@@ -821,6 +824,7 @@ export default function Dashboard() {
             {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}
             {page==="profile"&&<Profile/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}
+            {page==="ai"&&<AIEngine/>}
           </div>
         )}
       </div>

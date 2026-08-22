@@ -50,11 +50,40 @@ export async function chatWithGemini(systemPrompt, messages, model, opts = {}) {
     const result = await chat.sendMessage(lastMsg.content);
     return result.response.text();
   };
-  // An explicit model still gets the chain as a safety net.
-  if (model && model !== PRIMARY_MODEL) {
-    try { return await run(model); } catch (e) { if (!isModelUnavailable(e)) throw e; }
+  // A BYOK client's own picks (main[,fallback]) are tried first, in order, each
+  // on their own key; only if every one is unavailable do we fall through to the
+  // platform's known-good chain (still on their key). `model` may be a single id,
+  // a comma string, or an array.
+  const picks = (Array.isArray(model) ? model : String(model || "").split(","))
+    .map(s => String(s).trim()).filter(Boolean);
+  for (const id of picks) {
+    try { return await run(id); } catch (e) { if (!isModelUnavailable(e)) throw e; }
   }
   return onChain(run);
+}
+
+// The chat-capable Gemini models THIS key can actually use, read live from
+// Google. Google retires ids without warning (that is the whole reason the
+// connect screen 404'd on a hardcoded gemini-2.5-flash), so the BYOK UI must
+// offer the real list, never a guess. Returns short ids ("gemini-2.5-flash",
+// no "models/" prefix). Throws with a clear message when the key is rejected,
+// which doubles as the key-verification step.
+export async function listGoogleModels(apiKey) {
+  const key = apiKey || process.env.GEMINI_API_KEY || "";
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=1000`);
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    let reason = `Google rejected the key (HTTP ${r.status})`;
+    try { const j = JSON.parse(body); if (j?.error?.message) reason = j.error.message; } catch {}
+    const err = new Error(reason);
+    err.status = r.status;
+    throw err;
+  }
+  const j = await r.json();
+  return (j.models || [])
+    .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+    .map(m => String(m.name || "").replace(/^models\//, ""))
+    .filter(id => /^gemini/i.test(id));
 }
 
 

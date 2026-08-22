@@ -31,7 +31,11 @@ async function post(apiKey, path, payload) {
 }
 
 async function onChain(model, run) {
-  const chain = model ? [model, ...CHAT_CHAIN.filter((m) => m !== model)] : CHAT_CHAIN;
+  // `model` may be a single id, a comma string, or an array (a BYOK client's
+  // main[,fallback] picks). Try those first, then the built-in known-good chain.
+  const picks = (Array.isArray(model) ? model : String(model || "").split(","))
+    .map((s) => String(s).trim()).filter(Boolean);
+  const chain = picks.length ? [...picks, ...CHAT_CHAIN.filter((m) => !picks.includes(m))] : CHAT_CHAIN;
   let last;
   for (const id of chain) {
     try { return await run(id); }
@@ -105,16 +109,29 @@ export async function transcribeOpenAI(apiKey, base64, mimeType) {
   return String(JSON.parse(text).text || "").trim();
 }
 
-// Cheapest real check that a key works: list models. Optionally confirm a
-// specific model id is visible to this key.
+// Cheapest real check that a key works: list models. Also returns the chat-
+// capable model ids so the BYOK UI can offer a real main/fallback picker instead
+// of a guess. Optionally confirms a specific model id is visible to this key.
 export async function verifyOpenAIKey(apiKey, model) {
   const r = await fetch(`${API}/models`, { headers: { Authorization: `Bearer ${apiKey}` } });
   if (!r.ok) return { ok: false, error: `OpenAI answered ${r.status} — the key looks invalid or blocked` };
-  if (model) {
-    try {
-      const j = await r.json();
-      if (!j.data?.some((m) => m.id === model)) return { ok: false, error: `This key cannot see the model "${model}"` };
-    } catch { /* a parse hiccup should not fail a valid key */ }
-  }
-  return { ok: true };
+  let models = [];
+  try {
+    const j = await r.json();
+    const all = (j.data || []).map((m) => m.id);
+    if (model && !all.includes(model)) return { ok: false, error: `This key cannot see the model "${model}"` };
+    // Chat/vision models only — drop embeddings, whisper, tts, dall-e, moderation.
+    models = all
+      .filter((id) => /^(gpt-|o[0-9]|chatgpt)/i.test(id) && !/embedding|whisper|tts|audio|realtime|image|dall|moderation|transcribe/i.test(id))
+      .sort();
+  } catch { /* a parse hiccup should not fail a valid key */ }
+  return { ok: true, models };
+}
+
+// Chat-capable OpenAI model ids for a key (same filter as verify). Kept separate
+// so the models endpoint can call it without re-running the model-id check.
+export async function listOpenAIModels(apiKey) {
+  const out = await verifyOpenAIKey(apiKey);
+  if (!out.ok) { const e = new Error(out.error); throw e; }
+  return out.models || [];
 }

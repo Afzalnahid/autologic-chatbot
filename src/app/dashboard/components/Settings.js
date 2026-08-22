@@ -202,8 +202,6 @@ export default function Settings({settings,setSettings}) {
       </>}
     </Card>
 
-    <AIKeyBox/>
-
     <Accordion icon="ti-file-text" title="Advanced — the bot's business profile" subtitle="The exact text the bot works from; edit only if you know why">
       <div style={{height:6}}/>
       <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>Step 2 writes this for you. Edit freely — the guardrails above are added automatically on top.</div>

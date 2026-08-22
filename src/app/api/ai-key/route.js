@@ -5,8 +5,8 @@ import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { encryptSecret, maskKey } from "@/lib/crypt.js";
-import { verifyOpenAIKey } from "@/lib/openai.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { verifyOpenAIKey, listOpenAIModels } from "@/lib/openai.js";
+import { listGoogleModels } from "@/lib/gemini.js";
 
 // The client side of BYOK. The super admin grants permission (creates the
 // client_ai row from the admin console); only then does the dashboard show
@@ -48,12 +48,17 @@ export const POST = withErrors(async (request) => {
   const body = await request.json().catch(() => ({}));
   const provider = body.provider === "openai" ? "openai" : body.provider === "google" ? "google" : null;
   const apiKey = String(body.api_key || "").trim();
-  const model = String(body.model || "").trim().slice(0, 60) || null;
+  // The client picks a main model and an optional fallback. Arrives as an array
+  // [main, fallback] or a comma string; we keep the chain (main first) in the
+  // existing text column so no schema change is needed.
+  const models = (Array.isArray(body.models) ? body.models : String(body.model || "").split(","))
+    .map((s) => String(s).trim()).filter(Boolean).slice(0, 2);
   if (!provider || !apiKey) return NextResponse.json({ error: "Choose a provider and paste the key." }, { status: 400 });
 
-  const check = await verifyAIKey(provider, apiKey, model);
+  const check = await verifyAIKey(provider, apiKey, models);
   if (!check.ok) return NextResponse.json({ error: "The key did not work: " + check.error }, { status: 400 });
 
+  const model = models.join(",").slice(0, 80) || null;
   const now = new Date().toISOString();
   const { data: saved, error } = await supabase.from("client_ai").update({
     provider, model,
@@ -79,14 +84,22 @@ export const DELETE = withErrors(async (request) => {
   return NextResponse.json({ ok: true, ...shape(saved) });
 }, "ai-key");
 
-async function verifyAIKey(provider, apiKey, model) {
+// Verify the key by asking the provider for its LIVE model list (this is also
+// the real proof the key works), then confirm every model the client chose is
+// actually on that list. Never assumes a hardcoded model id — that is exactly
+// what produced the "gemini-2.5-flash is no longer available" 404.
+async function verifyAIKey(provider, apiKey, models) {
   try {
-    if (provider === "google") {
-      const m = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: model || "gemini-2.5-flash" });
-      await m.countTokens("ping");
-      return { ok: true };
+    const available = provider === "google"
+      ? await listGoogleModels(apiKey)
+      : await listOpenAIModels(apiKey);
+    if (!available.length) return { ok: false, error: "This key has no usable chat models." };
+    for (const m of models) {
+      if (m && !available.includes(m)) {
+        return { ok: false, error: `This key cannot use "${m}". Available: ${available.slice(0, 4).join(", ")}${available.length > 4 ? "…" : ""}` };
+      }
     }
-    return await verifyOpenAIKey(apiKey, model);
+    return { ok: true, available };
   } catch (e) {
     return { ok: false, error: String(e.message || "unknown").slice(0, 200) };
   }
