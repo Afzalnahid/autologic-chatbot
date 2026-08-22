@@ -6,6 +6,7 @@ import { callerEmail, callerRole, CAN_DELETE, checkSuperKey } from "@/lib/admin-
 import { encryptSecret, maskKey } from "@/lib/crypt.js";
 import { listModels, verifyModels } from "@/lib/model-catalog.js";
 import { invalidatePlatformAI } from "@/lib/platform-ai.js";
+import { syncPlatformKeyToVercel, vercelSyncConfigured } from "@/lib/vercel-env.js";
 
 // The platform's own AI key and models, managed from the admin panel instead of
 // only a Vercel environment variable.
@@ -37,7 +38,7 @@ export async function GET(request) {
   if (!CAN_DELETE.includes(role)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const { data } = await supabase.from("platform_ai").select("*").eq("id", ROW).maybeSingle();
-  return NextResponse.json({ role, ...shape(data, process.env.GEMINI_API_KEY) }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ role, vercel_sync: vercelSyncConfigured(), ...shape(data, process.env.GEMINI_API_KEY) }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request) {
@@ -97,8 +98,20 @@ export async function POST(request) {
     const { error } = await supabase.from("platform_ai").upsert(patch, { onConflict: "id" });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     invalidatePlatformAI();
+
+    // Optionally mirror the key into the Vercel env var (GEMINI_API_KEY), if a
+    // Vercel token is configured. The database copy above is what goes live
+    // immediately; this keeps the env in sync as a backup. Google keys only —
+    // GEMINI_API_KEY is a Google key by definition.
+    let vercel = null;
+    if (apiKey && provider === "google" && vercelSyncConfigured()) {
+      vercel = await syncPlatformKeyToVercel(apiKey);
+    } else if (apiKey && provider === "google") {
+      vercel = { skipped: true, reason: "Vercel env sync is off (no VERCEL_TOKEN set)." };
+    }
+
     const { data } = await supabase.from("platform_ai").select("*").eq("id", ROW).maybeSingle();
-    return NextResponse.json({ ok: true, ...shape(data, process.env.GEMINI_API_KEY) });
+    return NextResponse.json({ ok: true, vercel, ...shape(data, process.env.GEMINI_API_KEY) });
   }
 
   // Removing the saved key drops the platform back to the environment variable

@@ -82,7 +82,12 @@ export default function AIAdmin({ token, superKey, setSuperKey }) {
     const r = await post({ action: "save", provider, api_key: key.trim(), models: chain }, true);
     if (!r) return;
     setSt(r); setKey(""); setModels(null);
-    setMsg({ ok: true, text: "Saved. Every client on the platform key now uses this." });
+    // Be honest about the Vercel env mirror when a key was actually changed.
+    let extra = "";
+    if (r.vercel?.ok) extra = " Also updated the Vercel env variable (takes effect on the next deploy — the live key already changed here).";
+    else if (r.vercel && r.vercel.skipped) extra = " (Vercel env not synced — add a VERCEL_TOKEN to enable that.)";
+    else if (r.vercel && r.vercel.reason) extra = ` (Vercel env sync failed: ${r.vercel.reason})`;
+    setMsg({ ok: true, text: "Saved. Every client on the platform key now uses this." + extra });
   };
 
   const removeKey = async () => {
@@ -124,6 +129,12 @@ export default function AIAdmin({ token, superKey, setSuperKey }) {
             {st.has_key
               ? "Saving a key here overrides the environment variable. Remove it to fall back."
               : "Paste a key below to manage it from here instead of Vercel. Leave it empty to keep using the environment key and only change the models."}
+          </div>
+          <div style={{ fontSize: 11, color: st.vercel_sync ? T.success : T.textDim, marginTop: 6, display: "flex", alignItems: "center", gap: 5 }}>
+            <i className={`ti ${st.vercel_sync ? "ti-cloud-check" : "ti-cloud-off"}`} />
+            {st.vercel_sync
+              ? "Vercel env sync is ON — a new key here also updates GEMINI_API_KEY in Vercel (live after the next deploy)."
+              : "Vercel env sync is off. Add a VERCEL_TOKEN in Vercel to also mirror the key into the env variable."}
           </div>
         </div>
         {st.has_key && <Btn small disabled={busy} onClick={removeKey} style={{ color: T.danger, background: T.dangerBg }}>Remove</Btn>}
