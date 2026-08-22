@@ -372,6 +372,7 @@ function Rates({ d, post, busy, rate }) {
   const [prices, setPrices] = useState(() => d.prices || []);
   const [costs, setCosts] = useState(() => d.platform_costs || []);
   const [fx, setFx] = useState(String(rate));
+  const [editing, setEditing] = useState(null);   // which rate row is open
 
   const upd = (arr, set, i, k, v) => { const n = [...arr]; n[i] = { ...n[i], [k]: v }; set(n); };
   const box = { background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit", width: 100 };
@@ -389,47 +390,63 @@ function Rates({ d, post, busy, rate }) {
     </Card>
 
     <Card>
-      <div style={{ fontSize: 14, fontWeight: 700 }}>What each AI model charges you</div>
-      <div style={{ fontSize: 12.5, color: T.textMuted, margin: "5px 0 12px", lineHeight: 1.75 }}>
-        AI companies bill by the <b style={{ color: T.text }}>token</b> — about 4 letters of text. They charge two
-        separate rates: one for the text you <b style={{ color: T.text }}>send them</b> (the customer's question plus
-        your product data and the bot's instructions), and a higher one for the text the bot
-        <b style={{ color: T.text }}> writes back</b>. Both are prices in US dollars for 1 million tokens, copied
-        straight from the provider's pricing page — that is all the two boxes below hold.
-        Every cost figure on this page is worked out from them, so if a provider changes its
-        prices, change them here too.
-      </div>
-      <div style={{ fontSize: 11.5, color: T.textDim, background: T.bgAlt, borderRadius: 10, padding: "9px 12px", marginBottom: 12, lineHeight: 1.65 }}>
-        <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
-        Google's prices: <b style={{ color: T.textMuted }}>ai.google.dev/pricing</b> · OpenAI's: <b style={{ color: T.textMuted }}>openai.com/api/pricing</b>.
-        The row named <b style={{ color: T.textMuted }}>__default__</b> is used for any model that is not listed here, so a new model never looks free by mistake.
+      <div style={{ fontSize: 14, fontWeight: 700 }}>What each AI model costs you</div>
+      <div style={{ fontSize: 12.5, color: T.textMuted, margin: "5px 0 12px", lineHeight: 1.7 }}>
+        The price of running the bot, per model. Use it to choose which model your packages
+        run on — cheaper model, bigger margin.
       </div>
       {prices.map((p, i) => {
-        // A concrete number instead of an abstract rate: what 1,000 bot replies
-        // would cost at these rates, on a typical reply (about 3,000 tokens of
-        // question + product context in, 250 tokens of answer out).
+        // The rates themselves are per-million-token prices from the provider,
+        // which mean nothing to a business owner. So the headline is what those
+        // rates work out to in taka for 1,000 replies (a typical reply is about
+        // 3,000 tokens of question + product context in, 250 tokens out), and
+        // the raw numbers hide behind "Edit rate".
         const per1000 = ((3000 / 1e6) * (Number(p.input_per_1m) || 0) + (250 / 1e6) * (Number(p.output_per_1m) || 0)) * 1000 * rate;
-        return <div key={`${p.provider}/${p.model}`} style={{ padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ flex: "1 1 160px", minWidth: 0, fontSize: 12.5, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}>
-              <span style={{ color: T.textDim }}>{p.provider}/</span>{p.model}
-            </span>
-            <label style={{ fontSize: 10.5, color: T.textDim, display: "inline-flex", flexDirection: "column", gap: 3 }} title="Price for the text you send the AI">
-              You send
-              <input value={p.input_per_1m} onChange={(e) => upd(prices, setPrices, i, "input_per_1m", e.target.value)} style={{ ...box, width: 82 }} />
-            </label>
-            <label style={{ fontSize: 10.5, color: T.textDim, display: "inline-flex", flexDirection: "column", gap: 3 }} title="Price for the reply the AI writes back — usually the expensive one">
-              Bot replies
-              <input value={p.output_per_1m} onChange={(e) => upd(prices, setPrices, i, "output_per_1m", e.target.value)} style={{ ...box, width: 82 }} />
-            </label>
-            <Btn small disabled={busy} onClick={() => post({ action: "save_price", provider: p.provider, model: p.model, input_per_1m: p.input_per_1m, output_per_1m: p.output_per_1m })}>Save</Btn>
+        const isDefault = p.model === "__default__";
+        const open = editing === `${p.provider}/${p.model}`;
+        return <div key={`${p.provider}/${p.model}`} style={{ padding: "11px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 190px", minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>
+                {isDefault ? "Any other model" : p.model}
+              </div>
+              <div style={{ fontSize: 11, color: T.textDim, marginTop: 2 }}>
+                {isDefault ? "Used when a model is not listed here, so nothing ever looks free by mistake" : p.provider}
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{bdt(per1000)}</div>
+              <div style={{ fontSize: 10.5, color: T.textDim }}>per 1,000 replies</div>
+            </div>
+            <button onClick={() => setEditing(open ? null : `${p.provider}/${p.model}`)}
+              style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 9, padding: "6px 11px", color: T.textMuted, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}>
+              {open ? "Close" : "Edit rate"}
+            </button>
           </div>
-          <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 6 }}>
-            At these rates, 1,000 bot replies cost you about <b style={{ color: T.text }}>{bdt(per1000)}</b>
-            <span style={{ color: T.textDim }}> — a typical reply, USD per 1M tokens</span>
-          </div>
+          {open && <div style={{ marginTop: 10, padding: "11px 13px", background: T.bgAlt, borderRadius: 11 }}>
+            <div style={{ fontSize: 11.5, color: T.textMuted, marginBottom: 9, lineHeight: 1.65 }}>
+              These are the provider's own prices in US dollars for 1 million <b style={{ color: T.text }}>tokens</b> (a token is about 4 letters).
+              Copy them from {p.provider === "google" ? "ai.google.dev/pricing" : "openai.com/api/pricing"} whenever the provider changes them —
+              nothing else needs updating.
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <label style={{ fontSize: 10.5, color: T.textDim, display: "inline-flex", flexDirection: "column", gap: 3 }}>
+                Text you send it
+                <input value={p.input_per_1m} onChange={(e) => upd(prices, setPrices, i, "input_per_1m", e.target.value)} style={{ ...box, width: 90 }} />
+              </label>
+              <label style={{ fontSize: 10.5, color: T.textDim, display: "inline-flex", flexDirection: "column", gap: 3 }}>
+                Text it writes back
+                <input value={p.output_per_1m} onChange={(e) => upd(prices, setPrices, i, "output_per_1m", e.target.value)} style={{ ...box, width: 90 }} />
+              </label>
+              <Btn small gold disabled={busy} onClick={() => post({ action: "save_price", provider: p.provider, model: p.model, input_per_1m: p.input_per_1m, output_per_1m: p.output_per_1m })}>Save rate</Btn>
+            </div>
+          </div>}
         </div>;
       })}
+      <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}`, lineHeight: 1.6 }}>
+        <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
+        These prices are already filled in from the providers' published rates — you only need to touch them if a provider changes its pricing.
+      </div>
     </Card>
 
     <Card>

@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { platformKey } from "@/lib/platform-ai.js";
 
 // One SDK instance per API key. The platform key is the default; a client on
 // their own Google key (src/lib/ai.js) passes it through `opts.apiKey`.
@@ -134,7 +135,10 @@ async function withRetry(fn, tries = 3) {
 }
 
 export async function generateEmbedding(text, opts = {}) {
-  const model = getGenAI().getGenerativeModel({ model: "gemini-embedding-001" });
+  // Embeddings always run on the PLATFORM key (CLAUDE.md invariant). That key
+  // now comes from the admin panel when one is saved there, and from the
+  // environment variable otherwise.
+  const model = getGenAI(opts.apiKey || await platformKey()).getGenerativeModel({ model: "gemini-embedding-001" });
   const result = await withRetry(() => model.embedContent({
     content: { parts: [{ text }] },
     outputDimensionality: 768,
@@ -168,8 +172,9 @@ ${htmlContent.substring(0, 15000)}
 
 Return ONLY the JSON array, no markdown or explanation.`;
 
+  const pk = await platformKey();
   const text = await onChain(async (id) => {
-    const model = getGenAI().getGenerativeModel({ model: id });
+    const model = getGenAI(opts.apiKey || pk).getGenerativeModel({ model: id });
     const result = await model.generateContent(prompt);
     // Scraping a page is one of the most expensive single calls we make (15k
     // characters of HTML in the prompt), so it is metered like any other.

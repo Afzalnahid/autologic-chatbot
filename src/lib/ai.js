@@ -20,6 +20,7 @@ import { decryptSecret } from "@/lib/crypt.js";
 import { notifyKeyFailing } from "@/lib/email.js";
 import { recordUsage, geminiTokens } from "@/lib/usage.js";
 import { limitsFor } from "@/lib/plan-limits.js";
+import { getPlatformAI } from "@/lib/platform-ai.js";
 import {
   chatWithGemini, analyzeImage, analyzeImageBase64,
   transcribeAudio, transcribeAudioBase64, generateEmbedding,
@@ -36,7 +37,11 @@ export async function getClientAI(clientId) {
   if (hit && Date.now() - hit.at < 60_000) return hit.ai;
   let cfg = null;
   let platformChain = null;
+  // The platform's own key, as set in the admin panel; null means "use the
+  // GEMINI_API_KEY environment variable", which is what getGenAI already does.
+  let platformApiKey = null;
   try {
+    platformApiKey = (await getPlatformAI()).apiKey || null;
     const { data } = await supabase.from("client_ai")
       .select("provider,api_key_enc,model,status").eq("client_id", clientId).maybeSingle();
     // Permission without a key yet → platform, same as everyone else.
@@ -51,18 +56,21 @@ export async function getClientAI(clientId) {
       const { data: c } = await supabase.from("clients")
         .select("plan,model_chain,limit_overrides").eq("id", clientId).maybeSingle();
       if (c) platformChain = (await limitsFor(c)).modelChain || null;
+      // Nothing set for this client or their package → whatever the admin panel
+      // picked as the platform default.
+      if (!platformChain) platformChain = (await getPlatformAI()).modelChain || null;
     }
   } catch (e) {
     // A decryption error (e.g. after a secret rotation) must not crash a
     // reply; it surfaces as "failing" the first time the key is used.
     console.error("[ai] config load:", String(e.message || "").slice(0, 160));
   }
-  const ai = build(id, cfg, platformChain);
+  const ai = build(id, cfg, platformChain, platformApiKey);
   memo.set(id, { ai, at: Date.now() });
   return ai;
 }
 
-function build(clientId, cfg, platformChain) {
+function build(clientId, cfg, platformChain, platformApiKey) {
   // Token meter. Every AI call reports through this so the admin panel can
   // answer "what does this client cost me?" — see src/lib/usage.js. ownKey
   // usage is still recorded but is the CLIENT's money, so cost reports exclude
@@ -82,7 +90,8 @@ function build(clientId, cfg, platformChain) {
       });
     },
   });
-  const pm = meter("google", false);   // platform key
+  // Platform calls carry the admin-set key (when there is one) alongside the meter.
+  const pm = { ...meter("google", false), ...(platformApiKey ? { apiKey: platformApiKey } : {}) };
 
   const platform = {
     provider: "platform",
