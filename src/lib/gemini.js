@@ -38,6 +38,13 @@ async function onChain(run) {
   throw last;
 }
 
+// Every call reports its token usage through opts.onUsage(kind, model, response)
+// when the caller supplies one (src/lib/ai.js does, with the client attached).
+// Optional and never throws, so nothing here changes for callers without it.
+function report(opts, kind, model, response) {
+  try { opts?.onUsage?.(kind, model, response); } catch { /* bookkeeping never breaks a reply */ }
+}
+
 export async function chatWithGemini(systemPrompt, messages, model, opts = {}) {
   const run = async (id) => {
     const m = getGenAI(opts.apiKey).getGenerativeModel({ model: id, systemInstruction: systemPrompt });
@@ -48,6 +55,7 @@ export async function chatWithGemini(systemPrompt, messages, model, opts = {}) {
     const chat = m.startChat({ history });
     const lastMsg = messages[messages.length - 1];
     const result = await chat.sendMessage(lastMsg.content);
+    report(opts, "chat", id, result.response);
     return result.response.text();
   };
   // A BYOK client's own picks (main[,fallback]) are tried first, in order, each
@@ -95,6 +103,7 @@ export async function analyzeImageBase64(base64, mimeType, prompt, opts = {}) {
       prompt,
       { inlineData: { data: base64, mimeType } },
     ]));
+    report(opts, "vision", id, result.response);
     return result.response.text();
   });
 }
@@ -124,16 +133,23 @@ async function withRetry(fn, tries = 3) {
   throw last;
 }
 
-export async function generateEmbedding(text) {
+export async function generateEmbedding(text, opts = {}) {
   const model = getGenAI().getGenerativeModel({ model: "gemini-embedding-001" });
   const result = await withRetry(() => model.embedContent({
     content: { parts: [{ text }] },
     outputDimensionality: 768,
   }));
+  // The embed endpoint returns no usageMetadata, so the token count is estimated
+  // from the text at the usual ~4 characters per token. Embeddings always run on
+  // the PLATFORM key (CLAUDE.md invariant), so this is always our cost — which is
+  // exactly why it has to be counted: it is what a big catalogue import costs us.
+  report(opts, "embed", "gemini-embedding-001", {
+    usageMetadata: { promptTokenCount: Math.ceil(String(text || "").length / 4), candidatesTokenCount: 0 },
+  });
   return result.embedding.values;
 }
 
-export async function extractProductsFromUrl(htmlContent, url) {
+export async function extractProductsFromUrl(htmlContent, url, opts = {}) {
   const prompt = `Extract ALL product data from this webpage HTML. The URL is: ${url}
 
 Return a JSON array of products. Each product must have:
@@ -155,6 +171,9 @@ Return ONLY the JSON array, no markdown or explanation.`;
   const text = await onChain(async (id) => {
     const model = getGenAI().getGenerativeModel({ model: id });
     const result = await model.generateContent(prompt);
+    // Scraping a page is one of the most expensive single calls we make (15k
+    // characters of HTML in the prompt), so it is metered like any other.
+    report(opts, "scrape", id, result.response);
     return result.response.text().replace(/```json|```/g, "").trim();
   });
   return JSON.parse(text);
@@ -196,6 +215,7 @@ async function transcribeParts(base64, mimeType, opts = {}) {
       TRANSCRIBE_PROMPT,
       { inlineData: { data: base64, mimeType: normalizeAudioMime(mimeType) } },
     ]));
+    report(opts, "voice", id, result.response);
     return (result.response.text() || "").replace(/^["'`\s]+|["'`\s]+$/g, "").trim();
   });
 }

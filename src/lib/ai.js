@@ -18,6 +18,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { decryptSecret } from "@/lib/crypt.js";
 import { notifyKeyFailing } from "@/lib/email.js";
+import { recordUsage, geminiTokens } from "@/lib/usage.js";
 import {
   chatWithGemini, analyzeImage, analyzeImageBase64,
   transcribeAudio, transcribeAudioBase64, generateEmbedding,
@@ -51,21 +52,42 @@ export async function getClientAI(clientId) {
 }
 
 function build(clientId, cfg) {
+  // Token meter. Every AI call reports through this so the admin panel can
+  // answer "what does this client cost me?" — see src/lib/usage.js. ownKey
+  // usage is still recorded but is the CLIENT's money, so cost reports exclude
+  // it. Embeddings always meter as platform/google: they run on the platform
+  // key even for a BYOK client (CLAUDE.md invariant), so we pay for them.
+  const meter = (provider, ownKey) => ({
+    onUsage: (kind, model, response) => {
+      const t = geminiTokens(response);
+      recordUsage({
+        clientId,
+        kind,
+        provider: kind === "embed" ? "google" : provider,
+        model,
+        ownKey: kind === "embed" ? false : ownKey,
+        tokensIn: t.tokensIn,
+        tokensOut: t.tokensOut,
+      });
+    },
+  });
+  const pm = meter("google", false);   // platform key
+
   const platform = {
     provider: "platform",
     ownKey: false,
-    chat: (sys, msgs) => chatWithGemini(sys, msgs),
-    visionUrl: (url, prompt) => analyzeImage(url, prompt),
-    visionB64: (b64, mime, prompt) => analyzeImageBase64(b64, mime, prompt),
-    transcribeUrl: (url, headers) => transcribeAudio(url, headers),
-    transcribeB64: (b64, mime) => transcribeAudioBase64(b64, mime),
-    embed: (text) => generateEmbedding(text),
+    chat: (sys, msgs) => chatWithGemini(sys, msgs, undefined, pm),
+    visionUrl: (url, prompt) => analyzeImage(url, prompt, pm),
+    visionB64: (b64, mime, prompt) => analyzeImageBase64(b64, mime, prompt, pm),
+    transcribeUrl: (url, headers) => transcribeAudio(url, headers, pm),
+    transcribeB64: (b64, mime) => transcribeAudioBase64(b64, mime, pm),
+    embed: (text) => generateEmbedding(text, pm),
   };
   if (!cfg) return platform;
 
   let own;
   if (cfg.provider === "google") {
-    const o = { apiKey: cfg.key };
+    const o = { apiKey: cfg.key, ...meter("google", true) };
     own = {
       chat: (sys, msgs) => chatWithGemini(sys, msgs, cfg.model, o),
       visionUrl: (url, prompt) => analyzeImage(url, prompt, o),
@@ -74,14 +96,15 @@ function build(clientId, cfg) {
       transcribeB64: (b64, mime) => transcribeAudioBase64(b64, mime, o),
     };
   } else {
+    const o = meter("openai", true);
     own = {
-      chat: (sys, msgs) => chatWithOpenAI(cfg.key, sys, msgs, cfg.model),
-      visionB64: (b64, mime, prompt) => visionOpenAI(cfg.key, b64, mime, prompt, cfg.model),
+      chat: (sys, msgs) => chatWithOpenAI(cfg.key, sys, msgs, cfg.model, o),
+      visionB64: (b64, mime, prompt) => visionOpenAI(cfg.key, b64, mime, prompt, cfg.model, o),
       visionUrl: async (url, prompt) => {
         const r = await fetch(url);
         if (!r.ok) throw new Error(`image download failed: ${r.status}`);
         const b64 = Buffer.from(await r.arrayBuffer()).toString("base64");
-        return visionOpenAI(cfg.key, b64, r.headers.get("content-type") || "image/jpeg", prompt, cfg.model);
+        return visionOpenAI(cfg.key, b64, r.headers.get("content-type") || "image/jpeg", prompt, cfg.model, o);
       },
       transcribeB64: (b64, mime) => transcribeOpenAI(cfg.key, b64, mime),
       transcribeUrl: async (url, headers) => {

@@ -11,6 +11,7 @@
 //   regular_price, sale_price, stock_qty, stock_status, image_url}).
 import { supabase } from "@/lib/supabase.js";
 import { generateEmbedding } from "@/lib/gemini.js";
+import { embedMeter } from "@/lib/usage.js";
 import { getClientAI } from "@/lib/ai.js";
 
 // Must stay identical to the prompt used at message time (docs/prompts.md):
@@ -144,8 +145,10 @@ export async function describeImage(url, client) {
   } catch (e) { return { visual: "", analyzeError: e.message }; }
 }
 
-export async function embedProduct(metadata) {
+// clientId is optional only so old call sites keep working; pass it whenever it
+// is known so the embedding cost lands on the right client's usage.
+export async function embedProduct(metadata, clientId) {
   const content = buildContent(metadata);
-  const embedding = await generateEmbedding(content);
+  const embedding = await generateEmbedding(content, embedMeter(clientId || metadata?.client_id));
   return { content, embedding };
 }

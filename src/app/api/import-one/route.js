@@ -5,6 +5,7 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { generateEmbedding } from "@/lib/gemini.js";
+import { embedMeter } from "@/lib/usage.js";
 import { getClientAI } from "@/lib/ai.js";
 
 function visionPrompt(bType, unit) {
@@ -32,7 +33,7 @@ export async function POST(request) {
       } catch {}
     }
     const content = `Product Code: ${p.product_code}\nName: ${p.product_name}\n${visual || p.description || ""}`;
-    const embedding = await generateEmbedding(content);
+    const embedding = await generateEmbedding(content, embedMeter(client.id));
 
     const metadata = {
       client_id: String(client.id),

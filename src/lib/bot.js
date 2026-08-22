@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
 import { chatWithGemini, generateEmbedding, UNCLEAR_AUDIO } from "@/lib/gemini.js";
+import { embedMeter } from "@/lib/usage.js";
 import { PLANS, PAID_PLANS } from "@/lib/plans.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
@@ -277,7 +278,7 @@ async function businessFacts(clientId, st) {
 
 async function searchProducts(clientId, query, k = 3) {
   try {
-    const emb = await generateEmbedding(query);
+    const emb = await generateEmbedding(query, embedMeter(clientId));
     const { data, error } = await sb().rpc("match_documents", {
       query_embedding: emb, match_count: k, filter: { client_id: String(clientId) },
     });

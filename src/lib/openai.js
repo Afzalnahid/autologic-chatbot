@@ -48,7 +48,17 @@ async function onChain(model, run) {
   throw last;
 }
 
-export async function chatWithOpenAI(apiKey, systemPrompt, messages, model) {
+// Mirrors gemini.js: an optional opts.onUsage(kind, model, response) lets the
+// caller (src/lib/ai.js) meter tokens. OpenAI reports them under `usage`, which
+// usage.js reshapes into the same form as Google's usageMetadata.
+function report(opts, kind, model, json) {
+  try {
+    const u = json?.usage;
+    opts?.onUsage?.(kind, model, { usageMetadata: { promptTokenCount: u?.prompt_tokens || 0, candidatesTokenCount: u?.completion_tokens || 0 } });
+  } catch { /* bookkeeping never breaks a reply */ }
+}
+
+export async function chatWithOpenAI(apiKey, systemPrompt, messages, model, opts = {}) {
   return onChain(model, async (id) => {
     const j = await post(apiKey, "/chat/completions", {
       model: id,
@@ -57,11 +67,12 @@ export async function chatWithOpenAI(apiKey, systemPrompt, messages, model) {
         ...messages.map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })),
       ],
     });
+    report(opts, "chat", id, j);
     return j.choices?.[0]?.message?.content || "";
   });
 }
 
-export async function visionOpenAI(apiKey, base64, mimeType, prompt, model) {
+export async function visionOpenAI(apiKey, base64, mimeType, prompt, model, opts = {}) {
   return onChain(model, async (id) => {
     const j = await post(apiKey, "/chat/completions", {
       model: id,
@@ -73,6 +84,7 @@ export async function visionOpenAI(apiKey, base64, mimeType, prompt, model) {
         ],
       }],
     });
+    report(opts, "vision", id, j);
     return j.choices?.[0]?.message?.content || "";
   });
 }

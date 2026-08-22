@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase.js";
 import { generateEmbedding } from "@/lib/gemini.js";
+import { embedMeter } from "@/lib/usage.js";
 import { createRequire } from "module";
 
 const nodeRequire = createRequire(import.meta.url);
@@ -64,7 +65,7 @@ export async function ingestFile({ clientId, fileId, fileName, fileUrl, fileType
   const rows = [];
   for (let i = 0; i < pieces.length; i++) {
     const content = pieces[i];
-    const embedding = await generateEmbedding(content);
+    const embedding = await generateEmbedding(content, embedMeter(clientId));
     rows.push({
       client_id: clientId,
       file_id: fileId,
@@ -108,7 +109,7 @@ export async function ingestFile({ clientId, fileId, fileName, fileUrl, fileType
 // ---- Semantic search over the knowledge base ----
 export async function searchKnowledge(clientId, query, k = 5) {
   try {
-    const emb = await generateEmbedding(query);
+    const emb = await generateEmbedding(query, embedMeter(clientId));
     const { data, error } = await supabase.rpc("match_knowledge", {
       query_embedding: emb,
       match_count: k,
