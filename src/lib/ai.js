@@ -1,7 +1,8 @@
 // Per-client AI routing (BYOK). The super admin grants a client permission
-// (a client_ai row); the client then pastes their own key — Google AI Studio
-// or OpenAI — in their dashboard. Until a key is saved, they run on the
-// platform key like everyone else.
+// (a client_ai row); the client then pastes their own Google AI (Gemini) key in
+// their dashboard. Until a key is saved, they run on the platform key like
+// everyone else. The platform is Gemini-only: one key runs chat, vision, voice
+// and embeddings.
 //
 // Three hard rules:
 //   1. A client with their own key runs ONLY on it. If it hits its quota or
@@ -10,10 +11,10 @@
 //      separated from the platform's. The bot's existing error handling turns
 //      the failure into a polite "the team will get back to you", and the
 //      failure is recorded so both dashboards show WHY.
-//   2. Embeddings ALWAYS run on the platform's Gemini key. All saved product
-//      and knowledge vectors live in gemini-embedding-001's 768-d space;
-//      another provider's embeddings are a different space and would silently
-//      break search for everything already stored (CLAUDE.md invariant).
+//   2. Embeddings use the gemini-embedding-001 model (768-d) — that model is the
+//      vector space. A client on their own Gemini key embeds on it too (same
+//      model, same space, their cost); a client with no key uses the platform
+//      key. Never another model or provider (CLAUDE.md invariant).
 //   3. No dashboard ever sees the key again — only its masked form.
 import { supabase } from "@/lib/supabase.js";
 import { decryptSecret } from "@/lib/crypt.js";
@@ -25,7 +26,6 @@ import {
   chatWithGemini, analyzeImage, analyzeImageBase64,
   transcribeAudio, transcribeAudioBase64, generateEmbedding,
 } from "@/lib/gemini.js";
-import { chatWithOpenAI, visionOpenAI, transcribeOpenAI } from "@/lib/openai.js";
 
 // One message can transcribe, describe an image and chat; a 60s memo means the
 // key row is read once per warm lambda, not three times per message.
@@ -44,9 +44,10 @@ export async function getClientAI(clientId) {
     platformApiKey = (await getPlatformAI()).apiKey || null;
     const { data } = await supabase.from("client_ai")
       .select("provider,api_key_enc,model,status").eq("client_id", clientId).maybeSingle();
-    // Permission without a key yet → platform, same as everyone else.
-    if (data?.api_key_enc && data?.provider) {
-      cfg = { provider: data.provider, key: decryptSecret(data.api_key_enc), model: data.model || undefined, status: data.status };
+    // Permission without a key yet → platform, same as everyone else. Only
+    // Google (Gemini) keys are honoured — the platform is Gemini-only.
+    if (data?.api_key_enc && data?.provider === "google") {
+      cfg = { provider: "google", key: decryptSecret(data.api_key_enc), model: data.model || undefined, status: data.status };
     }
     // Which models the PLATFORM key should use for this client: their own
     // override first, then their package's, then the built-in chain. Set from
@@ -75,10 +76,8 @@ function build(clientId, cfg, platformChain, platformApiKey) {
   // answer "what does this client cost me?" — see src/lib/usage.js. Cost follows
   // the KEY the call actually ran on: ownKey usage is the client's money and is
   // excluded from platform cost. Embeddings are always the gemini-embedding-001
-  // model (provider "google") whoever's key runs them — the vector space is the
-  // same model on any key — so a Gemini client's embeddings are theirs, and only
-  // an OpenAI client's embeddings (which must borrow the platform Gemini key)
-  // land on us.
+  // model (provider "google") whoever's key runs them — a BYOK client's
+  // embeddings are theirs, a platform client's are ours.
   const meter = (provider, ownKey) => ({
     onUsage: (kind, model, response) => {
       const t = geminiTokens(response);
@@ -108,43 +107,17 @@ function build(clientId, cfg, platformChain, platformApiKey) {
   };
   if (!cfg) return platform;
 
-  let own;
-  if (cfg.provider === "google") {
-    const o = { apiKey: cfg.key, ...meter("google", true) };
-    own = {
-      chat: (sys, msgs) => chatWithGemini(sys, msgs, cfg.model, o),
-      visionUrl: (url, prompt) => analyzeImage(url, prompt, o),
-      visionB64: (b64, mime, prompt) => analyzeImageBase64(b64, mime, prompt, o),
-      transcribeUrl: (url, headers) => transcribeAudio(url, headers, o),
-      transcribeB64: (b64, mime) => transcribeAudioBase64(b64, mime, o),
-      // A Gemini client runs embeddings on their OWN key — same model
-      // (gemini-embedding-001, 768-d), so the vector space is unchanged, but the
-      // cost is theirs. Nothing lands on the platform for a Gemini BYOK client.
-      embed: (text) => generateEmbedding(text, o),
-    };
-  } else {
-    const o = meter("openai", true);
-    own = {
-      // OpenAI cannot produce a compatible embedding, so embeddings for an
-      // OpenAI-key client stay on the PLATFORM Gemini key (metered as our cost).
-      // This is the one thing a BYOK client still costs us, and it is small.
-      embed: (text) => generateEmbedding(text, pm),
-      chat: (sys, msgs) => chatWithOpenAI(cfg.key, sys, msgs, cfg.model, o),
-      visionB64: (b64, mime, prompt) => visionOpenAI(cfg.key, b64, mime, prompt, cfg.model, o),
-      visionUrl: async (url, prompt) => {
-        const r = await fetch(url);
-        if (!r.ok) throw new Error(`image download failed: ${r.status}`);
-        const b64 = Buffer.from(await r.arrayBuffer()).toString("base64");
-        return visionOpenAI(cfg.key, b64, r.headers.get("content-type") || "image/jpeg", prompt, cfg.model, o);
-      },
-      transcribeB64: (b64, mime) => transcribeOpenAI(cfg.key, b64, mime),
-      transcribeUrl: async (url, headers) => {
-        const r = await fetch(url, headers ? { headers } : undefined);
-        if (!r.ok) throw new Error(`audio download failed: ${r.status}`);
-        return transcribeOpenAI(cfg.key, Buffer.from(await r.arrayBuffer()).toString("base64"), r.headers.get("content-type") || "audio/mp4");
-      },
-    };
-  }
+  // A BYOK client is always on Google (Gemini): one key runs chat, vision, voice
+  // AND embeddings, all on their own key (their cost, same 768-d vector space).
+  const o = { apiKey: cfg.key, ...meter("google", true) };
+  const own = {
+    chat: (sys, msgs) => chatWithGemini(sys, msgs, cfg.model, o),
+    visionUrl: (url, prompt) => analyzeImage(url, prompt, o),
+    visionB64: (b64, mime, prompt) => analyzeImageBase64(b64, mime, prompt, o),
+    transcribeUrl: (url, headers) => transcribeAudio(url, headers, o),
+    transcribeB64: (b64, mime) => transcribeAudioBase64(b64, mime, o),
+    embed: (text) => generateEmbedding(text, o),
+  };
 
   // Hard separation: no platform fallback. Record failures (both dashboards
   // read the status), heal the status on the next success (a daily quota
@@ -176,9 +149,9 @@ function build(clientId, cfg, platformChain, platformApiKey) {
     visionB64: strict("vision", own.visionB64),
     transcribeUrl: strict("voice", own.transcribeUrl),
     transcribeB64: strict("voice", own.transcribeB64),
-    // Not strict-wrapped: a Gemini client's embed runs on their key, an OpenAI
-    // client's on the platform key, and either way the caller (product search /
-    // import) already tolerates a failed embedding without crashing a reply.
+    // Not strict-wrapped: a BYOK client's embed runs on their own Gemini key,
+    // and the caller (product search / import) already tolerates a failed
+    // embedding without crashing a reply.
     embed: own.embed,
   };
 }

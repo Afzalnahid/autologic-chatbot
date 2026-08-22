@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { encryptSecret, maskKey } from "@/lib/crypt.js";
-import { verifyOpenAIKey, listOpenAIModels } from "@/lib/openai.js";
 import { listGoogleModels } from "@/lib/gemini.js";
 
 // The client side of BYOK. The super admin grants permission (creates the
@@ -46,14 +45,15 @@ export const POST = withErrors(async (request) => {
   if (!row) return NextResponse.json({ error: "Your account is not enabled for its own API key. Please contact support." }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
-  const provider = body.provider === "openai" ? "openai" : body.provider === "google" ? "google" : null;
+  // The platform is Gemini-only — the key is always a Google AI key.
+  const provider = "google";
   const apiKey = String(body.api_key || "").trim();
   // The client picks a main model and an optional fallback. Arrives as an array
   // [main, fallback] or a comma string; we keep the chain (main first) in the
   // existing text column so no schema change is needed.
   const models = (Array.isArray(body.models) ? body.models : String(body.model || "").split(","))
     .map((s) => String(s).trim()).filter(Boolean).slice(0, 2);
-  if (!provider || !apiKey) return NextResponse.json({ error: "Choose a provider and paste the key." }, { status: 400 });
+  if (!apiKey) return NextResponse.json({ error: "Paste your Gemini API key." }, { status: 400 });
 
   const check = await verifyAIKey(provider, apiKey, models);
   if (!check.ok) return NextResponse.json({ error: "The key did not work: " + check.error }, { status: 400 });
@@ -84,15 +84,13 @@ export const DELETE = withErrors(async (request) => {
   return NextResponse.json({ ok: true, ...shape(saved) });
 }, "ai-key");
 
-// Verify the key by asking the provider for its LIVE model list (this is also
-// the real proof the key works), then confirm every model the client chose is
-// actually on that list. Never assumes a hardcoded model id — that is exactly
-// what produced the "gemini-2.5-flash is no longer available" 404.
+// Verify the key by asking Google for its LIVE model list (this is also the real
+// proof the key works), then confirm every model the client chose is actually on
+// that list. Never assumes a hardcoded model id — that is exactly what produced
+// the "gemini-2.5-flash is no longer available" 404.
 async function verifyAIKey(provider, apiKey, models) {
   try {
-    const available = provider === "google"
-      ? await listGoogleModels(apiKey)
-      : await listOpenAIModels(apiKey);
+    const available = await listGoogleModels(apiKey);
     const ids = available.map((a) => a.id);
     if (!ids.length) return { ok: false, error: "This key has no usable chat models." };
     for (const m of models) {

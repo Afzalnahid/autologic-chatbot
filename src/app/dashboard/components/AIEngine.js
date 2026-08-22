@@ -6,7 +6,7 @@ import { api } from "./session.js";
 // The AI Engine tab — the client's own API key (BYOK) lives here, on its own
 // page instead of buried in Bot Training. The super admin grants permission
 // (/api/ai-key answers allowed:false otherwise). With permission the owner:
-//   1. picks a provider (Google AI Studio or OpenAI) and pastes their key,
+//   1. pastes their own Google AI (Gemini) key,
 //   2. we read the LIVE list of models that key can actually use — never a
 //      hardcoded id, which is what produced the "gemini-2.5-flash is no longer
 //      available" 404 — and
@@ -16,7 +16,6 @@ import { api } from "./session.js";
 
 const PROVIDERS = {
   google: { label: "Google AI Studio", icon: "ti-brand-google", color: "#4285F4", ph: "AIza…", help: "aistudio.google.com → Get API key" },
-  openai: { label: "OpenAI", icon: "ti-brand-openai", color: "#10A37F", ph: "sk-…", help: "platform.openai.com → API keys" },
 };
 
 // The model list is now [{id, tier, note}] (tier: "fast" | "smart"). Smart

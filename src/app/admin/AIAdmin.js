@@ -11,7 +11,6 @@ import { T, Card, Btn, Badge, Select } from "../dashboard/components/ui.js";
 
 const PROVIDERS = {
   google: { label: "Google AI Studio", icon: "ti-brand-google", color: "#4285F4", ph: "AIza…", help: "aistudio.google.com → Get API key" },
-  openai: { label: "OpenAI", icon: "ti-brand-openai", color: "#10A37F", ph: "sk-…", help: "platform.openai.com → API keys" },
 };
 
 const optLabel = (m) => `${m.name || m.id}${m.tier === "fast" ? "  (Low cost · Fast)" : m.tier === "smart" ? "  (More powerful · Higher cost)" : ""}`;

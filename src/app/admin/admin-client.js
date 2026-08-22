@@ -546,7 +546,6 @@ function Admins({ admins, superKey, setSuperKey, setRole, removeAdmin, busy }) {
 // vector space).
 const AI_PROVIDERS = {
   google: { label: "Google AI Studio", icon: "ti-brand-google", color: "#4285F4" },
-  openai: { label: "OpenAI", icon: "ti-brand-openai", color: "#10A37F" },
 };
 
 function AITab({ ai, clientId, superKey, setSuperKey, allow, revoke, busy }) {
@@ -633,10 +632,10 @@ function AITab({ ai, clientId, superKey, setSuperKey, allow, revoke, busy }) {
     {/* How the separation works — so a support question never needs the code */}
     <Card>
       <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: .8 }}>How it works</div>
-      {[["ti-key", "You grant permission here; the client pastes their own Google AI Studio or OpenAI key in their dashboard."],
-        ["ti-messages", "Chat, photo matching, voice, bot training and auto-tags then run — and bill — on their key only."],
+      {[["ti-key", "You grant permission here; the client pastes their own Google AI (Gemini) key in their dashboard."],
+        ["ti-messages", "Chat, photo matching, voice, bot training, auto-tags AND product-search embeddings then run — and bill — on their own key."],
         ["ti-scissors", "Hard separation: if their key hits its limit or breaks, their bot pauses politely. It NEVER uses your platform key."],
-        ["ti-database", "Only product-search embeddings stay on the platform key (the catalogue's vector space; costs a fraction of a taka)."]].map(([ic, t]) =>
+        ["ti-database", "Every vector is the gemini-embedding-001 model, so a client's own Gemini key indexes in the same space — nothing lands on the platform."]].map(([ic, t]) =>
         <div key={ic} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "7px 0", borderTop: `1px solid ${T.border}`, fontSize: 12.5, lineHeight: 1.55 }}>
           <i className={`ti ${ic}`} style={{ color: T.gold, width: 18, marginTop: 2 }} /><span style={{ flex: 1 }}>{t}</span>
         </div>)}

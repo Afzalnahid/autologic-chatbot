@@ -508,7 +508,7 @@ function Rates({ d, post, busy, rate }) {
           {open && <div style={{ marginTop: 10, padding: "11px 13px", background: T.bgAlt, borderRadius: 11 }}>
             <div style={{ fontSize: 11.5, color: T.textMuted, marginBottom: 9, lineHeight: 1.65 }}>
               These are the provider's own prices in US dollars for 1 million <b style={{ color: T.text }}>tokens</b> (a token is about 4 letters).
-              Copy them from {p.provider === "google" ? "ai.google.dev/pricing" : "openai.com/api/pricing"} whenever the provider changes them —
+              Copy them from ai.google.dev/pricing whenever Google changes them —
               nothing else needs updating.
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>

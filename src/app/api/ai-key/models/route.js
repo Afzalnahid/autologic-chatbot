@@ -24,9 +24,9 @@ export const POST = withErrors(async (request) => {
   if (!row) return NextResponse.json({ error: "Your account is not enabled for its own API key. Please contact support." }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
-  const provider = body.provider === "openai" ? "openai" : body.provider === "google" ? "google" : null;
+  const provider = "google";   // Gemini-only platform
   const apiKey = String(body.api_key || "").trim();
-  if (!provider || !apiKey) return NextResponse.json({ error: "Choose a provider and paste the key." }, { status: 400 });
+  if (!apiKey) return NextResponse.json({ error: "Paste your Gemini API key." }, { status: 400 });
 
   try {
     const models = await listModels(provider, apiKey);

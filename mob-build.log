@@ -1,0 +1,84 @@
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/14) ...
+   Generating static pages (3/14) 
+   Generating static pages (6/14) 
+   Generating static pages (10/14) 
+ ✓ Generating static pages (14/14)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ƒ /                                    2.63 kB        90.1 kB
+├ ○ /_not-found                          873 B          88.3 kB
+├ ○ /admin                               6.77 kB         160 kB
+├ ƒ /api/add-product                     0 B                0 B
+├ ƒ /api/admin                           0 B                0 B
+├ ƒ /api/admin/client-detail             0 B                0 B
+├ ƒ /api/analytics                       0 B                0 B
+├ ƒ /api/auth                            0 B                0 B
+├ ƒ /api/billing                         0 B                0 B
+├ ƒ /api/bookings                        0 B                0 B
+├ ƒ /api/bookings/list                   0 B                0 B
+├ ƒ /api/broadcast                       0 B                0 B
+├ ƒ /api/channels                        0 B                0 B
+├ ƒ /api/channels/website                0 B                0 B
+├ ƒ /api/comments                        0 B                0 B
+├ ƒ /api/contacts                        0 B                0 B
+├ ƒ /api/conversations                   0 B                0 B
+├ ƒ /api/demo-chat                       0 B                0 B
+├ ƒ /api/fb/callback                     0 B                0 B
+├ ƒ /api/fb/data-deletion                0 B                0 B
+├ ƒ /api/fb/login                        0 B                0 B
+├ ƒ /api/fb/select                       0 B                0 B
+├ ƒ /api/gcal/callback                   0 B                0 B
+├ ƒ /api/gcal/login                      0 B                0 B
+├ ƒ /api/gcal/status                     0 B                0 B
+├ ƒ /api/generate-prompt                 0 B                0 B
+├ ƒ /api/ig/callback                     0 B                0 B
+├ ƒ /api/ig/deauth                       0 B                0 B
+├ ƒ /api/ig/login                        0 B                0 B
+├ ƒ /api/ig/select                       0 B                0 B
+├ ƒ /api/import-one                      0 B                0 B
+├ ƒ /api/import-products                 0 B                0 B
+├ ƒ /api/import-url                      0 B                0 B
+├ ƒ /api/knowledge                       0 B                0 B
+├ ƒ /api/me                              0 B                0 B
+├ ƒ /api/messenger                       0 B                0 B
+├ ƒ /api/orders                          0 B                0 B
+├ ƒ /api/products                        0 B                0 B
+├ ƒ /api/profile                         0 B                0 B
+├ ƒ /api/profile-logo                    0 B                0 B
+├ ƒ /api/send-media                      0 B                0 B
+├ ƒ /api/send-message                    0 B                0 B
+├ ƒ /api/settings                        0 B                0 B
+├ ƒ /api/tags                            0 B                0 B
+├ ƒ /api/wa/callback                     0 B                0 B
+├ ƒ /api/wa/embedded                     0 B                0 B
+├ ƒ /api/wa/finish                       0 B                0 B
+├ ƒ /api/wa/login                        0 B                0 B
+├ ƒ /api/wa/select                       0 B                0 B
+├ ƒ /api/whatsapp                        0 B                0 B
+├ ƒ /api/widget/chat                     0 B                0 B
+├ ○ /contact                             153 B          87.6 kB
+├ ○ /dashboard                           1.18 kB        88.6 kB
+├ ○ /google-calendar                     153 B          87.6 kB
+├ ƒ /preview-dash                        153 B          87.6 kB
+├ ○ /pricing                             6.86 kB        94.3 kB
+├ ○ /privacy                             153 B          87.6 kB
+├ ○ /reset                               1.58 kB         155 kB
+└ ○ /terms                               153 B          87.6 kB
++ First Load JS shared by all            87.4 kB
+  ├ chunks/117-f7b57bc4e50f104e.js       31.7 kB
+  ├ chunks/fd9d1056-faca5e55fb7642b2.js  53.6 kB
+  └ other shared chunks (total)          2.06 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

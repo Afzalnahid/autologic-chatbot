@@ -122,7 +122,7 @@ export async function notifyPaymentRejected(clientEmail, reason) {
 // when the key flips from working to failing (not for every message) — see
 // markFailing in src/lib/ai.js.
 export async function notifyKeyFailing(clientEmail, { business, provider, model, error }) {
-  const prov = provider === "openai" ? "OpenAI" : "Google AI";
+  const prov = "Google AI";
   const safeErr = String(error || "").slice(0, 240).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
   return send({
     to: clientEmail,

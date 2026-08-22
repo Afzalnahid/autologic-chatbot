@@ -49,7 +49,7 @@ export async function POST(request) {
 
   const body = await request.json().catch(() => ({}));
   const action = body.action;
-  const provider = body.provider === "openai" ? "openai" : "google";
+  const provider = "google";   // Gemini-only platform
 
   // Listing models only reads from the provider, so it needs no second factor.
   if (action === "list_models") {

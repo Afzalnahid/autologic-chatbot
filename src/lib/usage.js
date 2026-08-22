@@ -39,16 +39,11 @@ export function recordUsage({ clientId, kind, provider, model, ownKey = false, t
   );
 }
 
-// Pulls a usage report out of the SDK's response shapes. Google returns
-// usageMetadata; OpenAI returns usage. Both are optional — a missing count is
-// recorded as zero rather than guessed.
+// Pulls a token count out of Gemini's response (usageMetadata). Optional — a
+// missing count is recorded as zero rather than guessed.
 export function geminiTokens(response) {
   const u = response?.usageMetadata || {};
   return { tokensIn: u.promptTokenCount || 0, tokensOut: u.candidatesTokenCount || 0 };
-}
-export function openaiTokens(json) {
-  const u = json?.usage || {};
-  return { tokensIn: u.prompt_tokens || 0, tokensOut: u.completion_tokens || 0 };
 }
 
 // Ready-made opts for the direct gemini.js callers that do not go through
