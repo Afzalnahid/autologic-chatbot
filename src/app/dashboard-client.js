@@ -536,6 +536,13 @@ export default function Dashboard() {
       return p;
     });
   };
+  // Any tab can send the owner to another tab (e.g. Profile's "Manage plan"
+  // opens Billing) without threading a prop through the whole tree.
+  useEffect(()=>{
+    const g=(e)=>{ if(typeof e.detail==="string"&&e.detail) setPage(e.detail); };
+    window.addEventListener("al-goto",g);
+    return ()=>window.removeEventListener("al-goto",g);
+  },[]);
   useEffect(()=>{
     const onPop=(e)=>{
       // A sub-view claims the press first; only then does the tab give way.

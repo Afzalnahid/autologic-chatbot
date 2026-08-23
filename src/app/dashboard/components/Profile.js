@@ -25,6 +25,21 @@ export default function Profile() {
   const logoRef=useRef(null);
   const [cal,setCal]=useState({connected:false,email:""});
 
+  // The package this account runs on: name, expiry and live limits from
+  // /api/billing (the same numbers the bot enforces), and the feature list
+  // from the public catalogue so the owner sees what their plan includes.
+  const [bill,setBill]=useState(null);
+  const [features,setFeatures]=useState([]);
+  useEffect(()=>{(async()=>{
+    const b=await api("/api/billing").then(r=>r.json()).catch(()=>null);
+    if(b&&!b.error){
+      setBill(b);
+      const pl=await fetch("/api/plans").then(r=>r.json()).catch(()=>null);
+      const f=pl?.plans?.find(x=>x.id===b.plan)?.features;
+      if(Array.isArray(f)&&f.length) setFeatures(f);
+    }
+  })();},[]);
+
   const loadCal=async()=>{
     const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);
     if(d) setCal(d);
@@ -139,9 +154,8 @@ export default function Profile() {
     <Card>
       <div style={{fontSize:14,fontWeight:600,marginBottom:16}}>Account</div>
       <Row k="Email" v={p.email}/>
-      <Row k="Plan" v={<Badge color={planColor}>{p.plan}</Badge>}/>
+      <Row k="Plan" v={<Badge color={planColor}>{bill?.plan_name||p.plan}</Badge>}/>
       {p.plan==="trial"&&p.trial_end&&<Row k="Trial ends" v={new Date(p.trial_end).toLocaleDateString()}/>}
-      {p.plan==="trial"&&<Row k="Today usage" v={`${p.usage?.today??0} / 30 msgs`}/>}
       <Row k="Joined" v={p.created_at?new Date(p.created_at).toLocaleDateString():"-"}/>
       <div style={{height:12}}/>
       <div style={{fontSize:14,fontWeight:600,margin:"8px 0 12px"}}>Resources</div>
@@ -153,6 +167,30 @@ export default function Profile() {
       <Row k="Channels" v={p.usage?.channels??0}/>
       <div style={{height:16}}/>
       <Btn danger onClick={async()=>{await getSb().auth.signOut({scope:"local"});setAuthToken("");location.reload();}} style={{width:"100%"}}><i className="ti ti-logout" style={{marginRight:6}}/>Logout</Btn>
+    </Card>
+    <Card>
+      <div style={{fontSize:14,fontWeight:600,marginBottom:6}}><i className="ti ti-package" style={{marginRight:6,color:T.gold}}/>Your package</div>
+      <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>What this account runs on — the same limits the bot enforces.</div>
+      {!bill?<div style={{fontSize:13,color:T.textDim}}>Loading…</div>:<>
+        <Row k="Package" v={<Badge color={bill.active?T.success:T.danger}>{bill.plan_name||bill.plan}</Badge>}/>
+        <Row k="Status" v={<span style={{color:bill.active?T.success:T.danger,fontWeight:600}}>{bill.active?"Active":"Expired"}</span>}/>
+        {bill.plan==="trial"&&bill.trial_end&&<Row k="Trial ends" v={new Date(bill.trial_end).toLocaleDateString()}/>}
+        {bill.plan!=="trial"&&bill.plan_expires_at&&<Row k="Valid until" v={new Date(bill.plan_expires_at).toLocaleDateString()}/>}
+        <Row k="Messages today" v={`${bill.usage?.today??0}${bill.usage?.daily_limit?` / ${bill.usage.daily_limit}`:""}`}/>
+        <Row k="Messages this month" v={`${bill.usage?.month??0}${bill.usage?.monthly_limit?` / ${bill.usage.monthly_limit}`:" · unlimited"}`}/>
+        {features.length>0&&<>
+          <div style={{fontSize:12.5,fontWeight:600,margin:"14px 0 8px"}}>What's included</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4}}>
+            {features.map((f,i)=><div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:12.5,color:T.textMuted,lineHeight:1.5}}>
+              <i className="ti ti-check" style={{color:T.success,fontSize:14,marginTop:2,flexShrink:0}}/>{f}
+            </div>)}
+          </div>
+        </>}
+        <div style={{height:14}}/>
+        <Btn gold style={{width:"100%"}} onClick={()=>window.dispatchEvent(new CustomEvent("al-goto",{detail:"billing"}))}>
+          <i className="ti ti-arrow-up-circle" style={{marginRight:6}}/>{bill.plan==="trial"?"Choose a package":"Manage / upgrade package"}
+        </Btn>
+      </>}
     </Card>
     {p.business_type==="agency"&&<Card>
       <div style={{fontSize:14,fontWeight:600,marginBottom:6}}><i className="ti ti-calendar-event" style={{marginRight:6,color:T.gold}}/>Google Calendar</div>

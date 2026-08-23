@@ -37,7 +37,7 @@ export function useIsMobile(){
   return m;
 }
 
-export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:small?10:12,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:600,background:danger?T.danger:gold?T.accGrad:T.goldBg,color:danger?"#fff":gold?"#fff":T.gold,boxShadow:gold?T.accGlow:"none",...style}}>{children}</button>; }
+export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:small?10:12,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:600,background:danger?T.dangerBg:gold?T.accGrad:T.goldBg,color:danger?T.danger:gold?"#fff":T.gold,boxShadow:gold?T.accGlow:"none",...style}}>{children}</button>; }
 export function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:`color-mix(in srgb, ${color} 11%, transparent)`,color}}>{children}</span>; }
 export function Card({children,style,...p}){ return <div {...p} className="ui-card" style={{background:T.card,borderRadius:18,border:`1px solid ${T.border}`,boxShadow:T.nmSm,padding:"1.25rem",...style}}>{children}</div>; }
 // `emb` gives the field the pressed-in look of the auth page — used on every
