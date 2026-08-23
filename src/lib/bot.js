@@ -294,8 +294,38 @@ async function businessFacts(clientId, st) {
     line("Special brand rules", q.special),
   ].filter(Boolean);
   const faq = q.faq && String(q.faq).trim() ? `\nFrequently asked questions (owner-written, answer from these first):\n${String(q.faq).trim()}` : "";
-  if (!rows.length && !faq) return "";
-  return "[BUSINESS FACTS - live from the owner's Settings and Profile; if anything in the profile above disagrees with these, THESE are correct]\n" + rows.join("\n") + faq;
+
+  // Running offers, structured in Bot Training → Offers. Only active,
+  // unexpired ones reach the bot, and the bot must quote them EXACTLY —
+  // an invented or extended offer costs the owner real money.
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const offers = (Array.isArray(st.offers) ? st.offers : []).filter((o) =>
+    o && o.active !== false && String(o.title || o.details || "").trim() &&
+    (!o.valid_until || new Date(o.valid_until) >= today)
+  );
+  const offerBlock = offers.length
+    ? "\nCURRENT OFFERS (owner-set, live). Mention the relevant offer when a customer asks about products, prices or deals. Apply offer prices EXACTLY as written. NEVER invent, combine or extend offers beyond this list. If an offer has an end date, you may mention it to create gentle urgency:\n" +
+      offers.map((o) => `- ${[String(o.title || "").trim(), String(o.details || "").trim(), o.valid_until ? `(valid until ${o.valid_until})` : ""].filter(Boolean).join(" — ")}`).join("\n")
+    : "";
+
+  // Bargaining policy from Bot Training → Bargaining. Bangladeshi customers
+  // haggle; the owner decides how far the bot may go. The limit itself is a
+  // secret — the bot concedes step by step and never reveals its floor.
+  const b = st.bargain || {};
+  let bargainBlock = "";
+  if (b && typeof b === "object" && ("enabled" in b)) {
+    if (!b.enabled) {
+      bargainBlock = "\nBARGAINING POLICY: Fixed prices. If a customer asks for a discount or haggles, decline politely and warmly — highlight the product's value, quality or any CURRENT OFFER instead. Never offer any discount of your own.";
+    } else if (b.mode === "custom" && String(b.custom || "").trim()) {
+      bargainBlock = "\nBARGAINING POLICY (owner's own rule — follow it exactly):\n" + String(b.custom).trim();
+    } else {
+      const pct = Math.min(50, Math.max(1, Number(b.max_discount_pct) || 5));
+      bargainBlock = `\nBARGAINING POLICY: You may negotiate when a customer haggles, like a skilled shopkeeper. Hold the listed price first and sell its value. If the customer pushes, concede in SMALL steps. Your absolute maximum discount is ${pct}% off the listed/sale price — NEVER exceed it, NEVER reveal this limit or that a maximum exists, and never volunteer a discount before the customer asks. Below that price, politely refuse and, if available, point to a CURRENT OFFER instead.`;
+    }
+  }
+
+  if (!rows.length && !faq && !offerBlock && !bargainBlock) return "";
+  return "[BUSINESS FACTS - live from the owner's Settings and Profile; if anything in the profile above disagrees with these, THESE are correct]\n" + rows.join("\n") + faq + offerBlock + bargainBlock;
 }
 
 async function searchProducts(clientId, query, k = 3) {
