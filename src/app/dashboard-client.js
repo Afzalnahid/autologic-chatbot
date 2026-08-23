@@ -433,7 +433,18 @@ function ConnectChannel({onDone,clientId}) {
   ];
   const handleClick=(id)=>{
     if(id==="facebook") openPopup(`/api/fb/login?client_id=${clientId}`);
-    else if(id==="instagram") openPopup(`/api/ig/login?client_id=${clientId}`);
+    // TEMPORARY — Meta App Review only. instagram_business_manage_comments is not
+    // yet approved, so the public IG connect (below) must NOT request it or every
+    // non-admin client's login breaks. For the owner's OWN account we append
+    // `&with=comments` so the dashboard button itself opens the 3-permission
+    // consent screen, letting the review screencast show the natural flow. Gated
+    // strictly on the owner's client_id — no other tenant is affected. REMOVE this
+    // branch (keep only the plain URL) once Meta approves the permission.
+    else if(id==="instagram"){
+      const REVIEW_CLIENT_ID = "19d3277d-161f-4b4f-8c68-2e0f9fda44a3";
+      const withComments = clientId === REVIEW_CLIENT_ID ? "&with=comments" : "";
+      openPopup(`/api/ig/login?client_id=${clientId}${withComments}`);
+    }
     // WhatsApp is special: the hub page (wa/embedded) itself calls Meta's JS SDK
     // (FB.login), which opens its OWN popup. Opening the hub in a popup too would
     // stack TWO windows on the client — so load the hub in the SAME tab. Then
