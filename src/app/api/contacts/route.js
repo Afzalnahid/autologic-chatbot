@@ -76,13 +76,16 @@ export async function PUT(request) {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { sender_id, bot_enabled, global: isGlobal } = await request.json();
-    // Report a failed save as a failure — the switch in the UI must not
-    // pretend a value was stored when it was not.
-    const { error: upErr } = isGlobal
-      ? await supabase.from("channels").update({ bot_enabled }).eq("client_id", client.id)
-      : await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "client_id,sender_id" });
+    // Write AND read back in the same call: `saved` proves what actually
+    // landed in the database, so a save that silently changed nothing can never
+    // masquerade as success. If no row came back, the update matched nothing —
+    // report that as a failure instead of a false "ok".
+    const { data: saved, error: upErr } = isGlobal
+      ? await supabase.from("channels").update({ bot_enabled }).eq("client_id", client.id).select("id,bot_enabled")
+      : await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "client_id,sender_id" }).select("sender_id,bot_enabled");
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
-    return NextResponse.json({ ok: true });
+    if (!saved || !saved.length) return NextResponse.json({ error: "Nothing was saved (no matching row)." }, { status: 500 });
+    return NextResponse.json({ ok: true, saved });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
