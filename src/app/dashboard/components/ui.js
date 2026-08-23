@@ -288,16 +288,16 @@ export function Select({ value, options, onChange, placeholder = "Select", style
 export function Motion() {
   return (
     <style dangerouslySetInnerHTML={{__html:`
-      /* Hover only where a pointer exists. On iOS a tapped element keeps its
-         hover style until you tap elsewhere, which looks like a stuck button —
-         this one media query is the difference between "polished" and "buggy"
-         on an iPhone. */
-      /* The switch: a press squishes the knob, focus draws a ring. `scale` is
-         its own property here so it composes with the inline translateX. */
+      /* The switch: a press squishes the knob, focus draws a ring. The scale
+         property is used on its own so it composes with the inline translateX. */
       .ui-switch:active:not(:disabled) .ui-switch-knob { scale: .92 }
       .ui-switch:focus-visible { outline: 2px solid ${T.gold}; outline-offset: 3px }
       @media (prefers-reduced-motion: reduce) { .ui-switch-knob { transition: none !important } }
 
+      /* Hover only where a pointer exists. On iOS a tapped element keeps its
+         hover style until you tap elsewhere, which looks like a stuck button —
+         this one media query is the difference between "polished" and "buggy"
+         on an iPhone. */
       @media (hover: hover) and (pointer: fine) {
         .ui-switch:hover:not(:disabled) .ui-switch-knob { box-shadow: 0 3px 8px rgba(0,0,0,.34) }
         .ui-btn:hover:not(:disabled) { filter: brightness(.97) }
