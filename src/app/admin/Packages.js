@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { T, Card, Btn, Badge, Inp, Select, useIsMobile, fmtNum } from "../dashboard/components/ui.js";
+import { T, Card, Btn, Badge, Inp, Select, Switch, useIsMobile, fmtNum } from "../dashboard/components/ui.js";
 
 // Packages & Costs — the business side of the admin console.
 //
@@ -414,9 +414,8 @@ function PlanForm({ plan, onSave, onCancel, busy }) {
 
     <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 8px" }}>What is included</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 7 }}>
-      {FEATURES.map(([k, label]) => <label key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: T.textMuted, cursor: "pointer" }}>
-        <input type="checkbox" checked={p.features?.[k] !== false} onChange={(e) => setF(k, e.target.checked)} />{label}
-      </label>)}
+      {FEATURES.map(([k, label]) => <Switch key={k} size="sm" label={label}
+        on={p.features?.[k] !== false} onClick={() => setF(k, p.features?.[k] === false)} />)}
     </div>
 
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 14 }}>
@@ -431,15 +430,9 @@ function PlanForm({ plan, onSave, onCancel, busy }) {
     </label>
 
     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 12 }}>
-      <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: T.textMuted }}>
-        <input type="checkbox" checked={p.active !== false} onChange={(e) => set("active", e.target.checked)} />Active
-      </label>
-      <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: T.textMuted }}>
-        <input type="checkbox" checked={p.public !== false} onChange={(e) => set("public", e.target.checked)} />Show on pricing page
-      </label>
-      <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: T.textMuted }}>
-        <input type="checkbox" checked={!!p.highlight} onChange={(e) => set("highlight", e.target.checked)} />Mark as popular
-      </label>
+      <Switch size="sm" label="Active" on={p.active !== false} onClick={() => set("active", p.active === false)} />
+      <Switch size="sm" label="Show on pricing page" on={p.public !== false} onClick={() => set("public", p.public === false)} />
+      <Switch size="sm" label="Mark as popular" tone="accent" on={!!p.highlight} onClick={() => set("highlight", !p.highlight)} />
     </div>
 
     <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>

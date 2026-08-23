@@ -39,6 +39,41 @@ export function useIsMobile(){
 
 export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:small?10:12,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:600,background:danger?T.dangerBg:gold?T.accGrad:T.goldBg,color:danger?T.danger:gold?"#fff":T.gold,boxShadow:gold?T.accGlow:"none",...style}}>{children}</button>; }
 export function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:`color-mix(in srgb, ${color} 11%, transparent)`,color}}>{children}</span>; }
+
+// The one on/off control for the whole product. Off, it is pressed into the
+// surface with the same neumorphic shadow pair the cards use; on, it lights up
+// as a gradient with a soft glow and the knob springs across. Every switch in
+// the dashboard and the admin panel renders this, so they cannot drift apart.
+//
+// tone="live" (default) is the green "this is active" switch; tone="accent"
+// uses the brand gradient for switches that are not about being live.
+// Pass `label` to get the text beside it — the whole pair is then clickable.
+export function Switch({on,onClick,disabled,size="md",tone="live",label,title}){
+  const D=size==="sm"?{w:40,h:23,k:17}:{w:48,h:28,k:21};
+  const pad=(D.h-D.k)/2;
+  const onBg=tone==="accent"?T.accGrad:"linear-gradient(135deg, var(--live), var(--success))";
+  const onGlow=tone==="accent"?T.accGlow:"0 4px 14px color-mix(in srgb, var(--live) 38%, transparent)";
+  const sw=<button type="button" role="switch" aria-checked={!!on} aria-label={label||title} title={title}
+    onClick={label||disabled?undefined:onClick} disabled={disabled} className="ui-switch"
+    style={{width:D.w,height:D.h,borderRadius:D.h,border:"none",padding:0,flexShrink:0,position:"relative",
+      cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1,
+      background:on?onBg:T.inset,
+      boxShadow:on?onGlow:"inset 2px 2px 5px var(--shDark), inset -2px -2px 5px var(--shLight)",
+      transition:"background .22s ease, box-shadow .22s ease"}}>
+    <span className="ui-switch-knob" style={{position:"absolute",top:pad,left:pad,width:D.k,height:D.k,
+      borderRadius:"50%",background:"#fff",pointerEvents:"none",
+      boxShadow:"0 2px 5px rgba(0,0,0,.3), inset 0 -1px 1px rgba(0,0,0,.06)",
+      transform:`translateX(${on?D.w-D.k-pad*2:0}px)`,
+      transition:"transform .26s cubic-bezier(.34,1.42,.62,1)"}}/>
+  </button>;
+  if(!label) return sw;
+  // Wrapper owns the click so the text is a hit target too; keyboard activation
+  // on the button bubbles up to it, so it fires exactly once either way.
+  return <span onClick={disabled?undefined:onClick}
+    style={{display:"inline-flex",alignItems:"center",gap:9,cursor:disabled?"not-allowed":"pointer",flexShrink:0}}>
+    {sw}<span style={{fontSize:12.5,color:T.textMuted,userSelect:"none",whiteSpace:"nowrap"}}>{label}</span>
+  </span>;
+}
 export function Card({children,style,...p}){ return <div {...p} className="ui-card" style={{background:T.card,borderRadius:18,border:`1px solid ${T.border}`,boxShadow:T.nmSm,padding:"1.25rem",...style}}>{children}</div>; }
 // `emb` gives the field the pressed-in look of the auth page — used on every
 // first-run screen so signup, onboarding and the dashboard read as one product.
@@ -257,7 +292,14 @@ export function Motion() {
          hover style until you tap elsewhere, which looks like a stuck button —
          this one media query is the difference between "polished" and "buggy"
          on an iPhone. */
+      /* The switch: a press squishes the knob, focus draws a ring. `scale` is
+         its own property here so it composes with the inline translateX. */
+      .ui-switch:active:not(:disabled) .ui-switch-knob { scale: .92 }
+      .ui-switch:focus-visible { outline: 2px solid ${T.gold}; outline-offset: 3px }
+      @media (prefers-reduced-motion: reduce) { .ui-switch-knob { transition: none !important } }
+
       @media (hover: hover) and (pointer: fine) {
+        .ui-switch:hover:not(:disabled) .ui-switch-knob { box-shadow: 0 3px 8px rgba(0,0,0,.34) }
         .ui-btn:hover:not(:disabled) { filter: brightness(.97) }
         .ui-card:hover { box-shadow: 0 6px 20px color-mix(in srgb, ${T.text} 8%, transparent) }
         .ui-row:hover { background: ${T.bgAlt} }

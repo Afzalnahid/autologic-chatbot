@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn } from "./ui.js";
+import { T, Card, Btn, Switch } from "./ui.js";
 import { api } from "./session.js";
 import WebsiteWidget from "./WebsiteWidget.js";
 
@@ -58,9 +58,7 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
     await load(); setBusyId(null);
   };
 
-  const Toggle=({on,onClick,disabled})=><button onClick={onClick} disabled={disabled} style={{width:38,height:22,borderRadius:11,border:"none",cursor:disabled?"default":"pointer",background:on?T.success:T.border,position:"relative",flexShrink:0,opacity:disabled?0.6:1,transition:"background .15s"}}>
-    <span style={{position:"absolute",top:2,left:on?18:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/>
-  </button>;
+  const Toggle=({on,onClick,disabled})=><Switch on={on} onClick={onClick} disabled={disabled} size="sm"/>;
 
   const fmtDate=(d)=>d?new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"";
 

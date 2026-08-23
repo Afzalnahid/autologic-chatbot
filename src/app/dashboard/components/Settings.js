@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { T, Card, Btn, Inp, Badge, Accordion, Select, useIsMobile, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
+import { T, Card, Btn, Inp, Badge, Accordion, Select, Switch, useIsMobile, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
 import { api } from "./session.js";
 import { useT, useLang } from "./i18n.js";
 
@@ -344,9 +344,8 @@ export default function Settings({settings,setSettings}) {
             <Badge color={o.active===false?T.textDim:T.success}>{o.active===false?t("bt.off.offState"):t("bt.off.live")}</Badge>
             <span style={{fontSize:11.5,color:T.textDim}}>{t("bt.off.n",{n:i+1})}</span>
             <span style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
-              <button onClick={()=>patchOffer(o.id,{active:o.active===false})} title={o.active===false?t("common.on"):t("common.off")} style={{width:34,height:20,borderRadius:11,border:"none",cursor:"pointer",background:o.active===false?T.border:T.success,position:"relative"}}>
-                <span style={{position:"absolute",top:2,left:o.active===false?2:16,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left .15s"}}/>
-              </button>
+              <Switch size="sm" on={o.active!==false} onClick={()=>patchOffer(o.id,{active:o.active===false})}
+                title={o.active===false?t("common.on"):t("common.off")}/>
               <button onClick={()=>delOffer(o.id)} title={t("common.delete")} style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:16,padding:2}}><i className="ti ti-trash"/></button>
             </span>
           </div>
@@ -469,10 +468,8 @@ export default function Settings({settings,setSettings}) {
 
       <Card style={{marginBottom:12}}>
         <Sec icon="ti-repeat" title={t("bt.beh.automation")} sub={t("bt.beh.automationSub")}
-          right={<label style={{display:"flex",alignItems:"center",gap:8,fontSize:12.5,color:T.textMuted,cursor:"pointer",flexShrink:0}}>
-            <input type="checkbox" checked={!!s.followup?.enabled} onChange={e=>setS(v=>({...v,followup:{...(v.followup||{}),enabled:e.target.checked}}))}/>
-            {s.followup?.enabled?t("common.on"):t("common.off")}
-          </label>}/>
+          right={<Switch size="sm" on={!!s.followup?.enabled} label={s.followup?.enabled?t("common.on"):t("common.off")}
+            onClick={()=>setS(v=>({...v,followup:{...(v.followup||{}),enabled:!v.followup?.enabled}}))}/>}/>
         <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,marginBottom:s.followup?.enabled?14:0}}>
           <b style={{color:T.text}}>{t("bt.beh.followupTitle")}</b>{" "}
           {isEcom?t("bt.beh.followupEcom"):t("bt.beh.followupAgency")}{" "}{t("bt.beh.followupTail")}

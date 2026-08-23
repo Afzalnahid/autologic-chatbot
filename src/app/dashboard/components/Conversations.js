@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { T, Card, Badge, useIsMobile, Select } from "./ui.js";
+import { T, Card, Badge, useIsMobile, Select, Switch } from "./ui.js";
 import { api, getSb } from "./session.js";
 
 // The Conversations tab, moved out of dashboard-client.js unchanged.
@@ -187,12 +187,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     else refresh&&refresh(true);
   };
 
-  const Toggle=({on,onClick,label})=><div onClick={onClick} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}} title={label}>
-    <div style={{width:32,height:18,borderRadius:10,background:on?T.success:T.textDim,position:"relative",transition:"background .2s"}}>
-      <div style={{width:14,height:14,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:on?16:2,transition:"left .2s"}}/>
-    </div>
-    <span style={{fontSize:11,color:T.textMuted}}>{label}</span>
-  </div>;
+  const Toggle=({on,onClick,label})=><Switch on={on} onClick={onClick} label={label} size="sm"/>;
 
   return <div style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px minmax(0,1fr)",gap:16,height:isMobile?(sel>=0?"100dvh":"calc(100dvh - 190px)"):"calc(100vh - 130px)"}}>
     {showList&&<Card style={{overflow:"auto",padding:0,height:"100%"}}>
