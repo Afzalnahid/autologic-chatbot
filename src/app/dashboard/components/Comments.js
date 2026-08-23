@@ -30,7 +30,7 @@ export default function Comments() {
   // Removes the record from the dashboard only — the comment itself stays on
   // Facebook or Instagram. Clients need this to clear failed or test entries.
   const remove=async(id)=>{
-    if(!confirm("Remove this comment from your dashboard? It will stay on Facebook.")) return;
+    if(!confirm("Remove this comment from your dashboard? The comment itself stays on the post.")) return;
     setRows(rs=>rs.filter(r=>r.id!==id));
     try{ await api(`/api/comments?id=${encodeURIComponent(id)}`,{method:"DELETE"}); }
     catch{ load(); }
@@ -59,7 +59,7 @@ export default function Comments() {
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:16,flexWrap:"wrap"}}>
       <div>
         <div style={{fontSize:16,fontWeight:600}}>Post comments</div>
-        <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Comments on your Facebook posts and how the bot handled them</div>
+        <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Comments on your posts and how the bot handled them</div>
       </div>
       <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:5}}/>Refresh</Btn>
     </div>
@@ -68,9 +68,9 @@ export default function Comments() {
       <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
         <i className="ti ti-alert-triangle" style={{fontSize:17,color:T.danger,flexShrink:0,marginTop:1}}/>
         <div style={{fontSize:12.5,lineHeight:1.6}}>
-          <strong>{dmFailed} inbox message{dmFailed>1?"s":""} could not be delivered.</strong> Facebook blocks a private reply when the
-          comment came from a Page instead of a personal profile, when the person's privacy settings disallow it, when one was already
-          sent for that comment, or when the comment is over 7 days old. The reason for each is shown below.
+          <strong>{dmFailed} inbox message{dmFailed>1?"s":""} could not be delivered.</strong> A private reply is blocked when the
+          comment came from a Page or business account instead of a personal profile, when the person's privacy settings disallow it,
+          when one was already sent for that comment, or when the comment is too old. The reason for each is shown below.
         </div>
       </div>
     </Card>}
@@ -88,7 +88,7 @@ export default function Comments() {
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
       {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>
       :filtered.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>
-        {rows.length===0?"No comments yet. When someone comments on your Facebook post, it will appear here.":"Nothing matches this filter"}
+        {rows.length===0?"No comments yet. When someone comments on one of your posts, it will appear here.":"Nothing matches this filter"}
       </Card>
       :filtered.map(c=><Card key={c.id}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:10}}>
