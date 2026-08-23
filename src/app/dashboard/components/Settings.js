@@ -31,22 +31,22 @@ LEADS: Not-ready customers are nurtured, never pushed`;
 // writes straight into the same questionnaire fields the form view edits, so
 // the two views can never disagree.
 const STEPS_ECOM = [
-  { key: "description",  ta: true,  q: "Tell me about your business — what do you sell, and at what kind of prices?", ph: "e.g. আমরা ছেলেদের টি-শার্ট বিক্রি করি, দাম ৩৫০-৬০০ টাকা…" },
-  { key: "delivery",     ta: false, q: "How do you deliver? Time and charge?", ph: "e.g. ঢাকায় ৬০৳ (১-২ দিন), ঢাকার বাইরে ১২০৳ (২-৩ দিন)" },
+  { key: "description",  ta: true,  q: "Tell me about your business — what do you sell, and at what kind of prices?", ph: "e.g. We sell men's t-shirts, prices 350-600 tk. Answer in any language." },
+  { key: "delivery",     ta: false, q: "How do you deliver? Time and charge?", ph: "e.g. Inside Dhaka 60tk (1-2 days), outside 120tk (2-3 days)" },
   { key: "payment",      ta: false, q: "How do customers pay you?", ph: "e.g. Cash on delivery, bKash, Nagad" },
-  { key: "returnPolicy", ta: false, q: "What is your return / refund policy?", ph: "e.g. ৭ দিনের মধ্যে সমস্যা থাকলে বদলে দেই" },
-  { key: "hours",        ta: false, q: "When are you open?", ph: "e.g. প্রতিদিন সকাল ১০টা - রাত ১০টা" },
+  { key: "returnPolicy", ta: false, q: "What is your return / refund policy?", ph: "e.g. Exchange within 7 days if there is a problem" },
+  { key: "hours",        ta: false, q: "When are you open?", ph: "e.g. Every day, 10am - 10pm" },
   { key: "catalogLink",  ta: false, q: "Any catalog or website link customers can browse?", ph: "e.g. https://yourshop.com (skip if none)" },
-  { key: "faq",          ta: true,  q: "What do customers ask most? Write the questions with your answers.", ph: "Q: স্টক আছে?\nA: হ্যাঁ, বেশিরভাগ সাইজ স্টকে থাকে…" },
-  { key: "special",      ta: true,  q: "Anything else the bot should know? Brand rules, do's and don'ts…", ph: "e.g. সবসময় 'আপনি' করে বলবে, প্রতিযোগীদের নাম নেবে না… (skip if none)" },
+  { key: "faq",          ta: true,  q: "What do customers ask most? Write the questions with your answers.", ph: "Q: Is it in stock?\nA: Yes, most sizes are in stock…" },
+  { key: "special",      ta: true,  q: "Anything else the bot should know? Brand rules, do's and don'ts…", ph: "e.g. Always address customers politely, never name competitors (skip if none)" },
 ];
 const STEPS_AGENCY = [
-  { key: "description", ta: true,  q: "Tell me about your business — what do you do, for whom?", ph: "e.g. আমরা একটি ডিজিটাল মার্কেটিং এজেন্সি…" },
-  { key: "services",    ta: true,  q: "What services do you offer, and at what prices?", ph: "e.g. Facebook ads management — মাসে ১০,০০০৳ থেকে…" },
-  { key: "meetingInfo", ta: false, q: "How do clients book a meeting or consultation with you?", ph: "e.g. ৩০ মিনিটের ফ্রি কনসালটেশন, অনলাইনে" },
-  { key: "hours",       ta: false, q: "When are you available?", ph: "e.g. রবি-বৃহস্পতি, সকাল ১০টা - সন্ধ্যা ৭টা" },
+  { key: "description", ta: true,  q: "Tell me about your business — what do you do, for whom?", ph: "e.g. We are a digital marketing agency for small businesses. Answer in any language." },
+  { key: "services",    ta: true,  q: "What services do you offer, and at what prices?", ph: "e.g. Facebook ads management — from 10,000tk/month…" },
+  { key: "meetingInfo", ta: false, q: "How do clients book a meeting or consultation with you?", ph: "e.g. Free 30-minute consultation, online" },
+  { key: "hours",       ta: false, q: "When are you available?", ph: "e.g. Sunday-Thursday, 10am - 7pm" },
   { key: "catalogLink", ta: false, q: "Any website or portfolio link to share?", ph: "e.g. https://youragency.com (skip if none)" },
-  { key: "faq",         ta: true,  q: "What do clients ask most? Write the questions with your answers.", ph: "Q: কতদিনে রেজাল্ট আসে?\nA: সাধারণত ২-৩ মাস…" },
+  { key: "faq",         ta: true,  q: "What do clients ask most? Write the questions with your answers.", ph: "Q: How soon do results come?\nA: Usually 2-3 months…" },
   { key: "special",     ta: true,  q: "Anything else the bot should know? Special rules, tone…", ph: "(skip if none)" },
 ];
 
@@ -56,7 +56,9 @@ export default function Settings({settings,setSettings}) {
   const [gen,setGen]=useState(false);
   const [genMsg,setGenMsg]=useState("");
   const [me,setMe]=useState(null);
-  const [tab,setTab]=useState("train");
+  // Another tab (e.g. Inventory's "Offers" link) can ask for a specific
+  // sub-tab via a one-shot sessionStorage hint.
+  const [tab,setTab]=useState(()=>{try{const t=sessionStorage.getItem("al-bt-tab");if(t){sessionStorage.removeItem("al-bt-tab");return t;}}catch{}return "train";});
   const [view,setView]=useState("chat");        // "chat" | "form" inside Train
   const isMobile=useIsMobile();
   useEffect(()=>{setS(settings);},[settings]);
@@ -102,10 +104,32 @@ export default function Settings({settings,setSettings}) {
   // ---------- offers ----------
   const offers=Array.isArray(s.offers)?s.offers:[];
   const setOffers=(list)=>setS(v=>({...v,offers:list}));
-  const addOffer=()=>setOffers([...offers,{id:String(Date.now()),title:"",details:"",valid_until:"",active:true}]);
+  const addOffer=()=>setOffers([...offers,{id:String(Date.now()),title:"",details:"",valid_until:"",active:true,products:[]}]);
   const patchOffer=(id,patch)=>setOffers(offers.map(o=>o.id===id?{...o,...patch}:o));
   const delOffer=(id)=>setOffers(offers.filter(o=>o.id!==id));
   const activeOffers=offers.filter(o=>o.active!==false&&String(o.title||o.details||"").trim()).length;
+
+  // Product picker: the offer references real inventory items, so the bot
+  // knows exactly which products an offer covers. Loaded once, lazily.
+  const [prodList,setProdList]=useState(null);
+  const [prodQ,setProdQ]=useState("");
+  const [pickerFor,setPickerFor]=useState(null);
+  const [orgBusy,setOrgBusy]=useState(null);
+  useEffect(()=>{ if(tab==="offers"&&prodList===null){ api("/api/products").then(r=>r.json()).then(d=>setProdList(Array.isArray(d)?d:[])).catch(()=>setProdList([])); } },[tab]); // eslint-disable-line
+  const toggleProd=(oid,p)=>{
+    const o=offers.find(x=>x.id===oid); if(!o) return;
+    const cur=Array.isArray(o.products)?o.products:[];
+    const has=cur.some(x=>x.id===p.id);
+    patchOffer(oid,{products:has?cur.filter(x=>x.id!==p.id):[...cur,{id:p.id,name:p.product_name||"",code:p.product_code||"",price:p.sale_price||p.regular_price||""}]});
+  };
+  const organise=async(o)=>{
+    if(orgBusy) return;
+    setOrgBusy(o.id);
+    const r=await api("/api/offer-rewrite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:o.title||"",details:o.details||"",products:o.products||[]})}).then(r=>r.json()).catch(()=>({error:"Network problem — try again."}));
+    setOrgBusy(null);
+    if(r.error){alert(r.error);return;}
+    patchOffer(o.id,{title:r.title,details:r.details});
+  };
 
   // ---------- bargaining ----------
   const b=s.bargain||{};
@@ -237,18 +261,27 @@ export default function Settings({settings,setSettings}) {
 
     {/* ============ OFFERS ============ */}
     {tab==="offers"&&<Card style={{marginBottom:12}}>
-      <Sec icon="ti-discount-2" title="Running offers" sub="The bot quotes these exactly — never invents its own"
-        right={<Btn small gold onClick={addOffer}><i className="ti ti-plus" style={{marginRight:4}}/>Add offer</Btn>}/>
+      <Sec icon="ti-discount-2" title="Running offers" sub="Pick the products, write the deal — the bot quotes it exactly"
+        right={<div style={{display:"flex",gap:8,flexShrink:0}}>
+          {!isEcom?null:<Btn small onClick={()=>window.dispatchEvent(new CustomEvent("al-goto",{detail:"inventory"}))}><i className="ti ti-box" style={{marginRight:4}}/>Inventory</Btn>}
+          <Btn small gold onClick={addOffer}><i className="ti ti-plus" style={{marginRight:4}}/>Add offer</Btn>
+        </div>}/>
       {!offers.length&&<div style={{textAlign:"center",padding:"26px 16px"}}>
         <i className="ti ti-discount-2" style={{fontSize:28,color:T.textDim}}/>
         <div style={{fontSize:13.5,fontWeight:600,margin:"10px 0 6px"}}>No offers yet</div>
-        <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,maxWidth:380,margin:"0 auto 14px"}}>
-          Example: <b style={{color:T.text}}>"৩টা টি-শার্ট ৯৯৯৳"</b> — details: "free delivery included, any colours".
-          The bot mentions the right offer at the right moment and applies the price exactly.
+        <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,maxWidth:400,margin:"0 auto 14px"}}>
+          Example: <b style={{color:T.text}}>"3 t-shirts for 999tk"</b> — details: "free delivery included, any colours".
+          Pick the exact products it applies to, and the bot brings the offer up whenever a customer asks about them.
         </div>
         <Btn gold onClick={addOffer}><i className="ti ti-plus" style={{marginRight:6}}/>Add your first offer</Btn>
       </div>}
-      {offers.map((o,i)=><div key={o.id} style={{border:`0.5px solid ${T.border}`,borderRadius:12,padding:"14px 14px 6px",marginBottom:10,background:o.active===false?T.bgAlt:"transparent",opacity:o.active===false?0.7:1}}>
+      {offers.map((o,i)=>{
+        const sel=Array.isArray(o.products)?o.products:[];
+        const filteredProds=(prodList||[]).filter(p=>{
+          const t=(prodQ||"").toLowerCase();
+          return !t||String(p.product_name||"").toLowerCase().includes(t)||String(p.product_code||"").toLowerCase().includes(t);
+        }).slice(0,50);
+        return <div key={o.id} style={{border:`0.5px solid ${T.border}`,borderRadius:12,padding:"14px 14px 6px",marginBottom:10,background:o.active===false?T.bgAlt:"transparent",opacity:o.active===false?0.7:1}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
           <Badge color={o.active===false?T.textDim:T.success}>{o.active===false?"Off":"Live"}</Badge>
           <span style={{fontSize:11.5,color:T.textDim}}>Offer {i+1}</span>
@@ -259,16 +292,56 @@ export default function Settings({settings,setSettings}) {
             <button onClick={()=>delOffer(o.id)} title="Delete offer" style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:16,padding:2}}><i className="ti ti-trash"/></button>
           </span>
         </div>
-        <Inp label="Offer (what the customer hears)" value={o.title||""} onChange={e=>patchOffer(o.id,{title:e.target.value})} placeholder="e.g. ৩টা টি-শার্ট মাত্র ৯৯৯৳"/>
-        <Inp label="Details (conditions, what's included)" value={o.details||""} onChange={e=>patchOffer(o.id,{details:e.target.value})} placeholder="e.g. ফ্রি ডেলিভারি, যেকোনো কালার, স্টক থাকা পর্যন্ত"/>
-        <div style={{maxWidth:220}}>
-          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Valid until <span style={{textTransform:"none",letterSpacing:0}}>(optional)</span></label>
-          <input type="date" value={o.valid_until||""} onChange={e=>patchOffer(o.id,{valid_until:e.target.value})}
-            style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`0.5px solid ${T.border}`,background:T.bgAlt,color:T.text,fontSize:13,marginBottom:12,colorScheme:"inherit"}}/>
+
+        {/* Which products this offer covers — real items from Inventory */}
+        {isEcom&&<div style={{marginBottom:12}}>
+          <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Products in this offer</label>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            {sel.map(p=><span key={p.id} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,padding:"5px 10px",borderRadius:16,background:T.goldBg,color:T.text,border:`0.5px solid color-mix(in srgb, ${T.gold} 25%, transparent)`}}>
+              {p.name||p.code||"item"}{p.price?<span style={{color:T.textMuted}}> · {p.price}tk</span>:null}
+              <i className="ti ti-x" onClick={()=>toggleProd(o.id,p)} style={{fontSize:12,cursor:"pointer",color:T.textMuted}}/>
+            </span>)}
+            <button onClick={()=>{setPickerFor(pickerFor===o.id?null:o.id);setProdQ("");}} style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:12,padding:"5px 11px",borderRadius:16,border:`1px dashed ${T.border}`,background:"transparent",color:T.textMuted,cursor:"pointer"}}>
+              <i className={`ti ${pickerFor===o.id?"ti-chevron-up":"ti-plus"}`} style={{fontSize:12}}/>{pickerFor===o.id?"Close":"Select products"}
+            </button>
+          </div>
+          {pickerFor===o.id&&<div style={{marginTop:10,border:`0.5px solid ${T.border}`,borderRadius:10,background:T.bgAlt,padding:10}}>
+            <input value={prodQ} onChange={e=>setProdQ(e.target.value)} placeholder="Search your products…"
+              style={{width:"100%",padding:"8px 11px",borderRadius:8,border:`0.5px solid ${T.border}`,background:T.card,color:T.text,fontSize:12.5,marginBottom:8}}/>
+            <div style={{maxHeight:190,overflowY:"auto",display:"flex",flexDirection:"column",gap:2}}>
+              {prodList===null&&<div style={{fontSize:12,color:T.textDim,padding:8}}>Loading products…</div>}
+              {prodList!==null&&!filteredProds.length&&<div style={{fontSize:12,color:T.textDim,padding:8}}>
+                No products found. <span onClick={()=>window.dispatchEvent(new CustomEvent("al-goto",{detail:"inventory"}))} style={{color:T.gold,cursor:"pointer",textDecoration:"underline"}}>Add products in Inventory</span> first.
+              </div>}
+              {filteredProds.map(p=>{
+                const on=sel.some(x=>x.id===p.id);
+                return <div key={p.id} onClick={()=>toggleProd(o.id,p)} style={{display:"flex",alignItems:"center",gap:9,padding:"7px 9px",borderRadius:8,cursor:"pointer",background:on?T.goldBg:"transparent"}}>
+                  <i className={`ti ${on?"ti-checkbox":"ti-square"}`} style={{fontSize:15,color:on?T.gold:T.textDim,flexShrink:0}}/>
+                  <span style={{fontSize:12.5,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.product_name||"(unnamed)"}{p.product_code?<span style={{color:T.textDim}}> · {p.product_code}</span>:null}</span>
+                  <span style={{fontSize:12,color:T.textMuted,flexShrink:0}}>{p.sale_price||p.regular_price||""}{(p.sale_price||p.regular_price)?"tk":""}</span>
+                </div>;
+              })}
+            </div>
+          </div>}
+        </div>}
+
+        <Inp label="Offer (what the customer hears)" value={o.title||""} onChange={e=>patchOffer(o.id,{title:e.target.value})} placeholder="e.g. 3 t-shirts for only 999tk"/>
+        <Inp label="Details (conditions, what's included)" value={o.details||""} onChange={e=>patchOffer(o.id,{details:e.target.value})} placeholder="e.g. free delivery, any colours, while stock lasts"/>
+        <div style={{display:"flex",gap:12,alignItems:"flex-end",flexWrap:"wrap"}}>
+          <div style={{maxWidth:200,flex:"0 0 auto"}}>
+            <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>Valid until <span style={{textTransform:"none",letterSpacing:0}}>(optional)</span></label>
+            <input type="date" value={o.valid_until||""} onChange={e=>patchOffer(o.id,{valid_until:e.target.value})}
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`0.5px solid ${T.border}`,background:T.bgAlt,color:T.text,fontSize:13,marginBottom:12,colorScheme:"inherit"}}/>
+          </div>
+          <div style={{marginBottom:12}}>
+            <Btn small onClick={()=>organise(o)} disabled={orgBusy===o.id}>
+              <i className="ti ti-sparkles" style={{marginRight:5}}/>{orgBusy===o.id?"Organising…":"Organise with AI"}
+            </Btn>
+          </div>
         </div>
-      </div>)}
+      </div>;})}
       {offers.length>0&&<div style={{fontSize:11.5,color:T.textDim,lineHeight:1.7,marginTop:4}}>
-        <i className="ti ti-info-circle" style={{marginRight:4}}/>Expired offers stop automatically on their end date. Remember to press Save below.
+        <i className="ti ti-info-circle" style={{marginRight:4}}/>Write the offer roughly, press <b style={{color:T.textMuted}}>Organise with AI</b> to tidy it, and Save. Expired offers stop automatically on their end date.
       </div>}
     </Card>}
 
@@ -300,7 +373,7 @@ export default function Settings({settings,setSettings}) {
           </div>
         </div>}
         {b.mode==="custom"&&<Inp textarea label="Your bargaining rule" value={b.custom||""} onChange={e=>setB({custom:e.target.value})}
-          placeholder={"e.g. ৫০০৳-এর নিচের পণ্যে কোনো ছাড় নেই। এর উপরে সর্বোচ্চ ৫০৳ ছাড়। ৩টার বেশি নিলে ডেলিভারি ফ্রি বলা যাবে।"}
+          placeholder={"e.g. No discount on items under 500tk. Above that, at most 50tk off. Buying 3+ items: free delivery may be offered. Write in any language."}
           inputStyle={{minHeight:100,lineHeight:1.65}}/>}
       </>}
     </Card>}
@@ -353,8 +426,8 @@ export default function Settings({settings,setSettings}) {
           <Inp label="Message" textarea maxLength={600}
             value={isEcom?(s.followup?.message_ecommerce??""):(s.followup?.message_agency??"")}
             placeholder={isEcom
-              ?"আসসালামু আলাইকুম! আপনি আমাদের পণ্য নিয়ে জানতে চেয়েছিলেন..."
-              :"আসসালামু আলাইকুম! আপনি আমাদের সার্ভিস নিয়ে জানতে চেয়েছিলেন..."}
+              ?"e.g. Hi! You asked about our product earlier — it's still available. Anything I can help with? (write in any language)"
+              :"e.g. Hi! You asked about our service earlier — shall I book you a quick call? (write in any language)"}
             onChange={e=>setS(v=>({...v,followup:{...(v.followup||{}),[isEcom?"message_ecommerce":"message_agency"]:e.target.value}}))}/>
           <div style={{fontSize:11.5,color:T.textDim,marginTop:6}}>Leave empty to use the default message.</div>
         </>}

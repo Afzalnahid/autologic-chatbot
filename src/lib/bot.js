@@ -304,8 +304,13 @@ async function businessFacts(clientId, st) {
     (!o.valid_until || new Date(o.valid_until) >= today)
   );
   const offerBlock = offers.length
-    ? "\nCURRENT OFFERS (owner-set, live). Mention the relevant offer when a customer asks about products, prices or deals. Apply offer prices EXACTLY as written. NEVER invent, combine or extend offers beyond this list. If an offer has an end date, you may mention it to create gentle urgency:\n" +
-      offers.map((o) => `- ${[String(o.title || "").trim(), String(o.details || "").trim(), o.valid_until ? `(valid until ${o.valid_until})` : ""].filter(Boolean).join(" — ")}`).join("\n")
+    ? "\nCURRENT OFFERS (owner-set, live). Mention the relevant offer when a customer asks about products, prices or deals. When a product in SEARCH RESULTS is listed under an offer's [applies to], ALWAYS tell the customer about that offer alongside the product. Apply offer prices EXACTLY as written. NEVER invent, combine or extend offers beyond this list. If an offer has an end date, you may mention it to create gentle urgency:\n" +
+      offers.map((o) => {
+        const prods = Array.isArray(o.products) && o.products.length
+          ? ` [applies to: ${o.products.map((p) => [String(p.name || "").trim(), p.code ? `(${p.code})` : ""].filter(Boolean).join(" ")).filter(Boolean).join(", ")}]`
+          : "";
+        return `- ${[String(o.title || "").trim(), String(o.details || "").trim(), o.valid_until ? `(valid until ${o.valid_until})` : ""].filter(Boolean).join(" — ")}${prods}`;
+      }).join("\n")
     : "";
 
   // Bargaining policy from Bot Training → Bargaining. Bangladeshi customers
