@@ -45,8 +45,18 @@ export async function GET(request) {
           else if (d.name) name = d.name;
         } catch {}
       }
-      await supabase.from("contacts").upsert({ sender_id: sid, client_id: client.id, name, bot_enabled: map[sid]?.bot_enabled ?? true }, { onConflict: "client_id,sender_id" });
-      map[sid] = { sender_id: sid, name, bot_enabled: map[sid]?.bot_enabled ?? true };
+      // Write carefully. This loop runs on every dashboard poll, seconds after
+      // its own SELECT — writing bot_enabled back from that stale snapshot
+      // raced the owner's toggle PUT and silently flipped a fresh OFF back ON.
+      // A NEW customer gets a row (bot on by default); an EXISTING row is only
+      // ever touched to add a newly-found name, never its switch.
+      if (!map[sid]) {
+        await supabase.from("contacts").upsert({ sender_id: sid, client_id: client.id, name, bot_enabled: true }, { onConflict: "client_id,sender_id" });
+        map[sid] = { sender_id: sid, name, bot_enabled: true };
+      } else if (name) {
+        await supabase.from("contacts").update({ name }).eq("client_id", client.id).eq("sender_id", sid);
+        map[sid] = { ...map[sid], name };
+      }
     }
     return NextResponse.json({ contacts: Object.values(map), global_bot_enabled: ch?.bot_enabled ?? true });
   } catch (e) {
@@ -59,11 +69,12 @@ export async function PUT(request) {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { sender_id, bot_enabled, global: isGlobal } = await request.json();
-    if (isGlobal) {
-      await supabase.from("channels").update({ bot_enabled }).eq("client_id", client.id);
-    } else {
-      await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "client_id,sender_id" });
-    }
+    // Report a failed save as a failure — the switch in the UI must not
+    // pretend a value was stored when it was not.
+    const { error: upErr } = isGlobal
+      ? await supabase.from("channels").update({ bot_enabled }).eq("client_id", client.id)
+      : await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "client_id,sender_id" });
+    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

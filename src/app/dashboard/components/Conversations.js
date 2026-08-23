@@ -60,7 +60,11 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   useEffect(()=>{ if(sel>=convos.length) setSel(convos.length?0:-1); },[convos.length]);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
-  const [globalBot,setGlobalBot]=useState(true);
+  // null = not loaded yet. Starting at `true` painted a green "Bot ON" for the
+  // first seconds after a reload (a cold API call can take 5s), which read as
+  // "my OFF turned itself back on". No state is shown until the truth arrives.
+  const [globalBot,setGlobalBot]=useState(null);
+  const [ctLoaded,setCtLoaded]=useState(false);
   const chatRef=useRef(null);
   const galleryRef=useRef(null);
   const cameraRef=useRef(null);
@@ -130,6 +134,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         return next;
       });
       if(typeof d.global_bot_enabled==="boolean" && !stillPending("global")) setGlobalBot(d.global_bot_enabled);
+      if(d.contacts) setCtLoaded(true);
     }catch{}
   };
   useEffect(()=>{loadContacts();},[]);
@@ -144,7 +149,15 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     pendingRef.current[isGlobal?"global":sender_id]=Date.now()+8000;
     if(isGlobal) setGlobalBot(val);
     else setContacts(p=>({...p,[sender_id]:{...p[sender_id],sender_id,bot_enabled:val}}));
-    await api("/api/contacts",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isGlobal?{global:true,bot_enabled:val}:{sender_id,bot_enabled:val})});
+    // If the save fails, put the switch back and say so — a switch that shows
+    // a value the server refused is worse than an error message.
+    const r=await api("/api/contacts",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(isGlobal?{global:true,bot_enabled:val}:{sender_id,bot_enabled:val})}).catch(()=>null);
+    if(!r||!r.ok){
+      delete pendingRef.current[isGlobal?"global":sender_id];
+      if(isGlobal) setGlobalBot(!val);
+      else setContacts(p=>({...p,[sender_id]:{...p[sender_id],sender_id,bot_enabled:!val}}));
+      alert("Could not save the bot switch. Please check your connection and try again.");
+    }
   };
 
   const filtered = chFilter!=="all"||tagFilter!=="all"||!!q;
@@ -185,7 +198,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     {showList&&<Card style={{overflow:"auto",padding:0,height:"100%"}}>
       <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
-        <Toggle on={globalBot} onClick={()=>toggle(null,!globalBot,true)} label={globalBot?"Bot ON":"Bot OFF"}/>
+        {globalBot===null
+          ?<span style={{fontSize:11,color:T.textDim}}><i className="ti ti-loader-2" style={{marginRight:5}}/>Loading…</span>
+          :<Toggle on={globalBot} onClick={()=>toggle(null,!globalBot,true)} label={globalBot?"Bot ON":"Bot OFF"}/>}
       </div>
       {/* Search first — with a long inbox it is the fastest way in. */}
       <div style={{padding:"10px 12px 0"}}>
@@ -243,7 +258,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             </span>
             <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
               <span style={{fontSize:10.5,color:T.textDim}}>{ago(cv.time)}</span>
-              <Badge color={cvt.bot_enabled===false?T.warn:T.success}>{cvt.bot_enabled===false?"manual":"bot"}</Badge>
+              {ctLoaded&&<Badge color={cvt.bot_enabled===false?T.warn:T.success}>{cvt.bot_enabled===false?"manual":"bot"}</Badge>}
             </span>
           </div>
           <span style={{fontSize:12,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{cv.lastMsg}</span>
@@ -271,7 +286,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             </div></div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>
+          {!ctLoaded
+            ?<span style={{fontSize:11,color:T.textDim}}><i className="ti ti-loader-2" style={{marginRight:5}}/>Loading…</span>
+            :<Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>}
           <button onClick={deleteChat} title="Delete chat" style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:18,padding:4}}><i className="ti ti-trash"/></button>
         </div>
       </div>
