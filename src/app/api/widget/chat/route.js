@@ -88,7 +88,7 @@ export const POST = withErrors(async (request) => {
   });
   await supabase.from("contacts").upsert(
     { sender_id: senderId, client_id: clientId, name: `Website visitor · ${String(sessionId).slice(-4)}` },
-    { onConflict: "sender_id" }
+    { onConflict: "client_id,sender_id" }
   ).select();
 
   const block = await botAllowed(channel, senderId);

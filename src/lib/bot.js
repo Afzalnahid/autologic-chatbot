@@ -140,7 +140,7 @@ async function handleUnavailable(channel, senderId, block, platform) {
       });
       await sb().from("contacts").upsert(
         { sender_id: senderId, client_id: client.id, last_unavailable_at: now.toISOString() },
-        { onConflict: "sender_id" }
+        { onConflict: "client_id,sender_id" }
       );
     }
   } catch (e) { console.error("unavailable reply:", e.message); }
@@ -835,7 +835,7 @@ export async function handleIncoming(event) {
     try {
       await sb().from("contacts").upsert(
         { sender_id: event.senderId, client_id: clientId, name: event.profileName },
-        { onConflict: "sender_id" }
+        { onConflict: "client_id,sender_id" }
       );
     } catch (e) { console.error("wa contact name:", e.message); }
   }
@@ -852,7 +852,7 @@ export async function handleIncoming(event) {
         if (realName) {
           await sb().from("contacts").upsert(
             { sender_id: event.senderId, client_id: clientId, name: realName },
-            { onConflict: "sender_id" }
+            { onConflict: "client_id,sender_id" }
           );
         }
       }
@@ -871,7 +871,7 @@ export async function handleIncoming(event) {
         if (displayName) {
           await sb().from("contacts").upsert(
             { sender_id: event.senderId, client_id: clientId, name: displayName },
-            { onConflict: "sender_id" }
+            { onConflict: "client_id,sender_id" }
           );
         }
       }
@@ -1053,7 +1053,7 @@ export async function handleComment(event) {
       if (!ex || !ex[0] || !ex[0].name) {
         await sb().from("contacts").upsert(
           { sender_id: event.senderId, client_id: clientId, name: event.senderName },
-          { onConflict: "sender_id" }
+          { onConflict: "client_id,sender_id" }
         );
       }
     } catch (e) { console.error("comment contact name:", e.message); }

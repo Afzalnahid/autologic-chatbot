@@ -45,7 +45,7 @@ export async function GET(request) {
           else if (d.name) name = d.name;
         } catch {}
       }
-      await supabase.from("contacts").upsert({ sender_id: sid, client_id: client.id, name, bot_enabled: map[sid]?.bot_enabled ?? true }, { onConflict: "sender_id" });
+      await supabase.from("contacts").upsert({ sender_id: sid, client_id: client.id, name, bot_enabled: map[sid]?.bot_enabled ?? true }, { onConflict: "client_id,sender_id" });
       map[sid] = { sender_id: sid, name, bot_enabled: map[sid]?.bot_enabled ?? true };
     }
     return NextResponse.json({ contacts: Object.values(map), global_bot_enabled: ch?.bot_enabled ?? true });
@@ -62,7 +62,7 @@ export async function PUT(request) {
     if (isGlobal) {
       await supabase.from("channels").update({ bot_enabled }).eq("client_id", client.id);
     } else {
-      await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "sender_id" });
+      await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "client_id,sender_id" });
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
