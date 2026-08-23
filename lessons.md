@@ -429,11 +429,13 @@ control it is, then trace its write path AND its read path separately — a save
 read back wrongly looks identical to a value that was never saved.
 
 ## Found, not yet fixed (2026-08-23)
-- `contacts` PK is `sender_id` alone. WhatsApp sender ids are phone numbers, so the same
-  customer messaging two different tenant businesses would collide on one row (second tenant
-  overwrites the first's `client_id`). Needs a `(client_id, sender_id)` key + code updates.
-- Dashboard deep-link `?upgrade=` still validates against the hardcoded
-  `["starter","pro","agency"]` list, so admin-created packages cannot be deep-linked.
+- ~~`contacts` PK is `sender_id` alone~~ — **FIXED same day**: PK is now
+  `(client_id, sender_id)` (two-step migration: composite UNIQUE added alongside the old PK,
+  code deployed with the new onConflict target, then the old PK dropped — no broken window).
+  Verified live: same sender under two clients coexists; duplicate within one client rejects.
+- ~~Dashboard deep-link `?upgrade=` hardcoded~~ — **FIXED same day**, and the pay screen's
+  plan picker/price/preselect were also still on the static PLAN_LIST (custom packages
+  invisible at payment); the pay step now uses the live catalogue.
 - Customer names on Facebook need the Meta app's Advanced Access for
   `pages_read_engagement` (App Review). Verified live with the page token: Graph returns
   code 100 "requires pages_read_engagement". Names work only for pages owned by app-role
