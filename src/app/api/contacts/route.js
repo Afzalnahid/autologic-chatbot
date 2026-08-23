@@ -5,8 +5,15 @@ import { requireClient } from "@/lib/auth.js";
 
 export async function GET(request) {
   try {
-    const { client } = await requireClient(request);
-    if (!client) return NextResponse.json({ contacts: [], global_bot_enabled: true });
+    const { client, error } = await requireClient(request);
+    // On an auth blip (e.g. the access token expired between the 45s polls)
+    // reply 401 so api() refreshes the token and retries — NEVER a 200 carrying
+    // a default global_bot_enabled:true, which silently flipped the owner's
+    // saved "Bot OFF" back to ON on the next poll. A valid token with no client
+    // row yet (mid-onboarding) returns an empty list but no switch value, so
+    // the UI keeps showing "Loading…" instead of a wrong ON.
+    if (error) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    if (!client) return NextResponse.json({ contacts: [] });
     const { data: contactRows, error: e1 } = await supabase.from("contacts").select("*").eq("client_id", client.id);
     const contacts = contactRows || [];
     // Any connected OR paused channel — a paused channel keeps its access token,
