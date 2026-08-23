@@ -9,7 +9,10 @@ export async function GET(request) {
     if (!client) return NextResponse.json({ contacts: [], global_bot_enabled: true });
     const { data: contactRows, error: e1 } = await supabase.from("contacts").select("*").eq("client_id", client.id);
     const contacts = contactRows || [];
-    const { data: chans } = await supabase.from("channels").select("*").eq("status", "connected").eq("client_id", client.id);
+    // Any connected OR paused channel — a paused channel keeps its access token,
+    // and the owner should still see who is messaging even while the bot is off.
+    // Fetching names must not depend on the bot being live.
+    const { data: chans } = await supabase.from("channels").select("*").eq("client_id", client.id).neq("status", "disconnected");
     const channels = chans || [];
     const byPlatform = Object.fromEntries(channels.map(c => [c.platform, c]));
     const ch = byPlatform.facebook || channels[0];
