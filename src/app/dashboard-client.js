@@ -17,6 +17,7 @@ import KnowledgeBase from "./dashboard/components/KnowledgeBase.js";
 import Bookings from "./dashboard/components/Bookings.js";
 import Channels from "./dashboard/components/Channels.js";
 import Conversations from "./dashboard/components/Conversations.js";
+import { useT, LangToggle } from "./dashboard/components/i18n.js";
 
 const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
 // Grouped and ordered the way the day runs: see how it is going, handle people,
@@ -595,10 +596,14 @@ export default function Dashboard() {
   const [stage,setStage]=useState("loading");
   const bt=me?.client?.business_type||"ecommerce";
   const isAgency=bt==="agency";
+  const t=useT();
   const navLabel=(i)=>{
     const p=PAGES[i];
-    if(p==="inventory") return isAgency?"Knowledge Base":words(bt).inv;
-    if(p==="orders") return isAgency?"Bookings":words(bt).order;
+    // Inventory/Orders read differently for a shop and an agency; everything
+    // else is one translated label per page.
+    if(p==="inventory") return isAgency?t("nav.knowledge"):t("nav.inventory");
+    if(p==="orders") return isAgency?t("nav.bookings"):t("nav.orders");
+    if(p) return t("nav."+p);
     return LABELS[i];
   };
 
@@ -729,7 +734,7 @@ export default function Dashboard() {
           <div key={g.title} style={{marginBottom:6,paddingTop:gi?10:0,
             borderTop:gi?`1px solid ${T.border}`:"none"}}>
             <div style={{fontSize:9.5,fontWeight:700,letterSpacing:"0.16em",textTransform:"uppercase",
-              color:T.textDim,padding:"0 12px",marginBottom:6}}>{g.title}</div>
+              color:T.textDim,padding:"0 12px",marginBottom:6}}>{t("group."+g.title)}</div>
             <Segmented vertical value={page} onChange={(p)=>{setPage(p);if(isMobile)setSidebarOpen(false);}}
               items={g.pages.map(p=>{
                 const i=PAGES.indexOf(p);
@@ -751,8 +756,9 @@ export default function Dashboard() {
           className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,
             padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
             fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left"}}>
-          <i className="ti ti-logout" style={{fontSize:17}}/>Log out
+          <i className="ti ti-logout" style={{fontSize:17}}/>{t("shell.logout")}
         </button>
+        {isMobile&&<LangToggle compact/>}
         {isMobile&&<>
           <button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
             title="Sync" aria-label="Sync" style={{width:38,height:38,borderRadius:12}}>
@@ -808,6 +814,7 @@ export default function Dashboard() {
             <i className="ti ti-bell"/>
             {activeCount>0&&<span className="pbadge">{activeCount>9?"9+":activeCount}</span>}
           </button>
+          {!isMobile&&<LangToggle/>}
           {!isMobile&&<ThemeToggle mode={mode} toggle={toggleTheme}/>}
           <div title={botLive?"Bot is live":"No channel connected"}
             style={{position:"relative",width:isMobile?36:42,height:isMobile?36:42,borderRadius:"50%",
