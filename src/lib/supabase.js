@@ -7,7 +7,16 @@ export function getSupabaseClient() {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_KEY;
     if (!url || !key) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY");
-    _supabase = createClient(url, key);
+    // Next.js patches global fetch and caches GET responses in its Data Cache.
+    // Supabase reads go through fetch, so a SELECT could return a stale row for
+    // up to the cache lifetime — e.g. a bot on/off toggle that was written a
+    // moment earlier read back its OLD value, so the switch "reverted". Force
+    // every Supabase request to bypass that cache; this is a backend service
+    // client, freshness matters more than caching.
+    _supabase = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: (input, init = {}) => fetch(input, { ...init, cache: "no-store" }) },
+    });
   }
   return _supabase;
 }
