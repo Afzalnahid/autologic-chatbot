@@ -564,8 +564,11 @@ export default function Dashboard() {
       window.history.replaceState({page:"channels"},"","/dashboard#channels");
       setPageRaw("channels");
     }
+    // Any plan id the admin created is deep-linkable; the Billing tab and the
+    // purchase API both validate against the live catalogue, so an unknown id
+    // simply selects nothing. Only the shape is checked here.
     const up=params.get("upgrade");
-    if(up&&["starter","pro","agency"].includes(up)){
+    if(up&&/^[a-z0-9_-]{2,40}$/i.test(up)){
       setUpgradeIntent({plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly"});
       setPageRaw("billing");
       window.history.replaceState({page:"billing",level:1},"","#billing");

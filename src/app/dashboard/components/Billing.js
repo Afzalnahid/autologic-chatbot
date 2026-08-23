@@ -65,7 +65,9 @@ export default function Billing({initialPlan,initialCycle}) {
   const usedNow=u.daily_limit?u.today:u.month;
   const expiry=d.plan==="trial"?d.trial_end:d.plan_expires_at;
   const daysLeft=expiry?Math.ceil((new Date(expiry)-new Date())/86400000):null;
-  const selPlan=PLAN_LIST.find(p=>p.id===sel);
+  // Live catalogue, not the static fallback — an admin-created package must be
+  // pickable and priced on this screen too.
+  const selPlan=plans.find(p=>p.id===sel);
   const amount=selPlan?(cycle==="yearly"?selPlan.yearly:selPlan.monthly):0;
 
   return <div style={{maxWidth:900}}>
@@ -82,7 +84,7 @@ export default function Billing({initialPlan,initialCycle}) {
             {d.active?`Valid until ${shortDate(expiry)}${daysLeft!==null?` · ${daysLeft} day${daysLeft===1?"":"s"} left`:""}`:`Expired on ${shortDate(expiry)}`}
           </div>}
         </div>
-        {step!=="pay"&&<Btn gold onClick={()=>{setSel("pro");setStep("pay");}}>
+        {step!=="pay"&&<Btn gold onClick={()=>{setSel(plans.find(p=>p.highlight)?.id||plans[0]?.id||"pro");setStep("pay");}}>
           <i className="ti ti-arrow-up-circle" style={{marginRight:6}}/>{d.plan==="none"||!d.active?"Choose a plan":"Upgrade"}
         </Btn>}
       </div>
@@ -126,7 +128,7 @@ export default function Billing({initialPlan,initialCycle}) {
 
       {/* plan picker */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:16}}>
-        {PLAN_LIST.map(p=><div key={p.id} onClick={()=>setSel(p.id)} style={{
+        {plans.map(p=><div key={p.id} onClick={()=>setSel(p.id)} style={{
           cursor:"pointer",padding:"14px 14px",borderRadius:11,background:T.bgAlt,
           border:`1px solid ${sel===p.id?T.gold:T.border}`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -142,7 +144,7 @@ export default function Billing({initialPlan,initialCycle}) {
       <div style={{display:"inline-flex",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:9,padding:3,gap:3,marginBottom:18}}>
         {[["monthly","Monthly"],["yearly","Yearly · 2 months free"]].map(([id,l])=>
           <button key={id} onClick={()=>setCycle(id)} style={{padding:"7px 14px",borderRadius:7,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,
-            background:cycle===id?T.gold:"transparent",color:cycle===id?"#0a0a0a":T.textMuted}}>{l}</button>)}
+            background:cycle===id?T.gold:"transparent",color:cycle===id?"#fff":T.textMuted}}>{l}</button>)}
       </div>
 
       {/* how to pay */}
