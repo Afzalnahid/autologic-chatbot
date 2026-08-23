@@ -33,7 +33,7 @@ export const THEME_CSS = `
   }
   [data-theme="dark"] {
     --lp-bg:#111318; --lp-card:#191C24; --lp-ink:#EAECF2; --lp-soft:#9AA1B2;
-    --lp-acc:#FF4D59; --lp-accDim:#E23440; --lp-accSoft:rgba(255,77,89,.11);
+    --lp-acc:#D92632; --lp-accDim:#B01824; --lp-accSoft:rgba(217,38,50,.11);
     --lp-line:#252A35; --lp-bubble:#20242E;
     --lp-shd:rgba(0,0,0,.55); --lp-shl:rgba(255,255,255,.05);
     color-scheme: dark;

@@ -36,9 +36,11 @@ Google Calendar · Vercel (`getvoicium.com`)
 - Locked prompts (`FIXED_BASE`, `FIXED_ECOM`, `FIXED_AGENCY`) are enforced on the
   server and stay there.
 - Every feature answers for **both** `ecommerce` and `agency` business types.
-- Crimson `#D92632` on soft white is the brand palette (owner's 2026-08-16 redesign;
-  dark mode uses `#FF4D59`). Periwinkle and gold were removed and never return.
-  Mint `#2ED3A7` means "bot is live" and nothing else.
+- Crimson `#D92632` (deep shade `#B01824`) on soft white is the brand palette
+  (owner's 2026-08-16 redesign). The SAME crimson is used in dark mode too — the
+  owner replaced the earlier lighter dark-mode red `#FF4D59` on 2026-08-23, so the
+  red looks identical in both themes. Periwinkle and gold were removed and never
+  return. Mint `#2ED3A7` means "bot is live" and nothing else.
 - Design tokens are CSS variables: the dashboard's live in
   `src/app/dashboard/components/ui.js` (`PALETTE`), the public pages' in
   `src/lib/landing.js` (`THEME_CSS`). Never hard-code a brand colour in a component.

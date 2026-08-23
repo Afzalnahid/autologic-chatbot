@@ -409,7 +409,7 @@ export const PALETTE = {
   dark: {
     bg: "#111318", bgAlt: "#15181F", card: "#191C24", cardAlt: "#1F232D", inset: "#242936",
     rail: "#191C24", railHover: "#232833", railText: "#8B93A6", railTextOn: "#FFFFFF",
-    gold: "#FF4D59", goldDim: "#E23440", goldBg: "rgba(255,77,89,0.12)",
+    gold: "#D92632", goldDim: "#B01824", goldBg: "rgba(217,38,50,0.12)",
     text: "#EAECF2", textMuted: "#A9B0C0", textDim: "#7C8496",
     border: "#252A35", borderStrong: "#333A49",
     danger: "#FF7A82", success: "#3FE0B4", warn: "#F5C25A", purple: "#A78BFA",
