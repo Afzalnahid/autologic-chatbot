@@ -285,15 +285,37 @@ async function businessFacts(clientId, st) {
     line("Website / catalog link", q.catalogLink || c?.website),
     line("Working hours", q.hours),
     line("Delivery (time & charge)", q.delivery),
+    line("Delivery areas", q.deliveryAreas),
     line("Payment methods", q.payment),
+    line("Advance payment rule", q.advancePay),
     line("Return / refund policy", q.returnPolicy),
+    line("Main products / categories", q.products),
+    line("When an item is out of stock, do this", q.stock),
+    line("Warranty / guarantee", q.warranty),
+    line("Handling complaints or angry customers", q.complaints),
     line("Services offered", q.services),
+    line("How pricing works", q.pricing),
+    line("How we work with a client (process)", q.process),
+    line("Timeline / when results appear", q.timeline),
+    line("Who we work with", q.clients),
+    line("Contract & payment terms", q.contract),
+    line("Common objections and how to answer them", q.objections),
     line("Meeting / booking info", q.meetingInfo),
     line("Languages", q.languages || st.languages),
     line("Tone", q.tone || st.tone),
     line("Special brand rules", q.special),
   ].filter(Boolean);
   const faq = q.faq && String(q.faq).trim() ? `\nFrequently asked questions (owner-written, answer from these first):\n${String(q.faq).trim()}` : "";
+
+  // Ongoing training: anything the owner taught after the initial setup.
+  // Later notes win over earlier ones and over the narrative profile, because
+  // they are corrections the owner made deliberately.
+  const noteList = (Array.isArray(q.notes) ? q.notes : [])
+    .map((n) => String(n?.text || "").trim()).filter(Boolean);
+  const notes = noteList.length
+    ? "\nOWNER'S LATER INSTRUCTIONS (most recent last — these OVERRIDE anything above that disagrees):\n" +
+      noteList.map((n) => `- ${n}`).join("\n")
+    : "";
 
   // Running offers, structured in Bot Training → Offers. Only active,
   // unexpired ones reach the bot, and the bot must quote them EXACTLY —
@@ -329,8 +351,8 @@ async function businessFacts(clientId, st) {
     }
   }
 
-  if (!rows.length && !faq && !offerBlock && !bargainBlock) return "";
-  return "[BUSINESS FACTS - live from the owner's Settings and Profile; if anything in the profile above disagrees with these, THESE are correct]\n" + rows.join("\n") + faq + offerBlock + bargainBlock;
+  if (!rows.length && !faq && !notes && !offerBlock && !bargainBlock) return "";
+  return "[BUSINESS FACTS - live from the owner's Settings and Profile; if anything in the profile above disagrees with these, THESE are correct]\n" + rows.join("\n") + faq + notes + offerBlock + bargainBlock;
 }
 
 async function searchProducts(clientId, query, k = 3) {

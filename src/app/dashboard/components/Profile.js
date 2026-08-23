@@ -5,9 +5,14 @@ import { api, getSb, setAuthToken } from "./session.js";
 
 // The Profile tab, moved out of dashboard-client.js unchanged.
 
+// Label left, value right. A long value (an address, a website) used to crowd
+// the label until the two ran together, so the label never shrinks, the value
+// wraps inside its own column, and both align to the top of the row.
 function Row({k,v}) {
-  return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`0.5px solid ${T.border}`,fontSize:13}}>
-    <span style={{color:T.textMuted}}>{k}</span><span>{v}</span>
+  return <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:18,
+    padding:"11px 0",borderBottom:`0.5px solid ${T.border}`,fontSize:13,lineHeight:1.6}}>
+    <span style={{color:T.textMuted,flexShrink:0,whiteSpace:"nowrap"}}>{k}</span>
+    <span style={{minWidth:0,textAlign:"right",wordBreak:"break-word",overflowWrap:"anywhere"}}>{v}</span>
   </div>;
 }
 

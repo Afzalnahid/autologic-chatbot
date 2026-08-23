@@ -61,17 +61,34 @@ export async function POST(request) {
       if (answers.tone) L.push(`Bot tone: ${answers.tone}`);
       if (answers.languages) L.push(`Customer languages: ${answers.languages}`);
       if (answers.hours) L.push(`Working hours: ${answers.hours}`);
-      if (bt === "ecommerce") {
-        if (answers.delivery) L.push(`Delivery: ${answers.delivery}`);
-        if (answers.payment) L.push(`Payment methods: ${answers.payment}`);
-        if (answers.returnPolicy) L.push(`Return/refund policy: ${answers.returnPolicy}`);
-      } else {
-        if (answers.services) L.push(`Services offered: ${answers.services}`);
-        if (answers.meetingInfo) L.push(`Meetings/booking info: ${answers.meetingInfo}`);
+      // The interview asks a shop and an agency different things; every answer
+      // it can collect is passed through, so a new question never silently
+      // fails to reach the generated profile.
+      const ECOM_FIELDS = [
+        ["products", "Main products / categories"], ["delivery", "Delivery"],
+        ["deliveryAreas", "Delivery areas"], ["payment", "Payment methods"],
+        ["advancePay", "Advance payment rule"], ["returnPolicy", "Return/refund policy"],
+        ["stock", "What to do when an item is out of stock"], ["warranty", "Warranty / guarantee"],
+        ["complaints", "How to handle complaints or angry customers"],
+      ];
+      const AGENCY_FIELDS = [
+        ["services", "Services offered"], ["pricing", "How pricing works"],
+        ["process", "How we work with a client"], ["timeline", "Timeline / when results appear"],
+        ["clients", "Who we work with"], ["contract", "Contract & payment terms"],
+        ["objections", "Common objections and the owner's answers"],
+        ["meetingInfo", "Meetings/booking info"],
+      ];
+      for (const [k, label] of (bt === "ecommerce" ? ECOM_FIELDS : AGENCY_FIELDS)) {
+        if (answers[k]) L.push(`${label}: ${answers[k]}`);
       }
       if (answers.catalogLink) L.push(`Catalog/website link (bot should share this when the customer asks to see everything/full collection, without searching): ${answers.catalogLink}`);
       if (answers.special) L.push(`Special brand rules from the owner (e.g. how to address customers, banned words, brand phrases): ${answers.special}`);
       if (answers.faq) L.push(`FAQs from the owner:\n${answers.faq}`);
+      // Things the owner taught after the initial interview — deliberate
+      // corrections, so they outrank the earlier answers.
+      const notes = (Array.isArray(answers.notes) ? answers.notes : [])
+        .map((n) => String(n?.text || "").trim()).filter(Boolean);
+      if (notes.length) L.push(`Later instructions from the owner (these override anything above that disagrees):\n${notes.map((n) => `- ${n}`).join("\n")}`);
       input = L.join("\n");
     } else {
       input = `Business type: ${bt}\nCatalog unit: ${unit}\nBusiness description:\n${description}`;

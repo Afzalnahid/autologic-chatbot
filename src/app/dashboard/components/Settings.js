@@ -32,10 +32,20 @@ SERVICES: Presented conversationally · no invented packages or prices · asks a
 MEETINGS: Collects name, email, phone, service, date & time · confirms before booking · Google Meet link sent automatically
 LEADS: Not-ready customers are nurtured, never pushed`;
 
-// Which questions the interview asks, per business type. `ta` = long answer.
-const STEP_KEYS_ECOM = ["description", "delivery", "payment", "returnPolicy", "hours", "catalogLink", "faq", "special"];
-const STEP_KEYS_AGENCY = ["description", "services", "meetingInfo", "hours", "catalogLink", "faq", "special"];
-const LONG = new Set(["description", "services", "faq", "special"]);
+// Which questions the interview asks, per business type. A shop and an agency
+// are asked genuinely different things — the shop about stock, delivery and
+// returns, the agency about process, timeline and objections — because a bot
+// trained on the wrong questions answers badly in exactly the moments that
+// cost a sale.
+const STEP_KEYS_ECOM = ["description", "products", "delivery", "deliveryAreas", "payment", "advancePay",
+  "returnPolicy", "stock", "warranty", "hours", "catalogLink", "faq", "complaints", "special"];
+const STEP_KEYS_AGENCY = ["description", "services", "pricing", "process", "timeline", "meetingInfo",
+  "clients", "hours", "catalogLink", "contract", "faq", "objections", "special"];
+const LONG = new Set(["description", "products", "services", "pricing", "process", "clients",
+  "stock", "faq", "objections", "complaints", "special"]);
+// Extra fields that only appear in the Form view for the matching business type.
+const FORM_EXTRA_ECOM = ["products", "deliveryAreas", "advancePay", "stock", "warranty", "complaints"];
+const FORM_EXTRA_AGENCY = ["pricing", "process", "timeline", "clients", "contract", "objections"];
 
 export default function Settings({settings,setSettings}) {
   const t=useT();
@@ -77,6 +87,24 @@ export default function Settings({settings,setSettings}) {
   useEffect(()=>{ setIvInput(iv<stepKeys.length?(q[stepKeys[iv]]||""):""); },[iv,bType]); // eslint-disable-line
   useEffect(()=>{ chatRef.current?.scrollTo({top:chatRef.current.scrollHeight,behavior:"smooth"}); },[iv,view]);
   const ivSend=()=>{ if(iv>=stepKeys.length) return; if(ivInput.trim()) setQ({[stepKeys[iv]]:ivInput.trim()}); setIv(iv+1); };
+
+  // ---------- ongoing training ("teach it more") ----------
+  // The interview covers the basics once; a real business keeps learning. Each
+  // note is appended to questionnaire.notes and reaches the bot as its own
+  // block, so the owner can correct or add anything without redoing the setup.
+  const notes=Array.isArray(q.notes)?q.notes:[];
+  const [noteDraft,setNoteDraft]=useState("");
+  const [noteMsg,setNoteMsg]=useState("");
+  const addNote=()=>{
+    const text=noteDraft.trim(); if(!text) return;
+    setQ({notes:[...notes,{id:String(Date.now()),text}]});
+    setNoteDraft(""); setNoteMsg(t("bt.more.saveHint"));
+  };
+  const delNote=(id)=>setQ({notes:notes.filter(n=>n.id!==id)});
+
+  // ---------- prompt editor ----------
+  const [promptFull,setPromptFull]=useState(false);
+  const promptText=s.businessPrompt||s.systemPrompt||"";
 
   const BotBubble=({children})=>
     <div style={{display:"flex",gap:8,alignItems:"flex-start",maxWidth:"92%"}}>
@@ -185,7 +213,9 @@ export default function Settings({settings,setSettings}) {
     </div>;
   };
 
-  return <div style={{maxWidth:700,paddingBottom:isMobile?90:70}}>
+  // Bottom padding clears BOTH the floating save bar and, on a phone, the
+  // bottom navigation — otherwise the last card sits underneath them.
+  return <div style={{maxWidth:700,paddingBottom:isMobile?156:96}}>
     {/* Checklist */}
     <Card style={{marginBottom:12,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
       <div style={{flex:"1 1 220px",minWidth:0}}>
@@ -209,7 +239,8 @@ export default function Settings({settings,setSettings}) {
     </div>
 
     {/* ============ TRAIN ============ */}
-    {tab==="train"&&<Card style={{marginBottom:12}}>
+    {tab==="train"&&<>
+    <Card style={{marginBottom:12}}>
       <Sec icon="ti-messages" title={t("bt.train.title")} sub={t("bt.train.sub")}
         right={<div style={{display:"inline-flex",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:9,padding:3,gap:3,flexShrink:0}}>
           {[["chat",t("bt.train.viewChat")],["form",t("bt.train.viewForm")]].map(([id,l])=>
@@ -254,22 +285,36 @@ export default function Settings({settings,setSettings}) {
               style={{padding:"6px 13px",borderRadius:20,border:`1px solid ${T.border}`,background:T.bgAlt,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{ex.label}</button>)}
           </div>
         </div>
-        {isEcom?<>
-          <Inp label={t("lbl.delivery")} value={q.delivery||""} onChange={e=>setQ({delivery:e.target.value})} placeholder={t("ph.ecom.delivery")}/>
-          <Inp label={t("lbl.payment")} value={q.payment||""} onChange={e=>setQ({payment:e.target.value})} placeholder={t("ph.ecom.payment")}/>
-          <Inp label={t("lbl.returnPolicy")} value={q.returnPolicy||""} onChange={e=>setQ({returnPolicy:e.target.value})} placeholder={t("ph.ecom.returnPolicy")}/>
-        </>:<>
-          <Inp textarea label={t("lbl.services")} value={q.services||""} onChange={e=>setQ({services:e.target.value})} placeholder={t("ph.agency.services")}/>
-          <Inp label={t("lbl.meetingInfo")} value={q.meetingInfo||""} onChange={e=>setQ({meetingInfo:e.target.value})} placeholder={t("ph.agency.meetingInfo")}/>
-        </>}
-        <Inp label={t("lbl.catalogLink")} value={q.catalogLink||""} onChange={e=>setQ({catalogLink:e.target.value})} placeholder={t(`ph.${bk}.catalogLink`)}/>
-        <Inp label={t("lbl.hours")} value={q.hours||""} onChange={e=>setQ({hours:e.target.value})} placeholder={t(`ph.${bk}.hours`)}/>
-        <Inp textarea label={t("lbl.faq")} value={q.faq||""} onChange={e=>setQ({faq:e.target.value})} placeholder={t(`ph.${bk}.faq`)}/>
-        <Inp textarea label={t("lbl.special")} value={q.special||""} onChange={e=>setQ({special:e.target.value})} placeholder={t(`ph.${bk}.special`)}/>
+        {/* Every interview question also exists here, driven by the same list,
+            so the two views can never drift apart as questions are added. */}
+        {stepKeys.filter(k=>k!=="description").map(k=>
+          <Inp key={k} textarea={LONG.has(k)} label={t("lbl."+k)} value={q[k]||""}
+            onChange={e=>setQ({[k]:e.target.value})} placeholder={t(`ph.${bk}.${k}`)}/>)}
         <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?t("bt.train.generating"):t("bt.train.regen")}</Btn>
         {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
       </>}
-    </Card>}
+    </Card>
+
+    {/* Ongoing training — the bot keeps learning after the interview */}
+    <Card style={{marginBottom:12}}>
+      <Sec icon="ti-brain" title={t("bt.more.title")} sub={t("bt.more.sub")}
+        right={notes.length?<Badge color={T.success}>{t("bt.more.count",{n:notes.length})}</Badge>:null}/>
+      {notes.length>0&&<div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14,maxHeight:260,overflowY:"auto"}}>
+        {notes.map(n=><div key={n.id} style={{display:"flex",gap:10,alignItems:"flex-start",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:11,padding:"10px 12px"}}>
+          <i className="ti ti-message-2-check" style={{fontSize:15,color:T.success,flexShrink:0,marginTop:2}}/>
+          <div style={{flex:1,minWidth:0,fontSize:12.5,lineHeight:1.65,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{n.text}</div>
+          <button onClick={()=>delNote(n.id)} title={t("bt.more.remove")} style={{background:"none",border:"none",cursor:"pointer",color:T.textDim,fontSize:15,padding:2,flexShrink:0}}><i className="ti ti-x"/></button>
+        </div>)}
+      </div>}
+      {!notes.length&&<div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,marginBottom:14}}>{t("bt.more.empty")}</div>}
+      <Inp textarea value={noteDraft} onChange={e=>{setNoteDraft(e.target.value);setNoteMsg("");}}
+        placeholder={t("bt.more.ph")} inputStyle={{minHeight:80,lineHeight:1.6}} style={{marginBottom:10}}/>
+      <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+        <Btn gold onClick={addNote} disabled={!noteDraft.trim()}><i className="ti ti-plus" style={{marginRight:6}}/>{t("bt.more.add")}</Btn>
+        {noteMsg&&<span style={{fontSize:12,color:T.success}}><i className="ti ti-check" style={{marginRight:4}}/>{noteMsg}</span>}
+      </div>
+    </Card>
+    </>}
 
     {/* ============ OFFERS ============ */}
     {tab==="offers"&&<Card style={{marginBottom:12}}>
@@ -454,13 +499,41 @@ export default function Settings({settings,setSettings}) {
 
       <Accordion icon="ti-file-text" title={t("bt.beh.advanced")} subtitle={t("bt.beh.advancedSub")}>
         <div style={{height:6}}/>
-        <div style={{fontSize:12,color:T.textMuted,marginBottom:12}}>{t("bt.beh.advancedHelp")}</div>
-        <Inp textarea value={s.businessPrompt||s.systemPrompt||""} onChange={e=>setS({...s,businessPrompt:e.target.value})} style={{marginBottom:0}}/>
+        <div style={{fontSize:12,color:T.textMuted,marginBottom:12,lineHeight:1.6}}>{t("bt.beh.advancedHelp")}</div>
+        {/* The profile is long, so the box is generous and can be opened
+            full-screen — reading it through a five-line window was the reason
+            owners never checked what their bot actually says. */}
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,flexWrap:"wrap"}}>
+          <span style={{fontSize:11.5,color:T.textDim}}>{t("bt.beh.chars",{n:promptText.length})}</span>
+          <Btn small onClick={()=>setPromptFull(true)} style={{marginLeft:"auto"}}>
+            <i className="ti ti-arrows-maximize" style={{marginRight:5}}/>{t("bt.beh.fullscreen")}
+          </Btn>
+        </div>
+        <Inp textarea value={promptText} onChange={e=>setS({...s,businessPrompt:e.target.value})}
+          inputStyle={{minHeight:260,lineHeight:1.7,fontSize:13,resize:"vertical"}} style={{marginBottom:0}}/>
       </Accordion>
     </>}
 
+    {/* Full-screen profile editor */}
+    {promptFull&&<div role="dialog" aria-modal="true" onClick={()=>setPromptFull(false)}
+      style={{position:"fixed",inset:0,zIndex:80,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?0:24}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:isMobile?0:16,width:"100%",maxWidth:900,height:isMobile?"100dvh":"88vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
+          <i className="ti ti-file-text" style={{fontSize:18,color:T.gold}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:14,fontWeight:700}}>{t("bt.beh.editorTitle")}</div>
+            <div style={{fontSize:11.5,color:T.textDim,marginTop:1}}>{t("bt.beh.chars",{n:promptText.length})}</div>
+          </div>
+          <Btn gold onClick={()=>setPromptFull(false)}><i className="ti ti-check" style={{marginRight:6}}/>{t("bt.beh.done")}</Btn>
+        </div>
+        <textarea value={promptText} onChange={e=>setS({...s,businessPrompt:e.target.value})} className="ui-inp"
+          style={{flex:1,minHeight:0,width:"100%",background:T.bgAlt,border:"none",outline:"none",resize:"none",
+            color:T.text,fontSize:13.5,lineHeight:1.75,padding:"16px 18px",fontFamily:"inherit",boxSizing:"border-box"}}/>
+      </div>
+    </div>}
+
     {/* Save bar */}
-    <div style={{position:"fixed",left:0,right:0,bottom:isMobile?66:0,display:"flex",justifyContent:"center",pointerEvents:"none",zIndex:40,padding:"0 16px"}}>
+    {!promptFull&&<div style={{position:"fixed",left:0,right:0,bottom:isMobile?66:0,display:"flex",justifyContent:"center",pointerEvents:"none",zIndex:40,padding:"0 16px"}}>
       <div style={{width:"100%",maxWidth:700,display:"flex",justifyContent:"flex-end",padding:"0 0 12px"}}>
         {(dirty||saved)&&<div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:12,background:T.card,border:`1px solid ${saved?`color-mix(in srgb, ${T.success} 40%, transparent)`:T.border}`,borderRadius:14,boxShadow:"0 10px 30px rgba(0,0,0,.14)",padding:"10px 12px 10px 16px"}}>
           <span style={{fontSize:12.5,color:saved?T.success:T.textMuted,display:"flex",alignItems:"center",gap:6}}>
@@ -469,6 +542,6 @@ export default function Settings({settings,setSettings}) {
           {!saved&&<Btn gold onClick={save}><i className="ti ti-check" style={{marginRight:6}}/>{t("common.save")}</Btn>}
         </div>}
       </div>
-    </div>
+    </div>}
   </div>;
 }

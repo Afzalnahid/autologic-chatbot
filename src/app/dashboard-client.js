@@ -816,16 +816,19 @@ export default function Dashboard() {
           </button>
           {!isMobile&&<LangToggle/>}
           {!isMobile&&<ThemeToggle mode={mode} toggle={toggleTheme}/>}
-          <div title={botLive?"Bot is live":"No channel connected"}
+          {/* The avatar is where people expect their account to be, so it
+              opens the Profile tab rather than being decoration. */}
+          <button onClick={()=>setPage("profile")} aria-label={t("nav.profile")}
+            title={botLive?"Bot is live":"No channel connected"}
             style={{position:"relative",width:isMobile?36:42,height:isMobile?36:42,borderRadius:"50%",
-              background:T.accGrad,boxShadow:T.accGlow,display:"flex",alignItems:"center",
+              background:T.accGrad,boxShadow:T.accGlow,display:"flex",alignItems:"center",border:"none",padding:0,cursor:"pointer",
               justifyContent:"center",flexShrink:0,overflow:"visible",marginRight:isMobile?2:0}}>
             {me?.client?.logo_url
               ?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:"50%"}}/>
               :<span style={{fontSize:isMobile?13:15,fontWeight:700,color:"#fff",letterSpacing:".02em"}}>{initials}</span>}
             {botLive&&<span className="ui-live" style={{position:"absolute",bottom:0,right:0,width:11,height:11,
               borderRadius:"50%",background:T.live,border:`2px solid ${T.card}`}}/>}
-          </div>
+          </button>
         </div>
       </div>
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
