@@ -15,7 +15,10 @@ export async function GET(request) {
     const { data: chans } = await supabase.from("channels").select("*").eq("client_id", client.id).neq("status", "disconnected");
     const channels = chans || [];
     const byPlatform = Object.fromEntries(channels.map(c => [c.platform, c]));
-    const ch = byPlatform.facebook || channels[0];
+    // The account-wide bot switch lives on the messaging channels; a website
+    // widget row (bot_enabled null) must never answer for it, or the switch
+    // reads ON forever regardless of what was saved.
+    const ch = byPlatform.facebook || channels.find(c => c.platform !== "website") || channels[0];
 
     const { data: allMsgs } = await supabase.from("message_buffer").select("sender_id,role,client_id,platform")
       .eq("client_id", client.id).eq("role", "customer");

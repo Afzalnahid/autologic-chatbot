@@ -415,3 +415,27 @@ why the owner's account was never affected.
   access token (`input_token=TOKEN&access_token=TOKEN` works for a page
   token's own self-check) shows exactly which scopes it actually carries and
   when it was issued — cheaper and more current than trusting a written plan.
+
+## Identify the exact control before fixing a "broken switch"
+**2026-08-23.** The owner reported "the bot on/off button turns itself back on after refresh."
+I audited the Channels tab toggle (channel status), found it persisted correctly, and reported
+"no bug". The owner was actually using the OTHER switch — the Conversations tab's account-wide
+"Bot ON" toggle. Its write path worked (channels.bot_enabled=false was in the database), but the
+read path only looked at status="connected" channels; with the only channel paused it fell back
+to `?? true` and reported ON forever. Same symptom, different switch, real bug.
+
+**Rule:** when a control "doesn't stick", first identify from the screenshot exactly WHICH
+control it is, then trace its write path AND its read path separately — a saved value that is
+read back wrongly looks identical to a value that was never saved.
+
+## Found, not yet fixed (2026-08-23)
+- `contacts` PK is `sender_id` alone. WhatsApp sender ids are phone numbers, so the same
+  customer messaging two different tenant businesses would collide on one row (second tenant
+  overwrites the first's `client_id`). Needs a `(client_id, sender_id)` key + code updates.
+- Dashboard deep-link `?upgrade=` still validates against the hardcoded
+  `["starter","pro","agency"]` list, so admin-created packages cannot be deep-linked.
+- Customer names on Facebook need the Meta app's Advanced Access for
+  `pages_read_engagement` (App Review). Verified live with the page token: Graph returns
+  code 100 "requires pages_read_engagement". Names work only for pages owned by app-role
+  users (the owner's own pages). This is an owner action on developers.facebook.com,
+  not a code fix.
