@@ -1161,10 +1161,8 @@ export const DOCS = {
       { note: "The trash icon clears the row from this dashboard. **The comment itself stays on Facebook or Instagram**, and so does the bot's public reply. To remove those, delete them on the post.",
         kind: "warn" },
 
-      // TEMPORARY — delete this block once the "Open the post" link is fixed for
-      // Instagram (Comments.js hard-codes a facebook.com URL for every row).
-      { note: "**Known issue:** on an Instagram row, **Open the post** currently opens Facebook instead of Instagram. A fix is on the way. Until then, open the post from the Instagram app.",
-        kind: "warn" },
+      { note: "**Open the post** does not appear on comments that arrived before August 2026 on Instagram — the address of the post was not being saved back then, and there is no way to work it out afterwards. Every comment from now on has it.",
+        kind: "tip" },
 
       { h: "Finding one comment among many",
         p: ["Two filters sit above the list, and they work together."],

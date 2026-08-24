@@ -47,6 +47,21 @@ export default function Comments() {
   });
   const chCount = (k)=>rows.filter(r=>(r.platform||"facebook")===k).length;
 
+  // Where the post lives. bot.js saves the real address with the comment, which
+  // is the only thing that works for Instagram: an Instagram post_id is a bare
+  // media id and no URL can be built from it. A Facebook post_id is
+  // {page_id}_{story_id}, so rows saved before the permalink existed still get
+  // a working link. Anything else shows no link at all — better than a dead one.
+  const PostLink=({c})=>{
+    const url=c.permalink
+      || ((c.platform||"facebook")==="facebook" && c.post_id ? `https://facebook.com/${c.post_id}` : null);
+    if(!url) return null;
+    return <a href={url} target="_blank" rel="noreferrer"
+      style={{fontSize:11.5,color:T.gold,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}>
+      <i className="ti ti-external-link" style={{fontSize:13}}/>Open the post
+    </a>;
+  };
+
   const ago=(t)=>{
     const d=Math.floor((Date.now()-new Date(t))/1000);
     if(d<60) return "just now";
@@ -101,10 +116,7 @@ export default function Comments() {
                 {CH[c.platform]?.label||c.platform||"Facebook"}
               </span>
               <span style={{fontSize:11.5,color:T.textDim}}>{ago(c.created_at)}</span>
-              {c.post_id&&<a href={`https://facebook.com/${c.post_id}`} target="_blank" rel="noreferrer"
-                style={{fontSize:11.5,color:T.gold,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}>
-                <i className="ti ti-external-link" style={{fontSize:13}}/>Open the post
-              </a>}
+              <PostLink c={c}/>
             </div>
           </div>
           <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>

@@ -142,6 +142,7 @@ parses the `Total = N` portion.
 | `id` | bigserial | PK |
 | `client_id` | uuid | Owner |
 | `platform`, `page_id`, `post_id` | text | Where the comment lives |
+| `permalink` | text | Public URL of the post, fetched from the Graph API when the comment arrives (`permalink` on IG media, `permalink_url` on a Page post). **Null on rows written before 2026-08-25.** An Instagram `post_id` is a bare media id, so without this there is no way to link to the post |
 | `comment_id` | text | **Unique** — also the dedupe key |
 | `parent_id` | text | Set when the comment is a reply to another comment |
 | `commenter_id`, `commenter_name` | text | Who commented |

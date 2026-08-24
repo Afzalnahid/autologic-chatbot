@@ -1052,30 +1052,54 @@ export async function handleIncoming(event) {
 // is no sense asking Facebook the same question twenty times.
 const postCache = new Map();
 
+// Returns { text, permalink }. The permalink comes back in the same call that
+// fetches the caption, so knowing where a post lives costs nothing extra.
+// It has to be asked for: a Facebook post_id is {page_id}_{story_id} and can be
+// turned into a facebook.com address by hand, but an Instagram post_id is a
+// bare media id that no URL can be built from — the dashboard's "Open the post"
+// link was dead on every Instagram comment because of exactly that.
+const EMPTY_POST = { text: "", permalink: null };
+
 async function getPostContext(postId, token, platform) {
-  if (!postId || !token) return "";
+  if (!postId || !token) return EMPTY_POST;
   const hit = postCache.get(postId);
-  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.text;
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.post;
+
+  const ig = platform === "instagram";
+  // Instagram media call it `permalink`; a Page post calls it `permalink_url`.
+  const withLink = ig ? "caption,media_type,permalink" : "message,story,permalink_url";
+  const withoutLink = ig ? "caption,media_type" : "message,story";
+  const ask = (fields) => fetch(
+    `https://graph.facebook.com/v24.0/${encodeURIComponent(postId)}?fields=${fields}&access_token=${token}`
+  ).then((r) => r.json());
 
   try {
-    const fields = platform === "instagram" ? "caption,media_type" : "message,story";
-    const res = await fetch(
-      `https://graph.facebook.com/v24.0/${encodeURIComponent(postId)}?fields=${fields}&access_token=${token}`
-    ).then((r) => r.json());
+    let res = await ask(withLink);
+    // Graph rejects the WHOLE request over one unknown field. The caption is
+    // what the bot answers from, so it must never be lost to a field name that
+    // a future API version renames — one retry without the link keeps the
+    // reply working and simply leaves the post address unknown.
+    if (res?.error) {
+      console.error("[comment] post fetch (with link):", res.error.message);
+      res = await ask(withoutLink);
+    }
 
     if (res?.error) {
       console.error("[comment] post fetch:", res.error.message);
-      postCache.set(postId, { text: "", at: Date.now() });
-      return "";
+      postCache.set(postId, { post: EMPTY_POST, at: Date.now() });
+      return EMPTY_POST;
     }
 
     const caption = (res.caption || res.message || res.story || "").trim();
-    const text = caption ? caption.slice(0, 600) : "";
-    postCache.set(postId, { text, at: Date.now() });
-    return text;
+    const post = {
+      text: caption ? caption.slice(0, 600) : "",
+      permalink: res.permalink || res.permalink_url || null,
+    };
+    postCache.set(postId, { post, at: Date.now() });
+    return post;
   } catch (e) {
     console.error("[comment] post fetch failed:", e.message);
-    return "";
+    return EMPTY_POST;
   }
 }
 
@@ -1116,7 +1140,8 @@ export async function handleComment(event) {
     } catch (e) { console.error("comment contact name:", e.message); }
   }
   const text = (event.text || "").trim();
-  const postText = await getPostContext(event.postId, channel.access_token, channel.platform);
+  const post = await getPostContext(event.postId, channel.access_token, channel.platform);
+  const postText = post.text;
 
   // Search on the comment *and* the caption: "koto?" alone finds nothing useful,
   // but "koto? + jamdani saree collection" finds the right product.
@@ -1238,6 +1263,9 @@ export async function handleComment(event) {
       platform: channel.platform,
       page_id: event.pageId,
       post_id: event.postId,
+      // Where the post actually lives. Without it the dashboard cannot link to
+      // an Instagram post at all — see getPostContext above.
+      permalink: post.permalink,
       comment_id: event.commentId,
       parent_id: event.parentId,
       commenter_id: event.senderId,

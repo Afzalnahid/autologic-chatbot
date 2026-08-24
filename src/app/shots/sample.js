@@ -282,7 +282,11 @@ const PROFILE = {
 // Answered by the studio's fetch stub, matched on the start of the URL.
 export const SAMPLE = {
   "/api/comments": [
+    // An Instagram row can only link to its post through the saved permalink;
+    // the Facebook row below deliberately has none, so the screenshot also
+    // exercises the {page_id}_{story_id} fallback.
     { id: "c1", platform: "instagram", page_id: "17841400000000000", post_id: "18000000000000000",
+      permalink: "https://www.instagram.com/p/CxAmPlEp0sT/",
       commenter_name: "tasnim.rahman", created_at: iso(12),
       comment_text: "i want to know more details, please",
       reply_text: "Of course — I've sent you the full details in a message. Have a look and tell me what you think.",

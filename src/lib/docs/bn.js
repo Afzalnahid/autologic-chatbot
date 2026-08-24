@@ -1156,10 +1156,8 @@ export const DOCS = {
       { note: "ট্র্যাশ আইকন শুধু এই ড্যাশবোর্ড থেকে সারিটা মুছে দেয়। **কমেন্টটা Facebook বা Instagram-এ থেকেই যায়**, বটের প্রকাশ্য উত্তরটাও থাকে। ওগুলো সরাতে হলে পোস্টে গিয়ে মুছতে হবে।",
         kind: "warn" },
 
-      // TEMPORARY — delete this block once the "Open the post" link is fixed for
-      // Instagram (Comments.js hard-codes a facebook.com URL for every row).
-      { note: "**জানা সমস্যা:** Instagram-এর সারিতে **Open the post** এখন Instagram-এর বদলে Facebook খোলে। ঠিক করা হচ্ছে। ততদিন Instagram অ্যাপ থেকে পোস্টটা খুলুন।",
-        kind: "warn" },
+      { note: "২০২৬ সালের অগাস্টের আগে আসা Instagram কমেন্টে **Open the post** দেখাবে না — তখন পোস্টের ঠিকানাটা সংরক্ষণ করা হতো না, আর পরে সেটা বের করার উপায় নেই। এখন থেকে আসা প্রতিটা কমেন্টে থাকবে।",
+        kind: "tip" },
 
       { h: "অনেক কমেন্টের মধ্যে একটা খুঁজে বের করা",
         p: ["তালিকার উপরে দুটো ফিল্টার আছে, দুটো একসাথে কাজ করে।"],
