@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { T, Card, Btn, Badge, Select, Segmented } from "./ui.js";
 import { api } from "./session.js";
+import LearnMore from "./LearnMore.js";
 
 // The Comments tab, moved out of dashboard-client.js unchanged.
 
@@ -58,7 +59,10 @@ export default function Comments() {
   return <div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:16,flexWrap:"wrap"}}>
       <div>
-        <div style={{fontSize:16,fontWeight:600}}>Post comments</div>
+        <div style={{display:"flex",alignItems:"center",gap:9,flexWrap:"wrap"}}>
+          <div style={{fontSize:16,fontWeight:600}}>Post comments</div>
+          <LearnMore slug="comments"/>
+        </div>
         <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>Comments on your posts and how the bot handled them</div>
       </div>
       <Btn small onClick={load}><i className="ti ti-refresh" style={{marginRight:5}}/>Refresh</Btn>

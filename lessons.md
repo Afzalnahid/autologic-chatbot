@@ -441,3 +441,20 @@ read back wrongly looks identical to a value that was never saved.
   code 100 "requires pages_read_engagement". Names work only for pages owned by app-role
   users (the owner's own pages). This is an owner action on developers.facebook.com,
   not a code fix.
+
+## A backtick inside a CSS template literal ends the string (2026-08-24, second time)
+
+`src/app/docs/shell.js` holds its stylesheet in a template literal. A comment inside it read:
+
+    so `.bn` can override it
+
+The backtick closed the template string, so `${THEME_CSS}` became a tagged template and the
+build died with `THEME_CSS.bn is not a function` — an error naming a file and symbol that have
+nothing to do with the mistake.
+
+This is the SECOND time. Commit b30adef was "Fix build: backticks inside the CSS template
+literal broke the string".
+
+**Rule:** never type a backtick inside a `` ` ``-delimited CSS/JS string, not even in a comment.
+Write `.bn` as "the .bn class". After editing any file that embeds CSS in a template literal,
+load the page once before saying it works — the error message will not point at the comment.

@@ -88,6 +88,7 @@ const DICT = {
     "common.optional": "optional", "common.skip": "Skip", "common.back": "Back", "common.send": "Send",
     "common.delete": "Delete", "common.close": "Close", "common.on": "On", "common.off": "Off",
     "common.loading": "Loading…", "common.search": "Search",
+    "docs.learn": "Learn more", "docs.learnHint": "Read the guide for this tab",
 
     // ---- Bot Training: header & checklist ----
     "bt.title": "Train your bot",
@@ -278,6 +279,7 @@ const DICT = {
     "common.optional": "ঐচ্ছিক", "common.skip": "বাদ দিন", "common.back": "আগেরটা", "common.send": "পাঠান",
     "common.delete": "মুছুন", "common.close": "বন্ধ", "common.on": "চালু", "common.off": "বন্ধ",
     "common.loading": "লোড হচ্ছে…", "common.search": "খুঁজুন",
+    "docs.learn": "বিস্তারিত", "docs.learnHint": "এই ট্যাবের গাইডটা পড়ুন",
 
     "bt.title": "আপনার বট শেখান",
     "bt.progress": "{total}টির মধ্যে {done}টি ধাপ শেষ। যত বেশি শেখাবেন, তত ভালো বিক্রি করবে।",

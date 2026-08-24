@@ -1,0 +1,186 @@
+import { P, THEME_CSS } from "@/lib/landing.js";
+import { PAGES, GROUPS } from "@/lib/docs/index.js";
+import { docHref } from "./copy.js";
+import DocsSearch from "./search.js";
+
+// The frame every documentation page sits in: nav, sidebar, content, footer.
+//
+// Server-rendered on purpose. The language comes from ?lang=bn in the URL — the
+// same switch the landing page and pricing page already use — so a Bangla page
+// is a real URL that can be bookmarked, shared and indexed by Google, rather
+// than a client-side toggle that leaves the address bar lying.
+//
+// Only the search box is a client component; everything else is plain HTML.
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
+  ${THEME_CSS}
+  html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box }
+  /* Long Bangla compounds and URLs must never push the layout sideways. */
+  p, span, div, td, th, li { overflow-wrap: anywhere }
+
+  .fr { font-family: 'Fraunces', Georgia, serif; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: normal; hyphens: none }
+  .bn .fr { font-family: 'Anek Bangla', sans-serif; font-weight: 700 }
+
+  /* The small all-caps label. Bangla has no capitals, and letter-spacing pulls
+     its conjuncts apart into something that reads as broken — so in Bangla the
+     label keeps only its smallness and drops the typographic tricks. Done in
+     CSS rather than inline styles precisely so the .bn class can override it.
+     (No backticks anywhere in here — this whole block is a template literal,
+     and one backtick ends the string. It has bitten this codebase before.) */
+  .lbl { font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .09em; text-transform: uppercase }
+  .bn .lbl { font-family: 'Anek Bangla', sans-serif; letter-spacing: 0; text-transform: none }
+
+  .navbtn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 9px;
+    border: 1px solid var(--lp-line); background: var(--lp-card); color: var(--lp-ink);
+    font-size: 12.5px; font-weight: 500; text-decoration: none; cursor: pointer; font-family: inherit;
+    transition: border-color .15s ease-out, filter .15s ease-out }
+  .navbtn:hover { border-color: color-mix(in srgb, var(--lp-acc) 45%, transparent) }
+  .navcta { background: var(--lp-grad); color: #fff; border-color: transparent; box-shadow: var(--lp-glow) }
+
+  /* Two columns on a desktop, one on a phone. The sidebar becomes a <details>
+     drawer so it needs no JavaScript to open — it works with the page half
+     loaded, and on every browser. */
+  .dshell { display: grid; grid-template-columns: 262px minmax(0, 1fr); gap: 40px;
+    max-width: 1240px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 26px) 60px; align-items: start }
+  .drail { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow-y: auto; padding-bottom: 20px }
+  .drail-m { display: none }
+  @media (max-width: 900px) {
+    .dshell { grid-template-columns: minmax(0, 1fr); gap: 0 }
+    .drail { display: none }
+    .drail-m { display: block; margin-bottom: 26px }
+  }
+
+  .dgrp { font-size: 9.5px; color: var(--lp-soft); margin: 22px 0 7px }
+  .dlink { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 9px;
+    color: var(--lp-soft); text-decoration: none; font-size: 13.5px; line-height: 1.35;
+    transition: background .14s ease-out, color .14s ease-out }
+  .dlink:hover { background: var(--lp-card); color: var(--lp-ink) }
+  .dlink.on { background: var(--lp-accSoft); color: var(--lp-acc); font-weight: 600 }
+  .dlink.on i { color: var(--lp-acc) }
+  .dlink i { font-size: 15px; flex-shrink: 0; opacity: .85 }
+  .dlink.soon { opacity: .45 }
+
+  .dsum { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    padding: 11px 14px; border: 1px solid var(--lp-line); border-radius: 11px;
+    background: var(--lp-card); font-size: 13.5px; font-weight: 600 }
+  .dsum::-webkit-details-marker { display: none }
+  details[open] .dsum { border-bottom-left-radius: 0; border-bottom-right-radius: 0 }
+  .dsheet { border: 1px solid var(--lp-line); border-top: 0; border-radius: 0 0 11px 11px;
+    padding: 8px; background: var(--lp-card) }
+
+  .card { background: var(--lp-card); border: 1px solid var(--lp-line); border-radius: 16px }
+
+  /* Screenshots come in pairs where a dark one has been taken. The theme boot
+     script stamps data-theme on <html> before first paint, so the right one is
+     showing from the very first frame — no flash of the wrong picture. */
+  figure img { display: block }
+  .shot-d { display: none }
+  [data-theme="dark"] .shot-l { display: none }
+  [data-theme="dark"] .shot-d { display: block }
+
+  .flink { color: var(--lp-soft); text-decoration: none; font-size: 13px }
+  .flink:hover { color: var(--lp-acc) }
+
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--lp-acc); outline-offset: 2px }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
+`;
+
+function RailLinks({ lang, slug, ui, written }) {
+  return GROUPS.map((g) => {
+    const items = PAGES.filter((p) => p.group === g);
+    if (!items.length) return null;
+    return (
+      <div key={g}>
+        <div className="dgrp lbl" style={{ fontSize: 9.5 }}>{ui.groups[g] || g}</div>
+        {items.map((p) => {
+          const soon = !written.has(p.slug);
+          return (
+            <a key={p.slug} href={docHref(p.slug, lang)}
+              className={`dlink${p.slug === slug ? " on" : ""}${soon ? " soon" : ""}`}
+              data-doc-name={(ui.names[p.slug] || p.slug).toLowerCase()}>
+              <i className={`ti ${p.icon}`} />
+              <span>{ui.names[p.slug] || p.slug}</span>
+            </a>
+          );
+        })}
+      </div>
+    );
+  });
+}
+
+export default function DocsShell({ lang, slug, ui, written, children }) {
+  const bn = lang === "bn";
+  // The language button swaps to the other language on the SAME page, so a
+  // reader never loses their place by switching.
+  const other = bn ? docHref(slug, "en") : docHref(slug, "bn");
+  const rail = <RailLinks lang={lang} slug={slug} ui={ui} written={written} />;
+
+  return (
+    <div className={bn ? "bn" : ""} style={{ background: P.paper, minHeight: "100vh", color: P.ink,
+      fontFamily: bn ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
+      <nav style={{ position: "sticky", top: 0, zIndex: 5, background: `color-mix(in srgb, ${P.paper} 88%, transparent)`,
+        backdropFilter: "blur(10px)", borderBottom: `1px solid ${P.line}` }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "11px clamp(16px,4vw,26px)",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <a href={docHref("", lang)} style={{ display: "flex", alignItems: "center", gap: 9,
+            textDecoration: "none", color: P.ink, minWidth: 0 }}>
+            <div style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9, flexShrink: 0,
+              boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <i className="ti ti-robot" style={{ fontSize: 15, color: P.onAccent }} />
+            </div>
+            <span className="fr" style={{ fontSize: 19 }}>Autologic</span>
+            <span className="lbl" style={{ fontSize: 9, color: P.inkSoft, paddingTop: 3 }}>{ui.brand}</span>
+          </a>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+            <button id="al-mode" type="button" className="navbtn" aria-label="Switch theme">
+              <i id="al-mode-ic" className="ti ti-moon" style={{ fontSize: 13 }} />
+            </button>
+            <a href={other} className="navbtn" aria-label="Change language">
+              <i className="ti ti-language" style={{ fontSize: 13 }} />{ui.langOther}
+            </a>
+            <a href="/dashboard?auth=signin" className="navbtn navcta">{ui.login}</a>
+          </div>
+        </div>
+      </nav>
+
+      <div className="dshell" style={{ paddingTop: 26 }}>
+        <aside className="drail">
+          <DocsSearch placeholder={ui.search} empty={ui.searchEmpty} />
+          {rail}
+        </aside>
+
+        {/* Phone: the same menu, folded into a drawer. */}
+        <details className="drail-m">
+          <summary className="dsum"><i className="ti ti-list" style={{ fontSize: 16 }} />{ui.brand}</summary>
+          <div className="dsheet">{rail}</div>
+        </details>
+
+        <main style={{ minWidth: 0 }}>{children}</main>
+      </div>
+
+      <footer style={{ borderTop: `1px solid ${P.line}` }}>
+        <div style={{ maxWidth: 1240, margin: "0 auto", padding: "26px clamp(16px,4vw,26px) 30px" }}>
+          <div style={{ display: "flex", gap: "14px 26px", flexWrap: "wrap", marginBottom: 18 }}>
+            <a href={bn ? "/?lang=bn" : "/"} className="flink">{ui.home}</a>
+            <a href={docHref("", lang)} className="flink">{ui.brand}</a>
+            <a href="/pricing" className="flink">{bn ? "দাম" : "Pricing"}</a>
+            <a href="/contact" className="flink">{ui.contact}</a>
+            <a href="/privacy" className="flink">{bn ? "প্রাইভেসি পলিসি" : "Privacy Policy"}</a>
+            <a href="/terms" className="flink">{bn ? "শর্তাবলি" : "Terms of Service"}</a>
+          </div>
+          <div className="lbl" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
+            fontSize: 9.5, color: P.inkSoft, borderTop: `1px solid ${P.line}`, paddingTop: 18 }}>
+            <span>© 2026 Autologic</span>
+            <span>Kandirpar, Cumilla, Bangladesh</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
