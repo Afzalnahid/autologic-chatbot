@@ -148,8 +148,11 @@ export default function Inventory({ products, refresh }) {
       <Segmented size="sm" value={stock} onChange={setStock} items={stockItems} />
       <Select value={sort} onChange={setSort} options={[{ value: "newest", label: "Newest first", icon: "ti-clock" }, { value: "name", label: "Name A–Z", icon: "ti-sort-ascending-letters" }, { value: "price-asc", label: "Price low → high", icon: "ti-arrow-up" }, { value: "price-desc", label: "Price high → low", icon: "ti-arrow-down" }, { value: "stock", label: "Stock issues first", icon: "ti-alert-triangle" }]} />
       <div style={{ display: "flex", gap: 4, background: T.bgAlt, boxShadow: T.nmIn, borderRadius: 11, padding: 3 }}>
-        {[["grid", "ti-layout-grid"], ["list", "ti-list"]].map(([v, ic]) => <button key={v} onClick={() => pickView(v)} aria-label={v} aria-pressed={view === v} className="ui-btn"
-          style={{ width: 34, height: 34, minHeight: 0, borderRadius: 9, border: "none", cursor: "pointer", background: view === v ? T.accGrad : "transparent", color: view === v ? "#fff" : T.textMuted, boxShadow: view === v ? T.accGlow : "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${ic}`} style={{ fontSize: 16 }} /></button>)}
+        {/* ui-sq, and no minHeight:0 — these opted out of the 44px touch floor
+            and came out 34x34 on a phone, smaller than every other icon button
+            in the dashboard. On a mouse they stay 34. */}
+        {[["grid", "ti-layout-grid"], ["list", "ti-list"]].map(([v, ic]) => <button key={v} onClick={() => pickView(v)} aria-label={v} aria-pressed={view === v} className="ui-btn ui-sq"
+          style={{ width: 34, height: 34, borderRadius: 9, border: "none", cursor: "pointer", background: view === v ? T.accGrad : "transparent", color: view === v ? "#fff" : T.textMuted, boxShadow: view === v ? T.accGlow : "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${ic}`} style={{ fontSize: 16 }} /></button>)}
       </div>
       <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
         {/* Straight to Bot Training → Offers, so bundling products into a deal

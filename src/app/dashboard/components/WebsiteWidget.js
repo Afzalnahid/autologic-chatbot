@@ -81,7 +81,12 @@ export default function WebsiteWidget({onChanged,bare}) {
       <div style={{display:"flex",flexWrap:"wrap",gap:7,marginBottom:11}}>
         {(ch.allowed_domains||[]).map(d=><span key={d} style={{display:"inline-flex",alignItems:"center",gap:7,fontSize:12.5,background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:20,padding:"5px 8px 5px 12px"}}>
           {d}
-          <button onClick={()=>removeDomain(d)} disabled={busy} title="Remove" style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:14,lineHeight:1,padding:0}}>&times;</button>
+          {/* Padding, then the same amount back as negative margin: the cross
+              stays where it is inside the chip but a thumb gets something to
+              aim at. Un-padded it was 7px wide. */}
+          <button onClick={()=>removeDomain(d)} disabled={busy} title="Remove" aria-label={`Remove ${d}`}
+            style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:14,lineHeight:1,
+              padding:"0 10px",margin:"0 -6px"}}>&times;</button>
         </span>)}
       </div>
       <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>

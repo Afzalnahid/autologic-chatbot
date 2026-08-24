@@ -154,7 +154,12 @@ export function KStat({icon,label,value,sub,color=T.gold,trend,trendUnit,invert}
       <div style={{width:30,height:30,borderRadius:10,background:`color-mix(in srgb, ${color} 10%, transparent)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
         <i className={`ti ${icon}`} style={{fontSize:15,color}}/>
       </div>
-      <span style={{fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:.7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</span>
+      {/* Wraps rather than truncates. On a phone two of these cards share the
+          row and "Conversations" and "Bot resolved" were both being cut to an
+          ellipsis — a label you cannot read is worse than a taller card, and
+          the grid keeps the cards the same height anyway. */}
+      <span style={{fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:.7,
+        lineHeight:1.25,minWidth:0}}>{label}</span>
     </div>
     <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap"}}>
       <span style={{fontSize:24,fontWeight:600,color:T.text,lineHeight:1.1}}>{value}</span>
@@ -189,7 +194,10 @@ export function BarList({items,color=T.gold,empty,money}) {
   if(!items?.length) return <div style={{fontSize:12.5,color:T.textDim}}>{empty}</div>;
   const max=Math.max(1,...items.map(i=>i.count));
   return items.map((it,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
-    <span style={{fontSize:12.5,width:112,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={it.name||it.term}>{it.name||it.term}</span>
+    {/* A fixed 112px cut every product name short on a phone, where the whole
+        row is only about 340px. A share of the row instead, floored and capped
+        so it stays sensible at both ends. */}
+    <span style={{fontSize:12.5,width:"clamp(112px, 50%, 190px)",flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={it.name||it.term}>{it.name||it.term}</span>
     <div style={{flex:1,height:5,background:T.bgAlt,borderRadius:3}}><div style={{height:"100%",width:`${(it.count/max)*100}%`,background:color,borderRadius:3}}/></div>
     <span style={{fontSize:12,fontWeight:500,minWidth:22,textAlign:"right",color:T.textMuted}}>{money?fmtMoney(it.count):it.count}</span>
   </div>);
@@ -361,6 +369,11 @@ export function Motion() {
            phone, and the round avatar an ellipse. Square buttons have to grow
            in both directions or they come out stretched. */
         .pbtn, .ui-sq { min-width: 44px }
+        /* A phone number sits inline inside a sentence, so it cannot be made
+           44px tall without breaking the line. Padding grows the area a thumb
+           can hit and the matching negative margin leaves the text exactly
+           where it was. */
+        a[href^="tel:"] { padding: 10px 2px; margin: -10px -2px }
         .ui-menu { max-height: min(60vh, 420px) }
       }
       /* iOS zooms the page when a field under 16px takes focus. */

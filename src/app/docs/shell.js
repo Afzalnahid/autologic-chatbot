@@ -30,7 +30,12 @@ const CSS = `
      (No backticks anywhere in here — this whole block is a template literal,
      and one backtick ends the string. It has bitten this codebase before.) */
   .lbl { font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .09em; text-transform: uppercase }
-  .bn .lbl { font-family: 'Anek Bangla', sans-serif; letter-spacing: 0; text-transform: none }
+  /* 9.5px works for Latin small caps and does not work for Bangla, whose
+     conjuncts need the height. The size is set inline for the Latin case, so
+     overriding it takes !important — which is the point of the rule, not a
+     shortcut around specificity. */
+  .bn .lbl { font-family: 'Anek Bangla', sans-serif; letter-spacing: 0; text-transform: none;
+    font-size: 12px !important }
 
   .navbtn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 9px;
     border: 1px solid var(--lp-line); background: var(--lp-card); color: var(--lp-ink);
@@ -50,6 +55,8 @@ const CSS = `
     .navbtn { min-height: 40px }
     #al-mode { width: 40px; min-width: 40px }
     .flink { display: inline-block; padding: 6px 0 }
+    /* Fourteen menu rows stacked at 32px each are easy to mis-tap. */
+    .dlink { min-height: 44px }
   }
 
   /* Two columns on a desktop, one on a phone. The sidebar becomes a <details>
