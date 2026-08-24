@@ -160,13 +160,25 @@ export default function Home({ searchParams }) {
   const other = lang === "bn" ? "/" : "/?lang=bn";
 
   return (
-    <div style={{ background: P.paper, minHeight: "100vh", color: P.ink,
+    // The "bn" class is what every Bangla rule below hangs off. Without it the
+    // headings kept .fr's Fraunces, which has no Bengali letters at all, so the
+    // Bangla headline fell back to whatever Bengali font the phone happened to
+    // own — a different typeface from the words underneath it.
+    <div className={lang === "bn" ? "bn" : ""}
+      style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
       {/* Theme boot lives in the root layout (a script here never executes). */}
       <style dangerouslySetInnerHTML={{__html:`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
         ${THEME_CSS}
-        html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
+        /* The sideways clip goes on <html>, never on <body>: "overflow-x:
+           hidden" on body quietly turns body into a scroll container, and the
+           sticky top bar below then sticks to a box nobody is scrolling, so it
+           slid away with the page instead of staying put. On <html> the value
+           propagates to the viewport and clips with no such side effect. */
+        html { overflow-x: hidden }
+        body { overflow-x: clip }
+        html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
         * { -webkit-tap-highlight-color: transparent }
         /* Long Bangla compounds and URLs must never push the layout sideways. */
         p, span, div { overflow-wrap: anywhere }
@@ -184,6 +196,14 @@ export default function Home({ searchParams }) {
 
         .fr { font-family: 'Fraunces', Georgia, serif; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: normal; hyphens: none }
         .bn .fr { font-family: 'Anek Bangla', sans-serif; font-weight: 700 }
+        /* Bangla headings need leading Latin ones do not. Anek Bangla's ink
+           runs 1.33em from the top of a stacked conjunct to the bottom of a
+           hasanta, and the display headings here are set at roughly 1.0 — so
+           the second line's marks landed inside the first line's tails. The
+           size is set inline on each heading, so overriding only the leading
+           takes !important. Latin keeps its tight setting: the same
+           measurement gives 0.88em for Fraunces. */
+        .bn h1.fr, .bn h2.fr, .bn h3.fr { line-height: 1.45 !important }
 
         /* The sheet: hairline rules and crop marks, so the page reads as a drawing. */
         .sheet { position: fixed; inset: 14px; pointer-events: none; border: 1px solid ${P.line}; z-index: 3 }
