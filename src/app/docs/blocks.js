@@ -40,6 +40,42 @@ const Pill = ({ children, tone }) => (
 const shotDir = () => path.join(process.cwd(), "public", "docs", "shots");
 const hasShot = (file) => { try { return fs.existsSync(path.join(shotDir(), file)); } catch { return false; } };
 
+// The pixel size of a screenshot, read out of the WebP header itself.
+//
+// Without it every picture is a 1px sliver until it arrives and then shoves
+// everything below it down the page — the jump a reader on Bangladeshi mobile
+// data feels most, and the one that makes them lose their place mid-sentence.
+// Handing the browser width and height lets it hold the exact space open from
+// the first paint. Read from the file rather than typed into the copy so a new
+// screenshot needs nothing but dropping the file in.
+//
+// Only the first 32 bytes are read, and the answer is cached for the build.
+const DIMS = new Map();
+function shotSize(file) {
+  if (DIMS.has(file)) return DIMS.get(file);
+  let out = null;
+  try {
+    const fd = fs.openSync(path.join(shotDir(), file), "r");
+    const b = Buffer.alloc(32);
+    fs.readSync(fd, b, 0, 32, 0);
+    fs.closeSync(fd);
+    if (b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP") {
+      const fmt = b.toString("ascii", 12, 16);
+      // The three WebP flavours keep their size in three different places.
+      if (fmt === "VP8X") out = { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
+      else if (fmt === "VP8 ") out = { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff };
+      else if (fmt === "VP8L") {
+        const bits = b.readUInt32LE(21);
+        out = { w: (bits & 0x3fff) + 1, h: ((bits >> 14) & 0x3fff) + 1 };
+      }
+    }
+  } catch { out = null; }
+  // A size we could not read is simply left off; the picture still shows.
+  if (out && (!out.w || !out.h)) out = null;
+  DIMS.set(file, out);
+  return out;
+}
+
 // WebP rather than PNG, and not for fashion: these screenshots are full of the
 // dashboard's soft neumorphic shadows, which PNG cannot compress. The same 28
 // images are 6.6 MB as PNG and 1.8 MB as WebP with no visible difference — and
@@ -57,6 +93,8 @@ function Shot({ name, cap, ui }) {
   // Where no dark shot exists the light one serves both, which is merely plain
   // rather than broken.
   const dark = hasShot(`${name}.dark.webp`) ? `/docs/shots/${name}.dark.webp` : null;
+  const lightSize = exists ? shotSize(`${name}.webp`) : null;
+  const darkSize = dark ? shotSize(`${name}.dark.webp`) : null;
   // No `display` here on purpose: an inline style would outrank the .shot-l /
   // .shot-d class rules that do the theme swap, and both pictures would show.
   const imgStyle = { width: "100%", height: "auto", borderRadius: 14,
@@ -71,11 +109,13 @@ function Shot({ name, cap, ui }) {
         <>
           <a className={dark ? "shot-l" : undefined} href={rel} target="_blank" rel="noreferrer"
             aria-label={ui?.zoom} title={ui?.zoom}>
-            <img src={rel} alt={cap || name} loading="lazy" style={imgStyle} />
+            <img src={rel} alt={cap || name} loading="lazy" decoding="async"
+              width={lightSize?.w} height={lightSize?.h} style={imgStyle} />
           </a>
           {dark && <a className="shot-d" href={dark} target="_blank" rel="noreferrer"
             aria-label={ui?.zoom} title={ui?.zoom}>
-            <img src={dark} alt={cap || name} loading="lazy" style={imgStyle} />
+            <img src={dark} alt={cap || name} loading="lazy" decoding="async"
+              width={darkSize?.w} height={darkSize?.h} style={imgStyle} />
           </a>}
         </>
       ) : (
@@ -143,7 +183,9 @@ function Steps({ items, lang }) {
           <span style={{ width: 24, height: 24, borderRadius: 8, background: P.blueSoft, color: P.blue,
             display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
             fontSize: 12, fontWeight: 700, marginTop: 1 }}>{num(i + 1, lang)}</span>
-          <span style={{ fontSize: 14.5, lineHeight: 1.75 }}>{inline(s)}</span>
+          {/* The steps are the point of the manual, so they are not set
+              smaller than the prose around them. */}
+          <span style={{ fontSize: 15.5, lineHeight: 1.75 }}>{inline(s)}</span>
         </li>
       ))}
     </ol>
@@ -179,8 +221,11 @@ export default function Blocks({ blocks, ui, lang }) {
         <h2 className="fr" style={{ fontSize: "clamp(20px,3vw,26px)", lineHeight: 1.25,
           margin: b.biz ? "10px 0 12px" : "38px 0 12px" }}>{b.h}</h2>
       )}
+      {/* 16px, not 15. This manual is read by people who are not technical and
+          often in their second language; the body of a page is not the place
+          to save a pixel. */}
       {b.p && b.p.map((para, j) => (
-        <p key={j} style={{ fontSize: 15, lineHeight: 1.8, color: P.inkSoft, margin: "0 0 14px" }}>{inline(para)}</p>
+        <p key={j} style={{ fontSize: 16, lineHeight: 1.75, color: P.inkSoft, margin: "0 0 14px" }}>{inline(para)}</p>
       ))}
       {b.steps && <Steps items={b.steps} lang={lang} />}
       {b.table && <Table head={b.table.head} rows={b.table.rows} />}

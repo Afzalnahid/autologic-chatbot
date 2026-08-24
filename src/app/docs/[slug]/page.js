@@ -44,8 +44,13 @@ export default function DocPage({ params, searchParams }) {
 
   return (
     <DocsShell lang={lang} slug={params.slug} ui={UI} written={writtenSet(lang)}>
-      <article style={{ maxWidth: 760 }}>
-        <nav className="lbl" style={{ fontSize: 9, color: P.inkSoft, marginBottom: 14 }}>
+      {/* 680px, down from 760. At 760 a line of body text ran to 86 characters;
+          the eye starts losing its place on the way back to the left margin
+          past about 75, and this is a manual people read end to end. The
+          pictures narrow with it, which costs nothing — they open full size on
+          a tap. */}
+      <article style={{ maxWidth: 680 }}>
+        <nav className="lbl crumb" style={{ fontSize: 9, color: P.inkSoft, marginBottom: 14 }}>
           <a href={docHref("", lang)} style={{ color: "inherit", textDecoration: "none" }}>{UI.brand}</a>
           <span style={{ margin: "0 7px", opacity: .5 }}>/</span>
           <span style={{ color: P.blue }}>{UI.groups[page.group] || page.group}</span>
@@ -76,7 +81,7 @@ export default function DocPage({ params, searchParams }) {
             </div>
 
             {toc.length > 2 && (
-              <nav aria-label={UI.onThisPage} style={{ margin: "26px 0 8px", padding: "14px 18px",
+              <nav aria-label={UI.onThisPage} className="toc" style={{ margin: "26px 0 8px", padding: "14px 18px",
                 background: P.paper2, border: `1px solid ${P.line}`, borderRadius: 13 }}>
                 <div className="lbl" style={{ fontSize: 9, color: P.inkSoft, marginBottom: 9 }}>{UI.onThisPage}</div>
                 <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 6 }}>

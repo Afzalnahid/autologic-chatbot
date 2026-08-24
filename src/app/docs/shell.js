@@ -15,13 +15,33 @@ import DocsSearch from "./search.js";
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
   ${THEME_CSS}
-  html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
+  /* The sideways clip belongs on <html>, never on <body>. "overflow-x: hidden"
+     on body makes body a scroll container (its overflow-y computes to auto),
+     and every sticky thing inside then sticks to a box that is not the one the
+     reader is scrolling — which is why the top bar and the sidebar used to
+     scroll away instead of staying put. On <html> the value propagates to the
+     viewport and clips with no such side effect. "clip" on body clips the same
+     way without becoming a scroll container, kept as a second line of defence. */
+  html { overflow-x: hidden }
+  body { overflow-x: clip }
+  html, body { -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box }
   /* Long Bangla compounds and URLs must never push the layout sideways. */
   p, span, div, td, th, li { overflow-wrap: anywhere }
 
   .fr { font-family: 'Fraunces', Georgia, serif; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: normal; hyphens: none }
   .bn .fr { font-family: 'Anek Bangla', sans-serif; font-weight: 700 }
+  /* Bangla headings need leading that Latin ones do not. Painted to a canvas
+     and measured pixel by pixel, Anek Bangla's actual ink runs 1.33em from the
+     top of a stacked conjunct to the bottom of a hasanta — so a heading set at
+     1.1 does not merely look tight, the second line's marks land 7px inside
+     the first line's tails. 1.45 leaves clearance at every heading size while
+     still reading as a tightly set display line. The size is set inline on
+     each heading, so overriding only the leading takes !important; that is the
+     purpose of the rule, not a way around specificity. Latin keeps 1.1, where
+     the same measurement gives 0.88em of ink and it is right. The wordmark is
+     left alone. */
+  .bn h1.fr, .bn h2.fr { line-height: 1.45 !important }
 
   /* The small all-caps label. Bangla has no capitals, and letter-spacing pulls
      its conjuncts apart into something that reads as broken — so in Bangla the
@@ -48,15 +68,34 @@ const CSS = `
      it comes out narrower than it is tall. */
   #al-mode { width: 34px; padding: 0; justify-content: center }
 
+  /* The eyebrow beside the wordmark. On a phone the logo, the wordmark, the
+     eyebrow and three buttons do not fit across 375px, so the eyebrow broke
+     over three lines and pushed the bar to 93px tall — a tenth of the screen,
+     stuck to the top of every page. The word is already the first thing in the
+     menu directly below, so on a narrow screen the bar drops it rather than
+     stretching to hold it. */
+  @media (max-width: 460px) { .brandtag { display: none } }
+
   /* A finger is not a mouse pointer. The buttons here were 28 to 34px tall,
      which is under the 44px a touch target wants, and the footer links were a
      20px-tall row of words sitting right next to each other. */
   @media (pointer: coarse) {
     .navbtn { min-height: 40px }
     #al-mode { width: 40px; min-width: 40px }
-    .flink { display: inline-block; padding: 6px 0 }
+    .flink { display: inline-block; padding: 12px 0 }
     /* Fourteen menu rows stacked at 32px each are easy to mis-tap. */
     .dlink { min-height: 44px }
+    /* "On this page" was a stack of 17px-tall links 6px apart: the hardest
+       thing on the page to hit and the one a phone reader needs most, because
+       it is how you skip to the section you came for. The gap goes so the
+       taller rows do not turn the box into a screenful. */
+    .toc ul { gap: 0 !important }
+    .toc a { display: flex; align-items: center; min-height: 40px }
+    /* The breadcrumb was a 12px-tall line of text. */
+    .crumb a { display: inline-block; padding: 13px 0; margin: -13px 0 }
+    /* The wordmark is the way back to the front of the manual; at 29px it was
+       the shortest thing in a bar of 40px buttons. */
+    .brandlink { min-height: 40px }
   }
 
   /* Two columns on a desktop, one on a phone. The sidebar becomes a <details>
@@ -156,14 +195,14 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
         backdropFilter: "blur(10px)", borderBottom: `1px solid ${P.line}` }}>
         <div style={{ maxWidth: 1240, margin: "0 auto", padding: "11px clamp(16px,4vw,26px)",
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <a href={docHref("", lang)} style={{ display: "flex", alignItems: "center", gap: 9,
+          <a href={docHref("", lang)} className="brandlink" style={{ display: "flex", alignItems: "center", gap: 9,
             textDecoration: "none", color: P.ink, minWidth: 0 }}>
             <div style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9, flexShrink: 0,
               boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <i className="ti ti-robot" style={{ fontSize: 15, color: P.onAccent }} />
             </div>
             <span className="fr" style={{ fontSize: 19 }}>Autologic</span>
-            <span className="lbl" style={{ fontSize: 9, color: P.inkSoft, paddingTop: 3 }}>{ui.brand}</span>
+            <span className="lbl brandtag" style={{ fontSize: 9, color: P.inkSoft, paddingTop: 3 }}>{ui.brand}</span>
           </a>
 
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
@@ -196,7 +235,10 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
           </div>
         </details>
 
-        <main style={{ minWidth: 0 }}>{children}</main>
+        {/* A <div>, not a <main>: the root layout already wraps every page in
+            one, and a <main> inside a <main> is invalid HTML that makes a
+            screen reader announce two "main" landmarks on the same page. */}
+        <div style={{ minWidth: 0 }}>{children}</div>
       </div>
 
       <footer style={{ borderTop: `1px solid ${P.line}` }}>
