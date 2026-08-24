@@ -44,7 +44,7 @@ const hasShot = (file) => { try { return fs.existsSync(path.join(shotDir(), file
 // dashboard's soft neumorphic shadows, which PNG cannot compress. The same 28
 // images are 6.6 MB as PNG and 1.8 MB as WebP with no visible difference — and
 // the people reading this manual are on Bangladeshi mobile data.
-function Shot({ name, cap }) {
+function Shot({ name, cap, ui }) {
   // Checked on the server so a screenshot that has not been taken yet shows a
   // labelled frame instead of a broken image icon.
   const rel = `/docs/shots/${name}.webp`;
@@ -64,9 +64,19 @@ function Shot({ name, cap }) {
   return (
     <figure style={{ margin: "26px 0" }}>
       {exists ? (
+        // A dashboard screenshot is 1600px wide and the column on a phone is
+        // about 343px — everything inside it is far too small to read. Tapping
+        // opens the picture on its own, where the phone can zoom into it. The
+        // link carries the light/dark class so the swap still works.
         <>
-          <img className={dark ? "shot-l" : undefined} src={rel} alt={cap || name} loading="lazy" style={imgStyle} />
-          {dark && <img className="shot-d" src={dark} alt={cap || name} loading="lazy" style={imgStyle} />}
+          <a className={dark ? "shot-l" : undefined} href={rel} target="_blank" rel="noreferrer"
+            aria-label={ui?.zoom} title={ui?.zoom}>
+            <img src={rel} alt={cap || name} loading="lazy" style={imgStyle} />
+          </a>
+          {dark && <a className="shot-d" href={dark} target="_blank" rel="noreferrer"
+            aria-label={ui?.zoom} title={ui?.zoom}>
+            <img src={dark} alt={cap || name} loading="lazy" style={imgStyle} />
+          </a>}
         </>
       ) : (
         <div style={{ border: `1px dashed ${P.line}`, borderRadius: 14, background: P.paper2,
@@ -75,7 +85,11 @@ function Shot({ name, cap }) {
           <div className="lbl" style={{ fontSize: 9, marginTop: 8 }}>{name}.webp</div>
         </div>
       )}
-      {cap && <figcaption style={{ fontSize: 12.5, color: P.inkSoft, marginTop: 9, lineHeight: 1.6 }}>{inline(cap)}</figcaption>}
+      {(cap || exists) && <figcaption style={{ fontSize: 12.5, color: P.inkSoft, marginTop: 9, lineHeight: 1.6 }}>
+        {cap && inline(cap)}
+        {/* Only worth saying where the picture is actually too small to read. */}
+        {exists && ui?.zoom && <span className="shot-zoom" style={{ color: P.blue }}>{cap ? " " : ""}{ui.zoom}</span>}
+      </figcaption>}
     </figure>
   );
 }
@@ -170,7 +184,7 @@ export default function Blocks({ blocks, ui, lang }) {
       ))}
       {b.steps && <Steps items={b.steps} lang={lang} />}
       {b.table && <Table head={b.table.head} rows={b.table.rows} />}
-      {b.shot && <Shot name={b.shot} cap={b.cap} />}
+      {b.shot && <Shot name={b.shot} cap={b.cap} ui={ui} />}
       {b.note && <Note text={b.note} kind={b.kind} />}
       {b.faq && <Faq items={b.faq} />}
     </section>

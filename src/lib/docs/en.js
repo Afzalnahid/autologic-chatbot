@@ -30,6 +30,7 @@ export const UI = {
   writing: "This page is being written",
   writingBody: "We are still writing this one. Everything else in the menu is ready to read, and this page will follow shortly.",
   readTime: "{n} min read",
+  zoom: "Tap to open it full size",
   forEcom: "For online shops",
   forAgency: "For agencies",
   needHelp: "Still stuck?",

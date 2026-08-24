@@ -39,6 +39,19 @@ const CSS = `
   .navbtn:hover { border-color: color-mix(in srgb, var(--lp-acc) 45%, transparent) }
   .navcta { background: var(--lp-grad); color: #fff; border-color: transparent; box-shadow: var(--lp-glow) }
 
+  /* The theme button carries an icon and no text, so it needs its width set or
+     it comes out narrower than it is tall. */
+  #al-mode { width: 34px; padding: 0; justify-content: center }
+
+  /* A finger is not a mouse pointer. The buttons here were 28 to 34px tall,
+     which is under the 44px a touch target wants, and the footer links were a
+     20px-tall row of words sitting right next to each other. */
+  @media (pointer: coarse) {
+    .navbtn { min-height: 40px }
+    #al-mode { width: 40px; min-width: 40px }
+    .flink { display: inline-block; padding: 6px 0 }
+  }
+
   /* Two columns on a desktop, one on a phone. The sidebar becomes a <details>
      drawer so it needs no JavaScript to open — it works with the page half
      loaded, and on every browser. */
@@ -76,9 +89,15 @@ const CSS = `
      script stamps data-theme on <html> before first paint, so the right one is
      showing from the very first frame — no flash of the wrong picture. */
   figure img { display: block }
+  figure a { display: block; border-radius: 14px }
   .shot-d { display: none }
   [data-theme="dark"] .shot-l { display: none }
   [data-theme="dark"] .shot-d { display: block }
+
+  /* The zoom hint earns its place only where the picture is genuinely too
+     small to read. On a wide screen the screenshot is legible as it sits. */
+  .shot-zoom { display: none }
+  @media (max-width: 760px) { .shot-zoom { display: inline } }
 
   .flink { color: var(--lp-soft); text-decoration: none; font-size: 13px }
   .flink:hover { color: var(--lp-acc) }
@@ -100,7 +119,10 @@ function RailLinks({ lang, slug, ui, written }) {
           return (
             <a key={p.slug} href={docHref(p.slug, lang)}
               className={`dlink${p.slug === slug ? " on" : ""}${soon ? " soon" : ""}`}
-              data-doc-name={(ui.names[p.slug] || p.slug).toLowerCase()}>
+              /* The slug rides along so the Bangla pages also answer to an
+                 English search — plenty of owners will type "billing" even
+                 while reading বিলিং. */
+              data-doc-name={`${ui.names[p.slug] || p.slug} ${p.slug.replace(/-/g, " ")}`.toLowerCase()}>
               <i className={`ti ${p.icon}`} />
               <span>{ui.names[p.slug] || p.slug}</span>
             </a>
@@ -158,7 +180,13 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
         {/* Phone: the same menu, folded into a drawer. */}
         <details className="drail-m">
           <summary className="dsum"><i className="ti ti-list" style={{ fontSize: 16 }} />{ui.brand}</summary>
-          <div className="dsheet">{rail}</div>
+          {/* Search belongs in here too. It used to live only in the desktop
+              sidebar, which is display:none on a phone — so a phone had no way
+              to search the manual at all. */}
+          <div className="dsheet">
+            <DocsSearch placeholder={ui.search} empty={ui.searchEmpty} />
+            {rail}
+          </div>
         </details>
 
         <main style={{ minWidth: 0 }}>{children}</main>
