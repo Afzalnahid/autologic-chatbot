@@ -761,6 +761,15 @@ export default function Dashboard() {
         ))}
       </nav>
 
+      {/* The guide for the open tab. On a phone it belongs here rather than in
+          the header — that row is only wide enough for the bell and the avatar,
+          and the footer below is already full. Full width, so it reads as a
+          destination instead of a fourth small icon. */}
+      {isMobile&&<div style={{padding:"4px 12px 0"}}>
+        <LearnMore page={page} iconSize={17} style={{width:"100%",justifyContent:"flex-start",
+          padding:"10px 12px",borderRadius:10,fontSize:13.5,gap:9}}/>
+      </div>}
+
       {/* The bottom of the reference sidebar: parted from the menu, always reachable.
           On a phone this is also where sync and the theme switch live. */}
       <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6}}>
@@ -817,9 +826,10 @@ export default function Dashboard() {
             still one tap away, no longer crowding the title off the bar. */}
         <div style={{display:"flex",alignItems:"center",gap:isMobile?7:10,flexShrink:0}}>
           {/* The guide for whatever tab is open, in the reader's own language.
-              One button here instead of one per tab: always in the same place,
-              and a new tab cannot forget to add it. */}
-          <LearnMore page={page} compact={isMobile} style={isMobile?{width:36,height:36}:undefined}/>
+              One control instead of one per tab, and a new tab cannot forget to
+              add it. Desktop only: on a phone this row holds bell and avatar
+              and nothing else, so the guide lives in the sidebar instead. */}
+          {!isMobile&&<LearnMore page={page}/>}
           {!isMobile&&<button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
             title="Sync" aria-label="Sync">
             <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>

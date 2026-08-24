@@ -28,7 +28,7 @@ export const docsSlugFor = (page) => SLUG[page] || "";
 // dashboard in Bangla lands on the Bangla guide rather than being dropped into
 // English. It opens in a new tab: the owner is usually mid-task, and losing the
 // tab they were on to read about it would be its own small bug.
-export default function LearnMore({ page, slug, compact, style }) {
+export default function LearnMore({ page, slug, compact, iconSize, style }) {
   const lang = useLang();
   const t = useT();
   const target = slug || docsSlugFor(page);
@@ -43,8 +43,12 @@ export default function LearnMore({ page, slug, compact, style }) {
         justifyContent: "center", borderRadius: compact ? 11 : 999, textDecoration: "none",
         fontSize: 11.5, fontWeight: 600, color: T.gold, background: T.goldBg,
         whiteSpace: "nowrap", ...style }}>
-      <i className="ti ti-book-2" style={{ fontSize: compact ? 16 : 13 }} />
+      <i className="ti ti-book-2" style={{ fontSize: iconSize || (compact ? 16 : 13) }} />
       {!compact && t("docs.learn")}
+      {/* It opens a new tab, and in the sidebar it sits among rows that switch
+          tabs — so it has to say, without words, that it leaves the page. */}
+      {!compact && <i className="ti ti-external-link"
+        style={{ fontSize: 12, marginLeft: "auto", paddingLeft: 6, opacity: .65 }} />}
     </a>
   );
 }
