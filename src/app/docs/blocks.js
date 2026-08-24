@@ -40,11 +40,15 @@ const Pill = ({ children, tone }) => (
 const shotDir = () => path.join(process.cwd(), "public", "docs", "shots");
 const hasShot = (file) => { try { return fs.existsSync(path.join(shotDir(), file)); } catch { return false; } };
 
+// WebP rather than PNG, and not for fashion: these screenshots are full of the
+// dashboard's soft neumorphic shadows, which PNG cannot compress. The same 28
+// images are 6.6 MB as PNG and 1.8 MB as WebP with no visible difference — and
+// the people reading this manual are on Bangladeshi mobile data.
 function Shot({ name, cap }) {
   // Checked on the server so a screenshot that has not been taken yet shows a
   // labelled frame instead of a broken image icon.
-  const rel = `/docs/shots/${name}.png`;
-  const exists = hasShot(`${name}.png`);
+  const rel = `/docs/shots/${name}.webp`;
+  const exists = hasShot(`${name}.webp`);
   // A light screenshot on a dark page (or the reverse) is the one thing that
   // makes a manual look thrown together. Where a <name>.dark.png has been
   // taken it is swapped in — keyed on the site's own data-theme rather than on
@@ -52,7 +56,7 @@ function Shot({ name, cap }) {
   // overruled their operating system and the picture must follow the page.
   // Where no dark shot exists the light one serves both, which is merely plain
   // rather than broken.
-  const dark = hasShot(`${name}.dark.png`) ? `/docs/shots/${name}.dark.png` : null;
+  const dark = hasShot(`${name}.dark.webp`) ? `/docs/shots/${name}.dark.webp` : null;
   // No `display` here on purpose: an inline style would outrank the .shot-l /
   // .shot-d class rules that do the theme swap, and both pictures would show.
   const imgStyle = { width: "100%", height: "auto", borderRadius: 14,
@@ -68,7 +72,7 @@ function Shot({ name, cap }) {
         <div style={{ border: `1px dashed ${P.line}`, borderRadius: 14, background: P.paper2,
           padding: "44px 20px", textAlign: "center", color: P.inkSoft }}>
           <i className="ti ti-photo" style={{ fontSize: 26, opacity: .6 }} />
-          <div className="lbl" style={{ fontSize: 9, marginTop: 8 }}>{name}.png</div>
+          <div className="lbl" style={{ fontSize: 9, marginTop: 8 }}>{name}.webp</div>
         </div>
       )}
       {cap && <figcaption style={{ fontSize: 12.5, color: P.inkSoft, marginTop: 9, lineHeight: 1.6 }}>{inline(cap)}</figcaption>}

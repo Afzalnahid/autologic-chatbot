@@ -17,6 +17,7 @@ import KnowledgeBase from "./dashboard/components/KnowledgeBase.js";
 import Bookings from "./dashboard/components/Bookings.js";
 import Channels from "./dashboard/components/Channels.js";
 import Conversations from "./dashboard/components/Conversations.js";
+import LearnMore from "./dashboard/components/LearnMore.js";
 import { useT, LangToggle } from "./dashboard/components/i18n.js";
 
 const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
@@ -815,6 +816,10 @@ export default function Dashboard() {
             avatar. Sync and the theme switch move into the sidebar footer —
             still one tap away, no longer crowding the title off the bar. */}
         <div style={{display:"flex",alignItems:"center",gap:isMobile?7:10,flexShrink:0}}>
+          {/* The guide for whatever tab is open, in the reader's own language.
+              One button here instead of one per tab: always in the same place,
+              and a new tab cannot forget to add it. */}
+          <LearnMore page={page} compact={isMobile} style={isMobile?{width:36,height:36}:undefined}/>
           {!isMobile&&<button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
             title="Sync" aria-label="Sync">
             <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>

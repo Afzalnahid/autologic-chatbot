@@ -122,6 +122,8 @@ export const DOCS = {
           "You can connect as many as you like. **Each Page, account or number can belong to only one Autologic account** — so if a Page is already connected somewhere else, disconnect it there first.",
         ] },
 
+      { shot: "channels", cap: "Two Facebook Pages, an Instagram account, a WhatsApp number and a website widget — one of the Pages paused." },
+
       { h: "Connecting one",
         steps: [
           "Press **Connect new channel**.",
@@ -197,6 +199,8 @@ export const DOCS = {
           "Those chats appear in **Conversations** alongside everything else, and you can take over from the bot exactly the same way.",
         ] },
 
+      { shot: "website-widget", cap: "The widget once it is created: your line of code, the websites allowed to use it, and the New key button." },
+
       { h: "Setting it up",
         p: ["The widget lives at the bottom of the **Channels** tab, in the Website section."],
         steps: [
@@ -253,6 +257,8 @@ export const DOCS = {
           "Facebook, Instagram, WhatsApp and your website all arrive here. You watch the bot work, and step in whenever you want to.",
           "It refreshes on its own — a new message appears without you pressing anything.",
         ] },
+
+      { shot: "conversations", cap: "The chat list on the left with its bot and manual badges, and the open conversation on the right." },
 
       { h: "The two Bot switches",
         p: ["This is the most important thing on the tab, and there are **two** of them. They do different jobs:"],
@@ -357,6 +363,8 @@ export const DOCS = {
           "The page refreshes itself about once a minute; the time it last updated is written on the right.",
         ] },
 
+      { shot: "analytics", cap: "Thirty days at a glance — the five cards, message volume, conversation health and the hour customers actually write." },
+
       { h: "The five cards at the top",
         table: { head: ["Card", "What it counts"],
           rows: [
@@ -440,6 +448,8 @@ export const DOCS = {
       { note: "So a broadcast is not a newsletter. It is a way to reach people **who are already talking to you today** — a flash offer, a stock update, an apology for a delay. Plan it around your peak hour in **Analytics**.",
         kind: "warn" },
 
+      { shot: "broadcast", cap: "The composer with its four filters, the allowance left this month, and past broadcasts underneath." },
+
       { h: "Sending one",
         steps: [
           "Write your message. The counter under the box shows how much room you have left.",
@@ -515,6 +525,12 @@ export const DOCS = {
           "The tab is called **Inventory** for an online shop and **Knowledge Base** for an agency, and they are genuinely different screens. Your business type in **Profile** decides which you see.",
           "Both do the same job: they are the facts the bot answers from.",
         ] },
+
+      { shot: "inventory", cap: "The Inventory tab: counters at the top, category filters, and each product with its price and stock badge.",
+        biz: "ecommerce" },
+
+      { shot: "knowledge", cap: "The Knowledge Base tab: the documents your bot answers from.",
+        biz: "agency" },
 
       { h: "Adding products",
         p: ["There are three ways in, and the second one saves the most time."],
@@ -606,6 +622,12 @@ export const DOCS = {
     blocks: [
       { h: "Which one you have",
         p: ["The tab is **Orders** for an online shop and **Bookings** for an agency. Your business type in **Profile** decides which one appears."] },
+
+      { shot: "orders", cap: "The Orders tab: Needs action first, then every order with its status and next button.",
+        biz: "ecommerce" },
+
+      { shot: "bookings", cap: "The Bookings tab: the month, each meeting with its time, and a button that opens the Google Meet link.",
+        biz: "agency" },
 
       { h: "How an order gets here",
         p: [
@@ -723,6 +745,8 @@ export const DOCS = {
         ] },
 
       { p: ["Four sections across the top: **Train**, **Offers**, **Bargaining** and **Behavior**. A checklist above them shows how far along you are — Identity, Business, Policies, Services, Q&A, Offers, Bargaining."] },
+
+      { shot: "bot-training", cap: "The checklist across the top, the four sections, and the interview waiting for your first answer." },
 
       { h: "Train — the interview",
         p: [
@@ -842,6 +866,8 @@ export const DOCS = {
           "It exists for businesses that want the AI usage billed to their own account instead of ours.",
         ] },
 
+      { shot: "ai-engine", cap: "An account running on its own key: the key shown masked, the main model and the fallback." },
+
       { h: "Bringing your own key",
         p: ["Two things have to be true before you can:"],
         steps: [
@@ -908,6 +934,8 @@ export const DOCS = {
       { note: "These are the same limits the bot itself enforces. When you run out, the bot stops replying — so it is worth glancing at this card before a big campaign or a festival rush, not after.",
         kind: "warn" },
 
+      { shot: "billing", cap: "The current plan with what is left this month, the plans you can move to, and your payment history." },
+
       { h: "Changing plan",
         steps: [
           "Press **Choose a plan** or **Upgrade your plan**.",
@@ -967,6 +995,8 @@ export const DOCS = {
             ["Address", "Given out when a customer asks where you are"],
             ["Website", "Shared when a customer wants to browse"],
           ] } },
+
+      { shot: "profile", cap: "Your business details on the left, your package and the calendar connection on the right." },
 
       { h: "Business logo",
         p: ["Upload your logo here. It appears in the dashboard and on your website chat widget, so a visitor sees your brand rather than a generic robot."] },
