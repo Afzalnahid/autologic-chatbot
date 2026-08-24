@@ -772,21 +772,25 @@ export default function Dashboard() {
 
       {/* The bottom of the reference sidebar: parted from the menu, always reachable.
           On a phone this is also where sync and the theme switch live. */}
-      <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6}}>
+      <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`,display:"flex",
+        flexDirection:isMobile?"column":"row",alignItems:isMobile?"stretch":"center",gap:6}}>
         <button onClick={async()=>{try{await getSb().auth.signOut({scope:"local"});}catch{} window.location.href="/";}}
           className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,
             padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
-            fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left"}}>
-          <i className="ti ti-logout" style={{fontSize:17}}/>{t("shell.logout")}
+            fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left",whiteSpace:"nowrap"}}>
+          <i className="ti ti-logout" style={{fontSize:17,flexShrink:0}}/>{t("shell.logout")}
         </button>
-        {isMobile&&<LangToggle compact/>}
-        {isMobile&&<>
+        {/* Their own row on a phone. Touch targets are 44px wide, and four
+            controls beside each other left "Log out" too narrow for its own
+            label — it wrapped onto a second line. */}
+        {isMobile&&<div style={{display:"flex",alignItems:"center",gap:6}}>
+          <LangToggle compact/>
           <button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
-            title="Sync" aria-label="Sync" style={{width:38,height:38,borderRadius:12}}>
+            title="Sync" aria-label="Sync" style={{width:44,height:44,borderRadius:12}}>
             <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>
           </button>
-          <ThemeToggle mode={mode} toggle={toggleTheme} style={{width:38,height:38,borderRadius:12}}/>
-        </>}
+          <ThemeToggle mode={mode} toggle={toggleTheme} style={{width:44,height:44,borderRadius:12}}/>
+        </div>}
       </div>
     </div>
 
@@ -845,8 +849,8 @@ export default function Dashboard() {
           {/* The avatar is where people expect their account to be, so it
               opens the Profile tab rather than being decoration. */}
           <button onClick={()=>setPage("profile")} aria-label={t("nav.profile")}
-            title={botLive?"Bot is live":"No channel connected"}
-            style={{position:"relative",width:isMobile?36:42,height:isMobile?36:42,borderRadius:"50%",
+            title={botLive?"Bot is live":"No channel connected"} className="ui-sq"
+            style={{position:"relative",width:isMobile?44:42,height:isMobile?44:42,borderRadius:"50%",
               background:T.accGrad,boxShadow:T.accGlow,display:"flex",alignItems:"center",border:"none",padding:0,cursor:"pointer",
               justifyContent:"center",flexShrink:0,overflow:"visible",marginRight:isMobile?2:0}}>
             {me?.client?.logo_url

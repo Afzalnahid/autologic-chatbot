@@ -356,6 +356,11 @@ export function Motion() {
         /* .cal-cell is excluded on purpose: its size must come from the 7-column
            grid (see the calendar rules), and a 44px floor would overflow it. */
         button:not(.cal-cell), a[role="button"], .ui-opt { min-height: 44px }
+        /* The line above raises only the HEIGHT, and min-height beats an inline
+           height — so every square icon button became a 36x44 rectangle on a
+           phone, and the round avatar an ellipse. Square buttons have to grow
+           in both directions or they come out stretched. */
+        .pbtn, .ui-sq { min-width: 44px }
         .ui-menu { max-height: min(60vh, 420px) }
       }
       /* iOS zooms the page when a field under 16px takes focus. */
