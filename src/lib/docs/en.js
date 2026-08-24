@@ -111,6 +111,974 @@ export const DOCS = {
     ],
   },
 
+  "channels": {
+    title: "Channels",
+    lead: "Where your bot answers. Connect as many Facebook Pages, Instagram accounts and WhatsApp numbers as you need — each one takes a single click and its own on/off switch.",
+    time: 6,
+    blocks: [
+      { h: "What a channel is",
+        p: [
+          "A channel is one place customers can write to you: a Facebook Page, an Instagram Business account, a WhatsApp Business number, or your own website.",
+          "You can connect as many as you like. **Each Page, account or number can belong to only one Autologic account** — so if a Page is already connected somewhere else, disconnect it there first.",
+        ] },
+
+      { h: "Connecting one",
+        steps: [
+          "Press **Connect new channel**.",
+          "Pick Facebook, Instagram or WhatsApp.",
+          "A window opens and you log in **with your own account** — the same one you use every day.",
+          "Choose which Page or account to connect, and approve.",
+          "The window closes and a green card confirms it. The bot is answering from that moment.",
+        ] },
+
+      { note: "You never have to find an ID or copy a token. If a page ever asks you for one, something has gone wrong — write to us rather than hunting for it.",
+        kind: "tip" },
+
+      { h: "Reading the list",
+        p: ["Connected channels are grouped by platform, with a count beside each name."],
+        table: { head: ["Section", "What it covers"],
+          rows: [
+            ["**Facebook**", "Messenger replies and comment automation"],
+            ["**Instagram**", "DM replies and comment automation"],
+            ["**WhatsApp**", "Replies on your business numbers"],
+            ["**Website**", "The same bot on your own site — see the Website widget page"],
+          ] } },
+
+      { p: ["Each connected account is one row. The small dot on its icon is the quickest signal in the tab:"],
+        table: { head: ["What you see", "What it means"],
+          rows: [
+            ["A **green dot** and “Live — the bot is answering”", "Working normally"],
+            ["A **grey dot** and “Paused — messages wait for you”", "The bot is off here; nothing is lost, messages simply sit in Conversations"],
+            ["The switch on the right", "Turns this one channel on or off"],
+            ["The arrow at the end", "Opens the row's details"],
+          ] } },
+
+      { h: "Inside a row",
+        p: ["Tap a row to open it. Three things live there:"],
+        steps: [
+          "**The platform ID and the date it was connected** — useful only if you ever need to tell them apart or quote one to support.",
+          "**Comment automation** — two switches, on Facebook and Instagram rows only. Covered in full on the Comments page.",
+          "**Disconnect** — the red button at the bottom.",
+        ] },
+
+      { note: "**Pausing is not disconnecting.** The switch stops the bot replying but keeps everything connected, so one tap brings it back. **Disconnect** cuts the link — you have to go through the whole connect flow again to undo it.",
+        kind: "warn" },
+
+      { h: "One business, several Pages",
+        p: [
+          "Many owners run a main Page plus a second one for a different product line, or an English Page and a Bangla one. Connect them all. Every conversation lands in the same inbox, and the **Conversations** tab can filter down to a single Page when you want to look at just one.",
+          "Each Page keeps its own on/off switch and its own comment settings, so the bot can be busy on one and silent on another.",
+        ] },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "The connect window opened and closed without doing anything.",
+            a: "Almost always a pop-up blocker, or a browser that closed the window before it finished. Allow pop-ups for this site and try again. On a phone, do not switch apps while the window is open." },
+          { q: "My Page is not in the list I get to choose from.",
+            a: "You must be an **admin** of that Page on Facebook, not an editor or moderator. Check your role in Facebook's Page settings, then connect again." },
+          { q: "It says the Page is already connected.",
+            a: "A Page can power only one Autologic account. If you connected it under a different email, log in there and disconnect it first. If that account is not yours, write to us." },
+          { q: "The bot answers on one Page but not the other.",
+            a: "Open the quiet Page's row and check its switch. Each channel has its own — turning the bot off in Conversations is a separate control again, covering every channel at once." },
+          { q: "I disconnected by accident.",
+            a: "Nothing is lost. Connect it again the same way; your conversations, orders and training all stay exactly as they were." },
+        ] },
+    ],
+  },
+
+  "website-widget": {
+    title: "Website widget",
+    lead: "The same bot, in a chat bubble on your own website. One line of code, and you decide which addresses are allowed to use it.",
+    time: 4,
+    blocks: [
+      { h: "What it is",
+        p: [
+          "A small chat button that sits in the corner of your website. A visitor clicks it and talks to the **same bot** that answers your Messenger, Instagram and WhatsApp — it already knows your products, prices and policies, so there is nothing extra to teach it.",
+          "Those chats appear in **Conversations** alongside everything else, and you can take over from the bot exactly the same way.",
+        ] },
+
+      { h: "Setting it up",
+        p: ["The widget lives at the bottom of the **Channels** tab, in the Website section."],
+        steps: [
+          "Type your website address — for example `yourshop.com` — and press **Create widget**.",
+          "Press **Copy code**. You now have one line on your clipboard.",
+          "Paste it into your website, **just before the `</body>` tag**, on every page where the chat should appear.",
+          "Save and reload your site. The chat button appears in the corner.",
+        ] },
+
+      { note: "If someone else built your website, send them the copied line and tell them: *paste this before the closing body tag*. That sentence is all a web developer needs — there is nothing else to configure.",
+        kind: "tip" },
+
+      { h: "Which websites are allowed",
+        p: [
+          "The chat only loads on addresses you have listed. This is what stops someone copying your code onto their own site and using your bot at your expense.",
+          "Under **Websites allowed to use this chat** you can add more addresses — a second domain, or a subdomain like `shop.yourbrand.com` — and remove any you no longer use.",
+        ] },
+
+      { note: "You cannot remove the last address. With none listed, the chat could not load anywhere, so the dashboard refuses and tells you so.",
+        kind: "warn" },
+
+      { h: "The New key button",
+        p: [
+          "Every widget has its own key, baked into the line of code you pasted. **New key** throws the old one away and issues a fresh one.",
+          "Only do this if you think someone has copied your code and is using your bot. The chat stops working on your website the moment you press it, and stays broken until you paste the new line in.",
+        ] },
+
+      { h: "Turning it off",
+        p: ["The widget row in the Channels tab has the same switch as every other channel. Off, the chat button disappears from your site and the code you pasted simply does nothing — you do not need to edit your website to hide it."] },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "I pasted the code but no chat button appears.",
+            a: "Three things to check. First, the address in **Websites allowed to use this chat** must match where you pasted it — `yourshop.com` will not cover `shop.yourshop.com`; add that separately. Second, the widget's switch in Channels must be on. Third, some site builders strip code pasted into a normal page — it usually has to go in a Settings area named something like *custom code*, *footer code* or *body script*." },
+          { q: "It works on my computer but not on my phone.",
+            a: "Usually the phone is showing an older cached copy. Reload the page fully, or open it in a private window. If your site sits behind Cloudflare or a caching plugin, clear that cache too." },
+          { q: "Can I put it on more than one website?",
+            a: "Yes. Add each address to the allowed list and paste the same line into each site. All the chats arrive in the same inbox." },
+          { q: "Does it work on WordPress, Shopify or Wix?",
+            a: "Yes — anywhere you can add one line of HTML. Every one of those has a place for it; look for *custom code*, *footer scripts* or *body script* in its settings." },
+          { q: "I pressed New key and the chat stopped working.",
+            a: "That is what it does. Press **Copy code** to get the new line and paste it into your website again, replacing the old one." },
+        ] },
+    ],
+  },
+
+  "conversations": {
+    title: "Conversations",
+    lead: "Every chat from every channel in one inbox — with a switch that lets you take over from the bot whenever you want to answer someone yourself.",
+    time: 7,
+    blocks: [
+      { h: "What this tab is for",
+        p: [
+          "Facebook, Instagram, WhatsApp and your website all arrive here. You watch the bot work, and step in whenever you want to.",
+          "It refreshes on its own — a new message appears without you pressing anything.",
+        ] },
+
+      { h: "The two Bot switches",
+        p: ["This is the most important thing on the tab, and there are **two** of them. They do different jobs:"],
+        table: { head: ["Switch", "Where", "What it does"],
+          rows: [
+            ["**Bot ON / Bot OFF**", "Top of the chat list", "The whole account. Off, the bot stops replying on **every** channel and every conversation"],
+            ["**Bot ON / Bot OFF (manual)**", "Top of an open chat", "This one person only. The bot keeps working with everyone else"],
+          ] } },
+
+      { note: "The everyday move is the second one. A customer asks something delicate, you turn the bot off **for that chat**, answer yourself, and turn it back on when you are done. Nobody else is affected.",
+        kind: "tip" },
+
+      { p: ["Both switches show **Loading…** for a moment after the tab opens. That is deliberate — showing a guess and then correcting it would look like your setting had changed by itself."] },
+
+      { h: "Finding a conversation",
+        table: { head: ["Tool", "Use it to"],
+          rows: [
+            ["**Search**", "Look inside names and message text at once"],
+            ["**Channel dropdown**", "Show only one platform — and if you have several Pages, only one Page"],
+            ["**Tag dropdown**", "Show only conversations carrying a tag, with a count beside each"],
+          ] } },
+
+      { p: ["When a filter matches nothing you get **Clear filters**, so you never have to remember which one you left on."] },
+
+      { h: "Reading the list",
+        table: { head: ["What you see", "What it means"],
+          rows: [
+            ["The icon before the name", "Which channel this chat came in on"],
+            ["“2m”, “3h”, “5d”", "How long since the last message"],
+            ["A green **bot** badge", "The bot is answering this person"],
+            ["An amber **manual** badge", "You have taken over this chat"],
+            ["A grey pill with a name", "Which of your Pages this landed on (only shown when you have several)"],
+            ["A **red tag**", "Your complaint tag — worth opening first"],
+          ] } },
+
+      { h: "Answering someone yourself",
+        steps: [
+          "Open the chat.",
+          "Turn its switch to **Bot OFF (manual)** so the bot does not talk over you.",
+          "Type in the box at the bottom and press Enter, or the blue send button.",
+          "When you are finished, turn the switch back on and the bot resumes.",
+        ] },
+
+      { p: ["Your messages sit on the right in blue, the customer's on the left in grey. Anything you sent by hand is marked **You** underneath, so you can tell your words from the bot's at a glance."] },
+
+      { h: "Sending more than text",
+        table: { head: ["Button", "What it sends"],
+          rows: [
+            ["Camera", "Takes a photo there and then — most useful on a phone"],
+            ["Photo", "Picks a picture already on your device"],
+            ["Microphone", "Records a voice message. Press once to start, again to stop and send"],
+            ["The smiley", "A small set of common emoji"],
+          ] } },
+
+      { note: "The first time you use the microphone your browser asks permission. If you refuse it, the button will not work until you allow it again in your browser's settings for this site.",
+        kind: "warn" },
+
+      { h: "Tags",
+        p: [
+          "The bot tags conversations on its own as they come in, from a fixed list that depends on your business type. You can also set one by hand from the dropdown beside the customer's name.",
+          "Tagged chats can then be filtered from the list, and a broadcast can be aimed at a single tag.",
+        ],
+        table: { head: ["Business type", "The tags"],
+          rows: [
+            ["Online shop", "Order · Product Inquiry · Delivery · **Complaint** · Other"],
+            ["Agency", "Booking · Service Inquiry · **Complaint** · Follow-up · Other"],
+          ] } },
+
+      { note: "**Complaint** is the one that matters. It is shown in red everywhere it appears, precisely so an unhappy customer does not get lost in a long list. Filter on it first thing each morning.",
+        kind: "tip" },
+
+      { h: "Deleting a chat",
+        p: ["The red bin in the chat header removes the conversation from your dashboard. It does **not** delete anything from Facebook, Instagram or WhatsApp — the customer still has the thread on their side, and if they write again a fresh conversation appears."] },
+
+      { h: "On a phone",
+        p: ["The list fills the screen; tap a chat to open it and the back button brings you to the list. One back press closes the chat, the next leaves the tab — so you never fall out of the dashboard by accident."] },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "The bot is not replying to anyone.",
+            a: "Check the **Bot ON** switch at the top of the chat list first — that one covers everything. Then check the channel's own switch in **Channels**. If both are on and it is still silent, look at the **AI Engine** tab: a bot running on your own API key pauses politely when that key runs out." },
+          { q: "The bot is not replying to one person.",
+            a: "That conversation is on **manual** — you or someone with your login turned its switch off. Turn it back on and the bot resumes with that person." },
+          { q: "I turned a switch off and it came back on a few seconds later.",
+            a: "That was a bug and it is fixed. If you still see it, your save is failing — you would also get a message saying the switch could not be saved. Check your connection and try again." },
+          { q: "My message would not send.",
+            a: "Facebook, Instagram and WhatsApp all close the door 24 hours after the customer's last message. After that you cannot write to them until they write to you again. This is Meta's rule and applies to every business tool, not only Autologic." },
+          { q: "The customer's real name is not showing.",
+            a: "On Facebook, names need extra permission from Meta that has to be granted per app. Until then you see the account identifier instead of the name. It does not affect replies in any way." },
+        ] },
+    ],
+  },
+
+  "analytics": {
+    title: "Analytics",
+    lead: "How much the bot is doing, how much you still do by hand, and when your customers actually write to you.",
+    time: 6,
+    blocks: [
+      { h: "The period buttons",
+        p: [
+          "**7 days**, **30 days** and **90 days** sit at the top. Every number on the page changes with them, and each one is compared against **the period immediately before it** — so a green arrow on the 30-day view means better than the previous 30 days, not better than last year.",
+          "The page refreshes itself about once a minute; the time it last updated is written on the right.",
+        ] },
+
+      { h: "The five cards at the top",
+        table: { head: ["Card", "What it counts"],
+          rows: [
+            ["**Messages**", "Every message in and out, with today's figure underneath"],
+            ["**Customers**", "How many different people wrote to you, split into new and returning"],
+            ["**Conversations**", "How many separate chats, and the average number of messages in each"],
+            ["**Bot resolved**", "The share of chats the bot finished on its own, with how many needed you"],
+            ["**Revenue**", "Money from confirmed orders, with the order count and average order value"],
+          ] },
+        biz: "ecommerce" },
+
+      { table: { head: ["Card", "What it counts"],
+          rows: [["**Bookings**", "Confirmed bookings, and what share of your customers that is"]] },
+        biz: "agency" },
+
+      { note: "**Bot resolved** is the number to watch week to week. Rising means your training is working. Falling means customers are asking things the bot does not know yet — and **What customers ask about**, further down, usually tells you what.",
+        kind: "tip" },
+
+      { h: "Conversation health",
+        p: ["Three bars that answer one question: is the bot actually coping?"],
+        table: { head: ["Bar", "What it means"],
+          rows: [
+            ["**Handled by bot alone**", "The bot answered and nobody needed you. This is the one to grow"],
+            ["**Needed a human agent**", "You took over. Normal — but a rising share is worth investigating"],
+            ["**Never answered**", "Somebody wrote and got nothing back"],
+          ] } },
+
+      { note: "**Never answered** should be zero. Anything above it means a channel was disconnected, or the bot was paused, at the moment those people wrote. The tab prints a warning under the bars when it happens.",
+        kind: "warn" },
+
+      { h: "Customer mix",
+        p: ["New people against people who came back, plus a count of the **photos** and **voice messages** customers sent. If those two numbers are high, your customers prefer showing to typing — worth knowing before you write your bot's training."] },
+
+      { h: "Channels",
+        p: ["Which platform is actually carrying your business, by message count and by how many separate customers came through it. Useful when deciding where to spend on advertising."] },
+
+      { h: "When customers message",
+        p: [
+          "Twenty-four bars, one per hour, in **Bangladesh time**. The tallest is marked as your peak.",
+          "This is the most practical chart on the page: it tells you the hours worth being personally available, and the hours you can safely leave to the bot.",
+        ] },
+
+      { h: "What customers ask about",
+        p: ["The words that come up most often in customer messages. Read it as a to-do list for **Bot Training** — a word appearing often that your bot handles badly is the single most valuable thing you can fix."] },
+
+      { h: "Best selling products",
+        p: ["Taken from confirmed orders only, so it reflects what people actually bought rather than what they asked about. Underneath, **Orders over time** and the conversion figure show what share of the people who wrote to you ended up ordering."],
+        biz: "ecommerce" },
+
+      { h: "Most requested services",
+        p: ["Taken from confirmed bookings only. Underneath, **Bookings over time** and the conversion figure show what share of the people who wrote to you ended up booking."],
+        biz: "agency" },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "Everything shows zero.",
+            a: "Either no channel is connected yet, or nobody has written in the period you are looking at. Try the 90-day view; if that is empty too, check **Channels**." },
+          { q: "Bot resolved says a dash instead of a number.",
+            a: "There were not enough finished conversations in the period to work out a percentage. It fills in on its own once there are." },
+          { q: "Revenue looks too low.",
+            a: "Only **confirmed** orders count. Anything still Pending is not in the figure. Check the status breakdown at the bottom of the tab." },
+          { q: "The numbers differ from what Facebook shows me.",
+            a: "They count different things. Meta counts everything on your Page including comments and reactions; Autologic counts the conversations it actually handled. Some difference is expected." },
+          { q: "Why Bangladesh time?",
+            a: "Because your customers are there. Fixing the clock to one place means the peak hour means the same thing whether you check it from Dhaka or from abroad." },
+        ] },
+    ],
+  },
+
+  "broadcast": {
+    title: "Broadcast",
+    lead: "One message to many customers at once — inside the 24-hour window the platforms allow, with the audience checked before anything is sent.",
+    time: 6,
+    blocks: [
+      { h: "The one rule that governs everything here",
+        p: [
+          "You may only message someone who wrote to you **in the last 24 hours**.",
+          "This is Meta's rule, not ours, and it applies to every tool that sends on Facebook, Instagram or WhatsApp. Autologic enforces it because sending outside the window is what gets Pages restricted and blocked.",
+        ] },
+
+      { note: "So a broadcast is not a newsletter. It is a way to reach people **who are already talking to you today** — a flash offer, a stock update, an apology for a delay. Plan it around your peak hour in **Analytics**.",
+        kind: "warn" },
+
+      { h: "Sending one",
+        steps: [
+          "Write your message. The counter under the box shows how much room you have left.",
+          "Choose the **Channel** — all connected channels, or just one.",
+          "Choose **Who**: people active in the last 6, 12 or 24 hours.",
+          "Narrow it further by order history and by tag if you want to.",
+          "Press **Check who will get it**.",
+          "Read the result, then press **Send now**.",
+        ] },
+
+      { note: "**Send now** stays disabled until you have checked the audience. That is deliberate — a broadcast cannot be taken back, so the dashboard makes you look at the list first.",
+        kind: "tip" },
+
+      { h: "The filters",
+        table: { head: ["Filter", "What it does"],
+          rows: [
+            ["**Channel**", "All connected channels at once, or a single platform"],
+            ["**Who**", "How recently the person wrote — 6, 12 or 24 hours"],
+            ["**Order history**", "Everyone · Has ordered before · Never ordered"],
+            ["**Tag**", "Only people whose conversation carries a tag you set in Conversations"],
+          ] },
+        biz: "ecommerce" },
+
+      { table: { head: ["Filter", "What it does"],
+          rows: [["**Booking history**", "Everyone · Has booked before · Never booked"]] },
+        biz: "agency" },
+
+      { p: ["Combining them is where this gets useful: *people active in the last 6 hours who have never ordered* is a very different message from *people who have ordered before*."] },
+
+      { h: "Reading the check",
+        table: { head: ["Number", "What it means"],
+          rows: [
+            ["**will receive it**", "People the message can legally and technically reach right now"],
+            ["**cannot be messaged**", "People who match your filters but are outside the window or blocked for another reason"],
+            ["For example: …", "A few real names, so you can sanity-check you are aiming at the right group"],
+            ["Why some are left out", "The exact reason for each person who was skipped"],
+          ] } },
+
+      { p: ["If the audience is larger than your plan allows, a red line says how many messages you have left in the current period. The remaining allowance is also printed under the card at all times."] },
+
+      { h: "While it sends",
+        p: [
+          "A counter shows **Sending… X of Y** and then **Finished — N sent**. Large audiences are sent in batches, so leave the tab open until it says finished.",
+          "If some failed, the count says so and the exact reason for each one is in the history below.",
+        ] },
+
+      { h: "Past broadcasts",
+        p: ["Every broadcast you have sent, newest first, with what it said, when, on which channel, and three badges: **sent**, **failed** and **skipped**. Tap any of them to open the full recipient list with a status line per person."] },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "It says no channel is ready for broadcasts.",
+            a: "Connect Facebook, Instagram or WhatsApp in **Channels**, and make sure the channel is not paused there. The website widget cannot receive broadcasts at all — once a visitor closes the tab there is no address left to send to." },
+          { q: "The check says almost nobody will receive it.",
+            a: "That is the 24-hour window doing its job. Widen **Who** to 24 hours, and send during or just after your peak hour — **Analytics** tells you when that is." },
+          { q: "Some messages failed.",
+            a: "Open that broadcast in the history to see the reason for each. The usual causes are the person blocking your Page, deleting their account, or the window closing while the batch was still running." },
+          { q: "Can I schedule one for later?",
+            a: "No, and it would not help: by the time a scheduled message ran, most of your audience would have fallen outside the 24-hour window. Sending it yourself at the right moment is what makes it land." },
+          { q: "Can I take one back?",
+            a: "No. Once a message reaches Facebook, Instagram or WhatsApp it belongs to them. This is why the dashboard makes you check the audience and confirm before it sends." },
+        ] },
+    ],
+  },
+
+  "inventory": {
+    title: "Inventory and Knowledge Base",
+    lead: "What your bot sells from. An online shop puts products here; an agency puts documents. This one tab changes completely depending on your business type.",
+    time: 8,
+    blocks: [
+      { h: "Which one you have",
+        p: [
+          "The tab is called **Inventory** for an online shop and **Knowledge Base** for an agency, and they are genuinely different screens. Your business type in **Profile** decides which you see.",
+          "Both do the same job: they are the facts the bot answers from.",
+        ] },
+
+      { h: "Adding products",
+        p: ["There are three ways in, and the second one saves the most time."],
+        table: { head: ["Way", "Best for"],
+          rows: [
+            ["**Add a product**", "Typing one in by hand — name, photos, price, variants"],
+            ["**Paste a product URL**", "You already have the product on a website. We fetch the name, photo and price for you"],
+            ["**Import WooCommerce**", "Bringing an entire existing shop over in one go"],
+          ] },
+        biz: "ecommerce" },
+
+      { h: "Filling in a product",
+        table: { head: ["Field", "What to put"],
+          rows: [
+            ["**Product name**", "The only required field. Write it the way a customer would say it"],
+            ["Product code / SKU", "Filled in automatically if you leave it empty"],
+            ["Brand", "Optional"],
+            ["Category", "Supports levels, like `Men › Panjabi`"],
+            ["Tags", "Comma separated — `cotton, summer, gift`. The bot uses these to match loose questions"],
+            ["Regular price / Sale price", "In taka. A sale price shows the old one struck through"],
+            ["Quantity", "Optional. Leave it empty if you do not track stock"],
+            ["Description", "Describe it the way you would to a customer — this is what the bot borrows from"],
+            ["Photos", "Upload, or paste an image link starting with `https://`"],
+            ["Variants", "Add an option such as Size, then its values. Each value can carry its own code, price and quantity"],
+          ] },
+        biz: "ecommerce" },
+
+      { note: "Write the description as if you were explaining the product to a customer standing in front of you. The bot answers out of these words, so a description reading *soft cotton, does not shrink, good for summer* produces far better replies than *Cotton Panjabi Navy*.",
+        kind: "tip" },
+
+      { h: "Finding things later",
+        p: ["Once you have more than a handful of products, four controls do the work:"],
+        table: { head: ["Control", "What it does"],
+          rows: [
+            ["**Search**", "Looks in name, code, tag and brand at once"],
+            ["**Category filter**", "One category, or everything not yet filed under one"],
+            ["**Sort**", "Newest first · Name A–Z · Price low → high · Price high → low · **Stock issues first**"],
+            ["**Grid / table**", "Pictures for browsing, rows for working through a long list. Your choice is remembered"],
+          ] },
+        biz: "ecommerce" },
+
+      { p: ["The four counters at the top — **Products**, **Categories**, **Variants** and **Low stock** — are the quickest daily check. **Stock issues first** puts everything that needs attention at the top of the list."],
+        biz: "ecommerce" },
+
+      { h: "Changing several at once",
+        p: ["Tick the boxes on several products and a bar appears at the bottom of the screen. From there you can mark them all in stock or out of stock, or delete them together — much faster than opening each one."],
+        biz: "ecommerce" },
+
+      { note: "Marking something **out of stock** is better than deleting it. The bot then tells customers it is unavailable instead of pretending it never existed, and you can bring it back with one tap when it returns.",
+        kind: "tip" },
+
+      { h: "Uploading documents",
+        p: [
+          "An agency's bot answers from your own documents rather than a price list. Press **Upload document** and pick a **PDF**, **Word (DOCX)** or plain text file.",
+          "Autologic reads the file, breaks it into pieces and indexes them. The card then shows how many pieces were indexed — that number is only a progress signal; a bigger document simply makes more.",
+        ],
+        biz: "agency" },
+
+      { p: ["Good documents to upload: your service list with prices, your standard proposal, your terms, a frequently-asked-questions sheet, case studies. Anything you find yourself sending clients over and over."],
+        biz: "agency" },
+
+      { note: "The bot answers **using only this information**, plus what you wrote in Bot Training. That is deliberate — it is what stops it inventing a service you do not offer. If it cannot answer something, the fix is to upload a document that covers it.",
+        kind: "warn",
+        biz: "agency" },
+
+      { p: ["The bin icon removes a document and everything indexed from it, immediately. Upload a corrected version afterwards if you are replacing it rather than dropping it."],
+        biz: "agency" },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "The bot quotes an old price.",
+            a: "Update the price here and it changes at once — there is nothing to republish. If it is still wrong, check whether the same product exists twice; search the name and delete the duplicate." },
+          { q: "The bot says something is available when it is not.",
+            a: "Set that product to **out of stock**, or set its quantity to zero. **Stock issues first** in the sort menu shows you everything in that state." },
+          { q: "Pasting a product URL did not fill anything in.",
+            a: "Some shop websites block automatic reading. Add the product by hand instead — it is a minute's work, and the result is identical." },
+          { q: "My WooCommerce import failed.",
+            a: "The website address must be the shop's own address, and the consumer key and secret must be generated in WooCommerce under WooCommerce → Settings → Advanced → REST API, with **Read** access. A key made for a different site will not work." },
+          { q: "I uploaded a document but the bot does not seem to know it.",
+            a: "Two things to check. Scanned PDFs that are really photographs of pages have no text to read — export a text-based PDF instead. And ask the question using words that actually appear in the document; the bot matches on meaning, but it cannot answer about something the file never mentions." },
+        ] },
+    ],
+  },
+
+  "orders": {
+    title: "Orders and Bookings",
+    lead: "What the bot closed for you. An online shop gets orders taken in chat; an agency gets meetings booked straight into Google Calendar.",
+    time: 7,
+    blocks: [
+      { h: "Which one you have",
+        p: ["The tab is **Orders** for an online shop and **Bookings** for an agency. Your business type in **Profile** decides which one appears."] },
+
+      { h: "How an order gets here",
+        p: [
+          "The bot takes it during the conversation. When a customer says what they want and gives a name, phone number and address, the bot writes the order down and it appears here as **Pending**.",
+          "Nothing is shipped or charged automatically. Everything after this point is yours to do.",
+        ],
+        biz: "ecommerce" },
+
+      { h: "Moving an order along",
+        p: ["Each order carries a status, and the buttons walk it forward one step at a time:"],
+        table: { head: ["Status", "What it means", "Button"],
+          rows: [
+            ["**Pending**", "The bot took it, you have not checked it yet", "**Confirm**"],
+            ["**Confirmed**", "You have accepted it", "**Mark shipped**"],
+            ["**Shipped**", "It is with the courier", "**Mark delivered**"],
+            ["**Delivered**", "Finished. This is what counts as revenue in Analytics", "—"],
+            ["**Cancelled** · **Returned**", "Did not complete. Left out of revenue", "—"],
+          ] },
+        biz: "ecommerce" },
+
+      { note: "Only **Delivered** orders count towards the Revenue figure in **Analytics**. If your revenue looks lower than you expect, it is usually a pile of orders still sitting on Confirmed.",
+        kind: "warn",
+        biz: "ecommerce" },
+
+      { h: "The three quick filters",
+        p: ["Above the list: **Needs action**, **Today**, **Delivered** and **All orders**. **Needs action** is the one to open every morning — it is everything waiting on you."],
+        biz: "ecommerce" },
+
+      { p: ["Then **Search** (order number, name, phone or product), a date range of **All time · Last 7 days · Last 30 days**, and a sort of **Newest · Oldest · Highest amount**."],
+        biz: "ecommerce" },
+
+      { h: "Opening one order",
+        p: ["Tap an order and a panel slides in with everything about it — customer, address, items, subtotal, delivery, discount, payment method and which channel it came from."],
+        biz: "ecommerce" },
+
+      { table: { head: ["What you can do", "Why"],
+          rows: [
+            ["Edit **name, phone, delivery area, address**", "The bot writes down what the customer typed; typos happen"],
+            ["Set **delivery charge**", "Inside or outside the city usually differ"],
+            ["Set **payment method**", "Defaults to cash on delivery"],
+            ["**Copy name, phone, address**", "One tap, ready to paste into your courier's form"],
+            ["Add a **note**", "Courier and tracking number, or a special request. Only you see it"],
+          ] },
+        biz: "ecommerce" },
+
+      { note: "The **Copy name, phone, address** button is the one that saves real time. It puts all three on your clipboard in one go, formatted for pasting straight into Pathao, Steadfast or whichever courier you use.",
+        kind: "tip",
+        biz: "ecommerce" },
+
+      { p: ["The download icon exports what you are currently looking at as a CSV file, filters included — useful for accounts, or for handing a day's orders to someone else."],
+        biz: "ecommerce" },
+
+      { h: "Connect Google Calendar first",
+        p: [
+          "Bookings only work once your calendar is connected. If it is not, the tab says so and shows you the button.",
+          "It takes about a minute, there is nothing to install, and you log in with your own Google account. Autologic only uses it to check when you are free and to create the meetings — nothing else in your calendar is read or touched.",
+        ],
+        biz: "agency" },
+
+      { h: "How a booking gets here",
+        steps: [
+          "A customer asks for a meeting during a conversation.",
+          "The bot checks your calendar for a free slot.",
+          "It offers times, the customer picks one, and the bot confirms.",
+          "The event is created in **your** Google Calendar with a **Google Meet link**, and the customer is sent that link on the channel they wrote from.",
+        ],
+        biz: "agency" },
+
+      { h: "The calendar",
+        p: [
+          "The month view marks every day that has something booked; tap a day to see just that day. Above it, **Next 7 days** and **This month** switch the range, and the arrows move between months.",
+          "Each booking shows the person, the time, which channel they came from, and a **video** icon that opens the Meet link.",
+        ],
+        biz: "agency" },
+
+      { table: { head: ["Status", "What it means"],
+          rows: [
+            ["**Confirmed**", "Booked and in your calendar"],
+            ["**Completed**", "The meeting has happened"],
+            ["**Cancelled**", "Called off. The calendar event is removed too"],
+          ] },
+        biz: "agency" },
+
+      { note: "Cancelling here also deletes the event from Google Calendar. If the calendar event cannot be removed for some reason, the dashboard tells you plainly and asks you to delete it in Google Calendar yourself, rather than pretending it worked.",
+        kind: "warn",
+        biz: "agency" },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "An order came through with the wrong phone number.",
+            a: "Open the order and edit it. The bot records what the customer typed, and people mistype their own numbers more often than you would think." },
+          { q: "The bot did not take an order even though the customer wanted one.",
+            a: "It needs a name, a phone number and an address before it will write one down. If the customer never gave all three, look at the conversation and take it by hand." },
+          { q: "My revenue in Analytics is lower than my orders.",
+            a: "Revenue counts **Delivered** only. Open **Needs action** and walk the outstanding ones forward." },
+          { q: "The bot is offering times when I am busy.",
+            a: "It reads whatever is in the Google Calendar you connected. If your other commitments live in a different calendar, the bot cannot see them — put them in the connected one, or block the time there." },
+          { q: "The Google Meet link is missing.",
+            a: "Meet links are created by Google when the event is made. If one is missing, the account you connected may not have Meet enabled. Reconnect the calendar, and if it persists, write to us." },
+          { q: "I disconnected Google Calendar. What happens to existing bookings?",
+            a: "They stay listed in this tab, but the bot stops taking new ones and can no longer add or remove events in your calendar. Reconnect and it picks up where it left off." },
+        ] },
+    ],
+  },
+
+  "bot-training": {
+    title: "Bot Training",
+    lead: "Where you teach the bot your business. Answer its questions and it writes its own training from your answers — then set your offers, your bargaining rule and how it sounds.",
+    time: 9,
+    blocks: [
+      { h: "Why the tab is called this",
+        p: [
+          "It used to be called Settings, and owners looked straight past it. Everything on this page teaches or tunes the bot, so it says what it does.",
+          "This is the single most valuable tab in the dashboard. A bot trained for twenty minutes here answers better than one connected to five channels and taught nothing.",
+        ] },
+
+      { p: ["Four sections across the top: **Train**, **Offers**, **Bargaining** and **Behavior**. A checklist above them shows how far along you are — Identity, Business, Policies, Services, Q&A, Offers, Bargaining."] },
+
+      { h: "Train — the interview",
+        p: [
+          "The bot asks you questions about your business, one at a time, and writes its own training from your answers. You can switch between a **Chat** view and a **Form** view; the form is faster once you know the questions.",
+          "**Write in whichever language you like.** Bangla, English or a mix — the bot understands all three, and it will still answer each customer in whatever language that customer used.",
+        ] },
+
+      { p: ["It asks about your products and best sellers, delivery time and charge, where you deliver, payment methods, advance payment, your return policy, what to say when something is out of stock, warranty, opening hours, how to handle an angry customer, and your most common questions with your answers."],
+        biz: "ecommerce" },
+
+      { p: ["It asks what you do and for whom, your services and prices, how pricing works, how you work with a client step by step, how long before results show, who you usually work with, contract and payment terms, how clients book a consultation, your availability, common objections and how you answer them, and your most common questions with your answers."],
+        biz: "agency" },
+
+      { steps: [
+          "Answer as many as you can. Skip anything that does not apply — nothing is required.",
+          "Press **Generate my bot's profile**. The bot turns your answers into the text it works from.",
+          "Press **Save**.",
+        ] },
+
+      { note: "Answer as if you were training a new employee on their first day, not filling in a form. *Delivery inside the city is 60 taka and takes one to two days; outside is 120 and takes two to three* teaches the bot far more than *60/120*.",
+        kind: "tip" },
+
+      { p: ["Underneath sits **Teach it more** — a box for anything new, any time. A rule you forgot, a price change, something a customer asked that the bot fumbled. What you add there is remembered on top of everything above, so you never have to redo the interview."] },
+
+      { h: "Offers — deals the bot quotes exactly",
+        p: ["Write a running offer once and the bot brings it up whenever a customer asks about the things it applies to. It quotes your wording rather than inventing its own."],
+        steps: [
+          "Press **Add offer**.",
+          "Pick which products the offer applies to.",
+          "Write the offer the way a customer should hear it, and add the conditions underneath.",
+          "Set **Valid until**.",
+          "Press **Organise with AI** to tidy your wording, then **Save**.",
+        ],
+        biz: "ecommerce" },
+
+      { steps: [
+          "Press **Add offer**.",
+          "Type the service names the offer applies to.",
+          "Write the offer the way a client should hear it, and add the conditions underneath.",
+          "Set **Valid until**.",
+          "Press **Organise with AI** to tidy your wording, then **Save**.",
+        ],
+        biz: "agency" },
+
+      { note: "Offers stop **automatically** on their end date, so a Ramadan discount does not still be quoted in July. Each one also has its own Live / Off switch if you want to pause it early.",
+        kind: "tip" },
+
+      { h: "Bargaining — how it answers “can you do it cheaper?”",
+        p: ["Customers will ask. This section decides what happens when they do, and it is one of three choices:"],
+        table: { head: ["Choice", "What the bot does"],
+          rows: [
+            ["**Never discount**", "Politely holds your listed price, and talks about value or a running offer instead"],
+            ["**Discount up to a limit**", "Negotiates in small steps and never goes below the percentage you set"],
+            ["**My own rule**", "Follows a rule you write in your own words, in any language"],
+          ] } },
+
+      { note: "The bot **never reveals your limit** and **never offers a discount before the customer asks**. If you pick a limit, the tab shows a worked example so you can see exactly how low it could go on a given price.",
+        kind: "warn" },
+
+      { p: ["**My own rule** is worth using once your rules have exceptions — *no discount under 500; above that, at most 50 off; three or more, free delivery may be offered*. Write it the way you would explain it to a shop assistant."] },
+
+      { h: "Behavior — how it sounds and what it does on its own",
+        table: { head: ["Setting", "What it controls"],
+          rows: [
+            ["**Bot name**", "What it calls itself"],
+            ["**Business name**", "What it calls you"],
+            ["**Greeting**", "The first thing a new customer sees"],
+            ["**Tone**", "Friendly and helpful · Professional and formal · Casual and fun"],
+            ["**Customer languages**", "Follow the customer's language · Bangla only · English only"],
+          ] } },
+
+      { note: "**Follow the customer's language** is almost always the right choice. Someone who writes in Bangla gets Bangla, someone who writes in English gets English, and someone who mixes gets a mix. Forcing one language only helps if you have a reason to.",
+        kind: "tip" },
+
+      { h: "The follow-up message",
+        p: [
+          "Somebody asked about something and never ordered. Switch this on and the bot sends **one** reminder, after however many hours you choose.",
+          "They get it **once**, and it stops immediately if they reply.",
+        ] },
+
+      { note: "The delay caps at **23 hours**, and that is not an arbitrary number: Facebook, Instagram and WhatsApp shut the messaging window 24 hours after the customer's last message. Anything later simply cannot be delivered.",
+        kind: "warn" },
+
+      { h: "Guardrails",
+        p: ["A set of platform rules that are **always on and cannot be changed** — they keep every bot on the service safe and within Meta's policies. Press **See the rules** to read exactly what they are. They are added on top of your training automatically; you never have to write them yourself."] },
+
+      { h: "Advanced — the bot's business profile",
+        p: [
+          "This is the exact text the bot works from. The **Train** tab writes it for you, and most owners never need to open it.",
+          "You can edit it freely if you want to — the guardrails are still added on top. But if you are not sure why you are changing something, use the Train tab and **Teach it more** instead: they cannot break anything.",
+        ] },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "I saved my training but the bot answers the same as before.",
+            a: "Changes are live immediately, so first check that **Save** actually completed — the button says *Saved* when it has. Then test in a brand new conversation: an ongoing chat carries its earlier context along and can look unchanged for a few messages." },
+          { q: "The bot invents things I never told it.",
+            a: "That usually means it was asked something your training does not cover, so it filled the gap. Add the missing fact through **Teach it more**. The more complete the training, the less room there is to improvise." },
+          { q: "It gives a discount I did not authorise.",
+            a: "Check the **Bargaining** section. If it is set to *Discount up to a limit*, the bot may go down to that limit. Set *Never discount*, or lower the percentage." },
+          { q: "It answers in English when customers write in Bangla.",
+            a: "Set **Customer languages** to *Follow the customer's language*. If it is already on that, check you have not written your training only in English with an instruction to reply in English." },
+          { q: "Can I undo the Advanced text if I break it?",
+            a: "Yes. Go back to the **Train** tab and press **Generate my bot's profile** again — it rewrites the profile from your interview answers, and your **Teach it more** entries are kept." },
+        ] },
+    ],
+  },
+
+  "ai-engine": {
+    title: "AI Engine",
+    lead: "Which AI powers your bot. By default it is ours, included in your plan — and if you would rather run on your own Google Gemini key, this is where you put it.",
+    time: 5,
+    blocks: [
+      { h: "You probably do not need this tab",
+        p: [
+          "Out of the box your bot runs on **Autologic's AI**. Nothing to set up, nothing extra to pay, it is part of your plan. Most owners never open this tab, and that is fine.",
+          "It exists for businesses that want the AI usage billed to their own account instead of ours.",
+        ] },
+
+      { h: "Bringing your own key",
+        p: ["Two things have to be true before you can:"],
+        steps: [
+          "Your account must be **enabled** for it. That is a permission we grant — write to us and ask.",
+          "You need a **Google AI (Gemini)** API key of your own, from `aistudio.google.com` → *Get API key*.",
+        ] },
+
+      { p: ["Once enabled, the tab shows a box for the key."],
+        steps: [
+          "Paste your key.",
+          "Press **Check key & load models**. We test it against Google before saving anything.",
+          "If it works, we pick a sensible main model and a fallback for you. Change them if you want to.",
+          "Press **Verify & activate**.",
+        ] },
+
+      { note: "The key is checked with Google **before** it is saved, so a mistyped key fails at that moment rather than quietly breaking your bot an hour later. Once saved it is encrypted, and no dashboard — yours or ours — ever shows more than a masked form of it.",
+        kind: "tip" },
+
+      { h: "Main model and fallback",
+        p: ["The main model answers your customers. The fallback takes over if the main one is busy or unavailable, so a momentary problem at Google does not leave a customer waiting. A higher-quality main model gives better answers and costs you more per message — the choice is yours, since it is your bill."] },
+
+      { h: "What happens if your key stops working",
+        p: [
+          "If your key runs out of quota, is revoked, or stops working for any reason, the tab says **Not working — bot paused** and your bot stops replying, politely.",
+          "It does **not** fall back to Autologic's AI.",
+        ] },
+
+      { note: "That is deliberate, and it is the point of the whole feature: on your own key you run **only** on your own key. Silently routing you back to our AI would hand you an invisible bill you never agreed to. So the bot pauses and tells you, and you fix the key.",
+        kind: "warn" },
+
+      { h: "Going back to ours",
+        p: ["Remove the key and the tab confirms: *your bot is back on the platform's AI*. It resumes answering immediately, on your plan, at no extra cost. Nothing about your training, channels or history changes."] },
+
+      { h: "One thing always runs on our key",
+        p: [
+          "Searching your own products and documents needs the text turned into numbers first — and every saved item has to be turned into numbers by **the same model**, or the search silently stops matching.",
+          "So that one step always runs on the same model for everybody, whichever key answers your customers. It is a tiny fraction of the work and it is included in your plan either way.",
+        ] },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "The tab says my account is not enabled for this.",
+            a: "Running on your own key is a permission we grant per account. Write to us and ask for it — there is nothing you can switch on yourself." },
+          { q: "My key was rejected.",
+            a: "Three usual causes: the key was copied with a space at one end, it is not a **Google AI (Gemini)** key, or the Google project it belongs to does not have the Gemini API enabled. Generate a fresh one at `aistudio.google.com` and paste it again." },
+          { q: "My bot stopped and the tab says the key is not working.",
+            a: "Almost always the free quota has run out for the day, or billing lapsed on the Google account. Check the key in Google AI Studio. Removing the key here puts you straight back on our AI while you sort it out." },
+          { q: "Can I use OpenAI, or another provider?",
+            a: "For answering customers, only Google Gemini keys are supported today. Product and document search always runs on our Gemini model regardless, so nothing breaks either way." },
+          { q: "Will this make my bot better?",
+            a: "Not by itself. What the bot knows comes from **Bot Training**, not from whose key pays for it. Choose your own key when you want the usage on your own account — an untrained bot on an expensive model is still an untrained bot." },
+        ] },
+    ],
+  },
+
+  "billing": {
+    title: "Billing",
+    lead: "Your plan, how much of it you have used, and how to pay for a bigger one with bKash or Nagad.",
+    time: 4,
+    blocks: [
+      { h: "Your current plan",
+        p: ["The card at the top shows which plan you are on and two counters: **Messages today** and **Messages this month**. On an unlimited plan it says so instead of counting."] },
+
+      { note: "These are the same limits the bot itself enforces. When you run out, the bot stops replying — so it is worth glancing at this card before a big campaign or a festival rush, not after.",
+        kind: "warn" },
+
+      { h: "Changing plan",
+        steps: [
+          "Press **Choose a plan** or **Upgrade your plan**.",
+          "Pick a plan. The one most businesses choose is marked **Popular**, and the one you are on is marked **Current**.",
+          "Choose **Monthly** or **Yearly**. Yearly gives you **two months free**.",
+        ] },
+
+      { h: "Paying",
+        p: ["Payment is by mobile money, and it is a **Send Money** transfer — not a merchant payment."],
+        steps: [
+          "The page shows the exact amount and the numbers you can send to. The copy icon beside a number puts it on your clipboard.",
+          "Open bKash or Nagad and **Send Money** for exactly that amount.",
+          "Come back and enter the **Transaction ID** from your payment receipt. Your own number is optional but helps us match it faster.",
+          "Press **Submit payment**.",
+        ] },
+
+      { note: "Send the amount **exactly**. A payment that is short, or sent as a merchant payment instead of Send Money, takes much longer to match up and may need to be sent again.",
+        kind: "warn" },
+
+      { h: "After you submit",
+        p: [
+          "A card appears saying **Payment under review**. A person checks the transaction against the number you sent to, then your plan changes.",
+          "Nothing is automatic here, so allow a little time. If it has not moved within a working day, write to us with the transaction ID.",
+        ] },
+
+      { p: ["**Payment history** at the bottom lists everything you have submitted, with its transaction ID, so you always have a record."] },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "The page says payment numbers are not configured.",
+            a: "That is on our side, not yours — no numbers have been set up for the account yet. Write to us and we will complete the payment for you directly." },
+          { q: "I paid but my plan has not changed.",
+            a: "A person has to match the transaction first. If a working day has passed, write to us with the transaction ID and the number you sent from." },
+          { q: "I entered the transaction ID wrongly.",
+            a: "Submit it again with the correct one. A duplicate submission is not charged twice — matching is done against the actual transaction, not against what you typed." },
+          { q: "What happens when I hit my message limit?",
+            a: "The bot stops replying until the period resets or you upgrade. Your conversations, orders and training are untouched — nothing is lost, it simply pauses." },
+          { q: "Is yearly really cheaper?",
+            a: "Yes — a yearly plan is twelve months for the price of ten. If you are past your trial and intend to keep using it, yearly is straightforwardly better value." },
+          { q: "Can I pay with a card?",
+            a: "Not at the moment. bKash and Nagad Send Money are the supported methods." },
+        ] },
+    ],
+  },
+
+  "profile": {
+    title: "Profile",
+    lead: "Your business details, your logo, your business type, your package at a glance, and the Google Calendar connection.",
+    time: 4,
+    blocks: [
+      { h: "Business information",
+        p: ["Your **business name**, **phone**, **address** and **website**. The bot uses these when a customer asks where you are or how to reach you, so keeping them accurate saves you answering the same question by hand."],
+        table: { head: ["Field", "Where it shows up"],
+          rows: [
+            ["Business name", "How the bot refers to you in every conversation"],
+            ["Phone", "Given out when a customer asks how to call you"],
+            ["Address", "Given out when a customer asks where you are"],
+            ["Website", "Shared when a customer wants to browse"],
+          ] } },
+
+      { h: "Business logo",
+        p: ["Upload your logo here. It appears in the dashboard and on your website chat widget, so a visitor sees your brand rather than a generic robot."] },
+
+      { h: "Business type",
+        p: [
+          "**E-commerce / Online shop** or **Agency / Service provider**. This is not a label — it changes the dashboard.",
+        ],
+        table: { head: ["", "Online shop", "Agency"],
+          rows: [
+            ["Two tabs become", "Inventory · Orders", "Knowledge Base · Bookings"],
+            ["The bot is taught with", "Your product catalogue", "Your documents"],
+            ["The bot can", "Take an order in chat", "Book a meeting on your calendar"],
+            ["Its tags are", "Order, Product Inquiry, Delivery, Complaint, Other", "Booking, Service Inquiry, Complaint, Follow-up, Other"],
+          ] } },
+
+      { note: "You can change your business type here, and the dashboard follows immediately. What you already have does not transfer, though — products do not become documents. If you switch, plan on setting up the new side from scratch.",
+        kind: "warn" },
+
+      { h: "Resources",
+        p: ["A count of what your bot has to work with — your products, or your knowledge files. A quick way to notice that an import did not land, or that a document you thought you uploaded is not actually there."] },
+
+      { h: "Your package",
+        p: ["The same figures as the Billing tab, repeated here so you can see them without leaving your profile: messages today, messages this month, and what your plan includes. The button takes you to **Billing** to change it."] },
+
+      { h: "Google Calendar",
+        p: [
+          "Connect it and the bot can check when you are free, create meetings, and send Google Meet links to customers on its own.",
+          "You log in with your own Google account. Autologic uses that access **only** to check availability and create the events — nothing else in your calendar is read, shared or used for anything.",
+        ] },
+
+      { note: "**Disconnect** removes our access immediately and deletes the stored tokens. Bookings already made stay listed in your Bookings tab, but the bot stops taking new ones.",
+        kind: "tip" },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "My logo will not upload.",
+            a: "Use a normal PNG or JPG. Very large files and unusual formats can fail — if yours is several megabytes, shrink it first." },
+          { q: "I changed my business type and my products vanished.",
+            a: "They are not deleted, they are simply not shown: an agency dashboard has no Inventory tab. Switch back to online shop and they reappear exactly as they were." },
+          { q: "The bot gives out an old phone number.",
+            a: "Update it here. Also check **Bot Training** — if you typed a phone number into your training text, that copy has to be corrected too." },
+          { q: "Google Calendar says connected but the bot is not booking.",
+            a: "Check the **Bookings** tab; it reports calendar problems in more detail. The usual cause is that your commitments live in a different Google calendar from the one you connected." },
+          { q: "Where do I change my email or password?",
+            a: "Those belong to your login rather than your business profile. Use the password reset link on the sign-in screen, or write to us to change the email address." },
+        ] },
+    ],
+  },
+
+  "faq": {
+    title: "Common questions",
+    lead: "The questions that come up most often, and the ones that do not belong to any single tab.",
+    time: 6,
+    blocks: [
+      { h: "The bot is not replying",
+        p: ["Work through these in order — it is almost always one of the first three."],
+        steps: [
+          "**Conversations** → is the **Bot ON** switch at the top of the chat list on? That one covers everything.",
+          "Is that particular chat on **manual**? Its own switch is at the top of the open chat.",
+          "**Channels** → is that channel's switch on, and its dot green?",
+          "**Billing** → have you run out of messages for the period?",
+          "**AI Engine** → if you run on your own key, has it stopped working?",
+        ] },
+
+      { h: "About the bot's answers",
+        faq: [
+          { q: "The bot said something wrong.",
+            a: "Fix it in **Bot Training**. Use **Teach it more** for a single fact, or redo the interview if a lot has changed. It takes effect immediately." },
+          { q: "It invents things.",
+            a: "It fills gaps when asked about something your training does not cover. The cure is more complete training, not different wording." },
+          { q: "It replies in the wrong language.",
+            a: "**Bot Training → Behavior → Customer languages**. *Follow the customer's language* is nearly always what you want." },
+          { q: "It is too formal, or too casual.",
+            a: "**Bot Training → Behavior → Tone**: Friendly and helpful, Professional and formal, or Casual and fun." },
+          { q: "Can I stop it discussing something entirely?",
+            a: "Write the rule in **Teach it more** — for example *never discuss wholesale prices in chat; ask them to call the office*. The bot follows rules written in plain words." },
+        ] },
+
+      { h: "About the 24-hour rule",
+        p: [
+          "Facebook, Instagram and WhatsApp all close the messaging window **24 hours** after the customer's last message. After that you cannot write to them until they write to you again.",
+          "This is Meta's rule and it applies to every business tool, not only Autologic. It explains three things people often ask about: why a broadcast reaches fewer people than expected, why the follow-up message caps at 23 hours, and why some private replies to comments fail.",
+        ] },
+
+      { h: "About your customers' privacy",
+        faq: [
+          { q: "Who can see my conversations?",
+            a: "You, and anyone you give your login to. Every tenant's data is isolated at the database level — no other business on Autologic can reach yours." },
+          { q: "Does Autologic post on my Page?",
+            a: "Only what you have switched on: replies to messages, and public replies to comments if comment automation is on. It never writes a post." },
+          { q: "What happens if I disconnect a channel?",
+            a: "All processing for that channel stops at once. Your history stays in the dashboard until you delete it." },
+          { q: "How do I delete everything?",
+            a: "Conversations, orders and files can be deleted from their tabs. For the whole account, email us and it is done within 30 days." },
+        ] },
+
+      { h: "About phones and computers",
+        faq: [
+          { q: "Is there an app?",
+            a: "The dashboard works in a phone browser and is built for it. On iPhone use Share → *Add to Home Screen*, and on Android use the browser menu → *Add to Home screen*; it then opens like an app." },
+          { q: "Can two people use one account?",
+            a: "Yes — share the login. Bear in mind that switches are shared too: if one person turns the bot off for a chat, everyone sees it off." },
+          { q: "Do I need to keep the dashboard open for the bot to work?",
+            a: "No. The bot runs on our servers and answers whether you are logged in or not. You only open the dashboard to watch, take over, or change something." },
+        ] },
+
+      { h: "Still stuck",
+        p: ["Write to us. Include what you did, what you expected, and what happened instead — and a screenshot if you can. A real person answers."] },
+    ],
+  },
+
   "comments": {
     title: "Comments",
     lead: "Every comment left on your Facebook Page and Instagram posts, what the bot replied publicly, and whether it also reached the person privately.",
