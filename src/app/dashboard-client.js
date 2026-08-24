@@ -820,11 +820,6 @@ export default function Dashboard() {
             avatar. Sync and the theme switch move into the sidebar footer —
             still one tap away, no longer crowding the title off the bar. */}
         <div style={{display:"flex",alignItems:"center",gap:isMobile?7:10,flexShrink:0}}>
-          {/* The guide for whatever tab is open, in the reader's own language.
-              One control instead of one per tab, and a new tab cannot forget to
-              add it. Desktop only: on a phone this row holds bell and avatar
-              and nothing else, so the guide lives in the sidebar instead. */}
-          {!isMobile&&<LearnMore page={page}/>}
           {!isMobile&&<button onClick={()=>load(false)} disabled={loading} className={`pbtn${loading?" is-busy":""}`}
             title="Sync" aria-label="Sync">
             <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>
@@ -855,14 +850,15 @@ export default function Dashboard() {
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <div key={page} className="ui-page">
-            {/* The guide for this tab, on a phone. Quiet inline text rather
-                than a filled bar — the same way Meta's own console offers
-                "Read docs" at the end of a description. It is in front of you
-                on whatever tab you are on, and the header row stays down to
-                the bell and the avatar. */}
-            {isMobile&&<div style={{marginBottom:12,paddingLeft:2}}>
+            {/* The guide for this tab. Quiet inline text rather than a filled
+                bar or a button in the header — the same way Meta's own console
+                offers "Read docs" at the end of a description. Same place and
+                same shape on a phone and on a desktop, so there is one thing to
+                learn and one code path to keep right. Its left edge lines up
+                with the cards below it. */}
+            <div style={{marginBottom:isMobile?12:14}}>
               <LearnMore page={page} plain/>
-            </div>}
+            </div>
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
             {page==="broadcast"&&<Broadcast/>}
