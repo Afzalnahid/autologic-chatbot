@@ -855,13 +855,14 @@ export default function Dashboard() {
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <div key={page} className="ui-page">
-            {/* The guide for this tab, on a phone. It sat in the sidebar, which
-                meant opening the menu to find out it was there at all. Here it
-                is in front of you on whatever tab you are on, and the header
-                row stays down to the bell and the avatar. */}
-            {isMobile&&<LearnMore page={page} iconSize={16}
-              style={{width:"100%",justifyContent:"flex-start",padding:"12px 13px",
-                borderRadius:12,fontSize:13,gap:9,marginBottom:12}}/>}
+            {/* The guide for this tab, on a phone. Quiet inline text rather
+                than a filled bar — the same way Meta's own console offers
+                "Read docs" at the end of a description. It is in front of you
+                on whatever tab you are on, and the header row stays down to
+                the bell and the avatar. */}
+            {isMobile&&<div style={{marginBottom:12,paddingLeft:2}}>
+              <LearnMore page={page} plain/>
+            </div>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
             {page==="broadcast"&&<Broadcast/>}
