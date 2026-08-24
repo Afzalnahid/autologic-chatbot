@@ -761,15 +761,6 @@ export default function Dashboard() {
         ))}
       </nav>
 
-      {/* The guide for the open tab. On a phone it belongs here rather than in
-          the header — that row is only wide enough for the bell and the avatar,
-          and the footer below is already full. Full width, so it reads as a
-          destination instead of a fourth small icon. */}
-      {isMobile&&<div style={{padding:"4px 12px 0"}}>
-        <LearnMore page={page} iconSize={17} style={{width:"100%",justifyContent:"flex-start",
-          padding:"10px 12px",borderRadius:10,fontSize:13.5,gap:9}}/>
-      </div>}
-
       {/* The bottom of the reference sidebar: parted from the menu, always reachable.
           On a phone this is also where sync and the theme switch live. */}
       <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`,display:"flex",
@@ -864,6 +855,13 @@ export default function Dashboard() {
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <div key={page} className="ui-page">
+            {/* The guide for this tab, on a phone. It sat in the sidebar, which
+                meant opening the menu to find out it was there at all. Here it
+                is in front of you on whatever tab you are on, and the header
+                row stays down to the bell and the avatar. */}
+            {isMobile&&<LearnMore page={page} iconSize={16}
+              style={{width:"100%",justifyContent:"flex-start",padding:"12px 13px",
+                borderRadius:12,fontSize:13,gap:9,marginBottom:12}}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
             {page==="broadcast"&&<Broadcast/>}
