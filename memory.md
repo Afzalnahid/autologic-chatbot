@@ -4,7 +4,72 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-20, second thread) — Channel exclusivity, multi-account, tab redesigns
+## Last session (2026-08-25) — Documentation site, and a design audit of it
+
+The manual now exists at `/docs`: 14 pages, English and Bangla, 28 screenshots.
+Then it was measured rather than looked at, at 1280px and 375px in both
+languages, and seven faults were found and fixed.
+
+**The site** (`src/lib/docs/index.js` = the map, `src/lib/docs/{en,bn}.js` = the
+words, `src/app/docs/` = the frame). Six block shapes only (`p`, `steps`,
+`table`, `shot`, `note`, `faq`); a seventh should feel like a decision. Bangla
+is `?lang=bn` — a real URL, bookmarkable and indexable, not a client toggle. A
+page declared in the map but not written renders an honest panel, is `noindex`,
+and stays out of the sitemap. Screenshots come from `/shots`, a studio page that
+renders the real tab components against invented data and 404s outside
+`next dev`; light and dark pairs, WebP (28 files, 1.8 MB — as PNG, 6.6 MB).
+
+**The dashboard link into it.** `LearnMore` resolves the docs page from the open
+tab, so a tab added later cannot forget it. After two rounds of owner feedback it
+is a quiet inline "Read docs ↗" at the top of the tab content — the same shape
+and the same place on a phone and a desktop, the way Meta's own console does it.
+Not a filled bar, not a header pill, not in the sidebar.
+
+**`382ea9d` — seven measured faults in the manual.**
+- Sticky nav and sticky sidebar had never worked: `overflow-x: hidden` on
+  `<body>` makes body a scroll container. Clip moved to `<html>`, body gets
+  `clip`. See lessons.md — this is the one to remember.
+- English bar was 93px tall on a phone (the eyebrow beside the wordmark broke
+  over three lines); dropped under 460px, now 63px.
+- Screenshots reserved no space, so each one jumped the page 235px when it
+  loaded. `blocks.js` reads the size from the WebP header at build time.
+- Lines ran to 86 characters. Column 760 → 680, body 15px → 16px, steps 14.5 →
+  15.5. Median 71 now.
+- Bangla headings overlapped (Anek Bangla's ink is 1.33em; they were set at
+  1.1). Bangla headings now 1.45.
+- "On this page" links were 17px tall → 40px. Breadcrumb 12 → 40, wordmark
+  29 → 40, footer links 32 → 44.
+- Docs column was a `<main>` inside the layout's `<main>`. Now a `<div>`.
+
+**`b64f318` — the landing page had three of the same.** Sticky nav dead for the
+same reason. `.bn .fr` had been in its CSS all along but **nothing carried the
+`bn` class**, so every Bangla headline rendered in Fraunces — a Latin serif with
+no Bengali glyphs — and fell back to whatever font the phone owned. Fixing that
+exposed the same heading overlap. All three fixed and measured.
+
+**Also this stretch:** `permalink` column on `comments` (live migration applied),
+so "Open the post" works for Instagram — the old code built a Facebook URL from
+`post_id`, and IG's post_id is a bare media id that no Facebook URL can address.
+Comments tab copy made channel-neutral. IG connect asks for `manage_comments`
+behind a `REVIEW_CLIENT_ID` branch for the Meta review video.
+
+### Standing items
+- After Meta approves `instagram_business_manage_comments`, delete the
+  `REVIEW_CLIENT_ID` branch in `dashboard-client.js` (~line 436) so
+  `&with=comments` applies to every client.
+- `WebsiteWidget.js` builds its snippet from `window.location.origin`, so a
+  client who reaches the dashboard on a non-live domain is shown a snippet for
+  that host. Flagged, deliberately not fixed.
+- `src/app/preview-dash/page.js` (the noindex design proposal) still has
+  `overflow-x: hidden` on body and the same dead sticky. Not production; left.
+- The root layout wraps every page in one `<main>` that also contains the nav
+  and the footer. Over-broad, but changing it touches every page.
+- `/apple-icon` fails to prerender on Windows (`@vercel/og` + `fileURLToPath`).
+  Pre-existing, proved on a clean tree, Linux/Vercel unaffected. Ignore it.
+
+---
+
+## Earlier session (2026-08-20, second thread) — Channel exclusivity, multi-account, tab redesigns
 
 Verified first (evidence, not assumption): the admin secret-key fix (`84d02f6`)
 works — owner tested Give/Remove API key access, zero 403s in Vercel logs after

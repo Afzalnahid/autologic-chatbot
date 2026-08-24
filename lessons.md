@@ -458,3 +458,63 @@ literal broke the string".
 **Rule:** never type a backtick inside a `` ` ``-delimited CSS/JS string, not even in a comment.
 Write `.bn` as "the .bn class". After editing any file that embeds CSS in a template literal,
 load the page once before saying it works — the error message will not point at the comment.
+
+## `overflow-x: hidden` on `<body>` silently kills every `position: sticky` (2026-08-25)
+
+Both the documentation site and the landing page had a sticky top bar that had never
+stuck, and the docs had a sticky sidebar that had never stayed. Both pages carried:
+
+    html, body { overflow-x: hidden }
+
+`overflow-x: hidden` on an element forces its `overflow-y` to compute to `auto`, which
+makes `<body>` a scroll container. Sticky children then stick to *body's* scrollport —
+but the thing the reader scrolls is the viewport, so the sticky element just rides away
+with the page. Measured at 1400px down: the bar reported `top: -1400`.
+
+`<html>` is different: its overflow propagates to the viewport and `<html>` itself is
+treated as `visible`, so putting the clip there does no harm.
+
+**Rule:** the sideways clip goes on `html`, never on `body`. If body also needs it, use
+`overflow-x: clip` — same clipping, no scroll container.
+
+    html { overflow-x: hidden }
+    body { overflow-x: clip }
+
+**How to catch it:** `position: sticky` failing is invisible in a static screenshot. Scroll
+the page, then read `element.getBoundingClientRect().top`. A sticky element that is working
+reports its `top` offset (0, 76…) at every scroll position; a broken one reports `-scrollY`.
+
+## Anek Bangla needs 1.45 line-height on headings; Latin does not (2026-08-25)
+
+Bangla headings set at `line-height: 1.1` were overlapping — the second line's matras and
+ref landed inside the first line's descenders and hasantas.
+
+Painted to a canvas and measured pixel by pixel, Anek Bangla's actual ink runs **1.33em**
+(with stacked conjuncts: কৃষ্টি, র্কী, ঐ, ৎ). Fraunces at the same test is 0.88em. So a
+setting that is correct for the Latin display face collides in Bangla.
+
+**Rule:** Bangla headings get `line-height: 1.45`; Bangla body 1.7–1.8 (already the case).
+Latin keeps its tight setting — do not raise both, the Latin headings would go slack.
+Because the size is set inline on each heading, overriding only the leading needs
+`!important` on a `.bn h1.fr, .bn h2.fr` rule. That is the purpose of the rule, not a way
+around specificity.
+
+**Also:** `.bn .fr` had been in the landing page's CSS for months and never applied —
+nothing on that page carried the `bn` class. The Bangla headline was rendering in
+Fraunces, a Latin serif with no Bengali glyphs, so it fell back to whatever Bengali font
+the reader's phone owned. **Check that a language class is actually on an element before
+trusting any rule written against it:** `document.querySelectorAll('.bn').length`.
+
+## A screenshot with no `width`/`height` is a 1px sliver until it loads (2026-08-25)
+
+The manual's 28 screenshots had no dimensions on the `<img>`, so each one occupied 1px
+until it arrived and then shoved the page down — 235px of jump per picture on a phone,
+worst on exactly the slow connections this manual is written for.
+
+`blocks.js` now reads the pixel size out of the WebP header at build time (`fs.readSync`
+of the first 32 bytes; VP8X/VP8/VP8L each keep it in a different place) and passes it as
+`width`/`height`. With `width: 100%; height: auto` the browser derives the aspect ratio and
+holds the space open from first paint.
+
+**Rule:** every `<img>` gets `width` and `height`, read from the file rather than typed in,
+so a new screenshot needs nothing but dropping the file in.
