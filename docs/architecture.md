@@ -157,6 +157,32 @@ production. There is no staging environment; changes are validated locally with
 
 Environment variables are listed in [security.md §2](./security.md).
 
+### Scheduled work
+
+One cron job, declared in `vercel.json`:
+
+| Path | Schedule | What it does |
+|---|---|---|
+| `/api/cron/expiry` | `0 4 * * *` (10:00 Dhaka) | Emails every owner whose trial or plan ends within 3 days. |
+
+Everything else that looks like a background job is triggered by a request
+instead — broadcasts continue in batches as the dashboard calls back, follow-ups
+run when the dashboard is opened, and the metering is written inline with each
+AI call. This is the only clock in the system.
+
+`/api/cron/expiry` should be protected by a `CRON_SECRET` environment variable
+on the Vercel project: Vercel sends it as `Authorization: Bearer $CRON_SECRET`
+and the route rejects anything else. **If the variable is not set the endpoint is
+open** — deliberately, because a cron that 401s until someone remembers a second
+setup step is a cron that silently never runs, which is the exact failure this
+job exists to fix. It is safe to call twice: `warnIfExpiringSoon` records the
+expiry date it warned about, so a repeat run sends nothing.
+
+The warning also fires when an owner opens their dashboard (`/api/me`). That
+used to be the ONLY trigger, which meant an owner whose bot was quietly working
+— and who therefore had no reason to log in — got no warning at all before it
+stopped. It is now a safety net for a missed cron run, not the mechanism.
+
 ## Broadcast rules
 
 A broadcast may only reach someone whose last inbound message is within Meta's

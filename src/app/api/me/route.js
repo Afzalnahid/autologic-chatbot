@@ -2,34 +2,9 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient, trialActive } from "@/lib/auth.js";
-import { notifyExpiringSoon } from "@/lib/email.js";
+import { warnIfExpiringSoon } from "@/lib/expiry.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka } from "@/lib/time.js";
-
-// Warn the owner when a trial or paid plan ends within 3 days, at most once per
-// plan period (tracked by expiry_warned_at against the current expiry date).
-async function maybeWarnExpiry(client) {
-  if (!client?.owner_email) return;
-  const expiry = client.plan === "trial" ? client.trial_end : client.plan_expires_at;
-  if (!expiry) return;
-
-  const end = new Date(expiry);
-  const now = new Date();
-  const daysLeft = Math.ceil((end - now) / 86400000);
-  if (daysLeft < 0 || daysLeft > 3) return; // only in the final 3-day window
-
-  // Skip if we already warned for this exact expiry date.
-  const warned = client.expiry_warned_at ? new Date(client.expiry_warned_at) : null;
-  if (warned && Math.abs(warned - end) < 24 * 3600 * 1000) return;
-
-  await notifyExpiringSoon(client.owner_email, {
-    business: client.business_name,
-    plan: client.plan,
-    daysLeft: Math.max(0, daysLeft),
-    expiresAt: expiry,
-  });
-  await supabase.from("clients").update({ expiry_warned_at: end.toISOString() }).eq("id", client.id);
-}
 
 export const GET = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
@@ -43,9 +18,11 @@ export const GET = withErrors(async (request) => {
     .eq("client_id", client.id).eq("role", "customer").gte("created_at", today.toISOString());
   const used = count || 0;
 
-  // Lazy expiry warning: when the owner opens the dashboard and their plan ends
-  // within 3 days, email them once per plan period. No cron needed.
-  maybeWarnExpiry(client).catch(() => {});
+  // The daily cron (/api/cron/expiry) is what really sends this. Opening the
+  // dashboard checks too, as a safety net for a missed run — the same function,
+  // and it refuses to send twice for one expiry date, so there is no risk of a
+  // duplicate email.
+  warnIfExpiringSoon(client).catch(() => {});
 
   return NextResponse.json({
     client: { id: client.id, business_name: client.business_name, plan: client.plan, trial_end: client.trial_end, business_type: client.business_type || "ecommerce", item_label: client.item_label || "", logo_url: client.logo_url || "" },
