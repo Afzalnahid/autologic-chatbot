@@ -89,9 +89,20 @@ export default function Broadcast(){
 
   const channels=d?.channels||[];
   const quota=d?.quota||{};
+  // A dead plan is not the same problem as an empty audience, and the owner
+  // used to find out only after writing the whole message and pressing send.
+  const blocked=d?.blocked_reason||null;
 
   return <div style={{display:"flex",flexDirection:"column",gap:16}}>
-    {!channels.length&&<Card style={{borderLeft:`2px solid ${T.warn}`}}>
+    {blocked&&<Card style={{borderLeft:`2px solid ${T.danger}`}}>
+      <div style={{fontSize:13.5,fontWeight:500,marginBottom:4}}>Broadcasts are paused</div>
+      <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7,marginBottom:12}}>{blocked}</div>
+      <Btn gold onClick={()=>window.dispatchEvent(new CustomEvent("al-goto",{detail:"billing"}))}>
+        <i className="ti ti-credit-card" style={{marginRight:6}}/>Open Billing
+      </Btn>
+    </Card>}
+
+    {!blocked&&!channels.length&&<Card style={{borderLeft:`2px solid ${T.warn}`}}>
       <div style={{fontSize:13.5,fontWeight:500,marginBottom:4}}>No channel is ready for broadcasts</div>
       <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7}}>Connect Facebook, Instagram or WhatsApp in Channels first, and make sure the bot is not paused there. Website chat cannot receive broadcasts — once a visitor closes the tab there is no address to send to.</div>
     </Card>}
@@ -130,9 +141,9 @@ export default function Broadcast(){
       </div>
 
       <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-        <Btn onClick={preview} disabled={!!busy||!channels.length}>{busy==="preview"?"Checking...":"Check who will get it"}</Btn>
-        <Btn gold onClick={send} disabled={!!busy||!prev||!prev.counts.eligible||!msg.trim()}>{busy==="send"?"Sending...":"Send now"}</Btn>
-        {!prev&&<span style={{fontSize:12,color:T.textDim}}>Check the audience before you can send</span>}
+        <Btn onClick={preview} disabled={!!busy||!channels.length||!!blocked}>{busy==="preview"?"Checking...":"Check who will get it"}</Btn>
+        <Btn gold onClick={send} disabled={!!busy||!prev||!prev.counts.eligible||!msg.trim()||!!blocked}>{busy==="send"?"Sending...":"Send now"}</Btn>
+        {!prev&&!blocked&&<span style={{fontSize:12,color:T.textDim}}>Check the audience before you can send</span>}
       </div>
 
       {err&&<div style={{fontSize:12.5,color:T.danger,marginTop:12,lineHeight:1.6}}>{err}</div>}
@@ -161,9 +172,7 @@ export default function Broadcast(){
       </div>}
     </Card>
 
-    {d?.blocked_reason
-      ?<div style={{fontSize:12.5,color:T.danger,lineHeight:1.6}}>{d.blocked_reason}</div>
-      :!quota.unlimited&&quota.limit?<div style={{fontSize:12,color:T.textDim}}>{quota.remaining} of {quota.limit} messages left this {quota.period}.</div>:null}
+    {!blocked&&!quota.unlimited&&!!quota.limit&&<div style={{fontSize:12,color:T.textDim}}>{quota.remaining} of {quota.limit} messages left this {quota.period}.</div>}
 
     <Card>
       <div style={{fontSize:14,fontWeight:500,marginBottom:12}}>Past broadcasts</div>
