@@ -214,10 +214,19 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         <div style={{display:"flex",gap:8,padding:"10px 12px",borderBottom:`1px solid ${T.border}`,flexWrap:"wrap"}}>
           {avail.length>1&&
             <Select value={chFilter} onChange={setChFilter} style={{flex:"1 1 140px",minWidth:0}}
-              options={[{value:"all",label:`All channels (${allConvos.length})`,icon:"ti-inbox"},
+              // "All channels" used to carry allConvos.length — the number of
+              // CHATS, not channels, so a client with 4 connected channels and
+              // 6 open chats saw "All channels (6)" and reasonably read that
+              // as a wrong channel count. The connected-channel total here is
+              // the same number the Channels tab shows, so the two can never
+              // disagree; each entry below counts its own conversations, which
+              // is the number a filter's label is actually for.
+              options={[{value:"all",label:`All channels (${channels.filter(c=>c.status==="connected").length})`,icon:"ti-inbox"},
                 ...avail.flatMap(f=>[
-                  {value:f,label:cap(f),icon:CH_ICON[f]||"ti-message"},
-                  ...(((perPlatform[f]||[]).length>1)?(perPlatform[f]||[]).map(ch=>({value:`${f}|${ch.page_id}`,label:`— ${ch.name||"…"+String(ch.page_id||"").slice(-4)}`,icon:CH_ICON[f]||"ti-message"})):[]),
+                  {value:f,label:`${cap(f)} (${allConvos.filter(c=>(c.platform||"facebook")===f).length})`,icon:CH_ICON[f]||"ti-message"},
+                  ...(((perPlatform[f]||[]).length>1)?(perPlatform[f]||[]).map(ch=>({value:`${f}|${ch.page_id}`,
+                    label:`— ${ch.name||"…"+String(ch.page_id||"").slice(-4)} (${allConvos.filter(c=>(c.platform||"facebook")===f&&String(c.page_id||"")===String(ch.page_id||"")).length})`,
+                    icon:CH_ICON[f]||"ti-message"})):[]),
                 ])]}/>}
           {!!tagData?.available?.length&&
             <Select value={tagFilter} onChange={setTagFilter} style={{flex:"1 1 140px",minWidth:0}}

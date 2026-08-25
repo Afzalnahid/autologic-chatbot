@@ -456,8 +456,15 @@ export default function Bookings({calConnected,clientId}) {
     </div>}
 
     {bookings.length>0&&<div style={{marginBottom:14,maxWidth:260}}>
+      {/* "All channels" carried bookings.length here — the number of BOOKINGS,
+          not channels, so it read as a (wrong) channel count the same way
+          Conversations' identical filter did. This component has no list of
+          connected channels to count instead, and the entries below already
+          say exactly how many bookings came through each one — so the honest
+          fix is to stop putting a number where it does not belong, not to
+          find a different number to put there. */}
       <Select value={chFilter} onChange={setChFilter}
-        options={[{value:"all",label:`All channels (${bookings.length})`,icon:"ti-inbox"},
+        options={[{value:"all",label:"All channels",icon:"ti-inbox"},
           ...Object.entries(CH)
             .filter(([k])=>bookings.some(b=>b.platform===k))
             .map(([k,v])=>({value:k,label:`${v.label} (${bookings.filter(b=>b.platform===k).length})`,icon:v.icon}))]}/>
