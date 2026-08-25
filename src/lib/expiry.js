@@ -19,6 +19,21 @@ import { notifyExpiringSoon } from "@/lib/email.js";
 
 export const WARN_DAYS = 3;
 
+// Two reminders per plan period, not one.
+//   stage 1  "ends in N days"  — sent on the first run inside the window
+//   stage 2  "ends today"      — sent on the last day
+// One warning three days out, then silence, then a dead bot, was a poor way to
+// treat someone who simply had a busy week. The last day is when a renewal
+// actually gets done.
+export const STAGE = { early: 1, final: 2 };
+
+// Which reminder is due at this distance from the end, or 0 for none.
+export function stageFor(daysLeft) {
+  if (daysLeft < 0) return 0;
+  if (daysLeft === 0) return STAGE.final;
+  return daysLeft <= WARN_DAYS ? STAGE.early : 0;
+}
+
 // When this client's access actually runs out, or null if nothing is dated.
 export function expiryOf(client) {
   const raw = String(client?.plan || "").trim().toLowerCase() === "trial"
@@ -43,32 +58,35 @@ export async function warnIfExpiringSoon(client, now = new Date()) {
 
   const daysLeft = daysUntil(expiry, now);
   if (daysLeft < 0) return { skipped: "already_expired" };
-  if (daysLeft > WARN_DAYS) return { skipped: "not_yet" };
 
-  // Already warned about THIS expiry date. Compared against the date rather than
-  // "have we emailed recently", so a renewal re-arms it and a second cron run on
-  // the same day does not send again.
+  const due = stageFor(daysLeft);
+  if (!due) return { skipped: "not_yet" };
+
+  // How far we have got with THIS expiry date. Comparing against the date rather
+  // than "did we email recently" means a renewal re-arms both reminders, while a
+  // second run on the same day sends nothing.
   const warned = client.expiry_warned_at ? new Date(client.expiry_warned_at) : null;
-  if (warned && Math.abs(warned - new Date(expiry)) < 24 * 3600 * 1000) {
-    return { skipped: "already_warned" };
-  }
+  const sameDate = warned && Math.abs(warned - new Date(expiry)) < 24 * 3600 * 1000;
+  const done = sameDate ? Number(client.expiry_warn_stage) || 0 : 0;
+  if (due <= done) return { skipped: "already_warned" };
 
   await notifyExpiringSoon(client.owner_email, {
     business: client.business_name,
     plan: client.plan,
     daysLeft: Math.max(0, daysLeft),
     expiresAt: expiry,
+    final: due === STAGE.final,
   });
   // Stamped only after the email is away, so a send that throws is retried on
   // the next run instead of being silently marked as handled.
   await supabase.from("clients")
-    .update({ expiry_warned_at: new Date(expiry).toISOString() })
+    .update({ expiry_warned_at: new Date(expiry).toISOString(), expiry_warn_stage: due })
     .eq("id", client.id);
 
-  return { sent: true, daysLeft };
+  return { sent: true, daysLeft, stage: due };
 }
 
-const FIELDS = "id,business_name,owner_email,plan,trial_end,plan_expires_at,expiry_warned_at,suspended";
+const FIELDS = "id,business_name,owner_email,plan,trial_end,plan_expires_at,expiry_warned_at,expiry_warn_stage,suspended";
 
 // Everyone whose access ends within the warning window. Filtered at the database
 // on the date, so the sweep stays small however many clients there are.

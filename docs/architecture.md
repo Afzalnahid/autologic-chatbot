@@ -165,6 +165,13 @@ One cron job, declared in `vercel.json`:
 |---|---|---|
 | `/api/cron/expiry` | `0 4 * * *` (10:00 Dhaka) | Emails every owner whose trial or plan ends within 3 days. |
 
+Two reminders go out per plan period, not one: the first on entering the last
+three days, the second on the final day. One warning followed by three days of
+silence and then a dead bot was a poor way to treat someone who simply had a
+busy week, and the last day is when a renewal actually gets done. Which
+reminders have been sent is tracked by `clients.expiry_warn_stage` against the
+date in `expiry_warned_at` — see [database.md](./database.md).
+
 Everything else that looks like a background job is triggered by a request
 instead — broadcasts continue in batches as the dashboard calls back, follow-ups
 run when the dashboard is opened, and the metering is written inline with each

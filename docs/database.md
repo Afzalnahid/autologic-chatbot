@@ -26,6 +26,20 @@ Every tenant-owned table carries `client_id uuid` referencing `clients.id`.
 | `gcal_token_expiry` | timestamptz | Refresh trigger |
 | `gcal_email`, `gcal_connected` | text / boolean | Connection state |
 
+#### Expiry reminders
+
+`expiry_warned_at` holds the expiry DATE a reminder was sent about — not the
+time it was sent — and `expiry_warn_stage` how far the sequence has got for that
+date (`0` none, `1` the "ends in a few days" warning, `2` the "ends today" one).
+
+Comparing against the date is what makes the whole thing self-correcting: a
+second cron run the same day sends nothing, and a renewal moves the expiry date,
+which re-arms both reminders without anything having to be cleared.
+
+Written by `warnIfExpiringSoon` in `src/lib/expiry.js`, and only after the email
+is actually away — stamping first would mark a failed send as handled and the
+owner would never hear about it.
+
 ### `channels` — connected messaging pages
 | Column | Type | Notes |
 |---|---|---|

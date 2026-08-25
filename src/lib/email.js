@@ -189,17 +189,29 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
   });
 }
 
-// Sent a few days before a trial or paid plan runs out.
-export async function notifyExpiringSoon(clientEmail, { business, plan, daysLeft, expiresAt }) {
+// Sent twice before a trial or paid plan runs out: once on entering the last few
+// days, and again on the final day. `final` picks the second wording — the same
+// email counting down to "0 days" reads like a broken template at the exact
+// moment it most needs to be taken seriously.
+export async function notifyExpiringSoon(clientEmail, { business, plan, daysLeft, expiresAt, final }) {
   const when = expiresAt ? formatDhakaDate(new Date(expiresAt)) : null;
   const isTrial = plan === "trial";
+  const thing = isTrial ? "trial" : "plan";
+  const label = isTrial ? "Trial" : PLAN_LABEL[plan] || plan;
+  const inWords = final || daysLeft <= 0
+    ? "ends today"
+    : daysLeft === 1 ? "ends tomorrow" : `ends in ${daysLeft} days`;
+
   return send({
     to: clientEmail,
-    subject: `${isTrial ? "Your trial" : "Your plan"} ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"} — ${business}`,
+    subject: final || daysLeft <= 0
+      ? `Last day — your ${thing} ends today, ${business}`
+      : `Your ${thing} ${inWords} — ${business}`,
     html: wrap(
-      `${isTrial ? "Trial" : PLAN_LABEL[plan] || plan} ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
-      `Your ${isTrial ? "free trial" : `${PLAN_LABEL[plan] || plan} plan`} ends${when ? ` on <strong>${when}</strong>` : " soon"}.
-       When it does, your bot will stop replying to customers.
+      `${label} ${inWords}`,
+      `${final || daysLeft <= 0
+        ? `Today is the last day of your ${isTrial ? "free trial" : `${label} plan`}${when ? ` (${when})` : ""}. <strong style="color:#f0c040">After today your bot stops replying to customers.</strong>`
+        : `Your ${isTrial ? "free trial" : `${label} plan`} ends${when ? ` on <strong>${when}</strong>` : " soon"}. When it does, your bot will stop replying to customers.`}
        <br/><br/>
        ${isTrial
          ? "Pick a plan to keep everything running — your products, knowledge base and conversations all stay exactly as they are."
