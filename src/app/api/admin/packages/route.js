@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { callerEmail, callerRole, CAN_EDIT, CAN_DELETE } from "@/lib/admin-auth.js";
 import { loadPrices, summarise, dhakaDay } from "@/lib/usage.js";
-import { invalidatePlans } from "@/lib/plan-limits.js";
+import { invalidatePlans, loadPlans } from "@/lib/plan-limits.js";
+import { getPlatformAI } from "@/lib/platform-ai.js";
 
 // The economics side of the admin panel: packages (what we sell), the model
 // price book (what the AI costs us), fixed platform costs, and the real usage
@@ -114,6 +115,9 @@ export async function GET(request) {
   return NextResponse.json({
     role, days,
     plans,
+    // What the AI model boxes fall back to when neither the client nor their
+    // package sets one. The panel shows it so an empty box is still readable.
+    platform_model_chain: (await getPlatformAI().catch(() => ({}))).modelChain || null,
     prices: Object.entries(pricesMap).map(([k, v]) => {
       const i = k.indexOf("/");
       return { provider: k.slice(0, i), model: k.slice(i + 1), input_per_1m: v.in, output_per_1m: v.out };
@@ -240,10 +244,26 @@ export async function POST(request) {
   if (action === "save_overrides") {
     const { client_id, overrides, model_chain } = body;
     if (!client_id) return NextResponse.json({ error: "missing client_id" }, { status: 400 });
+
+    // The panel now shows every box already filled in with the package's own
+    // value, so most of what arrives here is simply the package repeated back.
+    // Storing that would be a quiet trap: the client would stop following the
+    // package, and raising the Pro allowance later would skip everyone whose
+    // panel had once been saved. So a value is only kept when it actually
+    // DIFFERS from the package — an override should mean an exception, nothing
+    // else. This is decided here rather than in the browser because it is the
+    // rule that protects the data, not a display choice.
+    const { data: cl } = await supabase.from("clients").select("plan").eq("id", client_id).maybeSingle();
+    const plan = (await loadPlans())[cl?.plan] || {};
     const clean = {};
     for (const k of ["messages_per_day", "messages_per_month", "messages_per_channel", "channels",
                      "max_products", "max_kb_files", "max_scrapes_per_month", "max_broadcasts_per_month"]) {
-      if (overrides && overrides[k] !== "" && overrides[k] !== null && overrides[k] !== undefined) clean[k] = int(overrides[k]);
+      const raw = overrides ? overrides[k] : undefined;
+      if (raw === "" || raw === null || raw === undefined) continue;   // empty = follow the package
+      const v = int(raw);
+      const fromPlan = plan[k];
+      if (fromPlan !== null && fromPlan !== undefined && Number(fromPlan) === v) continue;
+      clean[k] = v;
     }
     const { error } = await supabase.from("clients").update({
       limit_overrides: Object.keys(clean).length ? clean : null,

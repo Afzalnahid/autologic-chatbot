@@ -626,19 +626,45 @@ function PerClient({ d, rate, post, busy, isMobile }) {
           </div>
           <i className={`ti ti-chevron-${isOpen ? "up" : "down"}`} style={{ color: T.textDim, fontSize: 16 }} />
         </div>
-        {isOpen && <ClientPanel c={c} rate={rate} post={post} busy={busy} />}
+        {isOpen && <ClientPanel c={c} rate={rate} post={post} busy={busy} d={d} />}
       </Card>;
     })}
     {!rows.length && <Card style={{ textAlign: "center", padding: 30, color: T.textDim }}>No clients yet.</Card>}
   </div>;
 }
 
-function ClientPanel({ c, rate, post, busy }) {
-  const [ov, setOv] = useState(() => ({ ...(c.limit_overrides || {}) }));
+function ClientPanel({ c, rate, post, busy, d }) {
+  // What the package itself gives. Every box starts filled in with this, so the
+  // panel answers "what is this client actually allowed to do?" instead of
+  // showing eight empty boxes and leaving the owner to go and look it up.
+  const plan = (d?.plans || []).find((p) => p.id === c.plan) || null;
+  const fromPlan = (k) => (plan ? plan[k] : undefined);
+  const asBox = (v) => (v === null || v === undefined ? "" : String(v));
+
+  const [ov, setOv] = useState(() => {
+    const o = {};
+    for (const [k] of LIMITS) {
+      const own = c.limit_overrides ? c.limit_overrides[k] : undefined;
+      o[k] = own === null || own === undefined ? asBox(fromPlan(k)) : String(own);
+    }
+    return o;
+  });
   const [chain, setChain] = useState(c.model_chain || "");
   const [chLimits, setChLimits] = useState(() => Object.fromEntries((c.channels || []).map((x) => [x.id, x.msg_limit_monthly ?? ""])));
 
   const set = (k, v) => setOv((o) => ({ ...o, [k]: v }));
+  // A box counts as an exception only while it differs from the package. The
+  // server applies the same test before storing, so what is marked here and
+  // what is saved cannot disagree.
+  const isCustom = (k) => {
+    const box = String(ov[k] ?? "").trim();
+    const pv = fromPlan(k);
+    if (box === "") return false;
+    return pv === null || pv === undefined || Number(pv) !== Number(box);
+  };
+  const customCount = LIMITS.filter(([k]) => isCustom(k)).length;
+  const planLabel = plan?.name || c.plan;
+  const chainFromPlan = plan?.model_chain || d?.platform_model_chain || null;
 
   return <div style={{ borderTop: `1px solid ${T.border}`, padding: "14px 15px", background: T.bgAlt }}>
     <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 10, lineHeight: 1.6 }}>
@@ -659,23 +685,55 @@ function ClientPanel({ c, rate, post, busy }) {
       <Btn small disabled={busy} onClick={() => post({ action: "save_channel_limit", channel_id: ch.id, msg_limit_monthly: chLimits[ch.id] })}>Set cap</Btn>
     </div>) : <div style={{ fontSize: 12, color: T.textDim, paddingBottom: 6 }}>No channels connected.</div>}
 
-    {/* Per-client overrides */}
-    <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 4px" }}>Custom limits for this client</div>
-    <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 9 }}>Leave a box empty to use the package's value. These beat the package.</div>
+    {/* Per-client limits, pre-filled from the package */}
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", margin: "16px 0 4px" }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700 }}>Limits for this client</div>
+      {customCount > 0 && <Badge color={T.gold}>{customCount} changed from {planLabel}</Badge>}
+    </div>
+    <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 9, lineHeight: 1.6 }}>
+      Every box already holds what the <b style={{ color: T.textMuted }}>{planLabel}</b> package gives. Change one only where this client needs an exception — the rest keep following the package, so raising the package later raises them too. Clear a box to hand that limit back.
+    </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 9 }}>
-      {LIMITS.map(([k, label]) => <label key={k} style={{ fontSize: 11, color: T.textMuted }}>
-        {label}
-        <input type="number" min="0" placeholder="From package" value={ov[k] ?? ""} onChange={(e) => set(k, e.target.value)}
-          style={{ width: "100%", marginTop: 4, background: T.card, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit" }} />
-      </label>)}
+      {LIMITS.map(([k, label]) => {
+        const custom = isCustom(k);
+        const pv = fromPlan(k);
+        const planText = pv === null || pv === undefined ? "unlimited" : Number(pv).toLocaleString("en-IN");
+        return <div key={k}>
+          <label style={{ display: "block", fontSize: 11, color: T.textMuted }}>
+            {label}
+            <input type="number" min="0"
+              placeholder={pv === null || pv === undefined ? "Unlimited" : `From ${planLabel}`}
+              value={ov[k] ?? ""} onChange={(e) => set(k, e.target.value)}
+              style={{ width: "100%", marginTop: 4, background: T.card, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit",
+                border: `1px solid ${custom ? T.gold : T.border}`,
+                boxShadow: custom ? `0 0 0 3px color-mix(in srgb, ${T.gold} 12%, transparent)` : "none" }} />
+          </label>
+          {/* The hint IS the undo. A separate little "reset" beside the label
+              would have needed minHeight:0 to sit on one line, and that cancels
+              the 44px touch floor — the exact trap the booking drawer's copy
+              icons fell into. A full-width control on its own line can grow to
+              44 on a phone without fighting the layout. */}
+          {custom
+            ? <button type="button" onClick={() => set(k, asBox(pv))}
+                style={{ display: "block", width: "100%", textAlign: "left", marginTop: 3, padding: "3px 0",
+                  background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 10.5, fontWeight: 600, color: T.gold }}>
+                {planLabel} gives {planText} — undo
+              </button>
+            : <span style={{ display: "block", fontSize: 10.5, color: T.textDim, marginTop: 3, padding: "3px 0" }}>from {planLabel}</span>}
+        </div>;
+      })}
     </div>
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>
-      AI models for this client <span style={{ color: T.textDim }}>(main,fallback — empty = package default)</span>
-      <input value={chain} onChange={(e) => setChain(e.target.value)} placeholder="gemini-2.5-flash,gemini-2.5-pro"
-        style={{ width: "100%", marginTop: 4, background: T.card, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "monospace" }} />
+      AI models for this client <span style={{ color: T.textDim }}>(main,fallback — empty follows the package)</span>
+      <input value={chain} onChange={(e) => setChain(e.target.value)} placeholder={chainFromPlan || "gemini-2.5-flash,gemini-3-flash-preview"}
+        style={{ width: "100%", marginTop: 4, background: T.card, border: `1px solid ${chain ? T.gold : T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "monospace" }} />
+      <span style={{ display: "block", fontSize: 10.5, color: T.textDim, marginTop: 3 }}>
+        {chain ? `Only this client. Everyone else on ${planLabel} runs ${chainFromPlan || "the built-in chain"}.` : `Following ${plan?.model_chain ? planLabel : "the platform default"} — ${chainFromPlan || "the built-in chain"}.`}
+      </span>
     </label>
     <div style={{ marginTop: 11 }}>
-      <Btn gold small disabled={busy} onClick={() => post({ action: "save_overrides", client_id: c.client_id, overrides: ov, model_chain: chain })}>Save custom limits</Btn>
+      <Btn gold small disabled={busy} onClick={() => post({ action: "save_overrides", client_id: c.client_id, overrides: ov, model_chain: chain })}>Save limits</Btn>
     </div>
   </div>;
 }
