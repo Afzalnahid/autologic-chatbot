@@ -194,6 +194,61 @@ Only one `pending` row per client is allowed — enforced in the billing API.
 `id`, `email` (unique), `role` (`super` / `full` / `editor` / `viewer` / `pending`),
 timestamps. New signups land as `pending` until a super admin grants a role.
 
+### `usage_daily` — every AI call, counted
+One row per client per Dhaka-day per (`kind`, `feature`, `provider`, `model`,
+`own_key`). Primary key is exactly those seven columns; `calls`, `tokens_in` and
+`tokens_out` accumulate into it.
+
+`kind` — WHAT sort of call it was: `chat`, `vision`, `voice`, `embed`, `scrape`.
+
+`feature` — WHO asked for it, as `area.name`. The area is one of three, and it is
+the split the admin panel's **API usage** tab shows per client:
+
+| area | features | when it happens |
+|---|---|---|
+| `bot` | `bot.chat`, `bot.embed`, `bot.vision`, `bot.voice`, `bot.language`, `bot.tag`, `bot.comment` | by itself, on a customer message — the cost that grows with traffic |
+| `catalogue` | `product.embed`, `product.vision`, `product.scrape`, `knowledge.embed` | indexing a product or a document — once each, not per message |
+| `platform` | `platform.prompt`, `platform.offer` | the owner pressed a button in the dashboard |
+
+Two values are not areas: `legacy` (rows written before the column existed, which
+cannot be attributed after the fact) and `other` (a call site that did not name
+itself — that is a bug, not a category). The list lives in
+`src/lib/usage-features.js`, which is dependency-free so the admin panel can
+import the same registry in the browser.
+
+`own_key` — whether it ran on the client's own AI key. Those tokens are the
+client's money: they are counted in calls and tokens but **excluded from every
+platform-cost total** (`summarise()` in `src/lib/usage.js` enforces this).
+
+Written only through the `record_ai_usage` RPC, fire-and-forget — a reply is
+never delayed or broken by bookkeeping.
+
+```sql
+record_ai_usage(p_client_id uuid, p_day date, p_kind text, p_provider text,
+                p_model text, p_own_key boolean, p_calls int,
+                p_tokens_in bigint, p_tokens_out bigint,
+                p_feature text default 'other')
+```
+
+`p_feature` is defaulted so a deployment still in flight with the old nine-argument
+call keeps recording instead of erroring.
+
+`checkScrapeQuota` in `plan-limits.js` reads this table (`kind = 'scrape'`) rather
+than keeping its own counter — one source of truth, nothing to drift.
+
+### `model_prices` — what the AI costs us
+`provider`, `model` (composite key), `input_per_1m`, `output_per_1m`, `updated_at`.
+A `__default__` row per provider is the fallback so a brand-new model id still
+costs something sane instead of silently costing zero.
+
+**Money is worked out at READ time, never stored.** Fixing a wrong rate therefore
+corrects history as well as the future. The admin panel says out loud how much of
+a total was priced from a real row and how much fell through to `__default__`.
+
+### `platform_costs` — the fixed monthly bill
+`id`, `label`, `monthly_usd`. Hosting, database, email. Pro-rated to the reporting
+window so it compares like for like with metered AI cost.
+
 ---
 
 ## Vector search functions

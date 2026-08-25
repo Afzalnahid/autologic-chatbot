@@ -140,7 +140,7 @@ export function resolveGallery(order, uploaded) {
 export async function describeImage(url, client) {
   if (!url) return { visual: "", analyzeError: null };
   try {
-    const ai = await getClientAI(client.id);
+    const ai = await getClientAI(client.id, "product");
     return { visual: await ai.visionUrl(url, visionPrompt(client.business_type || "ecommerce", client.item_label || "product")), analyzeError: null };
   } catch (e) { return { visual: "", analyzeError: e.message }; }
 }
@@ -151,6 +151,6 @@ export async function describeImage(url, client) {
 export async function embedProduct(metadata, clientId) {
   const content = buildContent(metadata);
   const id = clientId || metadata?.client_id;
-  const embedding = await (await getClientAI(id)).embed(content);
+  const embedding = await (await getClientAI(id, "product")).embed(content);
   return { content, embedding };
 }

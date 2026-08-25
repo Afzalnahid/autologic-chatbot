@@ -359,7 +359,7 @@ async function searchProducts(clientId, query, k = 3) {
   try {
     // Embeds the search query on the client's own key when they are a Gemini
     // BYOK client (same model, same vector space), else the platform key.
-    const emb = await (await getClientAI(clientId)).embed(query);
+    const emb = await (await getClientAI(clientId, "bot")).embed(query);
     const { data, error } = await sb().rpc("match_documents", {
       query_embedding: emb, match_count: k, filter: { client_id: String(clientId) },
     });
@@ -625,8 +625,12 @@ export function languageLock(lang) {
 // answers an English question in Bangla anyway. So the reply is checked, and
 // rewritten when it came back in the wrong language. A failed rewrite keeps the
 // original — a reply in the wrong language still beats no reply at all.
-async function enforceLanguage(items, lang, aiFor) {
-  const rewrite = aiFor ? aiFor.chat : chatWithGemini;
+async function enforceLanguage(items, lang, clientId) {
+  // Its own AI handle, so the rewrite lands under "bot.language" in the cost
+  // report instead of hiding inside the reply's own line. It is the retry loop
+  // nobody can see, so it is the one that most needs its own number.
+  const langAI = clientId ? await getClientAI(clientId, "bot.language").catch(() => null) : null;
+  const rewrite = langAI ? langAI.chat : chatWithGemini;
   const hasBengali = (t) => /[\u0980-\u09FF]/.test(String(t || ""));
   const wrong = items.some(it =>
     it.text && (lang === "Bangla" ? !hasBengali(it.text) : hasBengali(it.text))
@@ -669,7 +673,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   const isAgency = bType === "agency";
   // Which key answers for this client — the platform's, or their own (BYOK).
   // The widget calls composeReply directly, so this must resolve here too.
-  const aiFor = await getClientAI(clientId);
+  const aiFor = await getClientAI(clientId, "bot");
 
   let systemPrompt, history, context, forcedLang = null;
   try {
@@ -750,7 +754,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     items = await maybeSaveOrder(items, clientId, senderId, platform);
     if (items.length !== before) didAct = true;
   }
-  items = await enforceLanguage(items, forcedLang || detectLanguage(combined), aiFor);
+  items = await enforceLanguage(items, forcedLang || detectLanguage(combined), clientId);
   // Every model in the chain refused (or the reply was unparseable). Say so like
   // a shop would — and promise a human — instead of a bare "try again later",
   // which reads as broken and loses the customer.
@@ -950,7 +954,7 @@ export async function handleIncoming(event) {
   let attachments = null;
   let voiceUnclear = false;
   // Which key answers for this client — the platform's, or their own (BYOK).
-  const ai = await getClientAI(clientId);
+  const ai = await getClientAI(clientId, "bot");
 
   // Voice notes — Facebook/Instagram hand us a CDN url, WhatsApp a media id
   // that needs the channel token. Both end in the same transcription.
@@ -1173,7 +1177,7 @@ export async function handleComment(event) {
 
   let reply = "";
   try {
-    const aiFor = await getClientAI(clientId);
+    const aiFor = await getClientAI(clientId, "bot.comment");
     reply = await aiFor.chat(
       commentInstruction + "\n\n" + persona + context,
       [{ role: "user", content:

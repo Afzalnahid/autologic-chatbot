@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase.js";
 import { chatWithGemini } from "@/lib/gemini.js";
+import { recordUsage, geminiTokens } from "@/lib/usage.js";
 
 // Two separate vocabularies. They are never merged: an online shop does not have
 // bookings and a service business does not have deliveries.
@@ -127,6 +128,17 @@ export async function classify(texts, businessType, chatFn) {
   return { tag, by: tag ? "ai" : "unavailable" };
 }
 
+// Last-resort chat: the platform key, still counted. Only reached when the
+// client's AI config could not be read at all.
+function meteredChat(clientId) {
+  return (system, msgs) => chatWithGemini(system, msgs, undefined, {
+    onUsage: (kind, model, response) => {
+      const t = geminiTokens(response);
+      recordUsage({ clientId, kind, feature: "bot.tag", provider: "google", model, ownKey: false, tokensIn: t.tokensIn, tokensOut: t.tokensOut });
+    },
+  });
+}
+
 // Manual tags always win: an automatic pass never overwrites or removes one.
 export async function applyAutoTag(clientId, senderId, texts, businessType, opts = {}) {
   try {
@@ -142,10 +154,15 @@ export async function applyAutoTag(clientId, senderId, texts, businessType, opts
     if (opts.forced && tagsFor(businessType).includes(opts.forced)) {
       tag = opts.forced; by = "action";
     } else {
-      // Classification rides the client's own key when they have one.
+      // Classification rides the client's own key when they have one, and is
+      // metered under its own feature so "what does auto-tagging cost me?" has
+      // an answer. If the AI handle cannot be built we fall back to a plain
+      // Gemini call WITH a meter attached — an unmetered call is a hole in the
+      // cost report, and the report is only worth having if it is complete.
       const { getClientAI } = await import("@/lib/ai.js");
-      const aiFor = await getClientAI(clientId).catch(() => null);
-      ({ tag, by } = await classify(texts, businessType, aiFor?.chat));
+      const aiFor = await getClientAI(clientId, "bot.tag").catch(() => null);
+      const chatFn = aiFor?.chat || meteredChat(clientId);
+      ({ tag, by } = await classify(texts, businessType, chatFn));
     }
 
     // The model was unavailable. Leaving yesterday's tag is better than writing

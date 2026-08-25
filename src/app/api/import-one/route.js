@@ -32,12 +32,12 @@ export async function POST(request) {
     let visual = "";
     if (p.image_url) {
       try {
-        const ai = await getClientAI(client.id);
+        const ai = await getClientAI(client.id, "product");
         visual = await ai.visionUrl(p.image_url, visionPrompt(bType, unit));
       } catch {}
     }
     const content = `Product Code: ${p.product_code}\nName: ${p.product_name}\n${visual || p.description || ""}`;
-    const embedding = await (await getClientAI(client.id)).embed(content);
+    const embedding = await (await getClientAI(client.id, "product")).embed(content);
 
     const metadata = {
       client_id: String(client.id),

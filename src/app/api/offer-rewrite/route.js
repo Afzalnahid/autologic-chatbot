@@ -34,7 +34,7 @@ export async function POST(request) {
       ? "\nProducts in this offer: " + products.map((p) => [String(p.name || "").trim(), p.code ? `(${p.code})` : "", p.price ? `- ${p.price}tk` : ""].filter(Boolean).join(" ")).join(", ")
       : "";
 
-    const out = String(await (await getClientAI(client.id)).chat(META, [{ role: "user", content: raw + prodLine }]))
+    const out = String(await (await getClientAI(client.id, "platform.offer")).chat(META, [{ role: "user", content: raw + prodLine }]))
       .replace(/```json|```/g, "").trim();
     const m = out.match(/\{[\s\S]*\}/);
     if (!m) return NextResponse.json({ error: "Could not organise the offer — please try again." }, { status: 502 });

@@ -18,8 +18,14 @@ export function dhakaDay(d = new Date()) {
   return new Date(d.getTime() + 6 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
+// The feature registry lives in its own dependency-free file so the admin panel
+// can import the same list without pulling the database client into the browser
+// bundle. Re-exported here so every server caller keeps one import.
+import { AREAS, FEATURES, featureId, areaOf, featureLabel } from "@/lib/usage-features.js";
+export { AREAS, FEATURES, featureId, areaOf, featureLabel };
+
 // Fire-and-forget. Never throws, never awaited by a reply path.
-export function recordUsage({ clientId, kind, provider, model, ownKey = false, tokensIn = 0, tokensOut = 0, calls = 1 }) {
+export function recordUsage({ clientId, kind, feature, provider, model, ownKey = false, tokensIn = 0, tokensOut = 0, calls = 1 }) {
   if (!clientId || !kind) return;
   const tin = Math.max(0, Math.round(Number(tokensIn) || 0));
   const tout = Math.max(0, Math.round(Number(tokensOut) || 0));
@@ -27,6 +33,7 @@ export function recordUsage({ clientId, kind, provider, model, ownKey = false, t
     p_client_id: clientId,
     p_day: dhakaDay(),
     p_kind: String(kind),
+    p_feature: featureId(feature, kind),
     p_provider: String(provider || "google"),
     p_model: String(model || "unknown"),
     p_own_key: !!ownKey,
@@ -50,11 +57,11 @@ export function geminiTokens(response) {
 // src/lib/ai.js — product import, catalogue sync, knowledge-base upload and
 // search. These are the biggest embedding costs we pay, so they must be metered
 // too; embeddings always run on the platform key, hence ownKey:false always.
-export function embedMeter(clientId) {
+export function embedMeter(clientId, feature = "product") {
   return {
     onUsage: (kind, model, response) => {
       const t = geminiTokens(response);
-      recordUsage({ clientId, kind, provider: "google", model, ownKey: false, tokensIn: t.tokensIn, tokensOut: t.tokensOut });
+      recordUsage({ clientId, kind, feature, provider: "google", model, ownKey: false, tokensIn: t.tokensIn, tokensOut: t.tokensOut });
     },
   };
 }
@@ -81,22 +88,55 @@ export function rowCost(prices, row) {
   return (Number(row.tokens_in) / 1e6) * r.in + (Number(row.tokens_out) / 1e6) * r.out;
 }
 
+// Whether a row's model has its own line in the price book. A model that falls
+// through to __default__ is still costed, but the number is a house guess — the
+// admin panel says so out loud rather than presenting it as measured.
+export function isPriced(prices, provider, model) {
+  return !!prices[`${provider}/${model}`];
+}
+
 // Sums usage rows into a report. Platform cost deliberately EXCLUDES own_key
 // rows: those tokens are billed to the client by their own provider.
+//
+// Three buckets come out of one pass:
+//   byKind    — chat / vision / voice / embed / scrape (what sort of call)
+//   byFeature — bot.tag, product.embed, … (who asked for it)
+//   byArea    — bot / catalogue / platform (the three-part split)
 export function summarise(rows, prices) {
   let calls = 0, tokensIn = 0, tokensOut = 0, platformCost = 0, clientKeyCost = 0;
-  const byKind = {};
+  const byKind = {}, byFeature = {}, byArea = {}, byModel = {};
+  const bucket = (map, key) => {
+    if (!map[key]) map[key] = { calls: 0, tokensIn: 0, tokensOut: 0, tokens: 0, cost: 0, ownKeyCost: 0 };
+    return map[key];
+  };
   for (const r of rows || []) {
     const c = rowCost(prices, r);
-    calls += r.calls || 0;
-    tokensIn += Number(r.tokens_in) || 0;
-    tokensOut += Number(r.tokens_out) || 0;
+    const tin = Number(r.tokens_in) || 0, tout = Number(r.tokens_out) || 0;
+    const n = r.calls || 0;
+    calls += n; tokensIn += tin; tokensOut += tout;
     if (r.own_key) clientKeyCost += c; else platformCost += c;
-    const k = r.kind || "other";
-    if (!byKind[k]) byKind[k] = { calls: 0, tokens: 0, cost: 0 };
-    byKind[k].calls += r.calls || 0;
-    byKind[k].tokens += (Number(r.tokens_in) || 0) + (Number(r.tokens_out) || 0);
-    if (!r.own_key) byKind[k].cost += c;
+
+    const feature = r.feature || "legacy";
+    for (const b of [bucket(byKind, r.kind || "other"), bucket(byFeature, feature), bucket(byArea, areaOf(feature))]) {
+      b.calls += n; b.tokensIn += tin; b.tokensOut += tout; b.tokens += tin + tout;
+      if (r.own_key) b.ownKeyCost += c; else b.cost += c;
+    }
+
+    const mk = `${r.provider}/${r.model}`;
+    const m = bucket(byModel, mk);
+    m.calls += n; m.tokensIn += tin; m.tokensOut += tout; m.tokens += tin + tout;
+    if (r.own_key) m.ownKeyCost += c; else m.cost += c;
+    m.provider = r.provider; m.model = r.model;
+    m.priced = isPriced(prices, r.provider, r.model);
+    const rate = rateFor(prices, r.provider, r.model);
+    m.input_per_1m = rate.in; m.output_per_1m = rate.out;
   }
-  return { calls, tokensIn, tokensOut, tokens: tokensIn + tokensOut, platformCost, clientKeyCost, byKind };
+  return {
+    calls, tokensIn, tokensOut, tokens: tokensIn + tokensOut,
+    platformCost, clientKeyCost, byKind, byFeature, byArea, byModel,
+    // Models being charged at the fallback rate. Every dollar under one of
+    // these is an estimate, so the panel can say how much of the total is.
+    unpriced: Object.values(byModel).filter((m) => !m.priced)
+      .map((m) => ({ provider: m.provider, model: m.model, calls: m.calls, cost: m.cost })),
+  };
 }

@@ -98,7 +98,7 @@ export async function POST(request) {
     let generated = false;
     if (body.mode !== "raw") {
       try {
-        prompt = String(await (await getClientAI(client.id)).chat(META, [{ role: "user", content: input }])).replace(/```/g, "").trim();
+        prompt = String(await (await getClientAI(client.id, "platform.prompt")).chat(META, [{ role: "user", content: input }])).replace(/```/g, "").trim();
         generated = Boolean(prompt);
       } catch (e) {
         console.error("[generate-prompt] AI failed, using composed profile:", e.message);

@@ -29,12 +29,21 @@ import {
 
 // One message can transcribe, describe an image and chat; a 60s memo means the
 // key row is read once per warm lambda, not three times per message.
+//
+// The memo holds the CONFIG, not the finished ai object, because the object
+// carries the feature the caller is spending under (see src/lib/usage.js).
+// Building it is a handful of closures — the database read is the expensive
+// part, and that is what is cached.
 const memo = new Map();
 
-export async function getClientAI(clientId) {
+// `feature` says which part of the product is spending. Pass an AREA ("bot",
+// "product", "knowledge") and the kind of call fills in the rest — a photo
+// under "bot" records as bot.vision. Pass a full id ("bot.tag") when a caller
+// needs its own line in the cost report.
+export async function getClientAI(clientId, feature = "other") {
   const id = String(clientId || "");
   const hit = memo.get(id);
-  if (hit && Date.now() - hit.at < 60_000) return hit.ai;
+  if (hit && Date.now() - hit.at < 60_000) return build(id, hit.cfg, hit.platformChain, hit.platformApiKey, feature);
   let cfg = null;
   let platformChain = null;
   // The platform's own key, as set in the admin panel; null means "use the
@@ -66,12 +75,11 @@ export async function getClientAI(clientId) {
     // reply; it surfaces as "failing" the first time the key is used.
     console.error("[ai] config load:", String(e.message || "").slice(0, 160));
   }
-  const ai = build(id, cfg, platformChain, platformApiKey);
-  memo.set(id, { ai, at: Date.now() });
-  return ai;
+  memo.set(id, { cfg, platformChain, platformApiKey, at: Date.now() });
+  return build(id, cfg, platformChain, platformApiKey, feature);
 }
 
-function build(clientId, cfg, platformChain, platformApiKey) {
+function build(clientId, cfg, platformChain, platformApiKey, feature) {
   // Token meter. Every AI call reports through this so the admin panel can
   // answer "what does this client cost me?" — see src/lib/usage.js. Cost follows
   // the KEY the call actually ran on: ownKey usage is the client's money and is
@@ -84,6 +92,7 @@ function build(clientId, cfg, platformChain, platformApiKey) {
       recordUsage({
         clientId,
         kind,
+        feature,
         provider: kind === "embed" ? "google" : provider,
         model,
         ownKey,

@@ -65,7 +65,7 @@ export async function ingestFile({ clientId, fileId, fileName, fileUrl, fileType
   const rows = [];
   for (let i = 0; i < pieces.length; i++) {
     const content = pieces[i];
-    const embedding = await (await getClientAI(clientId)).embed(content);
+    const embedding = await (await getClientAI(clientId, "knowledge")).embed(content);
     rows.push({
       client_id: clientId,
       file_id: fileId,
@@ -109,7 +109,7 @@ export async function ingestFile({ clientId, fileId, fileName, fileUrl, fileType
 // ---- Semantic search over the knowledge base ----
 export async function searchKnowledge(clientId, query, k = 5) {
   try {
-    const emb = await (await getClientAI(clientId)).embed(query);
+    const emb = await (await getClientAI(clientId, "bot")).embed(query);
     const { data, error } = await supabase.rpc("match_knowledge", {
       query_embedding: emb,
       match_count: k,

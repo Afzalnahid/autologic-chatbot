@@ -39,18 +39,18 @@ export async function POST(request) {
     const html = await res.text();
 
     let list;
-    try { list = await extractProductsFromUrl(html, url, embedMeter(client.id)); } catch { return NextResponse.json({ error: "could not extract product" }, { status: 502 }); }
+    try { list = await extractProductsFromUrl(html, url, embedMeter(client.id, "product")); } catch { return NextResponse.json({ error: "could not extract product" }, { status: 502 }); }
     const p = Array.isArray(list) ? list[0] : list;
     if (!p?.name) return NextResponse.json({ error: "no product found" }, { status: 404 });
 
     const image_url = p.images?.[0]?.src || "";
     let visual = "";
-    if (image_url) { try { const ai = await getClientAI(client.id); visual = await ai.visionUrl(image_url, visionPrompt(bType, unit)); } catch {} }
+    if (image_url) { try { const ai = await getClientAI(client.id, "product"); visual = await ai.visionUrl(image_url, visionPrompt(bType, unit)); } catch {} }
 
     const codeMatch = visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i);
     const product_code = (codeMatch ? codeMatch[1].trim() : "") || `URL-${Date.now()}`;
     const content = `Product Code: ${product_code}\nName: ${p.name}\n${visual || p.description || ""}`;
-    const embedding = await (await getClientAI(client.id)).embed(content);
+    const embedding = await (await getClientAI(client.id, "product")).embed(content);
 
     const metadata = {
       client_id: String(client.id),
