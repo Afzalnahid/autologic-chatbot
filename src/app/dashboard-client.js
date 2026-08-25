@@ -517,6 +517,12 @@ function ConnectCalendar({clientId,onDone}) {
 
 export default function Dashboard() {
   const isMobile=useIsMobile();
+  // The popstate handler below is wired up once, on mount (see its effect's
+  // empty dependency list — it has to be, or a fresh listener would stack up
+  // on every render). A ref is the only way it can still see the CURRENT
+  // isMobile rather than whatever it was the moment that effect first ran.
+  const isMobileRef=useRef(isMobile);
+  useEffect(()=>{ isMobileRef.current=isMobile; },[isMobile]);
   const [chatOpen,setChatOpen]=useState(false);
   const pageRef=useRef("analytics");
   const [page,setPageRaw]=useState("analytics");
@@ -566,6 +572,10 @@ export default function Dashboard() {
       const to=e.state?.page||HOME;
       pushed.current = to!==HOME;
       setPageRaw(to);
+      // The phone's hardware/gesture back button retraces the same path the
+      // in-app Back arrow does, so it opens the menu again the same way —
+      // see the click handler below for why.
+      if(isMobileRef.current&&to===HOME) setSidebarOpen(true);
     };
     window.addEventListener("popstate",onPop);
     const params=new URLSearchParams(window.location.search);
@@ -799,7 +809,11 @@ export default function Dashboard() {
           </button>}
           {/* The phone's own back button does the same job; on screen it only
               earns a slot when it will not squeeze the title into an ellipsis. */}
-          {isMobile&&page!==HOME&&<button onClick={()=>setPage(HOME)} className="pbtn hide-xs" aria-label="Back"
+          {/* Entering a tab from the open menu already closes it (the
+              Segmented onChange below). This is the other half: stepping back
+              out to Home reopens it, so the menu is exactly where it was
+              before the detour rather than something to go dig out again. */}
+          {isMobile&&page!==HOME&&<button onClick={()=>{setPage(HOME);setSidebarOpen(true);}} className="pbtn hide-xs" aria-label="Back"
             style={{width:36,height:36,borderRadius:11}}>
             <i className="ti ti-arrow-left" style={{fontSize:16}}/>
           </button>}
