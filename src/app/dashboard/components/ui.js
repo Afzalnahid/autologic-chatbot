@@ -253,15 +253,26 @@ export function Select({ value, options, onChange, placeholder = "Select", style
 
   return (
     <div ref={box} style={{ position: "relative", ...style }}>
+      {/* maxWidth+boxSizing is the actual fix, not "wide": "auto" lets the
+          button ask for exactly what its content needs, and when two of
+          these sit side by side in a flex row too narrow for both — the
+          drawer's channel and tag filters, at a phone's width, with a live
+          count pushing one wider than expected — flexbox shrinks their
+          wrapper divs, but a plain width:auto button is not a flex
+          participant and does not shrink with its wrapper. It kept its full
+          content width and drew a measured 4px into the next filter's box.
+          Capped to the wrapper's own width, it shrinks with it instead, and
+          the ellipsis below actually gets to do its job. */}
       <button type="button" className="ui-btn" onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox" aria-expanded={open}
         style={{ display: "flex", alignItems: "center", gap: 8, width: wide ? "100%" : "auto",
+          maxWidth: "100%", boxSizing: "border-box", minWidth: 0,
           padding: "9px 12px", borderRadius: 9, border: `1px solid ${open ? T.gold : T.border}`,
           background: T.card, color: T.text, fontSize: 13.5, fontWeight: 500, cursor: "pointer",
           boxShadow: open ? `0 0 0 3px color-mix(in srgb, ${T.gold} 13%, transparent)` : "none" }}>
-        {current?.icon && <i className={`ti ${current.icon}`} style={{ fontSize: 15, color: T.gold }} />}
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-        <i className="ti ti-chevron-down" style={{ marginLeft: "auto", fontSize: 15, color: T.textDim,
+        {current?.icon && <i className={`ti ${current.icon}`} style={{ fontSize: 15, color: T.gold, flexShrink: 0 }} />}
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{label}</span>
+        <i className="ti ti-chevron-down" style={{ marginLeft: "auto", fontSize: 15, color: T.textDim, flexShrink: 0,
           transform: open ? "rotate(180deg)" : "none", transition: "transform .22s cubic-bezier(.16,1,.3,1)" }} />
       </button>
 

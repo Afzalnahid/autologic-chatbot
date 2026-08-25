@@ -210,10 +210,22 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
           eating half the screen before a single conversation appeared, and the
           counts are more readable inside the menu than crammed into a pill.
           A platform with several accounts also lists each one. */}
+      {/* flex:"0 1 auto" on both — an equal flex-basis (both used to say
+          "1 1 140px") assumes both labels need the same room, and these two
+          never do: "All channels (N)" runs longer than "All tags". At a
+          phone's width that mismatch was not just a wasted-space issue —
+          the channel button's own text needed more than its allotted half,
+          and a plain button is not itself a flex participant, so it kept its
+          full content width regardless of the box drawn around it and drew a
+          measured 4px into the tag filter beside it. "auto" sizes each to
+          its own content first and only shrinks either one, gracefully, if
+          both truly cannot fit — see the Select button's own maxWidth fix in
+          ui.js, which is what makes shrinking (rather than overflowing)
+          possible at all. */}
       {(avail.length>1||!!tagData?.available?.length)&&
         <div style={{display:"flex",gap:8,padding:"10px 12px",borderBottom:`1px solid ${T.border}`,flexWrap:"wrap"}}>
           {avail.length>1&&
-            <Select value={chFilter} onChange={setChFilter} style={{flex:"1 1 140px",minWidth:0}}
+            <Select value={chFilter} onChange={setChFilter} style={{flex:"0 1 auto",minWidth:0}}
               // "All channels" used to carry allConvos.length — the number of
               // CHATS, not channels, so a client with 4 connected channels and
               // 6 open chats saw "All channels (6)" and reasonably read that
@@ -229,7 +241,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
                     icon:CH_ICON[f]||"ti-message"})):[]),
                 ])]}/>}
           {!!tagData?.available?.length&&
-            <Select value={tagFilter} onChange={setTagFilter} style={{flex:"1 1 140px",minWidth:0}}
+            <Select value={tagFilter} onChange={setTagFilter} style={{flex:"0 1 auto",minWidth:0}}
               options={[{value:"all",label:"All tags",icon:"ti-tag"},
                 ...tagData.available.map(f=>{
                   const n=tagData.counts?.[f]||0;
