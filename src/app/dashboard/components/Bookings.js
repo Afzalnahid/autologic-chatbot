@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { T, Card, Btn, Badge, Accordion, Select, Segmented } from "./ui.js";
+import { T, Card, Btn, Badge, Accordion, Select, Segmented, useIsMobile } from "./ui.js";
 import { api } from "./session.js";
 
 // The Bookings tab, moved out of dashboard-client.js unchanged.
@@ -299,6 +299,7 @@ function keyOf(d) {
 }
 
 export default function Bookings({calConnected,clientId}) {
+  const isMobile=useIsMobile();
   const [bookings,setBookings]=useState([]);
   const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState("All");
@@ -326,6 +327,7 @@ export default function Bookings({calConnected,clientId}) {
   const sts=["All","Confirmed","Completed","Cancelled"];
   const [chFilter,setChFilter]=useState("all");
   const [day,setDay]=useState(null);
+  const [search,setSearch]=useState("");
 
   const load=async()=>{
     setLoading(true);
@@ -376,7 +378,13 @@ export default function Bookings({calConnected,clientId}) {
     return k>=day.a && k<=(day.b||day.a);
   }) : bookings;
   const byCh = chFilter==="all"?byDay:byDay.filter(b=>b.platform===chFilter);
-  const filtered = (filter==="All"?byCh:byCh.filter(b=>b.status===filter))
+  // Search covers every way an owner remembers a booking: who it was, how to
+  // reach them, and what they wanted. A phone number is often the only thing
+  // they have to hand when a customer rings back.
+  const q=search.trim().toLowerCase();
+  const bySearch = !q ? byCh : byCh.filter(b=>
+    `${b.customer_name||""} ${b.email||""} ${b.phone||""} ${b.service_want||""}`.toLowerCase().includes(q));
+  const filtered = (filter==="All"?bySearch:bySearch.filter(b=>b.status===filter))
     .map(b=>({...b,_w:when(b)}))
     .sort((a,c)=>{
       const ap=a._w.ts<Date.now(), cp=c._w.ts<Date.now();
@@ -437,12 +445,23 @@ export default function Bookings({calConnected,clientId}) {
     </Accordion>}
     {note&&<div style={{marginBottom:14,padding:"11px 14px",borderRadius:10,fontSize:13,
       background:T.goldBg,border:`1px solid ${T.gold}`,color:T.text}}>{note}</div>}
-    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,flexWrap:"wrap"}}>
-      <Btn small onClick={load} disabled={loading}>
-        <i className="ti ti-refresh" style={{marginRight:5}}/>{loading?"Refreshing":"Refresh"}
-      </Btn>
-      <span style={{fontSize:12,color:T.textDim}}>{bookings.length} booking{bookings.length===1?"":"s"}</span>
-    </div>
+    {/* Counts first, the way Inventory opens. "How many today" is the question
+        an owner actually arrives with, and it used to take reading the whole
+        list to answer. Today and the two status counts are clickable, so the
+        number is also the way to filter by it. */}
+    {bookings.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))",gap:12,marginBottom:14}}>
+      {[["ti-calendar-event","Today",bookings.filter(b=>group(when(b).ts)==="today").length,T.gold,()=>{setDay({a:keyOf(new Date()),preset:"Today"});setFilter("All");}],
+        ["ti-clock-hour-3","Upcoming",bookings.filter(b=>{const g=group(when(b).ts);return (g==="today"||g==="week"||g==="later")&&b.status==="Confirmed";}).length,T.info,null],
+        ["ti-circle-check","Confirmed",bookings.filter(b=>b.status==="Confirmed").length,T.success,()=>setFilter("Confirmed")],
+        ["ti-checks","Completed",bookings.filter(b=>b.status==="Completed").length,T.purple,()=>setFilter("Completed")]].map(([ic,l,v,c,fn])=>
+        <Card key={l} onClick={fn||undefined} style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:11,cursor:fn?"pointer":"default"}}>
+          <div style={{width:34,height:34,borderRadius:11,background:`color-mix(in srgb, ${c} 11%, transparent)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className={`ti ${ic}`} style={{fontSize:17,color:c}}/></div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:20,fontWeight:700,lineHeight:1.1}}>{v}</div>
+            <div style={{fontSize:11,color:T.textMuted,textTransform:"uppercase",letterSpacing:.7,whiteSpace:"nowrap"}}>{l}</div>
+          </div>
+        </Card>)}
+    </div>}
     {bookings.length>0&&<MonthGrid bookings={bookings} selected={day} onSelect={setDay}/>}
 
     {day?.a&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"9px 13px",
@@ -455,7 +474,18 @@ export default function Bookings({calConnected,clientId}) {
         border:"none",color:T.gold,cursor:"pointer",fontSize:12.5,fontWeight:600}}>Show all</button>
     </div>}
 
-    {bookings.length>0&&<div style={{marginBottom:14,maxWidth:260}}>
+    {/* Search, status, channel and refresh in one bar. They used to be three
+        separate stacked rows plus the count line above the calendar — five
+        blocks of controls before a single booking appeared, which on a phone
+        was most of the screen. */}
+    {bookings.length>0&&<Card style={{padding:isMobile?"10px 10px":"10px 12px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:14}}>
+      <div style={{position:"relative",flex:"1 1 200px",minWidth:0}}>
+        <i className="ti ti-search" style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:T.textDim,fontSize:16}}/>
+        <input placeholder="Search name, phone, email…" value={search} onChange={e=>setSearch(e.target.value)} className="ui-inp"
+          style={{width:"100%",background:T.bgAlt,boxShadow:T.nmIn,border:`1px solid ${T.border}`,borderRadius:12,padding:"10px 12px 10px 36px",color:T.text,fontSize:13.5,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        {search&&<button onClick={()=>setSearch("")} aria-label="Clear" style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:T.textDim,cursor:"pointer",fontSize:15,minHeight:0,padding:4}}><i className="ti ti-x"/></button>}
+      </div>
+      <Segmented items={sts} value={filter} onChange={setFilter} size="sm"/>
       {/* "All channels" carried bookings.length here — the number of BOOKINGS,
           not channels, so it read as a (wrong) channel count the same way
           Conversations' identical filter did. This component has no list of
@@ -463,17 +493,45 @@ export default function Bookings({calConnected,clientId}) {
           say exactly how many bookings came through each one — so the honest
           fix is to stop putting a number where it does not belong, not to
           find a different number to put there. */}
-      <Select value={chFilter} onChange={setChFilter}
-        options={[{value:"all",label:"All channels",icon:"ti-inbox"},
-          ...Object.entries(CH)
-            .filter(([k])=>bookings.some(b=>b.platform===k))
-            .map(([k,v])=>({value:k,label:`${v.label} (${bookings.filter(b=>b.platform===k).length})`,icon:v.icon}))]}/>
+      {Object.keys(CH).some(k=>bookings.some(b=>b.platform===k))&&
+        <Select value={chFilter} onChange={setChFilter}
+          options={[{value:"all",label:"All channels",icon:"ti-inbox"},
+            ...Object.entries(CH)
+              .filter(([k])=>bookings.some(b=>b.platform===k))
+              .map(([k,v])=>({value:k,label:`${v.label} (${bookings.filter(b=>b.platform===k).length})`,icon:v.icon}))]}/>}
+      <Btn onClick={load} disabled={loading} style={{padding:"9px 14px",borderRadius:12,whiteSpace:"nowrap",marginLeft:"auto"}}>
+        <i className="ti ti-refresh" style={{marginRight:6,animation:loading?"spin .8s linear infinite":"none"}}/>{loading?"Refreshing":"Refresh"}
+      </Btn>
+    </Card>}
+
+    {/* The count reflects what is on screen. It used to always print the
+        unfiltered total, so filtering to one channel still said "23 bookings"
+        above three of them. */}
+    {bookings.length>0&&<div style={{fontSize:12.5,color:T.textMuted,marginBottom:12,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+      <span>{filtered.length===bookings.length
+        ? `${bookings.length} booking${bookings.length===1?"":"s"}`
+        : `${filtered.length} of ${bookings.length} booking${bookings.length===1?"":"s"}`}</span>
+      {(filter!=="All"||chFilter!=="all"||!!q||!!day?.a)&&
+        <button onClick={()=>{setFilter("All");setChFilter("all");setSearch("");setDay(null);}} className="ui-btn"
+          style={{background:"none",border:"none",color:T.gold,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:"inherit",padding:0,minHeight:0}}>Clear filters</button>}
     </div>}
-    <div style={{marginBottom:18}}>
-      <Segmented items={sts} value={filter} onChange={setFilter} size="sm"/>
-    </div>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>:filtered.length===0?<Card style={{textAlign:"center",color:T.textDim,padding:40}}>No bookings yet</Card>:filtered.map(b=><Card key={b.id}>
+      {loading?<Card style={{textAlign:"center",color:T.textDim,padding:30}}>Loading...</Card>
+      :filtered.length===0
+        // "No bookings yet" was shown even when a filter was simply hiding
+        // everything, which reads as "the bot stopped taking bookings".
+        ?<Card style={{textAlign:"center",padding:"36px 22px"}}>
+          <i className={`ti ${bookings.length?"ti-search-off":"ti-calendar-plus"}`} style={{fontSize:28,color:T.textDim}}/>
+          <div style={{fontSize:15,fontWeight:600,marginTop:12}}>{bookings.length?"Nothing matches these filters":"No bookings yet"}</div>
+          <div style={{fontSize:13,color:T.textMuted,marginTop:6,maxWidth:360,margin:"6px auto 0",lineHeight:1.6}}>
+            {bookings.length
+              ? "Try a different day, channel or status."
+              : "When a customer asks for a meeting, the bot collects their details and the booking appears here."}
+          </div>
+          {!!bookings.length&&<button onClick={()=>{setFilter("All");setChFilter("all");setSearch("");setDay(null);}} className="ui-btn"
+            style={{marginTop:14,padding:"9px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Clear filters</button>}
+        </Card>
+      :filtered.map(b=><Card key={b.id}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
           <div style={{minWidth:0}}>
             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -493,10 +551,28 @@ export default function Bookings({calConnected,clientId}) {
               {group(b._w.ts)==="past"&&b.status==="Confirmed"&&
                 <span style={{marginLeft:8,fontSize:10.5,fontWeight:700,letterSpacing:.6,color:T.warn}}>TIME PASSED</span>}
             </div>
-            <div style={{fontSize:12,color:T.textMuted,marginTop:2}}><i className="ti ti-mail" style={{marginRight:4}}/>{b.email||"—"} · <i className="ti ti-phone" style={{margin:"0 4px"}}/>{b.phone||"—"}</div>
+            {/* Tappable, because the reason an owner looks at a booking is
+                usually to get in touch about it — on a phone this dials or
+                opens mail instead of making them copy the number out by eye.
+                The thumb-sized hit area comes from the tel:/mailto: rule in
+                ui.js rather than being set again here, so there is one place
+                that decides how big an inline contact link is. */}
+            <div style={{fontSize:12,color:T.textMuted,marginTop:2,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+              {b.email
+                ? <a href={`mailto:${b.email}`} style={{color:T.textMuted,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-mail"/>{b.email}</a>
+                : <span style={{display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-mail"/>—</span>}
+              <span style={{color:T.textDim}}>·</span>
+              {b.phone
+                ? <a href={`tel:${String(b.phone).replace(/[^\d+]/g,"")}`} style={{color:T.textMuted,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-phone"/>{b.phone}</a>
+                : <span style={{display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-phone"/>—</span>}
+            </div>
             {b.meeting_link
+              // 11px of vertical padding, not 8: this is the button an owner
+              // presses at the moment a meeting starts, and 8 left it 37px
+              // tall on a phone — under the 44px floor everything else here
+              // meets.
               ? <a href={b.meeting_link} target="_blank" rel="noreferrer" className="ui-btn"
-                  style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:10,padding:"8px 13px",
+                  style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:10,padding:"11px 14px",
                     borderRadius:9,background:T.goldBg,border:`1px solid ${T.gold}`,color:T.gold,
                     fontSize:12.5,fontWeight:600,textDecoration:"none"}}>
                   <i className="ti ti-video"/>Join meeting

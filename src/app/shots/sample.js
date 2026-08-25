@@ -207,13 +207,13 @@ const booking = (o, d) => ({
 });
 const BOOKINGS = [
   booking({ id: "bk1", customer_name: "Imran Hossain", email: "imran@example.com", phone: "017XXXXXXXX",
-    service_want: "Facebook ads consultation", status: "confirmed", platform: "facebook",
+    service_want: "Facebook ads consultation", status: "Confirmed", platform: "facebook",
     meeting_link: "https://meet.google.com/abc-defg-hij", calendar_event_id: "evt_1" }, at(1, 15)),
   booking({ id: "bk2", customer_name: "Shirin Akhter", email: "shirin@example.com", phone: "018XXXXXXXX",
-    service_want: "SEO strategy call", status: "confirmed", platform: "instagram",
+    service_want: "SEO strategy call", status: "Confirmed", platform: "instagram",
     meeting_link: "https://meet.google.com/klm-nopq-rst", calendar_event_id: "evt_2" }, at(3, 11)),
   booking({ id: "bk3", customer_name: "Nabil Chowdhury", email: "nabil@example.com", phone: "019XXXXXXXX",
-    service_want: "Brand audit", status: "completed", platform: "whatsapp" }, at(-2, 17)),
+    service_want: "Brand audit", status: "Completed", platform: "whatsapp" }, at(-2, 17)),
 ];
 
 // ----------------------------------------------------------- bot training

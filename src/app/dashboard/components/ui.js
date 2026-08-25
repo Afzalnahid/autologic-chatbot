@@ -390,11 +390,14 @@ export function Motion() {
            phone, and the round avatar an ellipse. Square buttons have to grow
            in both directions or they come out stretched. */
         .pbtn, .ui-sq { min-width: 44px }
-        /* A phone number sits inline inside a sentence, so it cannot be made
-           44px tall without breaking the line. Padding grows the area a thumb
-           can hit and the matching negative margin leaves the text exactly
-           where it was. */
-        a[href^="tel:"] { padding: 10px 2px; margin: -10px -2px }
+        /* A phone number or an email address sits inline inside a sentence, so
+           it cannot be made 44px tall without breaking the line. Padding grows
+           the area a thumb can hit and the matching negative margin leaves the
+           text exactly where it was.
+           13px, not 10: 10 left these at 38px tall — closer to the floor than
+           before, but still short of it. mailto: is here for the same reason
+           tel: is, and was simply missed. */
+        a[href^="tel:"], a[href^="mailto:"] { padding: 13px 2px; margin: -13px -2px }
         .ui-menu { max-height: min(60vh, 420px) }
       }
       /* iOS zooms the page when a field under 16px takes focus. */
