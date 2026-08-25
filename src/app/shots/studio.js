@@ -15,6 +15,7 @@ import Settings from "../dashboard/components/Settings.js";
 import AIEngine from "../dashboard/components/AIEngine.js";
 import Billing from "../dashboard/components/Billing.js";
 import Profile from "../dashboard/components/Profile.js";
+import Packages from "../admin/Packages.js";
 import { SAMPLE, PROPS } from "./sample.js";
 
 // The screenshot studio.
@@ -46,6 +47,9 @@ const TABS = {
   "ai-engine":      () => <AIEngine />,
   billing:          () => <Billing />,
   profile:          () => <Profile />,
+  // The admin console, not a client tab — it answers from the same stubbed
+  // fetch, so the cost breakdown can be checked without a super-admin login.
+  "admin-packages": () => <Packages token="studio" isSuper />,
 };
 
 export const TAB_IDS = Object.keys(TABS);

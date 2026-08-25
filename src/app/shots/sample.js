@@ -287,6 +287,156 @@ const PROFILE = {
 };
 
 // Answered by the studio's fetch stub, matched on the start of the URL.
+// ── Admin: packages & API usage ─────────────────────────────────────────────
+// Shaped exactly like /api/admin/packages so the admin console can be checked
+// and photographed without a super-admin login.
+//
+// Only the raw counts below are written by hand — every cost, area total, model
+// row and grand total is COMPUTED from them at the same rates the real price
+// book holds. The panel has a "check the arithmetic" table, and a fixture whose
+// arithmetic does not check out would be a poor thing to photograph.
+const RATE = {
+  "gemini-2.5-flash": { in: 0.3, out: 2.5, priced: true },
+  "gemini-3-flash-preview": { in: 0.3, out: 2.5, priced: false }, // falls back to __default__
+  "gemini-embedding-001": { in: 0.15, out: 0, priced: true },
+};
+const AREA_OF = {
+  "bot.chat": "bot", "bot.embed": "bot", "bot.vision": "bot", "bot.voice": "bot",
+  "bot.language": "bot", "bot.tag": "bot", "bot.comment": "bot",
+  "product.embed": "catalogue", "product.vision": "catalogue", "product.scrape": "catalogue",
+  "knowledge.embed": "catalogue",
+  "platform.prompt": "platform", "platform.offer": "platform",
+};
+const costOf = (m, tin, tout) => (tin / 1e6) * RATE[m].in + (tout / 1e6) * RATE[m].out;
+
+// [feature, model, calls, tokensIn, tokensOut, ownKey?]
+function rollUp(lines) {
+  const blank = () => ({ calls: 0, tokensIn: 0, tokensOut: 0, tokens: 0, cost: 0, ownKeyCost: 0 });
+  const add = (b, [, , calls, tin, tout, own], c) => {
+    b.calls += calls; b.tokensIn += tin; b.tokensOut += tout; b.tokens += tin + tout;
+    if (own) b.ownKeyCost += c; else b.cost += c;
+  };
+  const by_feature = {}, by_area = {}, by_model = {}, by_kind = {};
+  let calls = 0, tokens_in = 0, tokens_out = 0, cost_usd = 0, own_key_cost_usd = 0;
+  for (const l of lines) {
+    const [f, m, n, tin, tout, own] = l;
+    const c = costOf(m, tin, tout);
+    calls += n; tokens_in += tin; tokens_out += tout;
+    if (own) own_key_cost_usd += c; else cost_usd += c;
+    const kind = f.endsWith(".embed") ? "embed" : f.endsWith(".vision") ? "vision"
+      : f.endsWith(".voice") ? "voice" : f.endsWith(".scrape") ? "scrape" : "chat";
+    for (const [map, key] of [[by_feature, f], [by_area, AREA_OF[f]], [by_kind, kind]]) {
+      map[key] = map[key] || blank();
+      add(map[key], l, c);
+    }
+    const mk = `google/${m}`;
+    by_model[mk] = by_model[mk] || { ...blank(), provider: "google", model: m, priced: RATE[m].priced, input_per_1m: RATE[m].in, output_per_1m: RATE[m].out };
+    add(by_model[mk], l, c);
+  }
+  const unpriced = Object.values(by_model).filter((m) => !m.priced)
+    .map((m) => ({ provider: "google", model: m.model, calls: m.calls, cost: m.cost }));
+  return {
+    calls, tokens_in, tokens_out, tokens: tokens_in + tokens_out,
+    cost_usd, own_key_cost_usd, by_feature, by_area, by_model, by_kind, unpriced,
+  };
+}
+
+const FLASH = "gemini-2.5-flash", PREVIEW = "gemini-3-flash-preview", EMB = "gemini-embedding-001";
+
+// A busy shop on Pro: photos, voice notes, a catalogue import, and the language
+// rewrite firing more often than the owner would guess.
+const C1_LINES = [
+  ["bot.chat", FLASH, 4820, 6952000, 421000],
+  ["bot.chat", PREVIEW, 180, 262000, 15400],       // a few replies rode a model with no price set
+  ["bot.embed", EMB, 4820, 578000, 0],
+  ["bot.vision", FLASH, 612, 428000, 31400],
+  ["bot.voice", FLASH, 184, 96000, 8600],
+  ["bot.language", FLASH, 2890, 246000, 34200],
+  ["bot.tag", FLASH, 374, 39000, 3200],
+  ["bot.comment", FLASH, 40, 46000, 2800],
+  ["product.embed", EMB, 302, 604000, 0],
+  ["product.vision", FLASH, 48, 132000, 9200],
+  ["product.scrape", FLASH, 8, 118000, 4400],
+  ["platform.prompt", FLASH, 6, 11000, 2400],
+  ["platform.offer", FLASH, 2, 3000, 600],
+];
+// An agency on their own key: chat is their money, embeddings are still ours.
+const C2_LINES = [
+  ["bot.chat", FLASH, 1240, 2104000, 138000, true],
+  ["bot.embed", EMB, 1240, 496000, 0],
+  ["bot.language", FLASH, 918, 214000, 22600, true],
+  ["bot.tag", FLASH, 108, 32000, 2400, true],
+  ["knowledge.embed", EMB, 102, 175000, 0],
+];
+// A quiet new shop on Starter — barely any traffic yet.
+const C3_LINES = [
+  ["bot.chat", FLASH, 96, 108000, 8800],
+  ["bot.embed", EMB, 96, 11400, 0],
+  ["bot.tag", FLASH, 6, 2000, 700],
+  ["product.embed", EMB, 16, 37500, 0],
+];
+
+const C1 = rollUp(C1_LINES), C2 = rollUp(C2_LINES), C3 = rollUp(C3_LINES);
+const ALL = rollUp([...C1_LINES, ...C2_LINES, ...C3_LINES]);
+
+const ADMIN_PACKAGES = {
+  role: "owner",
+  days: 30,
+  plans: [
+    { id: "starter", name: "Starter", tagline: "One channel, real replies", sort: 1, active: true, public: true, monthly: 1500, yearly: 15000, messages_per_month: 3000, channels: 1, max_products: 300, max_kb_files: 0, max_scrapes_per_month: 20, max_broadcasts_per_month: 4, features: { vision: false, voice: false, kb: false }, feature_list: [] },
+    { id: "pro", name: "Pro", tagline: "Every channel, photos and voice", sort: 2, active: true, public: true, monthly: 3500, yearly: 35000, messages_per_month: 15000, channels: 3, max_products: 3000, max_kb_files: 40, max_scrapes_per_month: 200, max_broadcasts_per_month: 20, highlight: true, features: { vision: true, voice: true, kb: true }, feature_list: [] },
+    { id: "agency", name: "Agency", tagline: "Unlimited, with bookings", sort: 3, active: true, public: true, monthly: 6000, yearly: 60000, messages_per_month: null, channels: 3, max_products: null, max_kb_files: null, max_scrapes_per_month: null, max_broadcasts_per_month: null, features: { vision: true, voice: true, kb: true, calendar: true }, feature_list: [] },
+  ],
+  prices: [
+    { provider: "google", model: "__default__", input_per_1m: 0.3, output_per_1m: 2.5 },
+    { provider: "google", model: "gemini-2.5-flash", input_per_1m: 0.3, output_per_1m: 2.5 },
+    { provider: "google", model: "gemini-2.5-pro", input_per_1m: 1.25, output_per_1m: 10 },
+    { provider: "google", model: "gemini-embedding-001", input_per_1m: 0.15, output_per_1m: 0 },
+  ],
+  platform_costs: [
+    { id: "vercel", label: "Vercel hosting", monthly_usd: 20 },
+    { id: "supabase", label: "Supabase database", monthly_usd: 25 },
+    { id: "resend", label: "Resend email", monthly_usd: 0 },
+  ],
+  settings: { usd_bdt: 120 },
+  clients: [
+    {
+      client_id: "c1", business_name: "Nokshi Threads", owner_email: "owner@nokshithreads.com",
+      plan: "pro", business_type: "ecommerce", suspended: false, limit_overrides: null, model_chain: null,
+      messages: 4820, revenue_bdt: 3500, ...C1,
+      channels: [
+        { id: "ch1", client_id: "c1", platform: "facebook", page_id: "p1", name: "Nokshi Threads", status: "connected", msg_limit_monthly: null, messages: 3140 },
+        { id: "ch2", client_id: "c1", platform: "instagram", page_id: "p2", name: "@nokshithreads", status: "connected", msg_limit_monthly: null, messages: 1680 },
+      ],
+    },
+    {
+      client_id: "c2", business_name: "Meridian Consulting", owner_email: "hello@meridian.consulting",
+      plan: "agency", business_type: "agency", suspended: false, limit_overrides: null, model_chain: null,
+      messages: 1240, revenue_bdt: 6000, ...C2,
+      channels: [
+        { id: "ch3", client_id: "c2", platform: "whatsapp", page_id: "p3", name: "Meridian", status: "connected", msg_limit_monthly: null, messages: 1240 },
+      ],
+    },
+    {
+      client_id: "c3", business_name: "Bengal Ceramics", owner_email: "shop@bengalceramics.com",
+      plan: "starter", business_type: "ecommerce", suspended: false, limit_overrides: { max_products: 600 }, model_chain: null,
+      messages: 96, revenue_bdt: 1500, ...C3,
+      channels: [
+        { id: "ch4", client_id: "c3", platform: "facebook", page_id: "p4", name: "Bengal Ceramics", status: "connected", msg_limit_monthly: 3000, messages: 96 },
+      ],
+    },
+  ],
+  totals: {
+    calls: ALL.calls, tokens: ALL.tokens, tokens_in: ALL.tokens_in, tokens_out: ALL.tokens_out,
+    ai_cost_usd: ALL.cost_usd, own_key_cost_usd: ALL.own_key_cost_usd,
+    by_kind: ALL.by_kind, by_area: ALL.by_area, by_feature: ALL.by_feature,
+    by_model: ALL.by_model, unpriced: ALL.unpriced,
+    fixed_monthly_usd: 45,
+    fixed_window_usd: 45,
+    messages: 4820 + 1240 + 96,
+  },
+};
+
 export const SAMPLE = {
   "/api/comments": [
     // An Instagram row can only link to its post through the saved permalink;
@@ -341,6 +491,7 @@ export const SAMPLE = {
   "/api/billing": BILLING,
   "/api/plans": { plans: [] },
   "/api/profile": PROFILE,
+  "/api/admin/packages": ADMIN_PACKAGES,
 };
 
 // Handed straight to the components that take props instead of fetching.

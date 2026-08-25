@@ -38,7 +38,7 @@ export async function GET(request) {
     loadPrices(),
     supabase.from("platform_costs").select("*").order("id"),
     supabase.from("usage_daily").select("*").gte("day", since),
-    supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain"),
+    supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type"),
     supabase.from("channels").select("id,client_id,platform,page_id,name,status,msg_limit_monthly"),
     billingSettings(),
   ]);
@@ -86,12 +86,21 @@ export async function GET(request) {
       suspended: !!c.suspended,
       limit_overrides: c.limit_overrides || null,
       model_chain: c.model_chain || null,
+      business_type: c.business_type || "ecommerce",
       messages,
       calls: s.calls,
       tokens: s.tokens,
+      tokens_in: s.tokensIn,
+      tokens_out: s.tokensOut,
       cost_usd: s.platformCost,
       own_key_cost_usd: s.clientKeyCost,
       by_kind: s.byKind,
+      // The three-part split the admin panel shows: platform tools, catalogue
+      // indexing, and the bot's own per-message work.
+      by_area: s.byArea,
+      by_feature: s.byFeature,
+      by_model: s.byModel,
+      unpriced: s.unpriced,
       revenue_bdt: revenueBdt,
       channels: channels.filter((ch) => ch.client_id === c.id).map((ch) => ({
         ...ch, messages: msgByChannel.get(`${c.id}|${ch.page_id}`) || 0,
@@ -114,9 +123,16 @@ export async function GET(request) {
     clients: rows,
     totals: {
       calls: totals.calls, tokens: totals.tokens,
+      tokens_in: totals.tokensIn, tokens_out: totals.tokensOut,
       ai_cost_usd: totals.platformCost,
       own_key_cost_usd: totals.clientKeyCost,
       by_kind: totals.byKind,
+      by_area: totals.byArea,
+      by_feature: totals.byFeature,
+      by_model: totals.byModel,
+      // Models being charged at the fallback rate — every dollar under one of
+      // these is a house guess, and the panel says so instead of hiding it.
+      unpriced: totals.unpriced,
       fixed_monthly_usd: fixedMonthlyUsd,
       // The fixed bill pro-rated to the same window as the AI cost.
       fixed_window_usd: (fixedMonthlyUsd / 30) * days,
