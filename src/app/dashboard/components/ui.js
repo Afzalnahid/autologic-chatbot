@@ -405,6 +405,14 @@ export function Motion() {
            before, but still short of it. mailto: is here for the same reason
            tel: is, and was simply missed. */
         a[href^="tel:"], a[href^="mailto:"] { padding: 13px 2px; margin: -13px -2px }
+        /* Except where two of them stack. The negative margin above is right for
+           a link inside a sentence, but in the bookings list the email wraps
+           above the phone on a narrow screen: the pitch collapses to 24px while
+           each hit box is still 44, so 20px in the middle belonged to BOTH
+           links and a tap meant for the email could place a call instead.
+           Marked rows drop the vertical pull-back and take a real 44px line.
+           Same specificity as the rule above, and it comes after, so it wins. */
+        a.ui-contact { margin-top: 0; margin-bottom: 0 }
         .ui-menu { max-height: min(60vh, 420px) }
       }
       /* iOS zooms the page when a field under 16px takes focus. */

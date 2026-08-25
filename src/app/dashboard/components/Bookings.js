@@ -564,13 +564,16 @@ export default function Bookings({calConnected,clientId}) {
                 The thumb-sized hit area comes from the tel:/mailto: rule in
                 ui.js rather than being set again here, so there is one place
                 that decides how big an inline contact link is. */}
-            <div onClick={e=>e.stopPropagation()} style={{fontSize:12,color:T.textMuted,marginTop:2,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+            {/* columnGap only: on a phone these two carry real 44px hit areas
+                and wrap onto separate lines, so a row gap on top of that is
+                wasted height. */}
+            <div onClick={e=>e.stopPropagation()} style={{fontSize:12,color:T.textMuted,marginTop:2,display:"flex",alignItems:"center",columnGap:6,rowGap:0,flexWrap:"wrap"}}>
               {b.email
-                ? <a href={`mailto:${b.email}`} style={{color:T.textMuted,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-mail"/>{b.email}</a>
+                ? <a href={`mailto:${b.email}`} className="ui-contact" style={{color:T.textMuted,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-mail"/>{b.email}</a>
                 : <span style={{display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-mail"/>—</span>}
               <span style={{color:T.textDim}}>·</span>
               {b.phone
-                ? <a href={`tel:${String(b.phone).replace(/[^\d+]/g,"")}`} style={{color:T.textMuted,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-phone"/>{b.phone}</a>
+                ? <a href={`tel:${String(b.phone).replace(/[^\d+]/g,"")}`} className="ui-contact" style={{color:T.textMuted,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-phone"/>{b.phone}</a>
                 : <span style={{display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-phone"/>—</span>}
             </div>
             {b.meeting_link
