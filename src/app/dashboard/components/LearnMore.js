@@ -12,11 +12,12 @@ import { useLang, useT } from "./i18n.js";
 // ui.js — putting a translated component back into ui.js would close the
 // import loop.
 
-// Dashboard page key → documentation slug. Two of them differ on purpose:
-// "settings" is the page key that Bot Training kept when it was renamed, and
+// Dashboard page key → documentation slug. Three of them differ on purpose:
+// "settings" is the page key that Bot Training kept when it was renamed,
+// "conversations" is the key the Inbox tab kept when IT was renamed, and
 // "ai" is shorter than the docs page it explains.
 const SLUG = {
-  analytics: "analytics", conversations: "conversations", comments: "comments",
+  analytics: "analytics", conversations: "inbox", comments: "comments",
   broadcast: "broadcast", inventory: "inventory", orders: "orders",
   channels: "channels", billing: "billing", profile: "profile",
   settings: "bot-training", ai: "ai-engine",

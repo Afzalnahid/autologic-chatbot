@@ -22,5 +22,13 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // The Conversations tab became Inbox (2026-08-25). Anyone holding the
+      // old manual link still lands on the page. Not permanent: a 308 would
+      // be cached in browsers forever, and this rename should stay undoable.
+      { source: "/docs/conversations", destination: "/docs/inbox", permanent: false },
+    ];
+  },
 };
 module.exports = nextConfig;

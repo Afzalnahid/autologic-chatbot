@@ -35,7 +35,7 @@ const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerpho
 // that. The page key stays "settings" so links and code paths are untouched.
 // "AI Engine" (key "ai") is the BYOK home — moved out of Bot Training into its
 // own tab so the API key, provider and model choice are easy to find and manage.
-const LABELS = ["Analytics","Conversations","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile","AI Engine"];
+const LABELS = ["Analytics","Inbox","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile","AI Engine"];
 
 
 
@@ -824,7 +824,7 @@ export default function Dashboard() {
             title="Sync" aria-label="Sync">
             <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>
           </button>}
-          <button onClick={()=>setPage("conversations")} className="pbtn" title="Active conversations"
+          <button onClick={()=>setPage("conversations")} className="pbtn" title="Open inbox"
             aria-label={`Notifications${activeCount?`, ${activeCount} active`:""}`}
             style={isMobile?{width:36,height:36,borderRadius:11}:undefined}>
             <i className="ti ti-bell"/>

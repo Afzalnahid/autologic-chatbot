@@ -19,7 +19,10 @@ export const PAGES = [
   { slug: "getting-started", group: "start",    icon: "ti-rocket",            tab: null,            biz: "both" },
   { slug: "channels",        group: "start",    icon: "ti-plug",              tab: "channels",      biz: "both" },
   { slug: "website-widget",  group: "start",    icon: "ti-world",             tab: "channels",      biz: "both" },
-  { slug: "conversations",   group: "daily",    icon: "ti-messages",          tab: "conversations", biz: "both" },
+  // The slug says "inbox" (the tab's public name since 2026-08-25); the tab
+  // key stays "conversations" because the dashboard's #hash deep links and
+  // page state were built on it. next.config.js redirects the old URL.
+  { slug: "inbox",           group: "daily",    icon: "ti-messages",          tab: "conversations", biz: "both" },
   { slug: "comments",        group: "daily",    icon: "ti-message-circle-2",  tab: "comments",      biz: "both" },
   { slug: "analytics",       group: "daily",    icon: "ti-chart-bar",         tab: "analytics",     biz: "both" },
   { slug: "broadcast",       group: "outreach", icon: "ti-speakerphone",      tab: "broadcast",     biz: "both" },

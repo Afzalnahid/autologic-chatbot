@@ -75,7 +75,7 @@ export function LangToggle({ compact }) {
 const DICT = {
   en: {
     // ---- navigation & shell ----
-    "nav.analytics": "Analytics", "nav.conversations": "Conversations", "nav.comments": "Comments",
+    "nav.analytics": "Analytics", "nav.conversations": "Inbox", "nav.comments": "Comments",
     "nav.broadcast": "Broadcast", "nav.channels": "Channels", "nav.billing": "Billing",
     "nav.settings": "Bot Training", "nav.profile": "Profile", "nav.ai": "AI Engine",
     "nav.inventory": "Inventory", "nav.knowledge": "Knowledge Base",
@@ -267,7 +267,7 @@ const DICT = {
   },
 
   bn: {
-    "nav.analytics": "অ্যানালিটিক্স", "nav.conversations": "কথোপকথন", "nav.comments": "কমেন্ট",
+    "nav.analytics": "অ্যানালিটিক্স", "nav.conversations": "ইনবক্স", "nav.comments": "কমেন্ট",
     "nav.broadcast": "ব্রডকাস্ট", "nav.channels": "চ্যানেল", "nav.billing": "বিলিং",
     "nav.settings": "বট ট্রেনিং", "nav.profile": "প্রোফাইল", "nav.ai": "এআই ইঞ্জিন",
     "nav.inventory": "ইনভেন্টরি", "nav.knowledge": "নলেজ বেজ",

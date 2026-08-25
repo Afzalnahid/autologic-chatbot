@@ -53,7 +53,7 @@ export const UI = {
     "getting-started": "Getting started",
     "channels": "Channels",
     "website-widget": "Website widget",
-    "conversations": "Conversations",
+    "inbox": "Inbox",
     "comments": "Comments",
     "analytics": "Analytics",
     "broadcast": "Broadcast",
@@ -103,7 +103,7 @@ export const DOCS = {
         p: ["Three things are worth doing on your first day, in this order:"],
         steps: [
           "Open **Channels** and connect at least one — Facebook, Instagram, WhatsApp or your website.",
-          "Message your own page from another account and watch the reply arrive in **Conversations**.",
+          "Message your own page from another account and watch the reply arrive in **Inbox**.",
           "If the reply was not quite right, open **Bot Training** and correct it. The bot changes immediately — there is nothing to redeploy.",
         ] },
 
@@ -169,7 +169,7 @@ export const DOCS = {
 
       { h: "One business, several Pages",
         p: [
-          "Many owners run a main Page plus a second one for a different product line, or an English Page and a Bangla one. Connect them all. Every conversation lands in the same inbox, and the **Conversations** tab can filter down to a single Page when you want to look at just one.",
+          "Many owners run a main Page plus a second one for a different product line, or an English Page and a Bangla one. Connect them all. Every conversation lands in the same inbox, and the **Inbox** tab can filter down to a single Page when you want to look at just one.",
           "Each Page keeps its own on/off switch and its own comment settings, so the bot can be busy on one and silent on another.",
         ] },
 
@@ -182,7 +182,7 @@ export const DOCS = {
           { q: "It says the Page is already connected.",
             a: "A Page can power only one Autologic account. If you connected it under a different email, log in there and disconnect it first. If that account is not yours, write to us." },
           { q: "The bot answers on one Page but not the other.",
-            a: "Open the quiet Page's row and check its switch. Each channel has its own — turning the bot off in Conversations is a separate control again, covering every channel at once." },
+            a: "Open the quiet Page's row and check its switch. Each channel has its own — turning the bot off in Inbox is a separate control again, covering every channel at once." },
           { q: "I disconnected by accident.",
             a: "Nothing is lost. Connect it again the same way; your conversations, orders and training all stay exactly as they were." },
         ] },
@@ -197,7 +197,7 @@ export const DOCS = {
       { h: "What it is",
         p: [
           "A small chat button that sits in the corner of your website. A visitor clicks it and talks to the **same bot** that answers your Messenger, Instagram and WhatsApp — it already knows your products, prices and policies, so there is nothing extra to teach it.",
-          "Those chats appear in **Conversations** alongside everything else, and you can take over from the bot exactly the same way.",
+          "Those chats appear in **Inbox** alongside everything else, and you can take over from the bot exactly the same way.",
         ] },
 
       { shot: "website-widget", cap: "The widget once it is created: your line of code, the websites allowed to use it, and the New key button." },
@@ -248,8 +248,8 @@ export const DOCS = {
     ],
   },
 
-  "conversations": {
-    title: "Conversations",
+  "inbox": {
+    title: "Inbox",
     lead: "Every chat from every channel in one inbox — with a switch that lets you take over from the bot whenever you want to answer someone yourself.",
     time: 7,
     blocks: [
@@ -259,14 +259,14 @@ export const DOCS = {
           "It refreshes on its own — a new message appears without you pressing anything.",
         ] },
 
-      { shot: "conversations", cap: "The chat list on the left with its bot and manual badges, and the open conversation on the right." },
+      { shot: "inbox", cap: "The chat list on the left with its bot and manual badges, and the open conversation on the right." },
 
       { h: "The two Bot switches",
         p: ["This is the most important thing on the tab, and there are **two** of them. They do different jobs:"],
         table: { head: ["Switch", "Where", "What it does"],
           rows: [
             ["**Bot ON / Bot OFF**", "Top of the chat list", "The whole account. Off, the bot stops replying on **every** channel and every conversation"],
-            ["**Bot ON / Bot OFF (manual)**", "Top of an open chat", "This one person only. The bot keeps working with everyone else"],
+            ["**Live / Manual**", "Top of an open chat", "This one person only. The bot keeps working with everyone else"],
           ] } },
 
       { note: "The everyday move is the second one. A customer asks something delicate, you turn the bot off **for that chat**, answer yourself, and turn it back on when you are done. Nobody else is affected.",
@@ -298,7 +298,7 @@ export const DOCS = {
       { h: "Answering someone yourself",
         steps: [
           "Open the chat.",
-          "Turn its switch to **Bot OFF (manual)** so the bot does not talk over you.",
+          "Turn its switch to **Manual** so the bot does not talk over you.",
           "Type in the box at the bottom and press Enter, or the blue send button.",
           "When you are finished, turn the switch back on and the bot resumes.",
         ] },
@@ -319,7 +319,7 @@ export const DOCS = {
 
       { h: "Tags",
         p: [
-          "The bot tags conversations on its own as they come in, from a fixed list that depends on your business type. You can also set one by hand from the dropdown beside the customer's name.",
+          "The bot tags conversations on its own as they come in, from a fixed list that depends on your business type. You can also set one by hand from the **Tag this chat…** dropdown just under the chat header.",
           "Tagged chats can then be filtered from the list, and a broadcast can be aimed at a single tag.",
         ],
         table: { head: ["Business type", "The tags"],
@@ -470,7 +470,7 @@ export const DOCS = {
             ["**Channel**", "All connected channels at once, or a single platform"],
             ["**Who**", "How recently the person wrote — 6, 12 or 24 hours"],
             ["**Order history**", "Everyone · Has ordered before · Never ordered"],
-            ["**Tag**", "Only people whose conversation carries a tag you set in Conversations"],
+            ["**Tag**", "Only people whose conversation carries a tag you set in Inbox"],
           ] },
         biz: "ecommerce" },
 
@@ -1056,7 +1056,7 @@ export const DOCS = {
       { h: "The bot is not replying",
         p: ["Work through these in order — it is almost always one of the first three."],
         steps: [
-          "**Conversations** → is the **Bot ON** switch at the top of the chat list on? That one covers everything.",
+          "**Inbox** → is the **Bot ON** switch at the top of the chat list on? That one covers everything.",
           "Is that particular chat on **manual**? Its own switch is at the top of the open chat.",
           "**Channels** → is that channel's switch on, and its dot green?",
           "**Billing** → have you run out of messages for the period?",
