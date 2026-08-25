@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { T, Card, Btn, Inp, Badge, Select, Segmented, useIsMobile, taka } from "./ui.js";
 import { api } from "./session.js";
+import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
 
 // The Inventory tab: the shop's catalogue, organised. Products carry a
 // category, a brand, tags, a photo gallery and — for things that come in
@@ -158,7 +159,7 @@ export default function Inventory({ products, refresh }) {
         {/* Straight to Bot Training → Offers, so bundling products into a deal
             is one click from where the products live. */}
         <Btn onClick={() => { try { sessionStorage.setItem("al-bt-tab", "offers"); } catch {} window.dispatchEvent(new CustomEvent("al-goto", { detail: "settings" })); }} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-discount-2" style={{ marginRight: 6 }} />Offers</Btn>
-        <Select value="" placeholder="Import" options={[{ value: "url", label: "From a product URL", icon: "ti-link" }, { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" }]} onChange={(v) => setImporter(v)} />
+        <Select value="" placeholder="Import" options={[{ value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" }, { value: "url", label: "From a product URL", icon: "ti-link" }, { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" }]} onChange={(v) => setImporter(v)} />
         <Btn gold onClick={() => setEditor({ mode: "add" })} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-plus" style={{ marginRight: 6 }} />Add product</Btn>
       </div>
     </Card>
@@ -170,7 +171,7 @@ export default function Inventory({ products, refresh }) {
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em" }}>Your catalogue is empty</div>
           <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6, maxWidth: 440, margin: "6px auto 22px", lineHeight: 1.6 }}>Add products with photos, prices, categories and sizes or colours. The bot shows them to customers, matches photos and takes orders.</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, maxWidth: 640, margin: "0 auto" }}>
-            {[["ti-plus", "Add a product", "Name, photos, price, variants", () => setEditor({ mode: "add" })], ["ti-link", "Paste a product URL", "We fetch name, photo and price", () => setImporter("url")], ["ti-brand-wordpress", "Import WooCommerce", "Bring your whole shop over", () => setImporter("woo")]].map(([ic, t, s, fn]) =>
+            {[["ti-plus", "Add a product", "Name, photos, price, variants", () => setEditor({ mode: "add" })], ["ti-table", "Upload a spreadsheet", "A CSV from Excel or Google Sheets", () => setImporter("csv")], ["ti-link", "Paste a product URL", "We fetch name, photo and price", () => setImporter("url")], ["ti-brand-wordpress", "Import WooCommerce", "Bring your whole shop over", () => setImporter("woo")]].map(([ic, t, s, fn]) =>
               <button key={t} type="button" onClick={fn} className="ui-btn ob-row" style={{ padding: "16px 14px", borderRadius: 16, background: T.card, boxShadow: T.nmSm, border: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit", color: T.text }}>
                 <i className={`ti ${ic}`} style={{ fontSize: 22, color: T.gold }} /><div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>{t}</div><div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2 }}>{s}</div>
               </button>)}
@@ -504,13 +505,59 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   </div>;
 }
 
-// ── Import sheet (product URL / WooCommerce) ────────────────────────────────
+// ── Import sheet (CSV / product URL / WooCommerce) ──────────────────────────
 function ImportSheet({ kind, isMobile, onClose, onDone }) {
   const [url, setUrl] = useState("");
   const [imp, setImp] = useState({ siteUrl: "", ck: "", cs: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  // CSV: the file is read and mapped in the browser, then each row goes
+  // through the same /api/import-one the WooCommerce import already uses —
+  // so a spreadsheet product is indexed, embedded and deduplicated exactly
+  // like every other product, with no second code path to keep correct.
+  const [csv, setCsv] = useState(null);        // { name, headers, rows }
+  const [map, setMap] = useState({});
+  const csvRef = useRef(null);
+  const [drag, setDrag] = useState(false);
   useEffect(() => { const k = (e) => { if (e.key === "Escape" && !busy) onClose(); }; document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k); }, [busy]);
+
+  const readCsv = async (file) => {
+    if (!file) return;
+    setMsg("");
+    if (!/\.csv$/i.test(file.name) && file.type !== "text/csv") { setMsg("Failed: that is not a .csv file. Save your sheet as CSV first."); return; }
+    let rows;
+    try { rows = parseCsv(await file.text()); }
+    catch { setMsg("Failed: this file could not be read."); return; }
+    if (rows.length < 2) { setMsg("Failed: the file needs a header row and at least one product."); return; }
+    const [headers, ...body] = rows;
+    setCsv({ name: file.name, headers, rows: body });
+    setMap(autoMap(headers));
+  };
+
+  const runCsv = async () => {
+    if (!csv || busy) return;
+    const { products, skipped } = toProducts(csv.rows, map);
+    if (!products.length) { setMsg("Failed: no rows have a name. Check which column is mapped to Name."); return; }
+    setBusy(true);
+    let done = 0, fail = 0;
+    for (const prod of products) {
+      setMsg(`Importing ${done + fail + 1}/${products.length}: ${prod.product_name}`);
+      const one = await api("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) }).then((r) => r.json()).catch(() => ({ error: 1 }));
+      if (one.error) fail++; else done++;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    setBusy(false); setMsg("");
+    onDone(`Imported ${done}${fail ? `, ${fail} failed` : ""}${skipped ? `, ${skipped} row${skipped > 1 ? "s" : ""} skipped (no name)` : ""}`);
+    onClose();
+  };
+
+  const sample = () => {
+    const url = URL.createObjectURL(new Blob([SAMPLE_CSV], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "autologic-products-sample.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   const scrape = async () => {
     if (!url || busy) return; setBusy(true); setMsg("Fetching the product…");
     const r = await api("/api/import-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) }).then((r) => r.json()).catch(() => ({ error: "network" }));
@@ -536,12 +583,74 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
   return <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
     <div onClick={(e) => e.stopPropagation()} className="ui-page" role="dialog" aria-modal="true" style={{ width: "100%", maxWidth: 520, background: T.card, borderRadius: isMobile ? "22px 22px 0 0" : 22, boxShadow: T.nmOut, border: `1px solid ${T.border}`, padding: "22px 20px calc(20px + env(safe-area-inset-bottom))" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 13, background: T.card, boxShadow: T.nmSm, display: "flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${kind === "url" ? "ti-link" : "ti-brand-wordpress"}`} style={{ fontSize: 20, color: T.gold }} /></div>
-        <div style={{ flex: 1 }}><div style={{ fontSize: 15.5, fontWeight: 700 }}>{kind === "url" ? "Import from a product URL" : "Import from WooCommerce"}</div>
-          <div style={{ fontSize: 12, color: T.textMuted }}>{kind === "url" ? "We fetch the name, photo, price and description" : "All published products come into your inventory"}</div></div>
+        <div style={{ width: 42, height: 42, borderRadius: 13, background: T.card, boxShadow: T.nmSm, display: "flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${kind === "csv" ? "ti-table" : kind === "url" ? "ti-link" : "ti-brand-wordpress"}`} style={{ fontSize: 20, color: T.gold }} /></div>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 15.5, fontWeight: 700 }}>{kind === "csv" ? "Import from a spreadsheet" : kind === "url" ? "Import from a product URL" : "Import from WooCommerce"}</div>
+          <div style={{ fontSize: 12, color: T.textMuted }}>{kind === "csv" ? "A CSV saved from Excel or Google Sheets" : kind === "url" ? "We fetch the name, photo, price and description" : "All published products come into your inventory"}</div></div>
         <button onClick={onClose} disabled={busy} className="pbtn" aria-label="Close" style={{ width: 36, height: 36, borderRadius: 11 }}><i className="ti ti-x" style={{ fontSize: 17 }} /></button>
       </div>
-      {kind === "url"
+      {kind === "csv"
+        ? <>
+            <input ref={csvRef} type="file" accept=".csv,text/csv" hidden onChange={(e) => { readCsv(e.target.files[0]); e.target.value = ""; }} />
+            {!csv
+              ? <>
+                  {/* Drop target and button in one: dragging a file on is the
+                      fastest route on a desktop, tapping is the only route on
+                      a phone, and both land in the same place. */}
+                  <div onClick={() => !busy && csvRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+                    onDragLeave={() => setDrag(false)}
+                    onDrop={(e) => { e.preventDefault(); setDrag(false); readCsv(e.dataTransfer.files?.[0]); }}
+                    style={{ cursor: "pointer", textAlign: "center", padding: "30px 18px", borderRadius: 16, marginBottom: 12,
+                      background: drag ? T.goldBg : T.bgAlt, boxShadow: T.nmIn,
+                      border: `1.5px dashed ${drag ? T.gold : T.border}`, transition: "background .15s, border-color .15s" }}>
+                    <i className="ti ti-file-spreadsheet" style={{ fontSize: 30, color: T.gold }} />
+                    <div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>Choose a CSV file</div>
+                    <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 3 }}>{isMobile ? "Tap to pick from your phone" : "or drag it here"}</div>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: T.textMuted, lineHeight: 1.7, padding: "10px 12px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn }}>
+                    In Excel or Google Sheets choose <b style={{ color: T.text }}>Save as / Download → CSV</b>. The first row must be the column names.
+                    Only <b style={{ color: T.text }}>Name</b> is required; anything else you have is a bonus.
+                    <button type="button" onClick={sample} className="ui-btn" style={{ display: "block", marginTop: 8, background: "none", border: "none", padding: 0, color: T.gold, fontSize: 11.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                      <i className="ti ti-download" style={{ marginRight: 5 }} />Download a sample file
+                    </button>
+                  </div>
+                </>
+              : <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, padding: "10px 12px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn }}>
+                    <i className="ti ti-file-spreadsheet" style={{ fontSize: 19, color: T.gold, flexShrink: 0 }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{csv.name}</div>
+                      <div style={{ fontSize: 11.5, color: T.textMuted }}>{csv.rows.length} row{csv.rows.length === 1 ? "" : "s"} · {csv.headers.length} columns</div>
+                    </div>
+                    {!busy && <button type="button" onClick={() => { setCsv(null); setMap({}); setMsg(""); }} className="ui-btn" style={{ background: "none", border: "none", color: T.gold, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Change</button>}
+                  </div>
+                  {/* Mapping is shown, not assumed. The guess is usually right,
+                      but a wrong guess would quietly import prices into the
+                      description — so the owner sees every decision and can
+                      correct any of it before a single row is written. */}
+                  <div style={{ fontSize: 11.5, color: T.textMuted, marginBottom: 8 }}>Check the columns matched up. Set anything wrong to the right one.</div>
+                  <div style={{ display: "grid", gap: 8, marginBottom: 14, maxHeight: 260, overflowY: "auto" }}>
+                    {COLUMNS.map((col) => (
+                      <div key={col.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 104, flexShrink: 0, fontSize: 12.5, color: col.required ? T.text : T.textMuted, fontWeight: col.required ? 600 : 400 }}>
+                          {col.label}{col.required && <span style={{ color: T.danger }}> *</span>}
+                        </div>
+                        <Select wide style={{ flex: 1, minWidth: 0 }}
+                          value={map[col.key] == null ? "" : String(map[col.key])}
+                          onChange={(v) => setMap((m) => { const n = { ...m }; if (v === "") delete n[col.key]; else n[col.key] = Number(v); return n; })}
+                          placeholder="— not in my file —"
+                          options={[{ value: "", label: "— not in my file —", icon: "ti-minus" },
+                            ...csv.headers.map((h, i) => ({ value: String(i), label: h || `Column ${i + 1}`, icon: "ti-table-column" }))]} />
+                      </div>
+                    ))}
+                  </div>
+                  <Btn gold onClick={runCsv} disabled={busy || map.product_name == null} style={{ width: "100%", padding: "12px 20px", borderRadius: 14, fontSize: 14 }}>
+                    {busy ? "Importing…" : `Import ${csv.rows.length} product${csv.rows.length === 1 ? "" : "s"}`}
+                  </Btn>
+                  {map.product_name == null && <div style={{ fontSize: 11.5, color: T.danger, marginTop: 8 }}>Pick which column holds the product name to continue.</div>}
+                </>}
+          </>
+        : kind === "url"
         ? <>
             <Inp emb label="Product page link" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://yourshop.com/product/…" onKeyDown={(e) => { if (e.key === "Enter") scrape(); }} />
             <Btn gold onClick={scrape} disabled={busy || !url} style={{ width: "100%", padding: "12px 20px", borderRadius: 14, fontSize: 14 }}>{busy ? "Fetching…" : "Fetch product"}</Btn>
