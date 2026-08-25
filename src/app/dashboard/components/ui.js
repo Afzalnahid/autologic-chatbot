@@ -342,6 +342,13 @@ export function Motion() {
       .ui-btn:active:not(:disabled) .ti { transform: scale(.88) }
 
       .ui-btn { transition: filter .15s ease-out, transform .12s ease-out, border-color .18s ease-out, box-shadow .18s ease-out }
+      /* A disabled button has to LOOK disabled. Every hover and press rule below
+         was already guarded with :not(:disabled), so a dead button stopped
+         reacting — but it kept its full colour, its glow and a pointing hand, so
+         it still read as pressable. The gold variant was the worst: identical to
+         a live one. Btn sets cursor and boxShadow inline, which is why those two
+         need !important; opacity is not set inline and does not. */
+      .ui-btn:disabled { opacity: .45; cursor: not-allowed !important; box-shadow: none !important }
       .ui-btn:active:not(:disabled) { transform: scale(.97) }
       .ui-card { transition: box-shadow .2s ease-out, transform .2s ease-out, border-color .2s ease-out }
       .ui-inp { transition: border-color .16s ease-out, box-shadow .16s ease-out }
