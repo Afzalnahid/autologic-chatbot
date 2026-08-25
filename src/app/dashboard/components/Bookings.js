@@ -328,6 +328,7 @@ export default function Bookings({calConnected,clientId}) {
   const [chFilter,setChFilter]=useState("all");
   const [day,setDay]=useState(null);
   const [search,setSearch]=useState("");
+  const [open,setOpen]=useState(null);        // the booking whose drawer is showing
 
   const load=async()=>{
     setLoading(true);
@@ -531,7 +532,13 @@ export default function Bookings({calConnected,clientId}) {
           {!!bookings.length&&<button onClick={()=>{setFilter("All");setChFilter("all");setSearch("");setDay(null);}} className="ui-btn"
             style={{marginTop:14,padding:"9px 16px",borderRadius:10,border:`1px solid ${T.border}`,background:T.card,color:T.text,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Clear filters</button>}
         </Card>
-      :filtered.map(b=><Card key={b.id}>
+      // The whole card opens the booking, the way an order card opens an
+      // order. The controls inside it stop the click from bubbling, so
+      // "Join meeting", the phone number and the two status buttons still do
+      // their own job rather than opening the drawer behind them.
+      :filtered.map(b=><Card key={b.id} onClick={()=>setOpen(b)} role="button" tabIndex={0}
+        onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setOpen(b);}}}
+        style={{cursor:"pointer"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
           <div style={{minWidth:0}}>
             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -557,7 +564,7 @@ export default function Bookings({calConnected,clientId}) {
                 The thumb-sized hit area comes from the tel:/mailto: rule in
                 ui.js rather than being set again here, so there is one place
                 that decides how big an inline contact link is. */}
-            <div style={{fontSize:12,color:T.textMuted,marginTop:2,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+            <div onClick={e=>e.stopPropagation()} style={{fontSize:12,color:T.textMuted,marginTop:2,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
               {b.email
                 ? <a href={`mailto:${b.email}`} style={{color:T.textMuted,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-mail"/>{b.email}</a>
                 : <span style={{display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-mail"/>—</span>}
@@ -571,7 +578,7 @@ export default function Bookings({calConnected,clientId}) {
               // presses at the moment a meeting starts, and 8 left it 37px
               // tall on a phone — under the 44px floor everything else here
               // meets.
-              ? <a href={b.meeting_link} target="_blank" rel="noreferrer" className="ui-btn"
+              ? <a href={b.meeting_link} target="_blank" rel="noreferrer" className="ui-btn" onClick={e=>e.stopPropagation()}
                   style={{display:"inline-flex",alignItems:"center",gap:6,marginTop:10,padding:"11px 14px",
                     borderRadius:9,background:T.goldBg,border:`1px solid ${T.gold}`,color:T.gold,
                     fontSize:12.5,fontWeight:600,textDecoration:"none"}}>
@@ -581,7 +588,7 @@ export default function Bookings({calConnected,clientId}) {
                   <i className="ti ti-video-off" style={{marginRight:4}}/>No Meet link — booked before the calendar was connected
                 </div>}
           </div>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,flexShrink:0}}>
+          <div onClick={e=>e.stopPropagation()} style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,flexShrink:0}}>
             <Badge color={b.status==="Confirmed"?T.success:b.status==="Completed"?T.info:T.danger}>{b.status}</Badge>
             {b.status==="Confirmed"&&<Btn small onClick={()=>update(b.id,"Completed")}>Mark done</Btn>}
             {b.status==="Confirmed"&&<Btn small danger onClick={()=>cancel(b)}>Cancel</Btn>}
@@ -589,5 +596,168 @@ export default function Bookings({calConnected,clientId}) {
         </div>
       </Card>)}
     </div>
+
+    {/* Re-read from `bookings` on every render so the drawer follows a status
+        change instead of showing the copy captured when it was opened. */}
+    {open&&<BookingDrawer b={bookings.find(x=>x.id===open.id)||open} isMobile={isMobile}
+      onClose={()=>setOpen(null)} update={update} cancel={cancel}/>}
+  </div>;
+}
+
+// ── Booking drawer ─────────────────────────────────────────────────────────
+// The full record, in the same right-hand drawer an order opens into — the
+// list can only show four lines, and everything else the bot collected (when
+// the booking was made, whether it reached Google Calendar, the whole Meet
+// link) was until now stored and never shown.
+function BookingDrawer({ b, isMobile, onClose, update, cancel }) {
+  useEffect(()=>{
+    const k=(e)=>{ if(e.key==="Escape") onClose(); };
+    document.addEventListener("keydown",k);
+    document.body.style.overflow="hidden";
+    return ()=>{ document.removeEventListener("keydown",k); document.body.style.overflow=""; };
+  },[]);
+  const w=when(b);
+  const g=group(w.ts);
+  const st=b.status==="Confirmed"?{c:T.success,i:"ti-circle-check"}
+    :b.status==="Completed"?{c:T.info,i:"ti-checks"}
+    :{c:T.danger,i:"ti-circle-x"};
+  const copy=(t)=>{ try{ navigator.clipboard.writeText(t); }catch{} };
+  const H=({icon,children,right})=><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+    <span style={{width:28,height:28,borderRadius:9,background:T.goldBg,color:T.gold,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:14}}><i className={`ti ${icon}`}/></span>
+    <span style={{fontSize:13.5,fontWeight:700,flex:1}}>{children}</span>{right}</div>;
+  // One row shape for every detail, so the column of labels lines up and a
+  // missing value reads as "not collected" rather than as a gap.
+  const Row=({icon,label,children})=><div style={{display:"flex",gap:10,alignItems:"flex-start",padding:"7px 0"}}>
+    <i className={`ti ${icon}`} style={{color:T.textDim,width:18,flexShrink:0,marginTop:2,fontSize:15}}/>
+    <div style={{minWidth:0,flex:1}}>
+      <div style={{fontSize:11,color:T.textDim,textTransform:"uppercase",letterSpacing:.6}}>{label}</div>
+      <div style={{fontSize:13.5,marginTop:2,lineHeight:1.5,wordBreak:"break-word"}}>{children}</div>
+    </div>
+  </div>;
+  const none=<span style={{color:T.textDim}}>not collected</span>;
+  // "in 2 days" / "3 days ago" — the exact date says when, this says how soon,
+  // which is the thing an owner is actually judging.
+  const rel=(()=>{
+    if(!w.ts) return null;
+    const diff=w.ts-Date.now(), d=Math.round(Math.abs(diff)/864e5), h=Math.round(Math.abs(diff)/36e5);
+    const unit=d>=1?`${d} day${d===1?"":"s"}`:`${h} hour${h===1?"":"s"}`;
+    return diff>0?`in ${unit}`:`${unit} ago`;
+  })();
+
+  return <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:80,background:"rgba(17,19,24,.45)",backdropFilter:"blur(3px)",display:"flex",justifyContent:"flex-end"}}>
+    <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true"
+      style={{width:isMobile?"100%":"min(520px, 100%)",height:"100%",background:T.bg,display:"flex",flexDirection:"column",boxShadow:"-12px 0 40px rgba(0,0,0,.25)",animation:"bk-slide .28s cubic-bezier(.16,1,.3,1) both"}}>
+
+      <div style={{padding:isMobile?"12px 14px":"16px 22px",display:"flex",alignItems:"center",gap:12,background:T.card,boxShadow:T.nmSm,flexShrink:0,position:"relative",zIndex:1}}>
+        <span style={{width:42,height:42,borderRadius:13,background:`color-mix(in srgb, ${st.c} 12%, transparent)`,color:st.c,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}><i className={`ti ${st.i}`}/></span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:15.5,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.customer_name||"Customer"}</div>
+          <div style={{fontSize:11.5,color:T.textDim,display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginTop:2}}>
+            <Badge color={st.c}>{b.status}</Badge>
+            {b.platform&&<><i className={`ti ${CH[b.platform]?.icon||"ti-message"}`}/>{CH[b.platform]?.label||b.platform}</>}
+          </div>
+        </div>
+        <button onClick={onClose} className="pbtn" aria-label="Close" style={{width:36,height:36,borderRadius:11,flexShrink:0}}><i className="ti ti-x" style={{fontSize:17}}/></button>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:isMobile?"14px 12px 24px":"18px 22px 30px",display:"flex",flexDirection:"column",gap:12}}>
+        <Card>
+          <H icon="ti-calendar-event" right={rel&&<span style={{fontSize:11.5,color:g==="past"?T.warn:T.textDim}}>{rel}</span>}>The meeting</H>
+          <Row icon="ti-clock" label="When">
+            {w.text}
+            {g==="today"&&b.status==="Confirmed"&&<span style={{marginLeft:8,fontSize:10.5,fontWeight:700,letterSpacing:.6,color:T.gold,background:T.goldBg,padding:"2px 7px",borderRadius:5}}>TODAY</span>}
+            {g==="past"&&b.status==="Confirmed"&&<span style={{marginLeft:8,fontSize:10.5,fontWeight:700,letterSpacing:.6,color:T.warn}}>TIME PASSED</span>}
+          </Row>
+          <Row icon="ti-briefcase" label="Service asked for">{b.service_want||none}</Row>
+          {/* What the bot wrote down in the customer's own words, kept only
+              when it differs from the parsed timestamp above — it is the
+              record of what was actually agreed if the two ever disagree. */}
+          {(b.meeting_date||b.meeting_time)&&<Row icon="ti-quote" label="As the customer said it">
+            {[b.meeting_date,b.meeting_time].filter(Boolean).join(" · ")}
+          </Row>}
+        </Card>
+
+        <Card>
+          <H icon="ti-user" right={(b.customer_name||b.email||b.phone)&&
+            <button onClick={()=>copy([b.customer_name,b.phone,b.email].filter(Boolean).join("\n"))} title="Copy all details"
+              style={{background:"none",border:"none",color:T.gold,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",padding:"11px 6px",margin:"-11px -6px"}}>
+              <i className="ti ti-copy" style={{marginRight:4}}/>Copy
+            </button>}>Customer</H>
+          <Row icon="ti-user-circle" label="Name">{b.customer_name||none}</Row>
+          <Row icon="ti-phone" label="Phone">
+            {b.phone
+              ? <span style={{display:"inline-flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  <a href={`tel:${String(b.phone).replace(/[^\d+]/g,"")}`} style={{color:T.gold,fontWeight:600,textDecoration:"none"}}>{b.phone}</a>
+                  {/* ui-sq and no minHeight:0 — an 18x25 icon is not a target
+                      a thumb can hit. It grows to 44 square on a phone and
+                      stays 28 under a mouse. */}
+                  <button onClick={()=>copy(b.phone)} title="Copy" aria-label="Copy phone number" className="ui-sq"
+                    style={{width:28,height:28,borderRadius:8,background:"none",border:"none",color:T.textDim,cursor:"pointer",fontSize:14,padding:0,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-copy"/></button>
+                </span>
+              : none}
+          </Row>
+          <Row icon="ti-mail" label="Email">
+            {b.email
+              ? <span style={{display:"inline-flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  <a href={`mailto:${b.email}`} style={{color:T.gold,fontWeight:600,textDecoration:"none"}}>{b.email}</a>
+                  <button onClick={()=>copy(b.email)} title="Copy" aria-label="Copy email address" className="ui-sq"
+                    style={{width:28,height:28,borderRadius:8,background:"none",border:"none",color:T.textDim,cursor:"pointer",fontSize:14,padding:0,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-copy"/></button>
+                </span>
+              : none}
+          </Row>
+        </Card>
+
+        <Card>
+          <H icon="ti-video">Meeting link</H>
+          {b.meeting_link
+            ? <>
+                <a href={b.meeting_link} target="_blank" rel="noreferrer" className="ui-btn"
+                  style={{display:"inline-flex",alignItems:"center",gap:7,padding:"12px 18px",borderRadius:12,
+                    background:T.accGrad,boxShadow:T.accGlow,color:"#fff",fontSize:13.5,fontWeight:600,textDecoration:"none"}}>
+                  <i className="ti ti-video"/>Join meeting
+                </a>
+                {/* Shown in full and copyable: the owner often needs to paste
+                    it to the customer again when they say they lost it. */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:12,padding:"10px 12px",borderRadius:11,background:T.bgAlt,boxShadow:T.nmIn}}>
+                  <span style={{fontSize:12,color:T.textMuted,flex:1,minWidth:0,wordBreak:"break-all"}}>{b.meeting_link}</span>
+                  <button onClick={()=>copy(b.meeting_link)} title="Copy link" className="ui-sq"
+                    style={{width:32,height:32,borderRadius:9,background:"none",border:"none",color:T.gold,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-copy" style={{fontSize:15}}/></button>
+                </div>
+              </>
+            : <div style={{fontSize:13,color:T.textMuted,lineHeight:1.65}}>
+                <i className="ti ti-video-off" style={{marginRight:6,color:T.textDim}}/>
+                No Google Meet link. This booking was taken before the calendar was connected, or the calendar was unreachable at the time — the meeting itself still stands.
+              </div>}
+        </Card>
+
+        <Card>
+          <H icon="ti-adjustments">Update status</H>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {b.status==="Confirmed"&&<Btn gold onClick={()=>update(b.id,"Completed")} style={{borderRadius:12}}><i className="ti ti-checks" style={{marginRight:6}}/>Mark done</Btn>}
+            {b.status!=="Confirmed"&&<Btn onClick={()=>update(b.id,"Confirmed")} style={{borderRadius:12}}><i className="ti ti-circle-check" style={{marginRight:6}}/>Back to confirmed</Btn>}
+            {b.status==="Confirmed"&&<Btn danger onClick={()=>{cancel(b);onClose();}} style={{borderRadius:12}}>Cancel booking</Btn>}
+          </div>
+        </Card>
+
+        <Card>
+          <H icon="ti-info-circle">Record</H>
+          {b.created_at&&<Row icon="ti-clock-plus" label="Booked on">
+            {new Date(b.created_at).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",timeZone:DHAKA})}
+          </Row>}
+          {/* Whether it reached Google Calendar is otherwise invisible, and it
+              is exactly what an owner wants to know when a Meet link is
+              missing or a cancellation did not seem to reach the customer. */}
+          <Row icon="ti-calendar" label="Google Calendar">
+            {b.calendar_event_id
+              ? <span style={{color:T.success}}><i className="ti ti-circle-check" style={{marginRight:5}}/>On your calendar</span>
+              : <span style={{color:T.textDim}}>Not on your calendar</span>}
+          </Row>
+          <Row icon="ti-device-mobile" label="Came from">
+            {b.platform?(CH[b.platform]?.label||b.platform):none}
+          </Row>
+        </Card>
+      </div>
+    </div>
+    <style dangerouslySetInnerHTML={{__html:"@keyframes bk-slide { from { transform: translateX(40px); opacity: 0 } to { transform: none; opacity: 1 } }"}}/>
   </div>;
 }
