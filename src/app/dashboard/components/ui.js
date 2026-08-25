@@ -362,8 +362,13 @@ export function Motion() {
         touch-action: manipulation }
       @media (pointer: coarse) {
         /* .cal-cell is excluded on purpose: its size must come from the 7-column
-           grid (see the calendar rules), and a 44px floor would overflow it. */
-        button:not(.cal-cell), a[role="button"], .ui-opt { min-height: 44px }
+           grid (see the calendar rules), and a 44px floor would overflow it.
+           .ui-switch too: a switch is a 23px pill BY DESIGN — the floor forced
+           it to 40x44, which on a phone read as a big green blob floating over
+           the chat header. It keeps its drawn size and gets its thumb target
+           from the invisible halo below instead, same trick as the calendar. */
+        button:not(.cal-cell):not(.ui-switch), a[role="button"], .ui-opt { min-height: 44px }
+        .ui-switch::after { content: ""; position: absolute; inset: -11px }
         /* The line above raises only the HEIGHT, and min-height beats an inline
            height — so every square icon button became a 36x44 rectangle on a
            phone, and the round avatar an ellipse. Square buttons have to grow

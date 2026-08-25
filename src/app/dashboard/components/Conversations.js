@@ -265,27 +265,46 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
       })}
     </Card>}
     {showChat&&<Card style={{display:"flex",flexDirection:"column",padding:0,overflow:"hidden",height:"100%"}}>
-      <div style={{padding:"14px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
-          {isMobile&&<button onClick={()=>setSel(-1)} style={{background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:20,padding:0,flexShrink:0}}><i className="ti ti-chevron-left"/></button>}
-          <div style={{minWidth:0}}><div style={{fontSize:15,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname}</div><div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:4}}><i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:13}}/>{c.platform}{(perPlatform[c.platform]||[]).length>1&&c.page_id?<span style={{color:T.textDim}}> · {acctName(c.platform,c.page_id)}</span>:null}
-            {!!tagData?.available?.length&&<span onClick={e=>e.stopPropagation()} style={{marginLeft:6,display:"inline-block"}}>
-              <Select value={tagsOf(c.id)[0]||""} placeholder="Tag…" style={{fontSize:11}}
-                options={tagData.available.map(t=>({value:t,label:t,icon:"ti-tag"}))}
-                onChange={async t=>{
-                  if(!t) return;
-                  await api("/api/tags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,tag:t})});
-                  loadTags();
-                }}/>
-            </span>}
-            </div></div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
+      {/* The chat header, shaped the way a messaging app shapes it: who you
+          are talking to, where the conversation lives, and the one control
+          that matters — is the bot answering, or are you. The tag picker used
+          to sit inline in the middle of the platform line; on a phone it grew
+          until the switch was pushed on top of it. It now has its own quiet
+          row below, at both widths, so nothing competes for the name row. */}
+      <div style={{borderBottom:`0.5px solid ${T.border}`}}>
+        <div style={{padding:isMobile?"10px 10px 10px 6px":"12px 16px",display:"flex",alignItems:"center",gap:isMobile?6:10}}>
+          {isMobile&&<button onClick={()=>setSel(-1)} aria-label="Back" className="ui-sq"
+            style={{background:"none",border:"none",cursor:"pointer",color:T.text,fontSize:21,padding:0,flexShrink:0,
+              display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-chevron-left"/></button>}
+          <div aria-hidden style={{width:36,height:36,borderRadius:"50%",background:T.goldBg,color:T.gold,
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,flexShrink:0}}>
+            {(cname||"C").trim().charAt(0).toUpperCase()}
+          </div>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{fontSize:15,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname||"Customer"}</div>
+            <div style={{fontSize:11.5,color:T.textMuted,display:"flex",alignItems:"center",gap:5,minWidth:0}}>
+              <i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:12,flexShrink:0}}/>
+              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {cap(c.platform)}{(perPlatform[c.platform]||[]).length>1&&c.page_id?` · ${acctName(c.platform,c.page_id)}`:""}
+              </span>
+            </div>
+          </div>
           {!ctLoaded
-            ?<span style={{fontSize:11,color:T.textDim}}><i className="ti ti-loader-2" style={{marginRight:5}}/>Loading…</span>
-            :<Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Bot OFF (manual)":"Bot ON"}/>}
-          <button onClick={deleteChat} title="Delete chat" style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:18,padding:4}}><i className="ti ti-trash"/></button>
+            ?<span style={{fontSize:11,color:T.textDim,flexShrink:0}}><i className="ti ti-loader-2" style={{marginRight:5}}/>Loading…</span>
+            :<Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Manual":"Live"}/>}
+          <button onClick={deleteChat} title="Delete chat" aria-label="Delete chat" className="ui-sq"
+            style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:17,padding:0,flexShrink:0,
+              display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-trash"/></button>
         </div>
+        {!!tagData?.available?.length&&<div style={{padding:isMobile?"0 12px 10px":"0 16px 10px",display:"flex",alignItems:"center",gap:8}}>
+          <Select value={tagsOf(c.id)[0]||""} placeholder="Tag this chat…" style={{fontSize:11.5}}
+            options={tagData.available.map(t=>({value:t,label:t,icon:"ti-tag"}))}
+            onChange={async t=>{
+              if(!t) return;
+              await api("/api/tags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,tag:t})});
+              loadTags();
+            }}/>
+        </div>}
       </div>
       <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,display:"flex",flexDirection:"column",gap:12}}>
         {(c.messages||[]).map((m,i)=>{
