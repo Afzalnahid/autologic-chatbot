@@ -1,8 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { sendBroadcastText, waSendText } from "@/lib/messenger.js";
 import { bufferInsert } from "@/lib/bot.js";
-import { planActive } from "@/lib/plans.js";
-import { resolveAudience, sendableChannels, remainingQuota, BROADCAST_CHANNELS } from "@/lib/broadcast.js";
+import { resolveAudience, sendableChannels, remainingQuota, cannotSendReason, BROADCAST_CHANNELS } from "@/lib/broadcast.js";
 
 // How many people one request sends to. Kept small so a serverless invocation
 // always finishes well inside its time limit; the dashboard calls back for the
@@ -15,9 +14,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export const MAX_MESSAGE = 900;
 
 export async function createBroadcast(client, { channel, message, segment }) {
-  if (!planActive(client)) {
-    return { error: "Your plan is not active, so messages cannot be sent." };
-  }
+  // The allowance is read once, up front: it is also the plan check, and it now
+  // says WHICH thing is wrong instead of a flat "not active" the owner cannot
+  // act on.
+  const quota = await remainingQuota(client);
+  if (quota.blocked) return { error: cannotSendReason(quota.blocked) };
+
   const text = String(message || "").trim();
   if (text.length < 2) return { error: "Write the message you want to send." };
   if (text.length > MAX_MESSAGE) return { error: `Keep the message under ${MAX_MESSAGE} characters.` };
@@ -40,7 +42,6 @@ export async function createBroadcast(client, { channel, message, segment }) {
     return { error: "Nobody in this segment can be messaged right now. Check the preview for the reason." };
   }
 
-  const quota = await remainingQuota(client);
   if (!quota.unlimited && audience.eligible.length > quota.remaining) {
     return {
       error: `This would need ${audience.eligible.length} messages but only ${quota.remaining} are left in your plan this ${quota.period}.`,

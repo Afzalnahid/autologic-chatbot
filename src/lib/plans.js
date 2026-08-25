@@ -106,13 +106,19 @@ export function formatMoney(n) {
 }
 
 // A plan is active when it has not expired. Legacy rows without an expiry stay active.
+// A plan id that is neither the trial nor "no plan" is a paid package —
+// INCLUDING one the owner created in the admin panel, which by definition can
+// never appear in PAID_PLANS below. Testing that hard-coded list instead meant
+// a custom package read as "no plan at all": the bot still replied (it resolves
+// plans from the database), but broadcasts refused to send and follow-ups
+// skipped with "plan_inactive", giving no reason anyone could see.
+const NO_PLAN = ["", "none"];
 export function planActive(client) {
   if (!client) return false;
   if (client.suspended) return false;
-  if (client.plan === "trial") return !!client.trial_end && new Date(client.trial_end) > new Date();
-  if (PAID_PLANS.includes(client.plan)) {
-    if (!client.plan_expires_at) return true;
-    return new Date(client.plan_expires_at) > new Date();
-  }
-  return false;
+  const plan = String(client.plan || "").trim().toLowerCase();
+  if (NO_PLAN.includes(plan)) return false;
+  if (plan === "trial") return !!client.trial_end && new Date(client.trial_end) > new Date();
+  if (!client.plan_expires_at) return true;
+  return new Date(client.plan_expires_at) > new Date();
 }

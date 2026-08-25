@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase.js";
-import { PLANS } from "@/lib/plans.js";
+import { messageAllowance } from "@/lib/plan-limits.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 
 // A website visitor has no address to send to once the tab is closed, so the
@@ -10,6 +10,19 @@ export const BROADCAST_CHANNELS = ["facebook", "instagram", "whatsapp"];
 // messages are permitted, and misuse risks the Page. This build never sends
 // outside the window — see docs/architecture.md.
 export const WINDOW_HOURS = 24;
+
+// Why a plan cannot send anything at all, in the client's own words. Worded to
+// match what the bot's own "we have stopped replying" email says, so the two
+// never explain the same state differently.
+export const CANNOT_SEND = {
+  suspended: "Your account is paused, so nothing can be sent. Please contact support.",
+  trial_expired: "Your free trial has ended, so broadcasts cannot be sent. Choose a plan to carry on.",
+  plan_expired: "Your plan has expired, so broadcasts cannot be sent. Renew it to carry on.",
+  no_plan: "There is no active plan on your account, so broadcasts cannot be sent.",
+  no_client: "Your account could not be read. Please sign in again.",
+};
+export const cannotSendReason = (blocked) =>
+  CANNOT_SEND[blocked] || "Your plan is not active, so messages cannot be sent.";
 
 export const SKIP = {
   window: "Outside Meta's 24-hour window — this person has not messaged recently",
@@ -141,21 +154,25 @@ export async function resolveAudience(clientId, businessType, segment = {}) {
   };
 }
 
-// Broadcasts are messages too, so they draw on the same monthly allowance the
-// bot does. Counted the same way `botAllowed` counts, plus what broadcasts have
-// already sent in the period.
+// Broadcasts are messages too, so they draw on the same allowance the bot does.
+// The allowance itself comes from messageAllowance — the SAME call the bot makes
+// before replying. This used to read a hard-coded plan constant instead, which
+// meant three things silently went wrong: a limit the owner raised in the admin
+// panel was ignored, a per-client exception was ignored, an expired plan could
+// still broadcast, and a package the owner created himself returned an
+// allowance of zero with no reason shown.
 export async function remainingQuota(client) {
-  const plan = PLANS[client?.plan];
-  if (!plan) return { limit: 0, used: 0, remaining: 0, unlimited: false };
-
-  const daily = plan.messagesPerDay ?? null;
-  const monthly = plan.messagesPerMonth ?? null;
-  if (!daily && !monthly) return { limit: null, used: 0, remaining: Infinity, unlimited: true };
+  const allow = await messageAllowance(client);
+  // No live plan: nothing to send with, and now we can say which reason.
+  if (!allow.active) return { limit: 0, used: 0, remaining: 0, unlimited: false, blocked: allow.reason };
+  if (allow.limit === null || allow.limit === undefined) {
+    return { limit: null, used: 0, remaining: Infinity, unlimited: true, period: allow.period };
+  }
 
   // Reset at Dhaka midnight, not the server's UTC midnight (which is 6am in
   // Bangladesh) — otherwise a tenant's quota window is six hours off from the
   // day they actually experience.
-  const start = daily ? startOfDayDhaka() : startOfMonthDhaka();
+  const start = allow.period === "day" ? startOfDayDhaka() : startOfMonthDhaka();
   const since = start.toISOString();
 
   const [msgQ, bcQ] = await Promise.all([
@@ -165,7 +182,7 @@ export async function remainingQuota(client) {
       .eq("client_id", client.id).eq("status", "sent").gte("sent_at", since),
   ]);
 
-  const limit = daily || monthly;
+  const limit = allow.limit;
   const used = (msgQ.count || 0) + (bcQ.count || 0);
-  return { limit, used, remaining: Math.max(0, limit - used), unlimited: false, period: daily ? "day" : "month" };
+  return { limit, used, remaining: Math.max(0, limit - used), unlimited: false, period: allow.period };
 }

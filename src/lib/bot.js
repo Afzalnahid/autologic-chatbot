@@ -1,8 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
 import { chatWithGemini, generateEmbedding, UNCLEAR_AUDIO } from "@/lib/gemini.js";
-import { limitsFor } from "@/lib/plan-limits.js";
-import { PLANS, PAID_PLANS } from "@/lib/plans.js";
+import { limitsFor, messageAllowance } from "@/lib/plan-limits.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
@@ -58,41 +57,27 @@ export async function botAllowed(channel, senderId) {
   if (!client) return { allowed: false, reason: "no_client", silent: true };
   if (client.suspended) return { allowed: false, reason: "suspended", silent: true, client };
 
-  // Limits now come from the plans table merged with any per-client override
-  // (src/lib/plan-limits.js), not a code constant — so the owner can re-price or
-  // grant an exception from the admin panel without a deploy.
-  const limits = await limitsFor(client);
+  // Whether the plan is live, and how big the allowance is, comes from
+  // messageAllowance — the same call broadcasts and follow-ups make, so the two
+  // can never disagree about what a client is entitled to. It merges the plans
+  // table with any per-client override, so the owner re-prices or grants an
+  // exception from the admin panel without a deploy.
+  const allow = await messageAllowance(client);
+  const limits = allow.limits || (await limitsFor(client));
+  if (!allow.active) return { allowed: false, reason: allow.reason, client };
 
-  if (client.plan === "trial") {
-    if (!client.trial_end || new Date(client.trial_end) <= new Date()) {
-      return { allowed: false, reason: "trial_expired", client };
+  if (allow.limit !== null && allow.limit !== undefined) {
+    const since = allow.period === "day" ? startOfDayDhaka() : startOfMonthDhaka();
+    const { count } = await sb().from("message_buffer")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", client.id).eq("role", "customer").gte("created_at", since.toISOString());
+    if ((count || 0) > allow.limit) {
+      return {
+        allowed: false,
+        reason: allow.period === "day" ? "quota_daily" : "quota_monthly",
+        client, used: count, limit: allow.limit,
+      };
     }
-    const limit = limits.messagesPerDay;
-    if (limit !== null && limit !== undefined) {
-      const today = startOfDayDhaka();
-      const { count } = await sb().from("message_buffer")
-        .select("id", { count: "exact", head: true })
-        .eq("client_id", client.id).eq("role", "customer").gte("created_at", today.toISOString());
-      if ((count || 0) > limit) {
-        return { allowed: false, reason: "quota_daily", client, used: count, limit };
-      }
-    }
-  } else if (PAID_PLANS.includes(client.plan) || limits.planId === client.plan) {
-    if (client.plan_expires_at && new Date(client.plan_expires_at) <= new Date()) {
-      return { allowed: false, reason: "plan_expired", client };
-    }
-    const limit = limits.messagesPerMonth;
-    if (limit !== null && limit !== undefined) {
-      const monthStart = startOfMonthDhaka();
-      const { count } = await sb().from("message_buffer")
-        .select("id", { count: "exact", head: true })
-        .eq("client_id", client.id).eq("role", "customer").gte("created_at", monthStart.toISOString());
-      if ((count || 0) > limit) {
-        return { allowed: false, reason: "quota_monthly", client, used: count, limit };
-      }
-    }
-  } else {
-    return { allowed: false, reason: "no_plan", client };
   }
 
   // Per-channel monthly cap: the channel's own value first, else the package's

@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { planActive } from "@/lib/plans.js";
-import { resolveAudience, sendableChannels, remainingQuota, WINDOW_HOURS } from "@/lib/broadcast.js";
+import { resolveAudience, sendableChannels, remainingQuota, cannotSendReason, WINDOW_HOURS } from "@/lib/broadcast.js";
 import { createBroadcast, processBroadcast, MAX_MESSAGE } from "@/lib/broadcast-send.js";
 import { tagsFor } from "@/lib/tags.js";
 
@@ -32,6 +32,7 @@ export const GET = withErrors(async (request) => {
     available_tags: tagsFor(client.business_type),
     channels: channels.map((c) => ({ platform: c.platform, page_id: c.page_id })),
     quota,
+    blocked_reason: quota.blocked ? cannotSendReason(quota.blocked) : null,
     broadcasts: listQ.data || [],
   }, NO_CACHE);
 }, "broadcast");
@@ -84,6 +85,9 @@ export const POST = withErrors(async (request) => {
     counts: audience.counts,
     quota,
     over_quota: !quota.unlimited && audience.counts.eligible > quota.remaining,
+    // A dead plan is a different problem from a full one, and saying "0 left
+    // this month" for an expired plan sends the owner looking in the wrong place.
+    blocked_reason: quota.blocked ? cannotSendReason(quota.blocked) : null,
     tags_available: audience.tagsAvailable,
     // Enough to show the owner who this is, without shipping the whole list.
     sample: audience.eligible.slice(0, 8).map((r) => ({ name: r.name, platform: r.platform, last_at: r.last_at })),

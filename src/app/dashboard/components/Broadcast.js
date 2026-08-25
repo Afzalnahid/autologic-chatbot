@@ -142,7 +142,9 @@ export default function Broadcast(){
           <div><div style={{fontSize:24,fontWeight:600,color:T.success}}>{prev.counts.eligible}</div><div style={{fontSize:12,color:T.textMuted}}>will receive it</div></div>
           <div><div style={{fontSize:24,fontWeight:600,color:T.textDim}}>{prev.counts.skipped}</div><div style={{fontSize:12,color:T.textMuted}}>cannot be messaged</div></div>
         </div>
-        {prev.over_quota&&<div style={{fontSize:12.5,color:T.danger,marginBottom:10,lineHeight:1.6}}>This is more than your plan allows right now — {prev.quota.remaining} messages left this {prev.quota.period}.</div>}
+        {prev.blocked_reason
+          ?<div style={{fontSize:12.5,color:T.danger,marginBottom:10,lineHeight:1.6}}>{prev.blocked_reason}</div>
+          :prev.over_quota&&<div style={{fontSize:12.5,color:T.danger,marginBottom:10,lineHeight:1.6}}>This is more than your plan allows right now — {prev.quota.remaining} messages left this {prev.quota.period}.</div>}
         {!!prev.sample?.length&&<div style={{fontSize:12.5,color:T.textMuted,marginBottom:8}}>For example: {prev.sample.map(x=>x.name).join(", ")}{prev.counts.eligible>prev.sample.length?" and more":""}</div>}
         {!!prev.skipped_sample?.length&&<div style={{marginTop:8}}>
           <div style={{fontSize:12,color:T.textMuted,marginBottom:6}}>Why some are left out</div>
@@ -159,7 +161,9 @@ export default function Broadcast(){
       </div>}
     </Card>
 
-    {!quota.unlimited&&quota.limit&&<div style={{fontSize:12,color:T.textDim}}>{quota.remaining} of {quota.limit} messages left this {quota.period}.</div>}
+    {d?.blocked_reason
+      ?<div style={{fontSize:12.5,color:T.danger,lineHeight:1.6}}>{d.blocked_reason}</div>
+      :!quota.unlimited&&quota.limit?<div style={{fontSize:12,color:T.textDim}}>{quota.remaining} of {quota.limit} messages left this {quota.period}.</div>:null}
 
     <Card>
       <div style={{fontSize:14,fontWeight:500,marginBottom:12}}>Past broadcasts</div>

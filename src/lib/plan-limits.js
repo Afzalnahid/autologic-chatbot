@@ -10,7 +10,7 @@
 // NULL / undefined on any limit means UNLIMITED, everywhere. A missing plan is
 // never treated as "unlimited" though — an unknown plan id falls back to trial.
 import { supabase } from "@/lib/supabase.js";
-import { PLANS } from "@/lib/plans.js";
+import { PLANS, PAID_PLANS } from "@/lib/plans.js";
 
 const TTL = 60_000;
 let _cache = null;
@@ -96,6 +96,48 @@ const monthStartISO = () => {
   const now = new Date(Date.now() + 6 * 3600 * 1000);          // Dhaka
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) - 6 * 3600 * 1000).toISOString();
 };
+
+// The single answer to "is this client's plan live, and how many messages may
+// they still be charged for?" — read by the bot before it replies AND by
+// broadcasts and follow-ups before they send.
+//
+// It exists because those two had drifted apart. The bot read the plans table
+// and the per-client overrides; broadcasts read a hard-coded constant. So an
+// allowance the owner raised in the admin panel was invisible to broadcasts,
+// and an expired plan could still send them. One function now, so the two can
+// never disagree again.
+//
+//   { active: true,  period: "day"|"month", limit, limits }   limit null = unlimited
+//   { active: false, reason, limits }
+//     reason: no_client | suspended | trial_expired | plan_expired | no_plan
+export async function messageAllowance(client) {
+  if (!client) return { active: false, reason: "no_client" };
+  if (client.suspended) return { active: false, reason: "suspended" };
+
+  const limits = await limitsFor(client);
+  const plan = String(client.plan || "").trim().toLowerCase();
+  const now = new Date();
+
+  if (plan === "trial") {
+    if (!client.trial_end || new Date(client.trial_end) <= now) {
+      return { active: false, reason: "trial_expired", limits };
+    }
+    return { active: true, period: "day", limit: limits.messagesPerDay ?? null, limits };
+  }
+
+  // limitsFor falls back to the trial plan for an id it does not recognise, so
+  // planId matching what the client is actually on is the proof the package is
+  // real — which is what makes a package created in the admin panel work here.
+  const isPackage = PAID_PLANS.includes(plan) || (!!plan && plan !== "none" && limits.planId === client.plan);
+  if (isPackage) {
+    if (client.plan_expires_at && new Date(client.plan_expires_at) <= now) {
+      return { active: false, reason: "plan_expired", limits };
+    }
+    return { active: true, period: "month", limit: limits.messagesPerMonth ?? null, limits };
+  }
+
+  return { active: false, reason: "no_plan", limits };
+}
 
 // How many products this account may still add.
 export async function checkProductQuota(client, adding = 1) {
