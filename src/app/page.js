@@ -12,7 +12,11 @@ const mono = { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize:
 const wrap = { maxWidth: 1240, margin: "0 auto", padding: "0 clamp(16px, 4vw, 26px)" };
 
 function Label({ children }) {
-  return <div style={{ ...mono, color: P.inkSoft, marginBottom: 18 }}>⌗ {children}</div>;
+  // "lbl" is the hook the .bn rule needs; without it a Bangla label keeps the
+  // Latin font, the capitals and the tracking. Every mono label that can hold
+  // Bangla carries it. The ones that are always Latin — the step numbers, the
+  // channel names, the copyright line — deliberately do not.
+  return <div className="lbl" style={{ ...mono, color: P.inkSoft, marginBottom: 18 }}>⌗ {children}</div>;
 }
 
 function Slide({ conv, c, k }) {
@@ -23,7 +27,7 @@ function Slide({ conv, c, k }) {
         borderBottom: `1px solid ${P.line}`, background: P.paper2 }}>
         <i className={`ti ${ch.icon}`} style={{ fontSize: 16, color: P.blue }} />
         <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{ch.name}</span>
-        <span style={{ marginLeft: "auto", ...mono, fontSize: 9, color: P.inkSoft }}>{c[conv.kind]}</span>
+        <span className="lbl" style={{ marginLeft: "auto", ...mono, fontSize: 9, color: P.inkSoft }}>{c[conv.kind]}</span>
       </div>
       <div className="al-stack">
         <div className="al-msg b0" style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -44,7 +48,7 @@ function Slide({ conv, c, k }) {
           <div className="al-msg b3" style={{ display: "flex" }}><Bub>{conv.lines[3][1]}</Bub></div>
         </div>
       </div>
-      <div style={{ padding: "9px 16px", borderTop: `1px solid ${P.line}`, ...mono, fontSize: 9,
+      <div className="lbl" style={{ padding: "9px 16px", borderTop: `1px solid ${P.line}`, ...mono, fontSize: 9,
         color: P.inkSoft, display: "flex", alignItems: "center", gap: 7, background: P.paper2 }}>
         <i className="ti ti-check" style={{ fontSize: 12, color: P.live }} />{c.notes[conv.note]}
       </div>
@@ -72,7 +76,7 @@ function Flow({ lang }) {
       borderRadius: 20, overflow: "hidden", boxShadow: "var(--lp-nm-sm)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 18px 12px", borderBottom: `1px solid ${P.line}` }}>
-        <span style={{ ...mono, fontSize: 9.5, color: P.inkSoft }}>⌗ {bn ? "যেভাবে কাজ করে" : "How it works"}</span>
+        <span className="lbl" style={{ ...mono, fontSize: 9.5, color: P.inkSoft }}>⌗ {bn ? "যেভাবে কাজ করে" : "How it works"}</span>
         <span className="stk" style={{ ...mono, fontSize: 9.5, color: P.ink, justifyItems: "end" }}>
           {STAGES.map((s2, k) => (
             <span key={k} className={`fnum${k}`}>{String(k + 1).padStart(2, "0")}/0{STAGES.length}</span>
@@ -84,7 +88,7 @@ function Flow({ lang }) {
       <div style={{ padding: "20px 18px" }}>
         <div className="flow-grid">
           <div>
-            <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "গ্রাহক লেখেন" : "Customer writes"}</div>
+            <div className="lbl" style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "গ্রাহক লেখেন" : "Customer writes"}</div>
             {STAGES.map((s2, k) => (
               <div key={k} className={`fch${k}`} style={{ display: "flex", gap: 9, padding: "10px 11px",
                 background: P.paper2, border: `1px solid ${P.line}`, marginBottom: 6 }}>
@@ -109,10 +113,10 @@ function Flow({ lang }) {
               </div>
             </div>
             <div style={{ textAlign: "center", width: "100%" }}>
-              <div style={{ ...mono, fontSize: 8, color: P.inkSoft, marginBottom: 5 }}>{bn ? "যা দেখে" : "Reads"}</div>
+              <div className="lbl" style={{ ...mono, fontSize: 8, color: P.inkSoft, marginBottom: 5 }}>{bn ? "যা দেখে" : "Reads"}</div>
               <div className="stk">
                 {STAGES.map((s2, k) => (
-                  <div key={k} className={`fsrc${k}`} style={{ ...mono, fontSize: 8.5, color: P.blue, lineHeight: 1.4 }}>
+                  <div key={k} className={`fsrc${k} lbl`} style={{ ...mono, fontSize: 8.5, color: P.blue, lineHeight: 1.4 }}>
                     {bn ? s2.srcBn : s2.src}
                   </div>
                 ))}
@@ -121,14 +125,14 @@ function Flow({ lang }) {
           </div>
 
           <div>
-            <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "বট যা বলে" : "The bot replies"}</div>
+            <div className="lbl" style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "বট যা বলে" : "The bot replies"}</div>
             <div className="stk" style={{ marginBottom: 10 }}>
               {STAGES.map((s2, k) => (
                 <div key={k} className={`fsay${k}`} style={{ padding: "10px 12px", background: P.blue, color: P.onAccent,
                   fontSize: 11.5, lineHeight: 1.5, borderRadius: 3, alignSelf: "start" }}>{bn ? s2.say : s2.sayEn}</div>
               ))}
             </div>
-            <div style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "আর যা করে" : "And does"}</div>
+            <div className="lbl" style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "আর যা করে" : "And does"}</div>
             {STAGES.map((s2, k) => (
               <div key={k} className={`fout${k}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 11px",
                 background: P.paper2, border: `1px solid ${P.line}`, borderLeft: `2px solid ${P.accent}`, marginBottom: 6 }}>
@@ -205,6 +209,29 @@ export default function Home({ searchParams }) {
            measurement gives 0.88em for Fraunces. */
         .bn h1.fr, .bn h2.fr, .bn h3.fr { line-height: 1.45 !important }
 
+        /* The small mono labels — the eyebrow above a heading, the caption on
+           a mock, the words on the buttons. In English they are 8 to 11.5px
+           small caps in IBM Plex Mono with the letters pushed apart, and that
+           is right for Latin.
+
+           None of it is right for Bangla. Plex Mono has no Bengali letters at
+           all, so the browser silently substituted whatever Bengali font the
+           reader's phone owned. Bangla has no capitals, so text-transform did
+           nothing but mislead. Letter-spacing pulls a conjunct apart into
+           pieces that read as broken type. And 8px is below the size at which
+           a Bangla conjunct is legible at all.
+
+           So in Bangla the label keeps only its smallness — one size, 12px,
+           the same floor the manual at /docs settled on. The properties are
+           set inline at every one of these places, so replacing them takes
+           !important. That is what the rule is for, not a way around
+           specificity. */
+        .bn .lbl { font-family: 'Anek Bangla', sans-serif !important; letter-spacing: 0 !important;
+          text-transform: none !important; font-size: 12px !important }
+        /* Inside the flow diagram the columns are narrow and the labels sit
+           under a 62px dial, so they stop one step earlier. */
+        .bn .flow-wrap .lbl { font-size: 11px !important }
+
         /* The sheet: hairline rules and crop marks, so the page reads as a drawing. */
         .sheet { position: fixed; inset: 14px; pointer-events: none; border: 1px solid ${P.line}; z-index: 3 }
         .sheet i { position: absolute; width: 9px; height: 9px;
@@ -255,9 +282,21 @@ export default function Home({ searchParams }) {
           .navword { display: none }
           .navbtn { font-size: 8.5px; padding: 7px 7px; letter-spacing: .02em }
         }
+        /* The ladder above shrinks the buttons to 8.5px on the narrowest
+           phones. Latin small caps survive that; Bangla does not. The Bangla
+           words are shorter than the English ones anyway (দাম against PRICING,
+           লগ ইন against LOG IN), so they can afford the height. These come
+           after the media queries and outrank them, so one floor covers every
+           width. */
+        .bn .navbtn { font-family: 'Anek Bangla', sans-serif; letter-spacing: 0; text-transform: none;
+          font-size: 12px }
+        @media (max-width: 420px) { .bn .navbtn { font-size: 11.5px } }
+        @media (max-width: 340px) { .bn .navbtn { font-size: 11px } }
 
         .flink { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .1em;
           text-transform: uppercase; color: ${P.inkSoft}; text-decoration: none; transition: color .15s ease-out }
+        .bn .flink { font-family: 'Anek Bangla', sans-serif; letter-spacing: 0; text-transform: none;
+          font-size: 12px }
         .flink:hover { color: ${P.ink}; text-decoration: underline; text-underline-offset: 4px }
 
         .btn { border-radius: 13px; transition: transform .15s ease-out, background .15s ease-out, box-shadow .2s ease-out }
@@ -415,9 +454,9 @@ export default function Home({ searchParams }) {
               dangerouslySetInnerHTML={{ __html: c.h1.replace(/<em>|<\/em>/g, "") }} />
             <p className="r" style={{ animationDelay: ".14s", fontSize: 17, lineHeight: 1.6, color: P.inkSoft, maxWidth: 560, margin: "0 0 28px" }}>{c.lead}</p>
             <div className="r" style={{ animationDelay: ".2s", display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <a href="/dashboard?auth=signup" className="btn" style={{ ...mono, fontSize: 11.5, background: P.accent,
+              <a href="/dashboard?auth=signup" className="btn lbl" style={{ ...mono, fontSize: 11.5, background: P.accent,
                 color: P.onAccent, padding: "14px 26px", textDecoration: "none" }}>{c.cta}</a>
-              <a href="/pricing" className="btn" style={{ ...mono, fontSize: 11.5, border: `1px solid ${P.line}`,
+              <a href="/pricing" className="btn lbl" style={{ ...mono, fontSize: 11.5, border: `1px solid ${P.line}`,
                 color: P.ink, padding: "14px 26px", textDecoration: "none" }}>{c.cta2}</a>
             </div>
             <div className="r" style={{ animationDelay: ".26s", marginTop: 26, display: "flex", gap: 14, flexWrap: "wrap" }}>
