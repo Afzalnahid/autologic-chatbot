@@ -33,6 +33,34 @@ export const sendTextMessage = (token, id, text, platform, pageId) =>
 export const sendImageMessage = (token, id, url, platform, pageId) =>
   send(token, { recipient: { id }, message: { attachment: { type: "image", payload: { url, is_reusable: true } } } }, platform, pageId);
 
+// A reply typed by a human in the dashboard — text or an attachment.
+//
+// Sent as a plain RESPONSE first: inside Meta's standard 24-hour window that
+// is the correct type and needs no tag. The old dashboard routes tagged every
+// send HUMAN_AGENT, and that tag needs its own App Review approval — without
+// it Meta rejects the whole message with "(#100) Cannot tag messages with
+// 'HUMAN_AGENT' without prior approval", so no dashboard reply, photo or
+// voice note was ever delivered, even to a customer who wrote a minute ago.
+//
+// Only when Meta answers "outside allowed window" (code 10, subcode 2018278)
+// is the send retried WITH the tag: once the approval exists that buys 7 more
+// days, and until then the owner gets the window explained in plain words
+// instead of Meta's jargon.
+//
+// Routed through send() so Instagram goes to graph.instagram.com — the old
+// routes also posted IG replies to the FB-only /me/messages endpoint.
+const outsideWindow = (e) => !!e && (e.code === 10 || e.error_subcode === 2018278);
+
+export async function sendAgentMessage(token, id, message, platform, pageId) {
+  let d = await send(token, { recipient: { id }, messaging_type: "RESPONSE", message }, platform, pageId);
+  if (d?.error && outsideWindow(d.error)) {
+    d = await send(token, { recipient: { id }, messaging_type: "MESSAGE_TAG", tag: "HUMAN_AGENT", message }, platform, pageId);
+    if (d?.error) return { error: { message:
+      "This chat's 24-hour reply window has closed — Meta only lets a business reply within 24 hours of the customer's last message. It reopens the moment they write again." } };
+  }
+  return d;
+}
+
 // A broadcast is not a reply, so it is sent as an UPDATE rather than a RESPONSE.
 // Still only ever inside Meta's 24-hour window. Returns the raw platform response
 // so the caller can surface the real error instead of swallowing it.

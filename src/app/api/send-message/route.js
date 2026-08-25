@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
+import { sendAgentMessage } from "@/lib/messenger.js";
 
 export async function POST(request) {
   try {
@@ -32,12 +33,10 @@ export async function POST(request) {
       }).then(r => r.json());
       if (wa.error) return NextResponse.json({ error: wa.error.message }, { status: 502 });
     } else {
-      const fbData = await fetch(`https://graph.facebook.com/v24.0/me/messages?access_token=${ch.access_token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipient: { id: sender_id }, messaging_type: "MESSAGE_TAG", tag: "HUMAN_AGENT", message: { text } }),
-      }).then(r => r.json());
-      if (fbData.error) return NextResponse.json({ error: fbData.error.message }, { status: 502 });
+      // RESPONSE inside the 24-hour window, HUMAN_AGENT only as the fallback,
+      // and the right endpoint per platform — all decided in messenger.js.
+      const d = await sendAgentMessage(ch.access_token, sender_id, { text }, platform, ch.page_id);
+      if (d?.error) return NextResponse.json({ error: d.error.message }, { status: 502 });
     }
 
     await supabase.from("message_buffer").insert({

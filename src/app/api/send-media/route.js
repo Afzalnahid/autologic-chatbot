@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
+import { sendAgentMessage } from "@/lib/messenger.js";
 
 export async function POST(request) {
   try {
@@ -24,13 +25,20 @@ export async function POST(request) {
       || (chans || [])[0];
     if (!ch) return NextResponse.json({ error: "no channel" }, { status: 400 });
 
+    // One path for every platform: the file goes into storage and the message
+    // carries its public URL. WhatsApp always worked this way; Facebook and
+    // Instagram used to POST the raw bytes to the FB-only /me/messages
+    // endpoint with a HUMAN_AGENT tag — the wrong address for Instagram and a
+    // tag Meta rejects without its own approval, so nothing was ever
+    // delivered from the dashboard.
+    const ext = (file.name?.split(".").pop() || (kind === "audio" ? "mp4" : "jpg")).toLowerCase();
+    const path = `${client.id}/chat/${Date.now()}.${ext}`;
+    const buf = Buffer.from(await file.arrayBuffer());
+    const { error: upErr } = await supabase.storage.from("product-images").upload(path, buf, { contentType: file.type || "image/jpeg" });
+    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+    const url = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+
     if (platform === "whatsapp") {
-      const ext = (file.name?.split(".").pop() || (kind === "audio" ? "mp4" : "jpg")).toLowerCase();
-      const path = `${client.id}/chat/${Date.now()}.${ext}`;
-      const buf = Buffer.from(await file.arrayBuffer());
-      const { error: upErr } = await supabase.storage.from("product-images").upload(path, buf, { contentType: file.type || "image/jpeg" });
-      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
-      const url = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
       const body = kind === "audio"
         ? { messaging_product: "whatsapp", to: sender_id, type: "audio", audio: { link: url } }
         : { messaging_product: "whatsapp", to: sender_id, type: "image", image: { link: url } };
@@ -40,27 +48,18 @@ export async function POST(request) {
         body: JSON.stringify(body),
       }).then(r => r.json());
       if (wa.error) return NextResponse.json({ error: wa.error.message }, { status: 502 });
-      await supabase.from("message_buffer").insert({
-        sender_id, message_content: kind === "audio" ? "🎤 Voice message" : "📷 Photo",
-        status: "Replied", role: "agent", client_id: client.id, platform, page_id: ch.page_id || null,
-      });
-      return NextResponse.json({ ok: true });
+    } else {
+      const d = await sendAgentMessage(ch.access_token, sender_id,
+        { attachment: { type: kind, payload: { url } } }, platform, ch.page_id);
+      if (d?.error) return NextResponse.json({ error: d.error.message }, { status: 502 });
     }
-
-    const fb = new FormData();
-    fb.append("recipient", JSON.stringify({ id: sender_id }));
-    fb.append("messaging_type", "MESSAGE_TAG");
-    fb.append("tag", "HUMAN_AGENT");
-    fb.append("message", JSON.stringify({ attachment: { type: kind, payload: { is_reusable: false } } }));
-    fb.append("filedata", file, file.name || (kind === "audio" ? "voice.mp4" : "photo.jpg"));
-
-    const r = await fetch(`https://graph.facebook.com/v24.0/me/messages?access_token=${ch.access_token}`, { method: "POST", body: fb });
-    const d = await r.json();
-    if (d.error) return NextResponse.json({ error: d.error.message }, { status: 502 });
 
     await supabase.from("message_buffer").insert({
       sender_id,
       message_content: kind === "audio" ? "🎤 Voice message" : "📷 Photo",
+      // The chat thread renders this column, so the owner sees the photo they
+      // just sent instead of a bare "📷 Photo" line.
+      attachments: kind === "image" ? url : null,
       status: "Replied",
       role: "agent",
       client_id: client.id,
