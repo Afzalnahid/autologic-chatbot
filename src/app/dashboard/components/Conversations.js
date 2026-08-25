@@ -332,17 +332,29 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         {showEmoji&&<div style={{position:"absolute",bottom:"100%",right:12,background:T.card,border:`0.5px solid ${T.border}`,borderRadius:12,padding:8,display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:4,zIndex:5}}>
           {EMOJIS.map(e=><span key={e} onClick={()=>{setInput(p=>p+e);setShowEmoji(false);}} style={{fontSize:20,cursor:"pointer",padding:4}}>{e}</span>)}
         </div>}
-        <div style={{padding:"10px 8px",display:"flex",gap:2,alignItems:"center"}}>
+        {/* Every round button here carries "ui-sq": without it, a phone's
+            touch rule (buttons want to be at least 44px tall) raised only the
+            HEIGHT of these — min-height beats an inline height, but nothing
+            beats the inline width sitting right next to it — so a 34px
+            circle became a 34x44 oval. "ui-sq" grows both dimensions
+            together on a touch screen, so every one of these stays a true
+            circle, just a bigger one where a thumb needs it. */}
+        <div style={{padding:"8px 8px",display:"flex",gap:4,alignItems:"center"}}>
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e=>{sendMedia(e.target.files[0],"image");e.target.value="";}}/>
           <input ref={galleryRef} type="file" accept="image/*" hidden onChange={e=>{sendMedia(e.target.files[0],"image");e.target.value="";}}/>
-          <button onClick={()=>cameraRef.current?.click()} title="Camera" style={{background:"none",border:"none",cursor:"pointer",color:"#0084ff",fontSize:19,padding:"4px 3px",flexShrink:0}}><i className="ti ti-camera"/></button>
-          <button onClick={()=>galleryRef.current?.click()} title="Photo" style={{background:"none",border:"none",cursor:"pointer",color:"#0084ff",fontSize:19,padding:"4px 3px",flexShrink:0}}><i className="ti ti-photo"/></button>
-          <button onClick={toggleRec} title="Voice" style={{background:"none",border:"none",cursor:"pointer",color:recording?T.danger:"#0084ff",fontSize:19,padding:"4px 3px",flexShrink:0,animation:recording?"pulse 1s infinite":"none"}}><i className={`ti ${recording?"ti-player-stop-filled":"ti-microphone"}`}/></button>
+          <button onClick={()=>cameraRef.current?.click()} title="Camera" aria-label="Camera" className="ui-sq"
+            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:"#0084ff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-camera"/></button>
+          <button onClick={()=>galleryRef.current?.click()} title="Photo" aria-label="Photo" className="ui-sq"
+            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:"#0084ff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-photo"/></button>
+          <button onClick={toggleRec} title="Voice" aria-label="Voice" className="ui-sq"
+            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:recording?T.danger:"#0084ff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,animation:recording?"pulse 1s infinite":"none"}}><i className={`ti ${recording?"ti-player-stop-filled":"ti-microphone"}`}/></button>
           <div style={{flex:1,display:"flex",alignItems:"center",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:20,padding:"0 4px 0 12px",minWidth:0}}>
             <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Message" style={{flex:1,background:"none",border:"none",padding:"10px 0",color:T.text,fontSize:13,outline:"none",minWidth:0}}/>
-            <button onClick={()=>setShowEmoji(s=>!s)} title="Emoji" style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"4px 2px",flexShrink:0}}>😊</button>
+            <button onClick={()=>setShowEmoji(s=>!s)} title="Emoji" aria-label="Emoji" className="ui-sq"
+              style={{width:30,height:30,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>😊</button>
           </div>
-          <button onClick={send} disabled={sending} style={{width:34,height:34,borderRadius:"50%",border:"none",cursor:"pointer",background:"#0084ff",display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:16,color:"#fff"}}/></button>
+          <button onClick={send} disabled={sending} aria-label="Send" className="ui-sq"
+            style={{width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer",background:"#0084ff",display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:16,color:"#fff"}}/></button>
         </div>
       </div>
     </Card>}
