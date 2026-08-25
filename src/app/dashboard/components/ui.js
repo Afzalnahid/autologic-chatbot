@@ -378,7 +378,12 @@ export function Motion() {
            it to 40x44, which on a phone read as a big green blob floating over
            the chat header. It keeps its drawn size and gets its thumb target
            from the invisible halo below instead, same trick as the calendar. */
-        button:not(.cal-cell):not(.ui-switch), a[role="button"], .ui-opt { min-height: 44px }
+        /* "a.ui-sq" is here because ui-sq means "square touch target", and an
+           icon-only action is just as easy to miss whether it happens to be a
+           <button> or a real <a>. Without it the Knowledge Base's open-the-
+           original link came out 44 wide and 36 tall — the min-width rule
+           below applied, this one did not. */
+        button:not(.cal-cell):not(.ui-switch), a[role="button"], a.ui-sq, .ui-opt { min-height: 44px }
         .ui-switch::after { content: ""; position: absolute; inset: -11px }
         /* The line above raises only the HEIGHT, and min-height beats an inline
            height — so every square icon button became a 36x44 rectangle on a
