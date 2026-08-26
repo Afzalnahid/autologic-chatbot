@@ -16,6 +16,13 @@ export const COMPANY = {
   // Support and sales. Everything a customer or Meta's reviewers can see.
   email: "office@autolinium.com",
 
+  // Empty until there is a real number to publish. The contact page renders a
+  // phone row only when this is filled in, so adding one is a single edit here
+  // and nothing has to be wired up. It was described as being in the
+  // screenshots the owner sent, but none of them carried a number, and a wrong
+  // phone number on a public page sends customers to a stranger.
+  phone: "",
+
   address: "Kandirpar, Cumilla",
   country: "Bangladesh",
 
