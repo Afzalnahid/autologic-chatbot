@@ -26,9 +26,18 @@ export default function RootLayout({ children }) {
     // palette. React would otherwise flag that attribute as a mismatch.
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-        <meta httpEquiv="Pragma" content="no-cache" />
-        <meta httpEquiv="Expires" content="0" />
+        {/* Three <meta http-equiv> cache tags used to sit here — Cache-Control,
+            Pragma and Expires, all saying "never store this". They were on
+            EVERY page, the public marketing pages included.
+
+            They did not do the job they looked like they were doing. Only the
+            server can set a real caching rule; a meta tag cannot, and Pragma
+            and Expires have been obsolete for years. What they could still do
+            is stop a browser keeping the page it had just downloaded, so a
+            reader moving between pages re-fetched the same markup every time.
+
+            The real headers come from Next and from next.config.js, which is
+            where a change of mind about caching belongs. */}
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css" />
         {/* Runs while the HTML is still parsing, before first paint, so the page
             never flashes the wrong palette. Bare <script> in the root layout's
