@@ -2,6 +2,7 @@ import Script from "next/script";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
 import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
+import { COPYRIGHT, ADDRESS_LINE } from "@/lib/company.js";
 
 // Google indexes the Bangla home page separately from the English one, so both
 // need their own title, sentence and share picture rather than one set of tags
@@ -627,8 +628,8 @@ export default function Home({ searchParams }) {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
             ...mono, fontSize: 9.5, color: P.inkSoft, borderTop: `1px solid ${P.line}`, paddingTop: 18 }}>
-            <span>© 2026 Autologic</span>
-            <span>Kandirpar, Cumilla, Bangladesh</span>
+            <span>{COPYRIGHT}</span>
+            <span>{ADDRESS_LINE}</span>
           </div>
         </div>
       </footer>

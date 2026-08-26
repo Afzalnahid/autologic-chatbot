@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabase } from "@/lib/supabase.js";
+import { COMPANY, ADDRESS_LINE } from "@/lib/company.js";
 
 const APP_SECRET = process.env.FB_APP_SECRET;
 
@@ -50,7 +51,7 @@ export async function GET() {
   a{color:#FF6B75}
 </style></head><body><div class="w">
   <h1>Data Deletion</h1>
-  <div class="sub">Autologic · Kandirpar, Cumilla, Bangladesh</div>
+  <div class="sub">${COMPANY.name} · ${ADDRESS_LINE} · ${COMPANY.madeBy}</div>
 
   <h2>Automatic deletion</h2>
   <p>If you remove Autologic from your Facebook or Instagram settings, Meta notifies
@@ -60,7 +61,7 @@ export async function GET() {
   <h2>Deleting your account and all data</h2>
   <p>Sign in to your dashboard and disconnect any connected channel — this stops all
   data processing for that channel immediately. To delete your account and everything
-  stored with it, email <a href="mailto:nahidafzal97@gmail.com">nahidafzal97@gmail.com</a>
+  stored with it, email <a href="mailto:${COMPANY.email}">${COMPANY.email}</a>
   from the address you registered with. Requests are completed within 30 days.</p>
 
   <h2>What we store</h2>
