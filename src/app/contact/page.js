@@ -1,4 +1,10 @@
-export const metadata = { title: "Contact — Autologic" };
+import { pageMeta } from "@/lib/seo.js";
+
+export const metadata = pageMeta({
+  title: "Contact — Autologic",
+  description: "Reach the Autologic team for support, sales or general questions about the chatbot platform. We usually reply within 24 hours.",
+  path: "/contact",
+});
 
 export default function Contact() {
   const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };

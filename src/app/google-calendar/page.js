@@ -1,4 +1,10 @@
-export const metadata = { title: "How Autologic uses Google Calendar" };
+import { pageMeta } from "@/lib/seo.js";
+
+export const metadata = pageMeta({
+  title: "How Autologic uses Google Calendar",
+  description: "What Autologic reads and writes in a connected Google Calendar when the chatbot books a meeting, and the Limited Use disclosure that covers it.",
+  path: "/google-calendar",
+});
 
 export default function GoogleCalendar() {
   const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };

@@ -1,17 +1,21 @@
 import { P } from "@/lib/landing.js";
 import { PAGES, GROUPS } from "@/lib/docs/index.js";
 import { pickLang, copy, docHref, writtenSet } from "./copy.js";
+import { pageMeta, SITE } from "@/lib/seo.js";
 import DocsShell from "./shell.js";
 
 // The documentation hub: every page, grouped the way the sidebar groups them.
 // A reader who does not yet know what they are looking for starts here.
 
 export function generateMetadata({ searchParams }) {
-  const { UI } = copy(pickLang(searchParams));
+  const lang = pickLang(searchParams);
+  const { UI } = copy(lang);
   return {
-    title: `${UI.brand} — Autologic`,
-    description: UI.tagline,
-    alternates: { canonical: "https://www.getvoicium.com/docs" },
+    ...pageMeta({ title: `${UI.brand} — Autologic`, description: UI.tagline, path: "/docs", lang }),
+    // Left exactly as it was. The manual has always pointed both languages at
+    // one canonical address, and which URLs Google indexes is a decision on its
+    // own — not something to change as a side effect of adding share cards.
+    alternates: { canonical: `${SITE}/docs` },
   };
 }
 

@@ -1,11 +1,28 @@
-export const metadata = {
-  title: "Autologic — AI Chatbot for Facebook, Instagram & WhatsApp",
-  description: "Autologic is an AI-powered customer service chatbot platform that connects to Facebook, Instagram, WhatsApp and your own website, and books meetings into Google Calendar.",
-};
-
 import Script from "next/script";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
 import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
+import { pageMeta, siteJsonLd } from "@/lib/seo.js";
+
+// Google indexes the Bangla home page separately from the English one, so both
+// need their own title, sentence and share picture rather than one set of tags
+// written in English for both.
+const META = {
+  en: {
+    title: "Autologic — AI Chatbot for Facebook, Instagram & WhatsApp",
+    description:
+      "Autologic is an AI-powered customer service chatbot platform that connects to Facebook, Instagram, WhatsApp and your own website, and books meetings into Google Calendar.",
+  },
+  bn: {
+    title: "Autologic — ফেসবুক, ইনস্টাগ্রাম ও হোয়াটসঅ্যাপের জন্য এআই চ্যাটবট",
+    description:
+      "Autologic একটি এআই চ্যাটবট, যা ফেসবুক, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর আপনার নিজের ওয়েবসাইটে যুক্ত হয়ে গ্রাহকদের বাংলা বা ইংরেজিতে উত্তর দেয়, আর মিটিং সরাসরি গুগল ক্যালেন্ডারে বুক করে।",
+  },
+};
+
+export function generateMetadata({ searchParams }) {
+  const lang = searchParams?.lang === "bn" ? "bn" : "en";
+  return pageMeta({ ...META[lang], path: "/", lang });
+}
 
 const mono = { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 10.5,
   letterSpacing: "0.13em", textTransform: "uppercase" };
@@ -171,6 +188,14 @@ export default function Home({ searchParams }) {
     <div className={lang === "bn" ? "bn" : ""}
       style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
+      {/* What lets Google print "Autologic" above a result instead of the bare
+          domain. It is data, not code — nothing runs it — so unlike the theme
+          boot it works fine sitting here in the page. It still needs
+          dangerouslySetInnerHTML: React escapes the text child of a script or
+          style tag on the server, and the browser does not decode entities back
+          inside one (lessons.md #21). */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify(siteJsonLd(lang)).replace(/</g, "\\u003c") }} />
       {/* Theme boot lives in the root layout (a script here never executes). */}
       <style dangerouslySetInnerHTML={{__html:`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');

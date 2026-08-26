@@ -1,4 +1,10 @@
-export const metadata = { title: "Privacy Policy - Autologic" };
+import { pageMeta } from "@/lib/seo.js";
+
+export const metadata = pageMeta({
+  title: "Privacy Policy — Autologic",
+  description: "How Autologic collects, uses, stores and protects the data of the businesses on the platform and the customers who message them.",
+  path: "/privacy",
+});
 
 export default function Privacy() {
   const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { P } from "@/lib/landing.js";
 import { PAGES, bySlug, neighbours, isWritten } from "@/lib/docs/index.js";
 import { pickLang, copy, docHref, num, writtenSet } from "../copy.js";
+import { pageMeta, SITE } from "@/lib/seo.js";
 import DocsShell from "../shell.js";
 import Blocks, { headings } from "../blocks.js";
 
@@ -23,10 +24,15 @@ export function generateMetadata({ params, searchParams }) {
   const name = UI.names[params.slug] || params.slug;
   const written = isWritten(doc);
   return {
-    title: `${name} — Autologic ${UI.brand}`,
-    description: written ? doc.lead : UI.tagline,
-    robots: written ? undefined : { index: false, follow: true },
-    alternates: { canonical: `https://www.getvoicium.com/docs/${params.slug}` },
+    ...pageMeta({
+      title: `${name} — Autologic ${UI.brand}`,
+      description: written ? doc.lead : UI.tagline,
+      path: `/docs/${params.slug}`,
+      lang,
+      robots: written ? undefined : { index: false, follow: true },
+    }),
+    // Unchanged, for the reason given on the docs hub page.
+    alternates: { canonical: `${SITE}/docs/${params.slug}` },
   };
 }
 

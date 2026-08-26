@@ -1,5 +1,6 @@
 import "./globals.css";
 import { THEME_BOOT_JS } from "@/lib/landing.js";
+import { SITE } from "@/lib/seo.js";
 
 export const viewport = {
   width: "device-width",
@@ -9,8 +10,13 @@ export const viewport = {
 };
 
 export const metadata = {
+  // The title here is the dashboard's — it is the one page that does not set
+  // its own. Every public page overrides both of these through pageMeta().
   title: "Autologic Chatbot Dashboard",
   description: "AI-powered chatbot management dashboard",
+  // Without this Next cannot turn a relative share-image path into the absolute
+  // URL that Facebook and WhatsApp require, and it warns on every build.
+  metadataBase: new URL(SITE),
 };
 
 export default function RootLayout({ children }) {

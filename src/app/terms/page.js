@@ -1,4 +1,10 @@
-export const metadata = { title: "Terms of Service - Autologic" };
+import { pageMeta } from "@/lib/seo.js";
+
+export const metadata = pageMeta({
+  title: "Terms of Service — Autologic",
+  description: "The terms that govern the use of Autologic, an AI customer service chatbot platform for businesses in Bangladesh.",
+  path: "/terms",
+});
 
 export default function Terms() {
   const S = { maxWidth: 760, margin: "0 auto", padding: "48px 24px", color: "#E7EAF2", fontFamily: "sans-serif", lineHeight: 1.8, fontSize: 15 };

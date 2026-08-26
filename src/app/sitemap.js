@@ -3,15 +3,17 @@
 // Canonical host is www (the apex 308-redirects to it).
 import { PAGES } from "@/lib/docs/index.js";
 import { writtenSet } from "./docs/copy.js";
-
-const BASE = "https://www.getvoicium.com";
+import { SITE as BASE } from "@/lib/seo.js";
 
 export default function sitemap() {
   const now = new Date();
   // Only public marketing / legal pages belong here. Login-gated routes
   // (dashboard, admin, reset) and API routes are intentionally left out.
   const pages = [
-    { path: "/", priority: 1.0, changeFrequency: "weekly" },
+    // The home page is the one marketing page with a full Bangla version, and
+    // Google already indexes it separately, so it is declared as an alternate
+    // rather than left to look like a duplicate. /pricing has no Bangla copy.
+    { path: "/", priority: 1.0, changeFrequency: "weekly", bn: true },
     { path: "/pricing", priority: 0.8, changeFrequency: "weekly" },
     { path: "/contact", priority: 0.5, changeFrequency: "monthly" },
     { path: "/google-calendar", priority: 0.4, changeFrequency: "yearly" },
