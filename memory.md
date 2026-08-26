@@ -111,12 +111,34 @@ emulated viewport at 375px and 1276px: zero horizontal overflow, no two tap
 targets sharing vertical space, email/phone links 44px+, nav controls 40px.
 
 ### What's next — resume exactly here
-1. **The favicon will not appear in Google's results today.** The file is live
-   and Google can fetch it; the icon beside a result comes from Google's index,
-   which was built while the file was still a 404. Google's own guidance says
-   days to weeks. The one lever the owner has: Search Console → URL Inspection
-   → `https://www.getvoicium.com/` → Request Indexing. Search Console does not
-   appear to be set up yet; setting it up is worth doing regardless.
+1. **Search Console is now set up — done the same night, with the owner.**
+   A **Domain** property (`sc-domain:getvoicium.com`) was verified by DNS TXT
+   at Hostinger, `https://www.getvoicium.com/` was submitted through URL
+   Inspection ("added to a priority crawl queue"), and
+   `https://www.getvoicium.com/sitemap.xml` was submitted and came back
+   Success against 21 pages.
+   - **Never delete the TXT record** `google-site-verification=r5WaxrOM…` on
+     `@` in Hostinger. Removing it un-verifies the property and loses the data.
+   - There was already an older `google-site-verification=xeEvV…` row on `@`
+     from a different property, plus SPF. Both were kept; multiple TXT records
+     on one name coexist and Google matches on value.
+   - **Side effect worth knowing:** DNS gives every record of the same name and
+     type one shared TTL, so the new row's 14400 replaced the 300 the other two
+     `@` TXT rows had. Content is byte-identical and nothing broke, but a future
+     SPF change will take up to 4 hours to propagate instead of 5 minutes.
+     Setting one of those rows back to 300 fixes all three; not urgent.
+   - Two traps hit on the way, both worth remembering. The pre-existing
+     property was `https://getvoicium.com/` — the apex, which 308s to www, so
+     every real page was outside it and URL Inspection answered "URL not in
+     property". A **Domain** property covers www and apex together and is the
+     right shape here. And in a Domain property the sitemap field takes the
+     **full URL**, not a bare `sitemap.xml`, because the property spans more
+     than one hostname.
+   - **The favicon still will not appear in results immediately.** The file is
+     live and Google can fetch it — Search Console itself renders the crimson
+     bolt beside the property name — but the icon in a result comes from the
+     index, and that only changes on re-crawl. Days to weeks per Google's own
+     guidance; Request Indexing is the whole of what can be done.
 2. **Phone number is now published** (+880 1533 633084) — worth one glance at
    `/contact` on a real phone to confirm the tap dials correctly.
 3. **Owner decision waiting:** the opening line of `/privacy` and `/terms`
