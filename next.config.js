@@ -20,11 +20,20 @@ const nextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
-      // A Cache-Control rule for the manual was tried here and did not work:
-      // Next writes its own "no-store, private" for a dynamically rendered
-      // page and that wins over anything set in this file. Measured on
-      // production, not assumed — /docs still came back MISS. The rule now
-      // lives in src/middleware.js, which runs after Next has decided.
+      // Do not try to edge-cache /docs or "/" from here. It was tried and
+      // measured on production twice, and neither way worked:
+      //
+      //   1. A Cache-Control rule in this file. Next writes its own
+      //      "no-store, private" for a dynamically rendered page and that wins.
+      //   2. The same header set from src/middleware.js, which runs later.
+      //      Also overridden; /docs still answered MISS afterwards.
+      //
+      // The cause is not the header, it is the render mode. Those pages read
+      // ?lang=bn out of the query string, and reading the query is what makes
+      // Next render them per request. Nothing bolted on afterwards changes
+      // that. The real fix would be to carry the language in the path instead
+      // of the query — which moves URLs Google has already indexed, so it is
+      // an SEO decision, not a caching one.
     ];
   },
   async redirects() {
