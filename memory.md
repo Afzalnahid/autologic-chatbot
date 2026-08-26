@@ -4,7 +4,215 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-25) — Documentation site, and a design audit of it
+## Last session (2026-08-27) — How the site presents itself: search, sharing, contact details, four stranded pages
+
+Started from one owner question — "why does Google show a globe instead of our
+logo?" — and the answer turned out to be four separate problems, one of them a
+wrong fact published on every public page. Eight commits, all pushed, Vercel
+green, every claim below measured against production rather than assumed.
+
+**`4087117` — the logo was fine; `/favicon.ico` was a 404.** `src/app/icon.svg`
+was correct and Google had already fetched it (proved by downloading
+`google.com/s2/favicons?domain=getvoicium.com`, which returns the real crimson
+bolt). What did not exist was the old root address that Google, Bing and every
+link-preview scraper ask for first. New `scripts/make-favicon.mjs` rasterises
+the same geometry `icon.svg` uses and writes `src/app/favicon.ico` — no image
+library in this project, so it draws the rounded tile and the bolt itself and
+encodes the PNGs with Node's own `zlib`; an .ico is only PNGs behind a small
+index. Sizes are written **largest first (64, 48, 32, 16)** on purpose: Next
+reads the FIRST directory entry to fill the `sizes` attribute, so the usual
+smallest-first order advertised the whole file to Google as 16x16.
+
+**`17eb8a2` — no Open Graph tags anywhere, and no structured data.** Two
+consequences: Google printed the bare host instead of the brand, and a link
+pasted into Messenger or WhatsApp — this product's own market — unfurled as an
+empty grey box. New `src/lib/seo.js` is the single source for the canonical
+host, the share pictures and the tag shape; every public page builds metadata
+through it. The home page carries `WebSite` + `Organization` JSON-LD, which is
+what actually lets Google print "Autologic". Share cards are built by
+`scripts/make-og-images.mjs` and committed (`public/og.png`, `og-bn.png`,
+`logo.png`), one per language because Google indexes the Bangla home page
+separately.
+- **`next/og` could not be used** and this is worth remembering: it cannot load
+  its own font on Windows (`ERR_INVALID_URL` on a mangled
+  `.\file:\D:\...noto-sans.ttf`), in dev as well as in build, so nothing it
+  produced could be looked at before shipping. The cards are rendered with
+  headless Chrome from the landing page's own faces and palette instead.
+- **Next 14 strips the query string** out of anything it resolves for
+  `alternates` — measured with a plain string and again with a `URL` object.
+  So hreflang links would all have pointed at the English page and the Bangla
+  page's canonical would have pointed at the English one, which is the exact
+  instruction that de-indexes it. English gets its canonical, Bangla
+  deliberately gets none, and the two languages are declared in `sitemap.xml`
+  instead, where the query survives.
+
+**`494c9d2` — company facts pulled into `src/lib/company.js`.** Address, email
+and the maker line had been hand-typed across three footers, three pages and
+Facebook's data-deletion page. The public address became
+`office@autolinium.com` and every footer now names Autolinium.
+- **`nahidafzal97@gmail.com` has two unrelated jobs.** As a contact address it
+  changed; as the super admin's LOGIN identity (`src/lib/admin-auth.js`,
+  `/api/admin`, `/api/admin/client-detail`, `src/lib/email.js`) it did not, and
+  must not — pointing those at the new address locks the owner out of `/admin`.
+  `company.js` says so at the top.
+
+**`1cc240c` — four pages had never been redesigned.** `/contact`, `/privacy`,
+`/terms` and `/google-calendar` were still `#0A0D14` with `#FF6B75`, the red
+the 2026-08-16 redesign retired. No nav, no logo, no footer, hard-coded dark so
+the theme switch did nothing to them. New `src/app/site-shell.js` gives them
+the same furniture the landing page and the manual already use. Legal wording
+carried over word for word; the "Last updated" dates deliberately untouched,
+because the effective date of a legal document is the owner's call.
+
+**`ba6fd48` — the address on every public page was WRONG.** The registered
+details are Autolinium, Chattogram Software Technology Park, Agrabad,
+Chattogram 4200, phone +880 1533 633084, `autolinium.com`. The site had been
+saying Kandirpar, Cumilla — on the footers, the contact page, both legal pages
+and the Meta-facing data-deletion page. Because `494c9d2` had just centralised
+it, the correction was one line. Structured data now carries the real
+`PostalAddress`, `telephone`, a `contactPoint` and Autolinium as
+`parentOrganization`.
+- Left alone on purpose: `shots/sample.js`, `preview-dash/*` still say Cumilla.
+  That is the invented shop "Nokshi Threads" and its invented customers;
+  rewriting it would put the real office address into fake demo screenshots.
+
+**`aecedd9`, `0c58af8`, `0e24043` — caching: one real fix, one dead end.**
+Measured first: most of the site was already edge-cached (`/pricing`,
+`/contact`, `/privacy`, `/terms`, `/google-calendar`, images, favicon all HIT
+or PRERENDER). Only `/`, `/?lang=bn`, `/docs` and `/docs/inbox` were MISS.
+- **Fixed and verified:** three `<meta http-equiv>` cache tags (Cache-Control,
+  Pragma, Expires) sat in the root layout on EVERY page saying "never store
+  this", including the ones Vercel was caching happily. They cannot set a real
+  caching rule — only the server can — but they could stop the reader's own
+  browser keeping the markup. Removed.
+- **Dead end, tried twice, measured twice:** a `Cache-Control` rule in
+  `next.config.js` is outranked by the header Next writes for a dynamically
+  rendered page; setting the same header from `middleware.js` is outranked too.
+  Both reverted rather than left looking like they work. The cause is the
+  render mode, not the header: those pages read `?lang=bn` from the query, and
+  reading the query is what makes Next render per request. Both dead ends are
+  written into `next.config.js`.
+- **`/` deliberately not cached.** Its middleware answers a signed-in visitor
+  with a redirect to `/dashboard` and sets `no-store` on that redirect by hand.
+  If a cache rule reached the redirect and outranked that, every anonymous
+  visitor would be sent to `/dashboard` — the front page would disappear. Also
+  measured: the anonymous `/` response carries no `Set-Cookie`, so the cookie
+  worry does not apply; the redirect is the reason. And the middleware calls
+  Supabase on every `/` request regardless, so caching the HTML would save the
+  render, not that call.
+
+### Verified live on production after the push
+`/favicon.ico` 200 `image/x-icon`; the three share images 200; `og:site_name`
+and JSON-LD `WebSite.name` both "Autologic"; footers read
+"© 2026 Autologic · An Autolinium product" beside "Chattogram, Bangladesh";
+zero occurrences of Kandirpar/Cumilla and zero of `#FF6B75` across the home,
+pricing, docs, contact, privacy and terms pages. Layout measured in a real
+emulated viewport at 375px and 1276px: zero horizontal overflow, no two tap
+targets sharing vertical space, email/phone links 44px+, nav controls 40px.
+
+### What's next — resume exactly here
+1. **The favicon will not appear in Google's results today.** The file is live
+   and Google can fetch it; the icon beside a result comes from Google's index,
+   which was built while the file was still a 404. Google's own guidance says
+   days to weeks. The one lever the owner has: Search Console → URL Inspection
+   → `https://www.getvoicium.com/` → Request Indexing. Search Console does not
+   appear to be set up yet; setting it up is worth doing regardless.
+2. **Phone number is now published** (+880 1533 633084) — worth one glance at
+   `/contact` on a real phone to confirm the tap dials correctly.
+3. **Owner decision waiting:** the opening line of `/privacy` and `/terms`
+   still reads `Autologic ("we", "our", "us") operates…`. Now that Autolinium
+   is known to be the registered entity, that sentence could name it. Only the
+   Contact sections were changed; rewriting the operative sentence of a legal
+   document was left to the owner.
+4. **Owner decision waiting:** `/docs` and `/` cannot be edge-cached while the
+   language lives in `?lang=bn`. Moving it into the path (`/bn/docs`) would fix
+   it and would move URLs Google has already indexed. SEO decision, not a
+   caching one.
+5. `/api/fb/data-deletion` had its facts corrected but still uses the old dark
+   palette and `#FF6B75`. Left because it sits inside a Meta App Review flow.
+6. **Known duplication:** `src/app/site-shell.js` and `src/app/docs/shell.js`
+   each carry their own copy of the same nav and label CSS. Pulling it into one
+   place means editing the manual's frame — a refactor, its own commit.
+7. Two inline links in contact cards measure 18px tall on a phone. The house
+   fix (`inline-block` + negative margin) stops a link wrapping mid-sentence,
+   which risks reintroducing sideways scroll. Noted, not fixed.
+8. Everything under the older "What's next" sections still stands — Google
+   Cloud billing, `CRON_SECRET`, the two unapproved Meta permissions.
+
+---
+
+## Reconstructed after the fact (2026-08-25 afternoon → 2026-08-26) — 22 commits that were never written up
+
+**These sessions ended without updating this file.** The account below was
+rebuilt on 2026-08-27 by reading each commit's diff, not from anyone's memory,
+so it is reliable about what changed and silent about what anyone intended.
+This is exactly the failure `lessons.md` #7 exists to prevent.
+
+**Landing and redirect.** `0f133de` found `middleware.js` had never executed —
+with a `src/` layout Next only registers `src/middleware.js`, and the build
+manifest's `sortedMiddleware` was empty. Moved, and narrowed to a 307 from `/`
+to `/dashboard` for signed-in visitors, with `?home=1` and email-confirmation
+params exempted. `7bc456d` set the landing page's 28 small mono labels in Anek
+Bangla for Bangla readers — IBM Plex Mono has no Bengali glyphs, caps mean
+nothing in Bangla and letter-spacing breaks conjuncts.
+
+**Dashboard replies were never delivered** (`6fec0f2`). Both `/api/send-message`
+and `/api/send-media` tagged every human reply `HUMAN_AGENT`, a tag needing its
+own Meta approval, and POSTed to `graph.facebook.com/me/messages` regardless of
+platform (Instagram needs `graph.instagram.com/<ig-id>/messages`). New
+`sendAgentMessage()` in `messenger.js` sends plain `RESPONSE` first and only
+falls back to the tag outside the 24-hour window.
+
+**Inbox rebuild** (`520d367`, `c8b517b`, `a4cfade`, `ee595eb`, `38c40e1`):
+chat header rebuilt and the switch stopped being a blob (the global 44px
+coarse-pointer rule was inflating a 23px pill); "Conversations" renamed to
+Inbox everywhere a person can read it, internal keys deliberately unchanged;
+"All channels (N)" had been counting chats, not channels, in both Inbox and
+Bookings; composer icons made square; a measured 4px overlap between two
+dropdowns fixed generically in the shared `Select`.
+
+**Features:** `2329b4b` CSV product import (hand-written parser in
+`src/lib/csv.js`, reusing the existing `/api/import-one` pipeline row by row).
+`6d01caf` Knowledge Base rebuilt with search, real counts and a delete that
+asks. `c938698` + `f5e0412` + `02d8695` Bookings: one toolbar instead of five
+rows, a drawer that opens the full record, and a real accessibility bug where
+the email and phone tap targets shared 20px — a thumb aimed at the email could
+dial the customer.
+
+**Overnight thread, 2026-08-26 01:34–02:53** — one continuous run:
+- `7579455` every AI call now records WHICH feature spent the money
+  (`usage_daily.feature`, new `src/lib/usage-features.js`, all 16 call sites).
+  Two unmetered paths closed: `enforceLanguage()`'s retry and `tags.js`'s
+  fallback. **Live schema change claimed as already applied.**
+- `417b0a3` admin per-client cost breakdown, three areas plus an arithmetic
+  audit table; BYOK clients no longer show "৳0" beside millions of tokens.
+- `fc7c283` **broadcasts and the bot disagreed about what a client may send.**
+  The bot read `plans` + `limit_overrides` from the database; broadcasts read a
+  hard-coded `PLANS` constant. Four divergences, including an expired plan
+  still broadcasting and a newly created package returning zero. One
+  `messageAllowance(client)` now answers for both.
+- `a907a60` + `72f7fc4` expiry warnings sent by a daily Vercel cron rather than
+  only when an owner happens to open the dashboard, with a second reminder on
+  the last day. **`clients.expiry_warn_stage` + a backfill claimed as applied.**
+- `b2c0f24` disabled buttons now look disabled (every hover rule was correctly
+  guarded, but nothing changed their appearance). `992e56a` broadcast says up
+  front when the plan cannot send. `bb5cef9` per-client limit boxes pre-filled
+  with the package's own figures, with the "does this differ" test on the
+  SERVER so saving does not silently pin all eight as overrides.
+
+### Unverified from that stretch — worth checking before trusting
+- Three live schema changes are **asserted in commit messages, not proven
+  here**: `usage_daily.feature` + `record_ai_usage(p_feature)`, and
+  `clients.expiry_warn_stage` + its backfill. Query the live database.
+- `CRON_SECRET` — `/api/cron/expiry` is unauthenticated until it is set in
+  Vercel. The commit itself flags this as outstanding.
+- The signed-in → `/dashboard` redirect and the phone hardware-back menu
+  behaviour were never exercised against a real logged-in session.
+- The `HUMAN_AGENT` fallback still fails until Meta approves that tag.
+
+---
+
+## Earlier session (2026-08-25) — Documentation site, and a design audit of it
 
 The manual now exists at `/docs`: 14 pages, English and Bangla, 28 screenshots.
 Then it was measured rather than looked at, at 1280px and 375px in both

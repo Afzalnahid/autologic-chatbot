@@ -518,3 +518,108 @@ holds the space open from first paint.
 
 **Rule:** every `<img>` gets `width` and `height`, read from the file rather than typed in,
 so a new screenshot needs nothing but dropping the file in.
+
+## A measurement taken against a hidden browser pane is not a measurement (2026-08-27)
+
+Measuring the rebuilt contact page, the probe reported **42 elements overflowing the
+viewport** and a phone link **332px tall**. Both were nonsense. The browser pane was not
+displayed, so it reported `clientWidth: 0` — and against a zero-width viewport every
+element trivially "overflows" and every line of text wraps into a tower.
+
+The same afternoon, a headless-Chrome screenshot of the same page at `--window-size=390`
+appeared to show the right-hand side clipped. That was also false: Chrome had not applied
+a mobile layout viewport, so the page rendered wide and the image simply cropped it.
+Re-measured with a real emulated viewport, `scrollWidth === clientWidth === 375` and the
+offender list was empty. Two different tools, two different lies, in one session.
+
+**Rules:**
+- Before trusting any geometry, print the viewport with it. If `clientWidth` is 0, or is
+  not the width you asked for, the numbers that follow mean nothing — set an emulated
+  size (`resize_window`) and take them again.
+- Do not "fix" a layout bug you have only seen in a picture. A picture can be cropped,
+  scaled or rendered at the wrong width; `getBoundingClientRect()` against a known
+  viewport cannot. This nearly cost a fix to a page that was already correct.
+
+## A config change is not in effect until you have measured the response (2026-08-27)
+
+The manual was not being edge-cached, so a `Cache-Control` rule went into
+`next.config.js` for `/docs/:path*`. It deployed clean. It did nothing: Next writes its
+own `no-store, private` for a dynamically rendered page and that outranks anything in
+that file. The same header was then set from `middleware.js`, which runs later — also
+outranked. Two commits, two deploys, two production measurements, zero change.
+
+The real cause was never the header. `/docs` and `/` read `?lang=bn` out of the query
+string, and reading the query is what makes Next render per request and mark the answer
+uncacheable. Nothing bolted on afterwards changes that decision.
+
+**Rules:**
+- A caching or header change is unverifiable locally here — a dev server sends
+  `no-store` on everything and `next build` dies on this machine. So deploy it and read
+  the real response headers (`Cache-Control`, `X-Vercel-Cache`) before writing "fixed".
+  A green deploy proves the build compiled, not that the rule took effect.
+- When a fix does not work, do not reach for the same fix in a different file. The second
+  attempt failing the same way is the signal that the diagnosis is wrong (this is #15
+  again, in a new costume).
+- Remove a rule that did nothing instead of leaving it in. Config that looks like it
+  works is worse than no config: the next person reads it as a guarantee, and here it
+  would also have run an edge invocation per request for nothing.
+
+## Publish the registered fact, not the one already in the repo (2026-08-27)
+
+Every public page — three footers, the contact page, both legal pages and the
+Meta-facing data-deletion page — said the company was at Kandirpar, Cumilla. The
+registered address is Chattogram Software Technology Park, Agrabad, Chattogram 4200. The
+wrong one had been there long enough to be copied into six places, and it was consistent
+everywhere, which is precisely why nobody questioned it.
+
+It was corrected in one line, because the commit immediately before had pulled these
+facts into `src/lib/company.js`. That is the whole argument for one source of truth,
+arriving a day after the refactor.
+
+**Rules:**
+- A fact repeated identically in six files is not corroborated, it is copied. For
+  anything a customer or a reviewer acts on — address, phone, legal name, support email
+  — check the registered source before publishing, and never infer it from what the code
+  already says.
+- Ask for the value rather than guessing at it. A phone number was described as being "in
+  the screenshot" and was not; inventing a plausible one would have sent real customers
+  to a stranger.
+- Fixture data is not company data. `shots/sample.js` still says Cumilla on purpose —
+  that is an invented shop and its invented customers. A blind find-and-replace would
+  have put the real office address into fake demo screenshots.
+
+## `next/og` cannot render on Windows, so nothing it makes can be checked here (2026-08-27)
+
+Open Graph share images were going to be built with `next/og`, the way `/apple-icon`
+already is. It fails on this machine in dev **and** in build with
+`ERR_INVALID_URL` on `.\file:\D:\...\noto-sans-v27-latin-regular.ttf` — a path-joining
+bug in the bundled `@vercel/og`. This is the same fault behind the `next build` crash
+already recorded in `memory.md`, which had been filed as "ignore it, Linux is fine".
+
+It is not always fine to ignore. It meant any image `next/og` produced could only be
+looked at after deploying it. The cards were rendered with headless Chrome instead —
+which also bought real Fraunces and Anek Bangla from the same faces the site uses.
+
+**Rules:**
+- A known-broken local tool is a constraint on what you can verify, not just noise in the
+  log. Before choosing it for something new, ask whether you will be able to see the
+  output before it ships. If not, choose the tool you can check.
+- For anything visual that must be right on the first deploy, prefer a renderer you can
+  run and open locally. Chrome is on this machine and takes a screenshot of any HTML.
+
+## The favicon file existing is not the favicon appearing (2026-08-27)
+
+The owner asked why Google showed a globe. The mark was correct, served correctly, and
+Google's own `s2/favicons` service already returned it — but `/favicon.ico` at the site
+root was a 404, and Google's SERP icon comes from the index built when the page was last
+processed, not from the live site. After the fix went live the globe was still there, and
+reasonably enough the owner asked again.
+
+**Rules:**
+- Separate "is it correct now" from "does the world know yet". For anything a search
+  engine caches, say plainly that the change is live, that the result will lag, and how
+  long — before being asked a second time.
+- The lever that exists is Search Console → URL Inspection → Request Indexing. Point at
+  it instead of asking someone to wait and see.
+- `/favicon.ico` at the root is still required in 2026. An `<link rel="icon">` to an SVG
+  satisfies browsers and not the crawlers that ask for the old address first.
