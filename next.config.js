@@ -20,29 +20,11 @@ const nextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
-      {
-        // The manual reads ?lang=bn out of the query string, and reading the
-        // query makes a page dynamic — so Next answers every request with
-        // "no-store, private" and Vercel's edge never keeps a copy. Measured
-        // in production: /docs and /docs/inbox came back X-Vercel-Cache MISS
-        // every time, while /privacy and /terms, which take no query, were
-        // already HIT.
-        //
-        // Nothing on these pages depends on who is asking. There is no login
-        // in front of them, no cookie in the answer, and the middleware does
-        // not run here — its matcher is the front page and nothing else. The
-        // only thing that changes the output is the URL itself, which is what
-        // the cache is keyed on.
-        //
-        // max-age=0 keeps the reader's own browser checking back, so a
-        // corrected page is never stale for them; s-maxage lets the edge hold
-        // it for an hour, and stale-while-revalidate serves the held copy for
-        // a day while a fresh one is fetched behind it.
-        source: "/docs/:path*",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" },
-        ],
-      },
+      // A Cache-Control rule for the manual was tried here and did not work:
+      // Next writes its own "no-store, private" for a dynamically rendered
+      // page and that wins over anything set in this file. Measured on
+      // production, not assumed — /docs still came back MISS. The rule now
+      // lives in src/middleware.js, which runs after Next has decided.
     ];
   },
   async redirects() {
