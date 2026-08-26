@@ -66,8 +66,13 @@ export default function Privacy() {
       </Section>
 
       <Section title="10. Contact">
-        <p><strong>{COMPANY.name}</strong> · {ADDRESS_LINE} · {COMPANY.madeBy}<br />
-        Email: <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a></p>
+        <p>{COMPANY.name} is operated by <strong>{COMPANY.legalName}</strong>, our registered business.</p>
+        <p>
+          {ADDRESS_LINE}<br />
+          Email: <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a><br />
+          Phone: <a href={`tel:${COMPANY.phoneE164}`}>{COMPANY.phone}</a><br />
+          Web: <a href={COMPANY.parentUrl} target="_blank" rel="noreferrer">{COMPANY.parentHost}</a>
+        </p>
       </Section>
 
       <Note>

@@ -10,6 +10,8 @@
 // Every public page builds its metadata here so there is one place that knows
 // the canonical host, the share pictures and the shape of the tags.
 
+import { COMPANY } from "@/lib/company.js";
+
 export const SITE = "https://www.getvoicium.com";
 export const BRAND = "Autologic";
 
@@ -89,6 +91,31 @@ export function siteJsonLd(lang = "en") {
           url: `${SITE}/logo.png`,
           width: 512,
           height: 512,
+        },
+        email: COMPANY.email,
+        telephone: COMPANY.phoneE164,
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: COMPANY.street,
+          addressLocality: COMPANY.city,
+          postalCode: COMPANY.postalCode,
+          addressCountry: "BD",
+        },
+        contactPoint: [{
+          "@type": "ContactPoint",
+          contactType: "customer support",
+          email: COMPANY.email,
+          telephone: COMPANY.phoneE164,
+          areaServed: "BD",
+          availableLanguage: ["en", "bn"],
+        }],
+        // The registered business behind the product. Naming it lets Google
+        // connect this site to the company rather than treating them as two
+        // unrelated things.
+        parentOrganization: {
+          "@type": "Organization",
+          name: COMPANY.legalName,
+          url: COMPANY.parentUrl,
         },
       },
     ],

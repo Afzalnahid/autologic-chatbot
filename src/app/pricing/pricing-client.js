@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { PLANS, PLAN_ORDER, formatMoney, yearlySavingMonths } from "@/lib/plans.js";
 import { THEME_CSS } from "@/lib/landing.js";
-import { COPYRIGHT, ADDRESS_LINE } from "@/lib/company.js";
+import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 
 // Reads the shared site palette, so pricing follows the same crimson-on-white
 // theme (and the same light/dark switch) as the landing page and dashboard.
@@ -204,7 +204,7 @@ export default function PricingClient() {
 
       <footer style={{ borderTop: `1px solid ${T.border}` }}>
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, padding: "24px 20px", fontSize: 13, color: T.muted }}>
-          <div>{COPYRIGHT} · {ADDRESS_LINE}</div>
+          <div>{COPYRIGHT} · {ADDRESS_SHORT}</div>
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
             <a href="/google-calendar" style={{ color: T.muted, textDecoration: "none" }}>Google Calendar</a>
             <a href="/privacy" style={{ color: T.muted, textDecoration: "none" }}>Privacy Policy</a>

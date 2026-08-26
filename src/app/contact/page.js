@@ -8,6 +8,8 @@ export const metadata = pageMeta({
   path: "/contact",
 });
 
+const link = { color: "var(--lp-acc)", textDecoration: "none" };
+
 export default function Contact() {
   return (
     <SiteShell
@@ -21,23 +23,21 @@ export default function Contact() {
           label="Email"
           note="For support, sales and general questions. We usually reply within 24 hours."
         >
-          <a href={`mailto:${COMPANY.email}`} style={{ color: "var(--lp-acc)", textDecoration: "none" }}>
-            {COMPANY.email}
-          </a>
+          <a href={`mailto:${COMPANY.email}`} style={link}>{COMPANY.email}</a>
         </InfoCard>
 
-        {/* Rendered only once there is a real number in company.js. An empty
-            phone row is worse than none — it invites a call that goes nowhere. */}
-        {COMPANY.phone && (
-          <InfoCard icon="ti-phone" label="Phone" note="During support hours. Email reaches us fastest outside them.">
-            <a href={`tel:${COMPANY.phone.replace(/[^\d+]/g, "")}`} style={{ color: "var(--lp-acc)", textDecoration: "none" }}>
-              {COMPANY.phone}
-            </a>
-          </InfoCard>
-        )}
+        <InfoCard
+          icon="ti-phone"
+          label="Phone"
+          note="During support hours. Outside them, email reaches us fastest."
+        >
+          {/* The dialler needs the number with nothing in it but digits; the
+              spaced form is only for reading. */}
+          <a href={`tel:${COMPANY.phoneE164}`} style={link}>{COMPANY.phone}</a>
+        </InfoCard>
 
         <InfoCard icon="ti-map-pin" label="Address" note={COMPANY.country}>
-          {COMPANY.address}
+          {COMPANY.street}, {COMPANY.city} {COMPANY.postalCode}
         </InfoCard>
 
         <InfoCard
@@ -49,12 +49,27 @@ export default function Contact() {
         </InfoCard>
 
         <InfoCard
+          icon="ti-building"
+          label="Company"
+          note={
+            <>
+              Autologic is a product of {COMPANY.legalName}, our registered business.{" "}
+              <a href={COMPANY.parentUrl} target="_blank" rel="noreferrer" style={link}>
+                {COMPANY.parentHost}
+              </a>
+            </>
+          }
+        >
+          {COMPANY.legalName}
+        </InfoCard>
+
+        <InfoCard
           icon="ti-message-2"
           label="Existing customer?"
           note={
             <>
               Manage your channels, knowledge base and bookings anytime from your{" "}
-              <a href="/dashboard" style={{ color: "var(--lp-acc)", textDecoration: "none" }}>Autologic dashboard</a>.
+              <a href="/dashboard" style={link}>Autologic dashboard</a>.
             </>
           }
         >
