@@ -198,10 +198,10 @@ export default function PhotoBatchSheet({ isMobile, categories = [], onClose, on
     if (!drafts.length || busy) return;
     if (unnamed) { setErr(`${unnamed} photo${unnamed > 1 ? "s have" : " has"} no name yet. Name them, or use “Name all” above.`); return; }
     setErr(""); setBusy(true);
-    let done = 0, fail = 0, unread = 0, stop = "";
+    let done = 0, fail = 0, unread = 0, dupes = 0, stop = "";
 
     for (const d of drafts) {
-      setMsg(`Adding ${done + fail + 1} of ${drafts.length}: ${d.product_name}`);
+      setMsg(`Adding ${done + fail + dupes + 1} of ${drafts.length}: ${d.product_name}`);
       const opts = optionsOf(d);
       const fd = new FormData();
       fd.append("product_name", d.product_name.trim());
@@ -218,7 +218,12 @@ export default function PhotoBatchSheet({ isMobile, categories = [], onClose, on
       fd.append("images", d.file);
       fd.append("image_urls", JSON.stringify(["upload:0"]));
       const r = await apiJson("/api/add-product", { method: "POST", body: fd });
-      if (r.error) {
+      // Something the shop already has — the same folder chosen twice is how
+      // this happens. Counted and reported, never failed: stopping fifteen
+      // photos because the third one was already there would be worse than the
+      // duplicate. Checked before r.error, because a refusal carries both.
+      if (r.duplicate) dupes++;
+      else if (r.error) {
         fail++;
         // A plan limit or an expired session will fail identically for every
         // remaining photo. Stopping says so once instead of fourteen times.
@@ -232,6 +237,7 @@ export default function PhotoBatchSheet({ isMobile, categories = [], onClose, on
     setBusy(false); setMsg("");
     const parts = [`Added ${done}`];
     if (fail) parts.push(`${fail} failed`);
+    if (dupes) parts.push(`${dupes} you already had`);
     const line = parts.join(", ");
     if (stop) onDone({ warn: true, text: `${line}. Stopped early: ${stop}` });
     else if (unread) onDone({ warn: true, text: `${line} — but ${unread} photo${unread > 1 ? "s" : ""} could not be analysed, so those products cannot be found by picture.` });

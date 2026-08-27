@@ -59,6 +59,13 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
   const [visual, setVisual] = useState("");
   const [prepping, setPrepping] = useState(false);
   const [saved, setSaved] = useState("");
+  // Two different things, deliberately kept apart. `dup` is the warning shown
+  // as soon as the name is known — "you already have one of these" — which is
+  // information. `refused` is the server having actually turned a save away,
+  // and only that puts "Add anyway" on screen: offering an override before
+  // anyone has tried to save invites pressing it out of habit.
+  const [dup, setDup] = useState(null);
+  const [refused, setRefused] = useState(false);
 
   const endRef = useRef(null);
   const fileRef = useRef(null);
@@ -130,7 +137,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
 
   // ── Being asked ────────────────────────────────────────────────────────────
   const startInterview = () => {
-    setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr("");
+    setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr(""); setDup(null); setRefused(false);
     const start = [...msgs, { role: "user", content: "I want to add a product.", phase: "interview" }];
     setMsgs(start);
     turn(start, {}, 0, "");
@@ -156,6 +163,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
     setDraft(r.draft || d);
+    // Surfaced as soon as the name is known, so the owner is not told at the
+    // last moment that the thing they just described is already in the shop.
+    setDup(r.duplicate ? { ...r.duplicate, message: r.duplicateMessage } : null);
     setMsgs((s) => [...s, { role: "assistant", phase: "interview", content: r.reply }]);
   };
 
@@ -202,11 +212,14 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
   const dropPhoto = (id) => setPhotos((s) => s.filter((x) => x.id !== id));
   const makeFirst = (id) => setPhotos((s) => { const p = s.find((x) => x.id === id); return p ? [p, ...s.filter((x) => x.id !== id)] : s; });
 
-  const save = async () => {
+  // `force` is the owner having read that this looks like something they
+  // already have, and saying they meant it.
+  const save = async (force = false) => {
     if (!gaps.ready || busy) return;
-    setBusy(true); setErr("");
+    setBusy(true); setErr(""); setRefused(false);
     const opts = draft.options || [];
     const fd = new FormData();
+    if (force) fd.append("allow_duplicate", "1");
     for (const k of ["product_name", "product_code", "category", "brand", "regular_price", "sale_price", "description"]) fd.append(k, draft[k] || "");
     fd.append("tags", (draft.tags || []).join(", "));
     fd.append("stock_qty", draft.stock_qty === undefined || draft.stock_qty === null ? "" : String(draft.stock_qty));
@@ -221,6 +234,15 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
 
     const r = await apiJson("/api/add-product", { method: "POST", body: fd });
     setBusy(false);
+    // A duplicate is a question, not a failure. It is said in the conversation
+    // rather than as a red line under the box, because the whole point of this
+    // panel is that it talks — and the draft stays exactly where it was.
+    if (r.duplicate) {
+      setDup({ ...r.duplicate, message: r.error });
+      setRefused(true);
+      setMsgs((s) => [...s, { role: "assistant", phase: "interview", content: `${r.error} Press “Add anyway” if this really is a different one.`, actions: [] }]);
+      return;
+    }
     if (r.error) { setErr(r.error); return; }
     const name = draft.product_name;
     setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
@@ -345,6 +367,11 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
           </span>)}
         </div>}
 
+        {dup?.message && <div style={{ display: "flex", gap: 7, alignItems: "flex-start", padding: "9px 11px", borderRadius: 11, background: T.warnBg, color: T.warn, fontSize: 12, lineHeight: 1.55, marginBottom: 10 }}>
+          <i className="ti ti-alert-triangle" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />
+          <span>{dup.message}</span>
+        </div>}
+
         <div style={{ fontSize: 11.5, color: gaps.blocking.length ? T.textMuted : T.textDim, lineHeight: 1.6 }}>
           {gaps.blocking.length
             ? <>Still needed before this can be saved: <strong style={{ color: T.text }}>{gaps.blocking.map((k) => LABELS[k]).join(", ")}</strong>.</>
@@ -356,10 +383,12 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
 
         {/* The ref is on the wrapper, not the button: Btn is a plain function
             component and does not forward one. */}
-        {gaps.ready && <div ref={saveRef} style={{ marginTop: 11 }}>
-          <Btn gold onClick={save} disabled={busy || prepping} style={{ borderRadius: 11 }}>
+        {gaps.ready && <div ref={saveRef} style={{ marginTop: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Btn gold onClick={() => save()} disabled={busy || prepping} style={{ borderRadius: 11 }}>
             <i className="ti ti-check" style={{ marginRight: 6 }} />Save “{draft.product_name}”
           </Btn>
+          {/* Only after a save has actually been turned away. */}
+          {refused && <Btn onClick={() => save(true)} disabled={busy || prepping} style={{ borderRadius: 11, background: T.warnBg, color: T.warn }}>Add anyway</Btn>}
         </div>}
       </div>}
 

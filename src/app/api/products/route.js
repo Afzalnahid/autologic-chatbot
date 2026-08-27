@@ -6,6 +6,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
+import { findDuplicate, duplicateMessage, nameKey, codeKey, primaryPhotoKey } from "@/lib/duplicates.js";
 
 export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
@@ -38,6 +39,18 @@ export const PATCH = withErrors(async (request) => {
   delete next.image_urls;
   if (fields.product_name !== undefined && !fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
+  // Renaming one product onto another's name leaves the bot with two rows it
+  // cannot tell apart, exactly as adding it twice would. Only checked when the
+  // name or code actually changed, and never against the row being edited.
+  const renamed = fields.product_name !== undefined && nameKey(fields.product_name) !== nameKey(prev.product_name);
+  const recoded = fields.product_code !== undefined && codeKey(fields.product_code) !== codeKey(prev.product_code);
+  if ((renamed || recoded) && String(form.get("allow_duplicate") || "") !== "1") {
+    const dup = await findDuplicate(client.id, {
+      name: renamed ? fields.product_name : "", code: recoded ? fields.product_code : "", excludeId: id,
+    });
+    if (dup) return NextResponse.json({ error: duplicateMessage(dup, client.item_label || "product"), duplicate: dup }, { status: 409 });
+  }
+
   // Gallery in the owner's order; "upload:N" placeholders become the new files.
   // Variants use the same placeholders for their own photo, so both are
   // resolved from the same upload list — and the ones a variant claimed are
@@ -53,6 +66,16 @@ export const PATCH = withErrors(async (request) => {
     // No files this time, but a variant may still be pointing at a placeholder
     // from a half-finished save. Never store "upload:2" as a picture URL.
     next.variants = resolveVariantImages(next.variants, []);
+  }
+
+  // A new FILE becoming the primary photo gives a fingerprint of its bytes, so
+  // the next add can recognise the same picture. Merely reordering photos that
+  // are already saved does not: by then only their addresses are left, and
+  // writing an address fingerprint over a byte one would make the same photo
+  // look like two different ones. In that case the old key stands.
+  if (files.length) {
+    const key = await primaryPhotoKey(fields.image_urls, files);
+    if (key.startsWith("b:")) next.photo_key = key;
   }
 
   let analyzeError = null;

@@ -348,6 +348,9 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   // a moment on a phone, and without a sign the drawer just looks frozen.
   const [prepping, setPrepping] = useState(false);
   const [err, setErr] = useState("");
+  // The product the server says this looks like. Set only after a refusal, so
+  // "Add anyway" cannot be pressed before the warning has been read.
+  const [dup, setDup] = useState(null);
   const [tab, setTab] = useState("details");
   const fileRef = useRef(null);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
@@ -403,11 +406,14 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   const addVariant = () => set("variants", [...f.variants, { id: newVariantId(), name: "", sku: "", attrs: {}, regular_price: f.regular_price, sale_price: f.sale_price, stock_qty: "", stock_status: "instock", image_url: "" }]);
   const applyPriceAll = () => set("variants", f.variants.map((v) => ({ ...v, regular_price: f.regular_price, sale_price: f.sale_price })));
 
-  const save = async () => {
+  // `force` is the owner having read that this looks like something they
+  // already have, and saying they meant it.
+  const save = async (force = false) => {
     if (!f.product_name.trim()) { setErr("Product name is required"); setTab("details"); return; }
     if (busy) return;
-    setBusy(true); setErr("");
+    setBusy(true); setErr(""); setDup(null);
     const fd = new FormData();
+    if (force) fd.append("allow_duplicate", "1");
     if (edit) fd.append("id", p.id);
     for (const k of ["product_name", "product_code", "category", "brand", "tags", "regular_price", "sale_price", "stock_status", "description"]) fd.append(k, f[k] ?? "");
     fd.append("stock_qty", f.stock_qty === "" || f.stock_qty === null ? "" : String(f.stock_qty));
@@ -435,6 +441,9 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     })));
     const r = await apiJson(edit ? "/api/products" : "/api/add-product", { method: edit ? "PATCH" : "POST", body: fd });
     setBusy(false);
+    // A duplicate is not a failure, it is a question. The message names the
+    // product it clashes with, and the owner decides.
+    if (r.duplicate) { setErr(r.error); setDup(r.duplicate); setTab("details"); return; }
     if (r.error) { setErr(r.error); return; }
 
     // The server has always sent analyzeError back and the dashboard has always
@@ -626,11 +635,13 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
       <div style={{ padding: isMobile ? "10px 12px calc(10px + env(safe-area-inset-bottom))" : "14px 22px", background: T.card, boxShadow: "0 -4px 16px rgba(0,0,0,.06)", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
         {err && <div style={{ width: "100%", fontSize: 12.5, color: T.danger, display: "flex", gap: 6, alignItems: "flex-start" }}><i className="ti ti-alert-circle" style={{ fontSize: 15, flexShrink: 0 }} /><span>{err}</span></div>}
         {edit && <Btn danger onClick={onDelete} disabled={busy} style={{ borderRadius: 12, background: T.dangerBg, color: T.danger }}><i className="ti ti-trash" style={{ marginRight: 5 }} />Delete</Btn>}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Btn onClick={onClose} disabled={busy} style={{ borderRadius: 12 }}>Cancel</Btn>
+          {/* Offered only after the warning has been shown, never before. */}
+          {dup && <Btn onClick={() => save(true)} disabled={busy} style={{ borderRadius: 12, background: T.warnBg, color: T.warn }}>Add anyway</Btn>}
           {/* Also blocked while photos are still being resized: pressing save
               mid-resize would upload whichever pictures happened to be ready. */}
-          <Btn gold onClick={save} disabled={busy || prepping} style={{ borderRadius: 12, padding: "9px 22px" }}>{prepping ? "Preparing photos…" : busy ? (edit ? "Saving…" : "Adding & analysing…") : (edit ? "Save changes" : "Add product")}</Btn>
+          <Btn gold onClick={() => save()} disabled={busy || prepping} style={{ borderRadius: 12, padding: "9px 22px" }}>{prepping ? "Preparing photos…" : busy ? (edit ? "Saving…" : "Adding & analysing…") : (edit ? "Save changes" : "Add product")}</Btn>
         </div>
       </div>
     </div>
@@ -673,22 +684,32 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     const { products, skipped } = toProducts(csv.rows, map);
     if (!products.length) { setMsg("Failed: no rows have a name. Check which column is mapped to Name."); return; }
     setBusy(true);
-    let done = 0, fail = 0, unread = 0;
+    let done = 0, fail = 0, unread = 0, dupes = 0;
     for (const prod of products) {
-      setMsg(`Importing ${done + fail + 1}/${products.length}: ${prod.product_name}`);
+      setMsg(`Importing ${done + fail + dupes + 1}/${products.length}: ${prod.product_name}`);
       const one = await apiJson("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) });
       if (one.error) fail++;
+      // Something the shop already has. Not a failure — stopping a run of two
+      // hundred products over it would be — but it must be reported, or the
+      // owner is left wondering why the count does not match their file.
+      else if (one.skipped) dupes++;
       else { done++; if (one.analyzeError) unread++; }
       await new Promise((r) => setTimeout(r, 300));
     }
     setBusy(false); setMsg("");
+    const tail = [
+      fail ? `${fail} failed` : "",
+      dupes ? `${dupes} already in your catalogue` : "",
+      skipped ? `${skipped} row${skipped > 1 ? "s" : ""} skipped (no name)` : "",
+    ].filter(Boolean);
+    const line = `Imported ${done}${tail.length ? `, ${tail.join(", ")}` : ""}`;
     // A row that saved but whose photo could not be read is not a failure and
     // must not be counted as one — but it is not a clean success either, and
     // saying so is the whole point of this. Those products will not come back
     // when a customer sends a picture.
     onDone(unread
-      ? { warn: true, text: `Imported ${done}${fail ? `, ${fail} failed` : ""}${skipped ? `, ${skipped} skipped (no name)` : ""} — but ${unread} photo${unread > 1 ? "s" : ""} could not be analysed, so those products cannot be found by picture.` }
-      : `Imported ${done}${fail ? `, ${fail} failed` : ""}${skipped ? `, ${skipped} row${skipped > 1 ? "s" : ""} skipped (no name)` : ""}`);
+      ? { warn: true, text: `${line} — but ${unread} photo${unread > 1 ? "s" : ""} could not be analysed, so those products cannot be found by picture.` }
+      : line);
     onClose();
   };
 
@@ -711,18 +732,24 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     setBusy(true); setMsg("Fetching product list…");
     const r = await apiJson("/api/import-products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(imp) });
     if (r.error) { setMsg("Failed: " + r.error); setBusy(false); return; }
-    const list = r.products || []; let done = 0, fail = 0, unread = 0;
+    const list = r.products || []; let done = 0, fail = 0, unread = 0, dupes = 0;
     for (const prod of list) {
-      setMsg(`Importing ${done + fail + 1}/${list.length}: ${prod.product_name}`);
+      setMsg(`Importing ${done + fail + dupes + 1}/${list.length}: ${prod.product_name}`);
       const one = await apiJson("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) });
       if (one.error) fail++;
+      // Already in the catalogue under a different code — reported, not failed.
+      // A shop imported twice through two different routes is the usual way
+      // this happens.
+      else if (one.skipped) dupes++;
       else { done++; if (one.analyzeError) unread++; }
       await new Promise((r) => setTimeout(r, 300));
     }
     setBusy(false); setMsg("");
+    const tail = [fail ? `${fail} failed` : "", dupes ? `${dupes} already in your catalogue` : ""].filter(Boolean);
+    const line = `Imported ${done}${tail.length ? `, ${tail.join(", ")}` : ""}`;
     onDone(unread
-      ? { warn: true, text: `Imported ${done}${fail ? `, ${fail} failed` : ""} — but ${unread} photo${unread > 1 ? "s" : ""} could not be analysed, so those products cannot be found by picture.` }
-      : `Imported ${done}${fail ? `, ${fail} failed` : ""}`);
+      ? { warn: true, text: `${line} — but ${unread} photo${unread > 1 ? "s" : ""} could not be analysed, so those products cannot be found by picture.` }
+      : line);
     onClose();
   };
   return <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>

@@ -8,6 +8,7 @@ import { embedProduct } from "@/lib/products.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 import { buildVariants } from "@/lib/variants.js";
 import { normalizeActions } from "@/lib/inventory-actions.js";
+import { findDuplicate, duplicateMessage } from "@/lib/duplicates.js";
 
 // The inventory assistant, half two: carry out what the owner confirmed.
 //
@@ -63,6 +64,13 @@ async function remove(client, a) {
 }
 
 async function create(client, a) {
+  // An assistant asked twice in one conversation to "add a red scarf" would
+  // otherwise add two. There is no "add anyway" here on purpose: the owner can
+  // say so in words, and the assistant will be looking at a catalogue that
+  // already contains the first one.
+  const dup = await findDuplicate(client.id, { name: a.set.product_name, code: a.set.product_code });
+  if (dup) return { ok: false, id: null, error: duplicateMessage(dup, client.item_label || "product") };
+
   const now = new Date().toISOString();
   const metadata = {
     client_id: String(client.id),
@@ -94,6 +102,14 @@ async function update(client, a) {
   if (!row) return { ok: false, id: a.id, error: "not found" };
 
   const prev = row.metadata || {};
+  // Renaming one product onto another's name creates the same confusion as
+  // adding it twice, so it is refused the same way. Itself excluded, or every
+  // edit that does not change the name would collide with the row being edited.
+  if (a.set.product_name || a.set.product_code) {
+    const dup = await findDuplicate(client.id, { name: a.set.product_name, code: a.set.product_code, excludeId: a.id });
+    if (dup) return { ok: false, id: a.id, error: duplicateMessage(dup, client.item_label || "product") };
+  }
+
   const next = { ...prev, ...a.set, updated_at: new Date().toISOString() };
   // New options rebuild the combinations, keeping every row that still exists —
   // a stock count the owner typed against "M / Red" must survive adding XL.

@@ -6,6 +6,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
+import { findDuplicate, duplicateMessage, primaryPhotoKey } from "@/lib/duplicates.js";
 
 // Create one product from the Inventory tab. Multipart form: the fields in
 // readProductForm(), plus `images` (several files) — the first image is the
@@ -26,8 +27,19 @@ export async function POST(request) {
     const q = await checkProductQuota(client);
     if (!q.ok) return NextResponse.json({ error: q.message }, { status: 403 });
 
-    const { fields, files } = readProductForm(await request.formData());
+    const form = await request.formData();
+    const { fields, files } = readProductForm(form);
     if (!fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
+
+    // Asked before anything is uploaded, described or embedded: a duplicate
+    // that is going to be refused should not cost the client an AI call or
+    // leave a photo behind in the bucket. `allow_duplicate` is what the owner
+    // presses when they have read the warning and meant it anyway.
+    const photoKey = await primaryPhotoKey(fields.image_urls, files);
+    if (String(form.get("allow_duplicate") || "") !== "1") {
+      const dup = await findDuplicate(client.id, { name: fields.product_name, code: fields.product_code, photoKey });
+      if (dup) return NextResponse.json({ error: duplicateMessage(dup, client.item_label || "product"), duplicate: dup }, { status: 409 });
+    }
 
     // 8 was enough when every photo went into the gallery. A variant can now
     // carry its own picture, so a shirt in twelve colours sends more files than
@@ -56,6 +68,8 @@ export async function POST(request) {
       regular_price: fields.regular_price || "", sale_price: fields.sale_price || "",
       stock_status: fields.stock_status || "instock", stock_qty: fields.stock_qty ?? null,
       image_url, images, visual, description: fields.description || "",
+      // Kept so the next add can tell it is the same picture. See duplicates.js.
+      photo_key: photoKey,
       options: fields.options || [], variants,
       created_at: now, updated_at: now,
     };

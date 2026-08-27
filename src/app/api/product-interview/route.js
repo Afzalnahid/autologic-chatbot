@@ -5,6 +5,7 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { getClientAI } from "@/lib/ai.js";
 import { normalizeSet, draftGaps, LABELS, ASK_ORDER } from "@/lib/inventory-actions.js";
+import { findDuplicate, duplicateMessage } from "@/lib/duplicates.js";
 
 // Adding one product by being asked about it.
 //
@@ -54,11 +55,21 @@ export async function POST(request) {
 
     const merged = { ...draft, ...normalizeSet(out.set) };
     const after = draftGaps(merged, photos);
+
+    // Told the moment the name is given, not held back until Save. "You already
+    // have a Box T-shirt" is a question worth asking while the owner is still
+    // typing the answer to it, and the check costs a query, not an AI call.
+    const clash = merged.product_name
+      ? await findDuplicate(client.id, { name: merged.product_name, code: merged.product_code })
+      : null;
+
     return NextResponse.json({
       ok: true,
       reply: out.reply || "What else should I know about it?",
       draft: merged,
       gaps: after,
+      duplicate: clash,
+      duplicateMessage: clash ? duplicateMessage(clash, client.item_label || "product") : "",
       // The model may say it is finished; it is only true if the product can
       // actually be sold.
       done: after.ready && (out.done === true || after.wanted.length === 0),
