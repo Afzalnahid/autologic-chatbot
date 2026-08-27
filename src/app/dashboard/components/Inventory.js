@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { T, Card, Btn, Inp, Badge, Select, Segmented, useIsMobile, taka } from "./ui.js";
 import { api } from "./session.js";
 import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
+import { shrinkBatch } from "@/lib/shrink-image.js";
 
 // The Inventory tab: the shop's catalogue, organised. Products carry a
 // category, a brand, tags, a photo gallery and — for things that come in
@@ -298,6 +299,9 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   const [gallery, setGallery] = useState(() => galleryOf(p || {}).map((u) => ({ kind: "url", u })));
   const [urlIn, setUrlIn] = useState("");
   const [busy, setBusy] = useState(false);
+  // True while photos are being resized. Resizing several large pictures takes
+  // a moment on a phone, and without a sign the drawer just looks frozen.
+  const [prepping, setPrepping] = useState(false);
   const [err, setErr] = useState("");
   const [tab, setTab] = useState("details");
   const fileRef = useRef(null);
@@ -305,7 +309,21 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   useEffect(() => { const k = (e) => { if (e.key === "Escape") onClose(); }; document.addEventListener("keydown", k); document.body.style.overflow = "hidden"; return () => { document.removeEventListener("keydown", k); document.body.style.overflow = ""; }; }, []);
   useEffect(() => () => gallery.forEach((g) => g.kind === "file" && URL.revokeObjectURL(g.u)), []);
 
-  const addFiles = (list) => { const arr = [...list].filter((x) => x.type.startsWith("image/")).slice(0, 8); setGallery((s) => [...s, ...arr.map((file) => ({ kind: "file", file, u: URL.createObjectURL(file) }))].slice(0, 12)); };
+  // Photos are shrunk BEFORE they enter the gallery, so the picture previewed
+  // here is byte-for-byte the one that gets uploaded. A phone camera writes
+  // 2–5 MB per shot and Vercel refuses any request over ~4.5 MB at the edge,
+  // which is what made "Add product" fail with nothing but the word "network".
+  const addFiles = async (list) => {
+    const arr = [...list].filter((x) => x.type.startsWith("image/")).slice(0, 8);
+    if (!arr.length) return;
+    setPrepping(true);
+    // What the gallery already carries, so twelve photos added one at a time
+    // cannot creep past the budget the way a per-batch check would.
+    const keep = gallery.reduce((a, g) => a + (g.kind === "file" ? g.file.size : 0), 0);
+    const ready = await shrinkBatch(arr, keep);
+    setPrepping(false);
+    setGallery((s) => [...s, ...ready.map((file) => ({ kind: "file", file, u: URL.createObjectURL(file) }))].slice(0, 12));
+  };
   const makePrimary = (g) => setGallery((s) => [g, ...s.filter((x) => x !== g)]);
   const removeImg = (g) => setGallery((s) => s.filter((x) => x !== g));
   const addUrl = () => { const u = urlIn.trim(); if (!/^https?:\/\//.test(u)) { setErr("Paste a full image link starting with http"); return; } setGallery((s) => [...s, { kind: "url", u }].slice(0, 12)); setUrlIn(""); setErr(""); };
@@ -423,9 +441,9 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
                 <button type="button" title="Remove" onClick={() => removeImg(g)} style={{ width: 26, height: 26, minHeight: 0, borderRadius: 8, border: "none", background: "rgba(255,255,255,.9)", color: T.danger, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><i className="ti ti-x" style={{ fontSize: 14 }} /></button>
               </div>
             </div>)}
-            <button type="button" onClick={() => fileRef.current?.click()} className="ui-btn ob-row"
-              style={{ aspectRatio: "1", borderRadius: 14, border: `1.5px dashed ${T.borderStrong}`, background: T.bgAlt, color: T.textMuted, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "inherit", fontSize: 12, minHeight: 0 }}>
-              <i className="ti ti-cloud-upload" style={{ fontSize: 24, color: T.gold }} />Add photos
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={prepping} className="ui-btn ob-row"
+              style={{ aspectRatio: "1", borderRadius: 14, border: `1.5px dashed ${T.borderStrong}`, background: T.bgAlt, color: T.textMuted, cursor: prepping ? "default" : "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "inherit", fontSize: 12, minHeight: 0, opacity: prepping ? .6 : 1 }}>
+              <i className={`ti ${prepping ? "ti-loader-2" : "ti-cloud-upload"}`} style={{ fontSize: 24, color: T.gold }} />{prepping ? "Preparing…" : "Add photos"}
             </button>
           </div>
           <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
@@ -433,7 +451,7 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
             <Inp emb value={urlIn} onChange={(e) => setUrlIn(e.target.value)} placeholder="…or paste an image link (https://…)" style={{ flex: 1, marginBottom: 0 }} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addUrl(); } }} />
             <Btn onClick={addUrl} style={{ borderRadius: 14 }}>Add</Btn>
           </div>
-          <div style={{ fontSize: 11, color: T.textDim, marginTop: 8 }}>Drag photos onto the grid, or tap Add photos. Up to 12 per product.</div>
+          <div style={{ fontSize: 11, color: T.textDim, marginTop: 8 }}>Drag photos onto the grid, or tap Add photos. Up to 12 per product. Large photos are resized here on your phone before uploading, so it stays fast and uses less data.</div>
         </Card>}
 
         {tab === "variants" && <>
@@ -496,7 +514,9 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
         {edit && <Btn danger onClick={onDelete} disabled={busy} style={{ borderRadius: 12, background: T.dangerBg, color: T.danger }}><i className="ti ti-trash" style={{ marginRight: 5 }} />Delete</Btn>}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <Btn onClick={onClose} disabled={busy} style={{ borderRadius: 12 }}>Cancel</Btn>
-          <Btn gold onClick={save} disabled={busy} style={{ borderRadius: 12, padding: "9px 22px" }}>{busy ? (edit ? "Saving…" : "Adding & analysing…") : (edit ? "Save changes" : "Add product")}</Btn>
+          {/* Also blocked while photos are still being resized: pressing save
+              mid-resize would upload whichever pictures happened to be ready. */}
+          <Btn gold onClick={save} disabled={busy || prepping} style={{ borderRadius: 12, padding: "9px 22px" }}>{prepping ? "Preparing photos…" : busy ? (edit ? "Saving…" : "Adding & analysing…") : (edit ? "Save changes" : "Add product")}</Btn>
         </div>
       </div>
     </div>
