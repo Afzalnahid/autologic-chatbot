@@ -4,6 +4,7 @@ import { T, Card, Btn, Inp, Badge, Select, Segmented, useIsMobile, taka } from "
 import { api, apiJson } from "./session.js";
 import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
 import { shrinkBatch } from "@/lib/shrink-image.js";
+import { buildVariants, usableOptions, newVariantId } from "@/lib/variants.js";
 
 // The Inventory tab: the shop's catalogue, organised. Products carry a
 // category, a brand, tags, a photo gallery and — for things that come in
@@ -299,9 +300,6 @@ function ProductCard({ p, on, toggle, open, isMobile }) {
 // Photo, name, SKU, price, sale, qty, status, remove.
 const VAR_COLS = "44px minmax(0,1.5fr) minmax(0,1fr) 84px 84px 70px 92px 30px";
 
-const cartesian = (opts) => opts.reduce((acc, o) => acc.flatMap((row) => o.values.map((v) => ({ ...row, [o.name]: v }))), [{}]);
-const attrsKey = (a) => Object.entries(a || {}).map(([k, v]) => `${k}=${v}`).sort().join("|");
-
 function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDelete }) {
   const edit = mode === "edit";
   const [f, setF] = useState(() => ({
@@ -375,15 +373,11 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   const setOpt = (i, patch) => set("options", f.options.map((o, j) => j === i ? { ...o, ...patch } : o));
   const addOptValue = (i, raw) => { const vals = raw.split(/[,\n]/).map((s) => s.trim()).filter(Boolean); if (!vals.length) return; setOpt(i, { values: [...new Set([...f.options[i].values, ...vals])] }); };
   const generate = () => {
-    const opts = f.options.filter((o) => o.name.trim() && o.values.length);
-    if (!opts.length) { setErr("Add an option (e.g. Size) with some values first"); return; }
-    const combos = cartesian(opts);
-    const byKey = new Map(f.variants.map((v) => [attrsKey(v.attrs), v]));
-    const next = combos.map((attrs) => byKey.get(attrsKey(attrs)) || ({ id: `v${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, name: Object.values(attrs).join(" / "), sku: "", attrs, regular_price: f.regular_price, sale_price: f.sale_price, stock_qty: "", stock_status: "instock", image_url: "" }));
-    set("variants", next); setErr("");
+    if (!usableOptions(f.options).length) { setErr("Add an option (e.g. Size) with some values first"); return; }
+    set("variants", buildVariants(f.options, f, f.variants)); setErr("");
   };
   const setVar = (i, patch) => set("variants", f.variants.map((v, j) => j === i ? { ...v, ...patch } : v));
-  const addVariant = () => set("variants", [...f.variants, { id: `v${Date.now().toString(36)}`, name: "", sku: "", attrs: {}, regular_price: f.regular_price, sale_price: f.sale_price, stock_qty: "", stock_status: "instock", image_url: "" }]);
+  const addVariant = () => set("variants", [...f.variants, { id: newVariantId(), name: "", sku: "", attrs: {}, regular_price: f.regular_price, sale_price: f.sale_price, stock_qty: "", stock_status: "instock", image_url: "" }]);
   const applyPriceAll = () => set("variants", f.variants.map((v) => ({ ...v, regular_price: f.regular_price, sale_price: f.sale_price })));
 
   const save = async () => {
