@@ -59,7 +59,11 @@ export default function Inventory({ products, refresh }) {
   const [importer, setImporter] = useState(null);  // null | "url" | "woo"
   const [toast, setToast] = useState("");
   const [busyBulk, setBusyBulk] = useState(false);
-  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 3200); return () => clearTimeout(t); }, [toast]);
+  // A warning has to be readable, not glimpsed: "the photo could not be
+  // analysed" is a sentence the owner has to act on, and 3.2s is not enough
+  // time to read it, understand it and decide. Plain confirmations keep the
+  // short life they had.
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), toast.warn ? 9000 : 3200); return () => clearTimeout(t); }, [toast]);
   useEffect(() => { try { const v = localStorage.getItem("al-inv-view"); if (v === "grid" || v === "list") setView(v); } catch {} }, []);
   const pickView = (v) => { setView(v); try { localStorage.setItem("al-inv-view", v); } catch {} };
 
@@ -234,7 +238,17 @@ export default function Inventory({ products, refresh }) {
       <button onClick={() => setSel(new Set())} aria-label="Clear selection" className="ui-btn" style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 16, padding: "0 6px", minHeight: 0 }}><i className="ti ti-x" /></button>
     </div>}
 
-    {toast && <div style={{ position: "fixed", left: "50%", top: 14, transform: "translateX(-50%)", zIndex: 90, background: T.text, color: T.bg, borderRadius: 12, padding: "9px 14px", fontSize: 13, fontWeight: 500, boxShadow: T.nmOut, maxWidth: "calc(100vw - 24px)" }} className="ui-page">{toast}</div>}
+    {/* A toast is either a plain string (a confirmation) or { text, warn } —
+        the object form is used when something worked but not completely, and
+        it has to look different from a tick, not just say different words. */}
+    {toast && <div style={{ position: "fixed", left: "50%", top: 14, transform: "translateX(-50%)", zIndex: 90,
+      background: toast.warn ? T.warnBg : T.text, color: toast.warn ? T.warn : T.bg,
+      border: toast.warn ? `1px solid ${T.warn}` : "none",
+      borderRadius: 12, padding: "9px 14px", fontSize: 13, fontWeight: 500, boxShadow: T.nmOut,
+      maxWidth: "min(520px, calc(100vw - 24px))", lineHeight: 1.5, display: "flex", gap: 8, alignItems: "flex-start" }} className="ui-page">
+      {toast.warn && <i className="ti ti-alert-triangle" style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }} />}
+      <span>{toast.text || toast}</span>
+    </div>}
 
     {editor && <ProductEditor key={editor.p?.id || "new"} mode={editor.mode} p={editor.p} categories={catNames} isMobile={isMobile}
       onClose={() => setEditor(null)}
@@ -360,6 +374,20 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     const r = await apiJson(edit ? "/api/products" : "/api/add-product", { method: edit ? "PATCH" : "POST", body: fd });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
+
+    // The server has always sent analyzeError back and the dashboard has always
+    // thrown it away, so a product whose photo could not be read still reported
+    // "Product added" — a plain success. That is the failure the owner most
+    // needs to know about: the photo is what the bot matches a customer's
+    // picture against, so without it that product is invisible to a photo
+    // search, silently, possibly for months.
+    if (r.analyzeError) {
+      onSaved({
+        warn: true,
+        text: `${edit ? "Saved" : "Product added"}, but the photo could not be analysed, so customers cannot find it by sending a picture. Re-save the product to try again. (${String(r.analyzeError).slice(0, 120)})`,
+      });
+      return;
+    }
     onSaved(edit ? "Product updated" : (r.analyzed ? "Product added and photo analysed" : "Product added"));
   };
 
@@ -559,15 +587,22 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     const { products, skipped } = toProducts(csv.rows, map);
     if (!products.length) { setMsg("Failed: no rows have a name. Check which column is mapped to Name."); return; }
     setBusy(true);
-    let done = 0, fail = 0;
+    let done = 0, fail = 0, unread = 0;
     for (const prod of products) {
       setMsg(`Importing ${done + fail + 1}/${products.length}: ${prod.product_name}`);
-      const one = await api("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) }).then((r) => r.json()).catch(() => ({ error: 1 }));
-      if (one.error) fail++; else done++;
+      const one = await apiJson("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) });
+      if (one.error) fail++;
+      else { done++; if (one.analyzeError) unread++; }
       await new Promise((r) => setTimeout(r, 300));
     }
     setBusy(false); setMsg("");
-    onDone(`Imported ${done}${fail ? `, ${fail} failed` : ""}${skipped ? `, ${skipped} row${skipped > 1 ? "s" : ""} skipped (no name)` : ""}`);
+    // A row that saved but whose photo could not be read is not a failure and
+    // must not be counted as one — but it is not a clean success either, and
+    // saying so is the whole point of this. Those products will not come back
+    // when a customer sends a picture.
+    onDone(unread
+      ? { warn: true, text: `Imported ${done}${fail ? `, ${fail} failed` : ""}${skipped ? `, ${skipped} skipped (no name)` : ""} — but ${unread} photo${unread > 1 ? "s" : ""} could not be analysed, so those products cannot be found by picture.` }
+      : `Imported ${done}${fail ? `, ${fail} failed` : ""}${skipped ? `, ${skipped} row${skipped > 1 ? "s" : ""} skipped (no name)` : ""}`);
     onClose();
   };
 
@@ -590,15 +625,19 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     setBusy(true); setMsg("Fetching product list…");
     const r = await apiJson("/api/import-products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(imp) });
     if (r.error) { setMsg("Failed: " + r.error); setBusy(false); return; }
-    const list = r.products || []; let done = 0, fail = 0;
+    const list = r.products || []; let done = 0, fail = 0, unread = 0;
     for (const prod of list) {
       setMsg(`Importing ${done + fail + 1}/${list.length}: ${prod.product_name}`);
-      const one = await api("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) }).then((r) => r.json()).catch(() => ({ error: 1 }));
-      if (one.error) fail++; else done++;
+      const one = await apiJson("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) });
+      if (one.error) fail++;
+      else { done++; if (one.analyzeError) unread++; }
       await new Promise((r) => setTimeout(r, 300));
     }
     setBusy(false); setMsg("");
-    onDone(`Imported ${done}${fail ? `, ${fail} failed` : ""}`); onClose();
+    onDone(unread
+      ? { warn: true, text: `Imported ${done}${fail ? `, ${fail} failed` : ""} — but ${unread} photo${unread > 1 ? "s" : ""} could not be analysed, so those products cannot be found by picture.` }
+      : `Imported ${done}${fail ? `, ${fail} failed` : ""}`);
+    onClose();
   };
   return <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
     <div onClick={(e) => e.stopPropagation()} className="ui-page" role="dialog" aria-modal="true" style={{ width: "100%", maxWidth: 520, background: T.card, borderRadius: isMobile ? "22px 22px 0 0" : 22, boxShadow: T.nmOut, border: `1px solid ${T.border}`, padding: "22px 20px calc(20px + env(safe-area-inset-bottom))" }}>

@@ -30,11 +30,18 @@ export async function POST(request) {
     if (!p?.product_name) return NextResponse.json({ error: "missing product" }, { status: 400 });
 
     let visual = "";
+    let analyzeError = null;
     if (p.image_url) {
       try {
         const ai = await getClientAI(client.id, "product");
         visual = await ai.visionUrl(p.image_url, visionPrompt(bType, unit));
-      } catch {}
+      } catch (e) {
+        // Swallowed silently before, so a whole catalogue could import with
+        // not one photo readable and the summary would still say "Imported 40".
+        // The row is still saved — a product without a photo description is
+        // worth more than no product — but the reason travels back now.
+        analyzeError = e.message;
+      }
     }
     const content = `Product Code: ${p.product_code}\nName: ${p.product_name}\n${visual || p.description || ""}`;
     const embedding = await (await getClientAI(client.id, "product")).embed(content);
@@ -60,7 +67,7 @@ export async function POST(request) {
     for (const id of dupIds) await supabase.from("products").delete().eq("id", id).eq("client_id", client.id);
     const { error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, analyzed: !!visual });
+    return NextResponse.json({ ok: true, analyzed: !!visual, analyzeError });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
