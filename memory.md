@@ -4,7 +4,55 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-27) — How the site presents itself: search, sharing, contact details, four stranded pages
+## Last session (2026-08-27, second thread) — Adding fifteen shirts at once, and talking to the catalogue
+
+The owner had fifteen photographed box t-shirts and could add four. Three
+commits, all pushed. Started from a real screenshot: fifteen files selected in
+the picker, and a product with a gallery of eight.
+
+**`8ee343f` — options → variants moved out of the drawer** into
+`src/lib/variants.js` (`cartesian`, `attrsKey`, `buildVariants`,
+`usableOptions`, `newVariantId`). Pure — no supabase, no AI — so client
+components import it. Refactor alone, no feature in the commit. The test
+reproduces the old inline `generate()` verbatim and compares row by row.
+
+**`2c7eb14` — Import → "From photos — one product each"**
+(`src/app/dashboard/components/PhotoBatch.js`). Fifteen photos become fifteen
+products. The AI reads every photo as it is added and fills in name, category
+and description; the owner corrects, adds sizes/colours per row, and saves.
+- New `POST /api/photo-draft`: vision per photo from the request bytes (nothing
+  is uploaded, so cancelling leaves no orphans) + ONE batched text call that
+  names the whole set. The vision description comes back as `visual` and is
+  posted to `/api/add-product`, which now **skips its own vision call when
+  `visual` is supplied** — so the AI cost is unchanged from before.
+- Photos are chunked 6 at a time / 3.2 MB per request (the ~4.5 MB edge limit).
+- Saving is still one request per product: a failure names its row, and a plan
+  limit stops the run once instead of failing fourteen more times.
+- A draft remembers what the AI proposed (`ai`), so "Read photos again" replaces
+  the machine's words and never the owner's.
+
+**`038ef09` — the catalogue can be managed by talking to it.**
+`InventoryAssistant` is a folded panel in the Inventory tab.
+`/api/inventory-chat` answers and **proposes**; `/api/inventory-apply` carries
+out only what the owner ticked. The model never reaches the database.
+`src/lib/inventory-actions.js` is the single whitelist the prompt, the apply
+route and the panel all read, so what the owner is shown is what happens.
+Proposals read "Price: 950 → 1200", each with a tick, and the button says how
+many products it will touch.
+
+**Unverified, and why:** the parsing of a real model's answer in both new AI
+routes. Google Cloud billing is still off, so exercising a live model here would
+eat the quota the clients' bots run on. Everything around it — whitelist,
+apply, panel, chunking, payloads — was driven in a real browser and by node
+tests.
+
+**Next up:** watch the first real batch on production (does the naming call
+return usable names on the platform model?); consider surfacing the assistant's
+proposals for variant-level prices, which it deliberately cannot touch today.
+
+---
+
+## Earlier session (2026-08-27) — How the site presents itself: search, sharing, contact details, four stranded pages
 
 Started from one owner question — "why does Google show a globe instead of our
 logo?" — and the answer turned out to be four separate problems, one of them a

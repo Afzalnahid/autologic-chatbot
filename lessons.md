@@ -623,3 +623,45 @@ reasonably enough the owner asked again.
   it instead of asking someone to wait and see.
 - `/favicon.ico` at the root is still required in 2026. An `<link rel="icon">` to an SVG
   satisfies browsers and not the crawlers that ask for the old address first.
+
+## A guard against overwriting turned a button into a no-op (2026-08-27)
+
+The photo batch writes AI-proposed names into the rows, and quite rightly only into
+boxes the owner had not typed in. Then "Read photos again" — the button whose entire
+purpose is to re-read after typing a base name — did nothing at all, because by then
+every box was full of the AI's own earlier words and the guard refused to touch them.
+It looked like it worked. Nothing errored.
+
+The fix was to remember what the machine last wrote (`ai` on each draft) and let a
+re-read replace its own words while leaving the owner's alone.
+
+**Rule:** "never overwrite" is not one rule, it is two — never overwrite a PERSON, and
+freely overwrite YOURSELF. If a field can hold either, record which one put it there.
+And after adding any such guard, ask what it does to the explicit re-run button; a
+guard that silently makes an action pointless is worse than no guard, because nothing
+reports it.
+
+## On a phone, the bulk controls hid the thing they were bulk-editing (2026-08-27)
+
+Five "apply to all" boxes stacked above fifteen products. On a desktop they are three
+across and cost nothing. At 375px the owner scrolled past a full screen of empty boxes
+before seeing a single one of their own photos — the whole point of the screen. The
+same pass found two icon buttons at 24px wide, under the 44px touch floor, in a file
+written the day after the last 37px button was fixed.
+
+**Rule:** open every new panel at 375px BEFORE calling it done, and measure rather than
+look: `getBoundingClientRect()` on every button, and check that the content the screen
+exists for is visible without scrolling. Convenience controls fold on a phone; the
+content does not.
+
+## The screenshot studio stubs fetch, so a new route "passed" without existing (2026-08-27)
+
+`/shots` replaces `window.fetch` for the API paths it knows, to render tabs without a
+login. A brand-new route is not one of those paths, and calling it from that page
+returned `200 {}` — which reads exactly like a working endpoint that had nothing to say.
+The route was fine, but the test proved nothing about it.
+
+**Rule:** a harness that fakes the network cannot verify the network. Check a new route
+from outside the harness — `Invoke-WebRequest` against `localhost:3000` — and expect the
+401 that proves the real code ran. Whenever a response looks suspiciously empty, ask who
+else is answering.
