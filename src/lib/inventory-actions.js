@@ -31,17 +31,12 @@ export const VERBS = ["update", "create", "delete"];
 const str = (v) => (v === undefined || v === null ? "" : String(v)).trim();
 const money = (v) => str(v).replace(/[^\d.]/g, "");
 
-// One proposal, normalised — or null when it is not something we can carry out.
-// Anything unrecognised is dropped rather than guessed at.
-export function normalizeAction(raw) {
-  const verb = str(raw?.do).toLowerCase();
-  if (!VERBS.includes(verb)) return null;
-  const id = str(raw?.id);
-  if ((verb === "update" || verb === "delete") && !id) return null;
-  if (verb === "delete") return { do: "delete", id };
-
+// A bag of field changes, cleaned. Everything outside the whitelist is dropped,
+// and a value that cannot be made sense of is dropped rather than guessed at —
+// a price of "ask us" must not become 0, because 0 is a price the bot quotes.
+export function normalizeSet(raw) {
   const set = {};
-  for (const [k, v] of Object.entries(raw?.set || {})) {
+  for (const [k, v] of Object.entries(raw || {})) {
     if (!(k in FIELDS) || v === undefined || v === null) continue;
     if (k === "regular_price" || k === "sale_price") { const m = money(v); if (m) set[k] = m; continue; }
     if (k === "stock_qty") { const n = Math.floor(Number(str(v).replace(/[^\d]/g, ""))); if (Number.isFinite(n)) set[k] = n; continue; }
@@ -58,6 +53,18 @@ export function normalizeAction(raw) {
     const s = str(v);
     if (s) set[k] = s.slice(0, k === "description" ? 4000 : 160);
   }
+  return set;
+}
+
+// One proposal, normalised — or null when it is not something we can carry out.
+export function normalizeAction(raw) {
+  const verb = str(raw?.do).toLowerCase();
+  if (!VERBS.includes(verb)) return null;
+  const id = str(raw?.id);
+  if ((verb === "update" || verb === "delete") && !id) return null;
+  if (verb === "delete") return { do: "delete", id };
+
+  const set = normalizeSet(raw?.set);
   if (!Object.keys(set).length) return null;
   if (verb === "create" && !set.product_name) return null;
   return { do: verb, ...(id ? { id } : {}), set };
@@ -69,6 +76,42 @@ export const normalizeActions = (list) =>
 // Also used on the product as it currently stands, where a field may be missing
 // entirely or hold the wrong shape after an old import — so every branch checks
 // rather than assuming.
+// ── Building one product by conversation ─────────────────────────────────────
+// Three things a product cannot be sold without. Without a name nobody can ask
+// for it, without a price the bot cannot answer the first question every
+// customer asks, and without a photo it cannot be matched to the picture a
+// customer sends — which is how this market actually shops.
+export const MUST_HAVE = ["product_name", "regular_price", "photo"];
+// Asked every time and shown as missing on the card, but never blocking. A shop
+// that does not count stock must still be able to finish.
+export const SHOULD_HAVE = ["category", "stock_qty"];
+// The order the assistant works through what is still blank.
+export const ASK_ORDER = ["photo", "product_name", "regular_price", "category", "stock_qty", "options", "description", "brand", "sale_price", "product_code", "tags"];
+
+export const LABELS = { ...FIELDS, photo: "Photos" };
+
+const filled = (draft, k, photos) => {
+  if (k === "photo") return (photos || 0) > 0;
+  const v = draft?.[k];
+  if (k === "stock_qty") return v !== undefined && v !== null && v !== "";
+  if (k === "options" || k === "tags") return Array.isArray(v) && v.length > 0;
+  return !!String(v ?? "").trim();
+};
+
+// What is still blank, split by how much it matters. `ready` is the only thing
+// that decides whether the product can be saved — the assistant's own opinion
+// that it is finished does not.
+export function draftGaps(draft = {}, photos = 0) {
+  const gap = (list) => list.filter((k) => !filled(draft, k, photos));
+  const blocking = gap(MUST_HAVE);
+  return {
+    blocking,
+    wanted: gap(SHOULD_HAVE),
+    rest: gap(ASK_ORDER.filter((k) => !MUST_HAVE.includes(k) && !SHOULD_HAVE.includes(k))),
+    ready: blocking.length === 0,
+  };
+}
+
 const show = (k, v) => {
   if (v === undefined || v === null || v === "") return "";
   if (k === "options") return Array.isArray(v) ? v.map((o) => `${o?.name}: ${(o?.values || []).join(", ")}`).join("; ") : "";

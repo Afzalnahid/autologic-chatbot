@@ -1,25 +1,34 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { T, Card, Btn } from "./ui.js";
+import { T, Card, Btn, useIsMobile } from "./ui.js";
 import { apiJson } from "./session.js";
-import { describeAction } from "@/lib/inventory-actions.js";
+import { describeAction, draftGaps, LABELS } from "@/lib/inventory-actions.js";
+import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
+import { buildVariants } from "@/lib/variants.js";
 
-// Look after the catalogue by talking to it.
+// Look after the catalogue by talking to it — and add to it the same way.
 //
 // The owner is not a programmer and does not want to be. "How many box t-shirts
 // are left", "the winter jackets are 1200 now", "we are out of the black polo" —
 // each of those is one sentence, and each of them was a hunt through a grid, a
 // drawer, a field and a save button.
 //
-// Nothing here changes anything on its own. The assistant answers, and where a
-// change is implied it PROPOSES it: a card per product saying what would move
-// and what it would move from, with a button under them. Untick the ones that
-// are wrong. Nothing happens until the button is pressed, and the button says
-// how many products it will touch.
+// The panel does two jobs.
 //
-// That is not caution for its own sake. A misheard sentence that silently
-// becomes a wrong price is a price a customer gets quoted, and the owner finds
-// out from the customer.
+// ASKING. The assistant answers, and where a change is implied it PROPOSES it:
+// a card per product saying what would move and what it would move from, with a
+// button under them. Untick the ones that are wrong. Nothing happens until the
+// button is pressed. A misheard sentence that silently becomes a wrong price is
+// a price a customer gets quoted, and the owner finds out from the customer.
+//
+// BEING ASKED. "Add a product" the other way round: the assistant asks for one
+// thing at a time, the owner answers in a sentence, and the answer lands in the
+// right field. A product can carry several photos — the first is the one
+// customers see — and they are attached from the message box like any chat.
+//
+// The draft is held here and sent with every turn, not remembered by the model.
+// What can be saved is decided by draftGaps, not by the assistant saying it
+// thinks it is finished.
 
 const CHIPS = [
   "What is running low?",
@@ -27,34 +36,71 @@ const CHIPS = [
   "How many products are out of stock?",
 ];
 
-export default function InventoryAssistant({ products, refresh }) {
+const MAX_PHOTOS = 12;
+const emptyDraft = () => ({});
+
+export default function InventoryAssistant({ products, refresh, startSignal = 0 }) {
+  const isMobile = useIsMobile();
+  // A thumbnail on a phone is big enough to hold a 44px remove button INSIDE
+  // it, so the button never overhangs the photo beside it and steals its tap.
+  // On a mouse a small corner cross is fine, and 58px keeps more of them in view.
+  const TH = isMobile ? 92 : 58;
+  const X = isMobile ? 44 : 22;
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+
+  // Interview state. `mode` is what the composer and the send button are for.
+  const [mode, setMode] = useState("chat");
+  const [draft, setDraft] = useState(emptyDraft);
+  const [photos, setPhotos] = useState([]);
+  const [visual, setVisual] = useState("");
+  const [prepping, setPrepping] = useState(false);
+  const [saved, setSaved] = useState("");
+
   const endRef = useRef(null);
-  const boxRef = useRef(null);
+  const fileRef = useRef(null);
+  const saveRef = useRef(null);
+  // Every preview URL ever made, released together when the panel goes away.
+  // They are deliberately NOT released when a photo is removed from the draft
+  // or when the product is saved: the thumbnails stay in the transcript above,
+  // and a revoked URL there would leave a row of broken images behind.
+  const blobs = useRef([]);
+  const preview = (file) => { const u = URL.createObjectURL(file); blobs.current.push(u); return u; };
 
-  useEffect(() => { if (open) endRef.current?.scrollIntoView({ block: "nearest" }); }, [msgs, open, busy]);
+  useEffect(() => { if (open) endRef.current?.scrollIntoView({ block: "nearest" }); }, [msgs, open, busy, draft]);
+  useEffect(() => () => blobs.current.forEach(URL.revokeObjectURL), []);
+  // Started from outside the panel — the toolbar button, or the empty state.
+  useEffect(() => { if (startSignal > 0) { setOpen(true); startInterview(); } }, [startSignal]);
 
+  const gaps = draftGaps(draft, photos.length);
+  // The moment the product becomes saveable, put the button where the owner can
+  // see it. The panel is tall by then, and a Save button that appears below the
+  // fold is a Save button nobody presses.
+  useEffect(() => { if (gaps.ready) saveRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, [gaps.ready]);
+
+  // ── Asking ─────────────────────────────────────────────────────────────────
   const ask = async (text) => {
     const q = String(text || "").trim();
     if (!q || busy) return;
     setErr(""); setInput("");
     // The question goes on screen before the request leaves, so the panel never
     // sits blank while a slow answer is on its way.
-    const history = [...msgs, { role: "user", content: q }];
+    const history = [...msgs, { role: "user", content: q, phase: mode }];
     setMsgs(history);
+    if (mode === "interview") return turn(history);
+
     setBusy(true);
     const r = await apiJson("/api/inventory-chat", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages: history.map((m) => ({ role: m.role, content: m.content })) }),
+      body: JSON.stringify({ messages: history.filter((m) => m.phase === "chat").map((m) => ({ role: m.role, content: m.content })) }),
     });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
     setMsgs((s) => [...s, {
-      role: "assistant", content: r.reply,
+      role: "assistant", phase: "chat", content: r.reply,
       actions: r.actions || [], before: r.before || {},
       // Every proposal starts ticked: the owner reads them and unticks what is
       // wrong, rather than having to tick things one at a time to get anywhere.
@@ -82,32 +128,148 @@ export default function InventoryAssistant({ products, refresh }) {
 
   const discard = (mi) => setMsgs((s) => s.map((m, i) => i !== mi ? m : { ...m, actions: [], picked: [], dropped: true }));
 
+  // ── Being asked ────────────────────────────────────────────────────────────
+  const startInterview = () => {
+    setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr("");
+    const start = [...msgs, { role: "user", content: "I want to add a product.", phase: "interview" }];
+    setMsgs(start);
+    turn(start, {}, 0, "");
+  };
+
+  const stopInterview = () => {
+    setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
+    setMsgs((s) => [...s, { role: "assistant", phase: "chat", content: "Stopped. Nothing was added.", actions: [] }]);
+  };
+
+  // One turn of the interview. The draft, the photo count and the vision text
+  // are passed explicitly rather than read from state, because a turn is often
+  // fired in the same tick as the setState that produced them.
+  const turn = async (history, d = draft, n = photos.length, v = visual) => {
+    setBusy(true); setErr("");
+    const r = await apiJson("/api/product-interview", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        messages: history.filter((m) => m.phase === "interview").map((m) => ({ role: m.role, content: m.content })),
+        draft: d, photos: n, visual: v,
+      }),
+    });
+    setBusy(false);
+    if (r.error) { setErr(r.error); return; }
+    setDraft(r.draft || d);
+    setMsgs((s) => [...s, { role: "assistant", phase: "interview", content: r.reply }]);
+  };
+
+  const addPhotos = async (list) => {
+    const picked = [...list].filter((x) => x.type?.startsWith("image/"));
+    if (!picked.length || busy) return;
+    setErr(""); setPrepping(true);
+    // All of these travel in ONE request to /api/add-product, so the whole
+    // gallery has to fit the platform's ~4.5 MB limit together — which is
+    // exactly what shrinkBatch measures, counting what is already attached.
+    const keep = photos.reduce((a, p) => a + p.file.size, 0);
+    const ready = await shrinkBatch(picked, keep);
+    setPrepping(false);
+    const fresh = ready.map((file) => ({ id: `${Date.now()}${Math.random().toString(36).slice(2, 6)}`, file, u: preview(file) }));
+    const next = [...photos, ...fresh].slice(0, MAX_PHOTOS);
+    setPhotos(next);
+
+    const line = { role: "user", content: `Added ${fresh.length} photo${fresh.length > 1 ? "s" : ""}.`, phase: "interview", photoUrls: fresh.map((p) => p.u) };
+    const history = [...msgs, line];
+    setMsgs(history);
+
+    // Only the first photo is read. It is the one the bot shows and the one a
+    // customer's picture is matched against — the same rule /api/add-product
+    // has always followed — so reading the other five would be five calls
+    // spent on descriptions nothing ever looks at.
+    let v = visual, d = draft;
+    if (!visual && next.length) {
+      const fd = new FormData();
+      fd.append("images", next[0].file);
+      const rr = await apiJson("/api/photo-draft", { method: "POST", body: fd });
+      const got = rr.drafts?.[0];
+      if (got?.visual) {
+        v = got.visual; setVisual(v);
+        // Suggestions fill only what is still blank. The owner may already have
+        // typed the name, and a machine must not talk over them.
+        d = { ...draft };
+        for (const k of ["product_name", "category", "description"]) if (!d[k] && got[k]) d[k] = got[k];
+        setDraft(d);
+      }
+    }
+    turn(history, d, next.length, v);
+  };
+
+  const dropPhoto = (id) => setPhotos((s) => s.filter((x) => x.id !== id));
+  const makeFirst = (id) => setPhotos((s) => { const p = s.find((x) => x.id === id); return p ? [p, ...s.filter((x) => x.id !== id)] : s; });
+
+  const save = async () => {
+    if (!gaps.ready || busy) return;
+    setBusy(true); setErr("");
+    const opts = draft.options || [];
+    const fd = new FormData();
+    for (const k of ["product_name", "product_code", "category", "brand", "regular_price", "sale_price", "description"]) fd.append(k, draft[k] || "");
+    fd.append("tags", (draft.tags || []).join(", "));
+    fd.append("stock_qty", draft.stock_qty === undefined || draft.stock_qty === null ? "" : String(draft.stock_qty));
+    fd.append("stock_status", draft.stock_status || (draft.stock_qty === 0 ? "outofstock" : "instock"));
+    fd.append("options", JSON.stringify(opts));
+    fd.append("variants", JSON.stringify(buildVariants(opts, { regular_price: draft.regular_price || "", sale_price: draft.sale_price || "" })));
+    // The description the AI already produced from the first photo, so vision
+    // does not run a second time on a picture it has read.
+    if (visual) fd.append("visual", visual);
+    photos.forEach((p) => fd.append("images", p.file));
+    fd.append("image_urls", JSON.stringify(photos.map((_, i) => `upload:${i}`)));
+
+    const r = await apiJson("/api/add-product", { method: "POST", body: fd });
+    setBusy(false);
+    if (r.error) { setErr(r.error); return; }
+    const name = draft.product_name;
+    setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
+    setSaved(name);
+    setMsgs((s) => [...s, { role: "assistant", phase: "chat", content: `Added “${name}”${r.analyzeError ? " — but the photo could not be read, so customers cannot find it by sending a picture." : "."} Say “add another” whenever you are ready.`, actions: [] }]);
+    refresh?.();
+  };
+
+  // ── Rendering ──────────────────────────────────────────────────────────────
+  const interviewing = mode === "interview";
+  const filledRows = Object.entries(draft).filter(([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length));
+
   return <Card style={{ padding: 0, marginBottom: 14, overflow: "hidden" }}>
     <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ui-btn"
       style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "13px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", color: T.text, textAlign: "left", minHeight: 44 }}>
       <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 10, background: T.goldBg, display: "flex", alignItems: "center", justifyContent: "center" }}><i className="ti ti-message-2-bolt" style={{ fontSize: 17, color: T.gold }} /></span>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>Ask about your inventory</span>
-        <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginTop: 1 }}>Prices, stock, adding and removing — in your own words. Nothing changes until you say so.</span>
+        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>Add and manage products by chatting</span>
+        <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginTop: 1 }}>Answer a few questions to add one, or just say what to change. Nothing happens until you press the button.</span>
       </span>
       <i className={`ti ti-chevron-${open ? "up" : "down"}`} style={{ fontSize: 16, color: T.textMuted, flexShrink: 0 }} />
     </button>
 
     {open && <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 16px 14px" }}>
-      <div ref={boxRef} style={{ maxHeight: 380, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
+      {/* Shorter while a product is being built: the draft card and the Save
+          button sit below this list, and on a phone a 400px transcript pushes
+          both off the screen. */}
+      <div style={{ maxHeight: interviewing ? 250 : 400, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
         {!msgs.length && <div style={{ padding: "6px 0 2px" }}>
           <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.65, marginBottom: 10 }}>
-            Ask anything about the {products?.length || 0} product{products?.length === 1 ? "" : "s"} in this catalogue, or say what you want changed — “the winter jackets are 1200 now”, “we are out of the black polo”, “add a red cotton scarf at 350”.
+            Add a product by answering a few questions, or ask about the {products?.length || 0} already here — “the winter jackets are 1200 now”, “we are out of the black polo”.
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <button type="button" onClick={startInterview} className="ui-btn"
+              style={{ padding: "8px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: T.goldBg, border: `1px solid ${T.gold}`, color: T.gold, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>
+              <i className="ti ti-plus" style={{ marginRight: 5 }} />Add a product — I’ll ask the questions
+            </button>
             {CHIPS.map((c) => <button key={c} type="button" onClick={() => ask(c)} className="ui-btn ob-chip"
-              style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 34 }}>{c}</button>)}
+              style={{ padding: "8px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>{c}</button>)}
           </div>
         </div>}
 
         {msgs.map((m, mi) => <div key={mi} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>
           <div style={{ maxWidth: "88%", padding: "9px 13px", borderRadius: 14, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap",
             background: m.role === "user" ? T.goldBg : T.bgAlt, color: m.role === "user" ? T.gold : T.text, boxShadow: m.role === "user" ? "none" : T.nmIn }}>{m.content}</div>
+
+          {m.photoUrls?.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "88%" }}>
+            {m.photoUrls.map((u) => <img key={u} src={u} alt="" style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 9, border: `1px solid ${T.border}` }} />)}
+          </div>}
 
           {m.actions?.length > 0 && <div style={{ width: "100%", borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, padding: 12 }}>
             <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7, marginBottom: 9 }}>
@@ -145,17 +307,82 @@ export default function InventoryAssistant({ products, refresh }) {
           {m.dropped && <div style={{ fontSize: 12, color: T.textDim }}>Discarded — nothing was changed.</div>}
         </div>)}
 
-        {busy && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />Thinking…</div>}
+        {busy && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />{interviewing ? "Writing it down…" : "Thinking…"}</div>}
+        {prepping && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />Preparing photos…</div>}
+        {saved && !interviewing && <div style={{ fontSize: 12.5, color: T.success, display: "flex", gap: 6 }}><i className="ti ti-check" style={{ fontSize: 15 }} />“{saved}” is in your catalogue.</div>}
         <div ref={endRef} />
       </div>
+
+      {/* The product being built, always visible while it is being built, so
+          the owner can see what the assistant has understood rather than
+          having to trust it. */}
+      {interviewing && <div style={{ borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, padding: 12, marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <span style={{ flex: 1, fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7 }}>New product — not saved yet</span>
+          <button type="button" onClick={stopInterview} disabled={busy} className="ui-btn" style={{ background: "none", border: "none", color: T.textMuted, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 44, minWidth: 60, padding: "0 6px" }}>Cancel</button>
+        </div>
+
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: photos.length ? 11 : 0 }}>
+          {photos.map((p, i) => <div key={p.id} style={{ position: "relative", width: TH, height: TH }}>
+            <img src={p.u} alt="" onClick={() => makeFirst(p.id)} title={i === 0 ? "Customers see this one" : "Make this the first one"}
+              style={{ width: TH, height: TH, objectFit: "cover", borderRadius: 12, cursor: "pointer", border: `2px solid ${i === 0 ? T.gold : T.border}` }} />
+            {i === 0 && <span style={{ position: "absolute", left: 4, bottom: 4, fontSize: 9.5, fontWeight: 700, padding: "2px 6px", borderRadius: 6, background: T.gold, color: "#fff" }}>1st</span>}
+            {/* On a phone the target is 44px and sits wholly inside the tile;
+                on a desktop it is a small cross overhanging the corner. */}
+            <button type="button" onClick={() => dropPhoto(p.id)} aria-label={`Remove photo ${i + 1}`} className="ui-btn"
+              style={{ position: "absolute", top: isMobile ? 0 : -7, right: isMobile ? 0 : -7, width: X, height: X, minHeight: 0, padding: 0,
+                background: "none", border: "none", color: T.danger, cursor: "pointer",
+                display: "flex", alignItems: "flex-start", justifyContent: "flex-end", fontSize: 12 }}>
+              <span style={{ width: 22, height: 22, margin: isMobile ? 6 : 0, borderRadius: 11, background: T.card, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}><i className="ti ti-x" /></span>
+            </button>
+          </div>)}
+        </div>
+
+        {filledRows.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          {filledRows.map(([k, v]) => <span key={k} style={{ fontSize: 11.5, padding: "5px 10px", borderRadius: 9, background: T.bgAlt, color: T.text, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ color: T.textDim }}>{LABELS[k] || k}: </span>
+            {k === "options" ? v.map((o) => `${o.name} (${o.values.join(", ")})`).join("; ") : Array.isArray(v) ? v.join(", ") : String(v)}
+          </span>)}
+        </div>}
+
+        <div style={{ fontSize: 11.5, color: gaps.blocking.length ? T.textMuted : T.textDim, lineHeight: 1.6 }}>
+          {gaps.blocking.length
+            ? <>Still needed before this can be saved: <strong style={{ color: T.text }}>{gaps.blocking.map((k) => LABELS[k]).join(", ")}</strong>.</>
+            : gaps.wanted.length
+              ? <>Ready to save. <strong style={{ color: T.warn }}>{gaps.wanted.map((k) => LABELS[k]).join(" and ")}</strong> {gaps.wanted.length > 1 ? "are" : "is"} not set — you can add {gaps.wanted.length > 1 ? "them" : "it"} now or save without.</>
+              : "Everything is filled in."}
+          {photos.length > 0 && <> · {photos.length} photo{photos.length > 1 ? "s" : ""}, {fileSize(photos.reduce((a, p) => a + p.file.size, 0))} of {fileSize(GALLERY_BUDGET)}</>}
+        </div>
+
+        {/* The ref is on the wrapper, not the button: Btn is a plain function
+            component and does not forward one. */}
+        {gaps.ready && <div ref={saveRef} style={{ marginTop: 11 }}>
+          <Btn gold onClick={save} disabled={busy || prepping} style={{ borderRadius: 11 }}>
+            <i className="ti ti-check" style={{ marginRight: 6 }} />Save “{draft.product_name}”
+          </Btn>
+        </div>}
+      </div>}
 
       {err && <div style={{ fontSize: 12.5, color: T.danger, display: "flex", gap: 6, marginBottom: 8 }}><i className="ti ti-alert-circle" style={{ fontSize: 15, flexShrink: 0 }} /><span>{err}</span></div>}
 
       <form onSubmit={(e) => { e.preventDefault(); ask(input); }} style={{ display: "flex", gap: 8 }}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy} placeholder="Ask, or say what to change…" aria-label="Ask about your inventory"
+        {interviewing && <>
+          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || prepping || photos.length >= MAX_PHOTOS}
+            aria-label="Attach photos" title={photos.length >= MAX_PHOTOS ? `${MAX_PHOTOS} photos is the most one product can have` : "Attach photos of this product"} className="ui-btn"
+            style={{ width: 44, height: 44, flexShrink: 0, minHeight: 0, padding: 0, borderRadius: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <i className="ti ti-camera-plus" style={{ fontSize: 18 }} />
+          </button>
+        </>}
+        <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy} placeholder={interviewing ? "Type your answer…" : "Ask, or say what to change…"} aria-label="Message the assistant"
           className="ui-inp" style={{ flex: 1, minWidth: 0, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 12, padding: "11px 14px", color: T.text, fontSize: 13, outline: "none", fontFamily: "inherit", boxShadow: T.nmIn }} />
-        <Btn gold type="submit" disabled={busy || !input.trim()} style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
+        <Btn gold type="submit" disabled={busy || !input.trim()} aria-label="Send" style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
       </form>
+
+      {!interviewing && msgs.length > 0 && <button type="button" onClick={startInterview} disabled={busy} className="ui-btn"
+        style={{ marginTop: 9, padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "none", border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 34 }}>
+        <i className="ti ti-plus" style={{ marginRight: 5 }} />Add a product — I’ll ask the questions
+      </button>}
     </div>}
   </Card>;
 }

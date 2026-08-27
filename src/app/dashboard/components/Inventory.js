@@ -61,6 +61,10 @@ export default function Inventory({ products, refresh }) {
   const [editor, setEditor] = useState(null);      // null | {mode:"add"} | {mode:"edit", p}
   const [importer, setImporter] = useState(null);  // null | "url" | "woo"
   const [toast, setToast] = useState("");
+  // Bumped to ask the assistant to start an interview. A counter rather than a
+  // boolean, so pressing the button a second time starts a second product
+  // instead of doing nothing.
+  const [chatAdd, setChatAdd] = useState(0);
   const [busyBulk, setBusyBulk] = useState(false);
   // A warning has to be readable, not glimpsed: "the photo could not be
   // analysed" is a sentence the owner has to act on, and 3.2s is not enough
@@ -163,19 +167,25 @@ export default function Inventory({ products, refresh }) {
         {[["grid", "ti-layout-grid"], ["list", "ti-list"]].map(([v, ic]) => <button key={v} onClick={() => pickView(v)} aria-label={v} aria-pressed={view === v} className="ui-btn ui-sq"
           style={{ width: 34, height: 34, borderRadius: 9, border: "none", cursor: "pointer", background: view === v ? T.accGrad : "transparent", color: view === v ? "#fff" : T.textMuted, boxShadow: view === v ? T.accGlow : "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${ic}`} style={{ fontSize: 16 }} /></button>)}
       </div>
-      <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+      {/* Four buttons no longer fit a phone on one line — without wrapping, the
+          last one hangs off the right edge and takes the whole page with it. */}
+      <div style={{ display: "flex", gap: 8, marginLeft: "auto", flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
         {/* Straight to Bot Training → Offers, so bundling products into a deal
             is one click from where the products live. */}
         <Btn onClick={() => { try { sessionStorage.setItem("al-bt-tab", "offers"); } catch {} window.dispatchEvent(new CustomEvent("al-goto", { detail: "settings" })); }} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-discount-2" style={{ marginRight: 6 }} />Offers</Btn>
         <Select value="" placeholder="Import" options={[{ value: "photos", label: "From photos — one product each", icon: "ti-photo-plus" }, { value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" }, { value: "url", label: "From a product URL", icon: "ti-link" }, { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" }]} onChange={(v) => setImporter(v)} />
+        {/* Two ways to add one product. The chat asks the questions; the drawer
+            is the full form, and stays for photo ordering and per-variant
+            prices, which are not conversations. */}
+        <Btn onClick={() => setChatAdd((n) => n + 1)} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-message-2-plus" style={{ marginRight: 6 }} />Add by chat</Btn>
         <Btn gold onClick={() => setEditor({ mode: "add" })} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-plus" style={{ marginRight: 6 }} />Add product</Btn>
       </div>
     </Card>
 
-    {/* Talking to the catalogue. Folded until asked for, and only shown once
-        there is a catalogue to talk about — there is nothing to ask about an
-        empty one, and the empty state already says what to do next. */}
-    {!empty && <InventoryAssistant products={products} refresh={refresh} />}
+    {/* Talking to the catalogue. Folded until asked for, and shown even when
+        the catalogue is empty — being asked the questions is the gentlest way
+        to add the very first product. */}
+    <InventoryAssistant products={products} refresh={refresh} startSignal={chatAdd} />
 
     {/* Body: category rail + products */}
     {empty
@@ -184,7 +194,7 @@ export default function Inventory({ products, refresh }) {
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em" }}>Your catalogue is empty</div>
           <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6, maxWidth: 440, margin: "6px auto 22px", lineHeight: 1.6 }}>Add products with photos, prices, categories and sizes or colours. The bot shows them to customers, matches photos and takes orders.</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, maxWidth: 640, margin: "0 auto" }}>
-            {[["ti-plus", "Add a product", "Name, photos, price, variants", () => setEditor({ mode: "add" })], ["ti-photo-plus", "Add many from photos", "One photo becomes one product", () => setImporter("photos")], ["ti-table", "Upload a spreadsheet", "A CSV from Excel or Google Sheets", () => setImporter("csv")], ["ti-link", "Paste a product URL", "We fetch name, photo and price", () => setImporter("url")], ["ti-brand-wordpress", "Import WooCommerce", "Bring your whole shop over", () => setImporter("woo")]].map(([ic, t, s, fn]) =>
+            {[["ti-message-2-plus", "Add by chat", "Answer a few questions, that is all", () => setChatAdd((n) => n + 1)], ["ti-plus", "Add a product", "Name, photos, price, variants", () => setEditor({ mode: "add" })], ["ti-photo-plus", "Add many from photos", "One photo becomes one product", () => setImporter("photos")], ["ti-table", "Upload a spreadsheet", "A CSV from Excel or Google Sheets", () => setImporter("csv")], ["ti-link", "Paste a product URL", "We fetch name, photo and price", () => setImporter("url")], ["ti-brand-wordpress", "Import WooCommerce", "Bring your whole shop over", () => setImporter("woo")]].map(([ic, t, s, fn]) =>
               <button key={t} type="button" onClick={fn} className="ui-btn ob-row" style={{ padding: "16px 14px", borderRadius: 16, background: T.card, boxShadow: T.nmSm, border: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit", color: T.text }}>
                 <i className={`ti ${ic}`} style={{ fontSize: 22, color: T.gold }} /><div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>{t}</div><div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2 }}>{s}</div>
               </button>)}
