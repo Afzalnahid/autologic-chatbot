@@ -677,3 +677,25 @@ except to add one button to it.
 **Rule:** after adding anything to an existing row, measure `document.body.scrollWidth`
 against `clientWidth` at 375px — not just the new component's own bounds. A flex row
 without `flexWrap` is a page-level overflow waiting for one more child.
+
+## A CSS animation frozen at frame 0 reads as a 40px layout overflow (2026-08-28)
+
+Measuring the product drawer at 375px reported fifty-seven elements hanging past the
+right edge, the drawer itself sitting at left:40 in a 375px viewport. Every explanation
+I checked was wrong: no ancestor transform, no padding, no inner scroller, and
+`document.body.scrollWidth` was exactly 375 — the page did not scroll at all, which a
+real 40px overflow would have caused.
+
+The drawer opens with `@keyframes inv-slide { from { transform: translateX(40px) } }`.
+The Browser pane was not being displayed, so the page was not compositing frames and the
+animation was stuck at its first keyframe — a permanent 40px offset baked into every
+measurement. `getAnimations()` said `playState: "running", currentTime: 0`. Calling
+`.finish()` put the drawer back at 0→375 exactly.
+
+**Rules:**
+- Before trusting any geometry, call `el.getAnimations()` and finish anything still
+  running. An entry animation stuck at frame 0 is indistinguishable from a layout bug.
+- `document.body.scrollWidth` is the honest witness for horizontal overflow. When
+  per-element rects disagree with it, the rects are the ones that are lying.
+- A screenshot that times out with "the pane is not displayed" is the same fact arriving
+  by another route — treat every measurement taken in that state as suspect.

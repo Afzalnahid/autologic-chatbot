@@ -4,7 +4,42 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-28) — Product added by conversation, and many photos on one product
+## Last session (2026-08-28, second thread) — Duplicate products blocked at every door
+
+`cfe9254`, pushed. The owner asked for a duplicate check on every way of adding a
+product, because two rows for one product make the bot answer from whichever the
+search happens to score higher.
+
+- `src/lib/duplicates.js` — the single answer to "is this already here?", used by
+  `/api/add-product`, `/api/import-one`, `/api/inventory-apply` (create AND rename) and
+  `/api/products` PATCH (rename). Three signals in priority order: **code** (exact,
+  punctuation ignored), **name** (case/space/punctuation ignored, so "Box T-shirt" ==
+  "box t shirt"), **photo** (sha256 — `b:` for uploaded bytes, `u:` for an imported
+  address; exact only, never "looks similar").
+- New metadata field `photo_key`, written by add-product and import-one. Old products
+  have none, so the photo signal only works for products added from now on.
+- **Single adds refuse**, keep everything typed, and grow an **Add anyway** button —
+  which appears only AFTER a save is turned away, never before. The chat interview warns
+  the moment the name is given, which is a separate state (`dup`) from the refusal
+  (`refused`).
+- **Bulk adds skip and report** — "Added 3, 2 you already had". Stopping a 200-row CSV
+  over row three would be worse than the duplicate. Importers still REPLACE on a code
+  match: a shop imported twice is an update.
+- The check runs before any upload/vision/embed, so a refusal costs no AI call and
+  leaves no orphaned photo. And it never blocks an add by failing — a broken lookup logs
+  and lets the product through.
+
+**Unverified:** the slim `select("id, name:metadata->>product_name, …")`. This machine's
+`.env.local` holds PLACEHOLDER Supabase credentials (`example.supabase.co`), so there is
+no database here to try it against. It falls back to reading whole rows if a deployment
+refuses that shape. **Check this on the first real add.**
+
+**Next up:** confirm the slim select works on production; then the still-open item from
+before — how a real model's JSON parses in the three AI routes (Google Cloud billing
+still off).
+---
+
+## Earlier session (2026-08-28) — Product added by conversation, and many photos on one product
 
 `f0c7642`, pushed. The owner asked for the manual add to become a question-and-answer
 with the AI, and for one product to be able to carry many pictures.
@@ -1742,4 +1777,5 @@ automation looks natural to a reviewer.
 - Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
   `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
 - WhatsApp typing indicator also marks the message read.
+
 
