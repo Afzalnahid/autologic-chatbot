@@ -5,6 +5,7 @@ import { api, apiJson } from "./session.js";
 import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
 import { shrinkBatch } from "@/lib/shrink-image.js";
 import { buildVariants, usableOptions, newVariantId } from "@/lib/variants.js";
+import PhotoBatchSheet from "./PhotoBatch.js";
 
 // The Inventory tab: the shop's catalogue, organised. Products carry a
 // category, a brand, tags, a photo gallery and — for things that come in
@@ -165,7 +166,7 @@ export default function Inventory({ products, refresh }) {
         {/* Straight to Bot Training → Offers, so bundling products into a deal
             is one click from where the products live. */}
         <Btn onClick={() => { try { sessionStorage.setItem("al-bt-tab", "offers"); } catch {} window.dispatchEvent(new CustomEvent("al-goto", { detail: "settings" })); }} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-discount-2" style={{ marginRight: 6 }} />Offers</Btn>
-        <Select value="" placeholder="Import" options={[{ value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" }, { value: "url", label: "From a product URL", icon: "ti-link" }, { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" }]} onChange={(v) => setImporter(v)} />
+        <Select value="" placeholder="Import" options={[{ value: "photos", label: "From photos — one product each", icon: "ti-photo-plus" }, { value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" }, { value: "url", label: "From a product URL", icon: "ti-link" }, { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" }]} onChange={(v) => setImporter(v)} />
         <Btn gold onClick={() => setEditor({ mode: "add" })} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-plus" style={{ marginRight: 6 }} />Add product</Btn>
       </div>
     </Card>
@@ -177,7 +178,7 @@ export default function Inventory({ products, refresh }) {
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em" }}>Your catalogue is empty</div>
           <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6, maxWidth: 440, margin: "6px auto 22px", lineHeight: 1.6 }}>Add products with photos, prices, categories and sizes or colours. The bot shows them to customers, matches photos and takes orders.</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, maxWidth: 640, margin: "0 auto" }}>
-            {[["ti-plus", "Add a product", "Name, photos, price, variants", () => setEditor({ mode: "add" })], ["ti-table", "Upload a spreadsheet", "A CSV from Excel or Google Sheets", () => setImporter("csv")], ["ti-link", "Paste a product URL", "We fetch name, photo and price", () => setImporter("url")], ["ti-brand-wordpress", "Import WooCommerce", "Bring your whole shop over", () => setImporter("woo")]].map(([ic, t, s, fn]) =>
+            {[["ti-plus", "Add a product", "Name, photos, price, variants", () => setEditor({ mode: "add" })], ["ti-photo-plus", "Add many from photos", "One photo becomes one product", () => setImporter("photos")], ["ti-table", "Upload a spreadsheet", "A CSV from Excel or Google Sheets", () => setImporter("csv")], ["ti-link", "Paste a product URL", "We fetch name, photo and price", () => setImporter("url")], ["ti-brand-wordpress", "Import WooCommerce", "Bring your whole shop over", () => setImporter("woo")]].map(([ic, t, s, fn]) =>
               <button key={t} type="button" onClick={fn} className="ui-btn ob-row" style={{ padding: "16px 14px", borderRadius: 16, background: T.card, boxShadow: T.nmSm, border: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit", color: T.text }}>
                 <i className={`ti ${ic}`} style={{ fontSize: 22, color: T.gold }} /><div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>{t}</div><div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2 }}>{s}</div>
               </button>)}
@@ -256,7 +257,13 @@ export default function Inventory({ products, refresh }) {
       onSaved={(msg) => { setEditor(null); setToast(msg); refresh(); }}
       onDelete={async () => { const p = editor.p; setEditor(null); await del(p); }} />}
 
-    {importer && <ImportSheet kind={importer} isMobile={isMobile} onClose={() => setImporter(null)} onDone={(msg) => { setToast(msg); refresh(); }} />}
+    {/* "photos" is a different shape of job from the other three — many
+        products out of many files, rather than many products out of one
+        source — so it gets its own sheet rather than a fourth branch inside
+        ImportSheet. */}
+    {importer === "photos"
+      ? <PhotoBatchSheet isMobile={isMobile} categories={catNames} onClose={() => setImporter(null)} onDone={(msg) => { setToast(msg); refresh(); }} />
+      : importer && <ImportSheet kind={importer} isMobile={isMobile} onClose={() => setImporter(null)} onDone={(msg) => { setToast(msg); refresh(); }} />}
   </div>;
 }
 

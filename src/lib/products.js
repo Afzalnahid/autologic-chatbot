@@ -106,6 +106,11 @@ export function readProductForm(form) {
   if (has("regular_price")) set("regular_price", str(g("regular_price")));
   if (has("sale_price")) set("sale_price", str(g("sale_price")));
   if (has("description")) set("description", str(g("description")).slice(0, 4000));
+  // The vision description, when the caller already has it. /api/photo-draft
+  // reads a photo before anything is saved so the owner can check the name it
+  // proposes; sending that description back means vision does not run a second
+  // time on the same picture at save.
+  if (has("visual")) set("visual", str(g("visual")).slice(0, 4000));
   if (has("stock_status")) set("stock_status", str(g("stock_status")) === "outofstock" ? "outofstock" : "instock");
   if (has("stock_qty")) { const q = str(g("stock_qty")); set("stock_qty", q === "" ? null : Math.max(0, Math.floor(num(q)))); }
   if (has("options")) set("options", normalizeOptions(parseJSON(g("options"), [])));

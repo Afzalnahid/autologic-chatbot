@@ -40,7 +40,12 @@ export async function POST(request) {
     const images = resolveGallery(fields.image_urls || [], uploaded, claimedByVariants(fields.variants || []));
     const image_url = images[0] || "";
 
-    const { visual, analyzeError } = await describeImage(image_url, client);
+    // A photo already read by /api/photo-draft arrives with its description, so
+    // vision does not run twice on the same picture. Anything else is read here,
+    // exactly as before.
+    const { visual, analyzeError } = fields.visual
+      ? { visual: fields.visual, analyzeError: null }
+      : await describeImage(image_url, client);
     const code = fields.product_code || (visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i)?.[1]?.trim()) || `M-${Date.now()}`;
 
     const now = new Date().toISOString();
