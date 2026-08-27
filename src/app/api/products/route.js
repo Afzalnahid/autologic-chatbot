@@ -5,7 +5,7 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
-import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery } from "@/lib/products.js";
+import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
 
 export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
@@ -39,12 +39,20 @@ export const PATCH = withErrors(async (request) => {
   if (fields.product_name !== undefined && !fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
   // Gallery in the owner's order; "upload:N" placeholders become the new files.
+  // Variants use the same placeholders for their own photo, so both are
+  // resolved from the same upload list — and the ones a variant claimed are
+  // kept out of the gallery.
   if (fields.image_urls !== undefined || files.length) {
     const uploaded = [];
-    for (const f of files.slice(0, 8)) uploaded.push(await uploadProductImage(client.id, f));
+    for (const f of files.slice(0, 32)) uploaded.push(await uploadProductImage(client.id, f));
+    if (next.variants) next.variants = resolveVariantImages(next.variants, uploaded);
     const order = fields.image_urls ?? (prev.images?.length ? prev.images : (prev.image_url ? [prev.image_url] : []));
-    next.images = resolveGallery(order, uploaded);
+    next.images = resolveGallery(order, uploaded, claimedByVariants(fields.variants || []));
     next.image_url = next.images[0] || "";
+  } else if (next.variants) {
+    // No files this time, but a variant may still be pointing at a placeholder
+    // from a half-finished save. Never store "upload:2" as a picture URL.
+    next.variants = resolveVariantImages(next.variants, []);
   }
 
   let analyzeError = null;

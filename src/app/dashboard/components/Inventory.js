@@ -296,6 +296,9 @@ function ProductCard({ p, on, toggle, open, isMobile }) {
 }
 
 // ── Editor drawer ────────────────────────────────────────────────────────────
+// Photo, name, SKU, price, sale, qty, status, remove.
+const VAR_COLS = "44px minmax(0,1.5fr) minmax(0,1fr) 84px 84px 70px 92px 30px";
+
 const cartesian = (opts) => opts.reduce((acc, o) => acc.flatMap((row) => o.values.map((v) => ({ ...row, [o.name]: v }))), [{}]);
 const attrsKey = (a) => Object.entries(a || {}).map(([k, v]) => `${k}=${v}`).sort().join("|");
 
@@ -311,6 +314,13 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   // One ordered gallery: saved/pasted URLs and new files side by side, so a
   // new photo can be dragged to the front and saved as primary in one go.
   const [gallery, setGallery] = useState(() => galleryOf(p || {}).map((u) => ({ kind: "url", u })));
+  // A photo chosen for one variant, before it has been uploaded: keyed by the
+  // variant's id so reordering or renaming cannot detach it from its row.
+  // Kept out of f.variants because a File cannot survive JSON.stringify, and
+  // the variants list is sent as JSON.
+  const [varImg, setVarImg] = useState({});
+  const varFileRef = useRef(null);
+  const varTarget = useRef(null);
   const [urlIn, setUrlIn] = useState("");
   const [busy, setBusy] = useState(false);
   // True while photos are being resized. Resizing several large pictures takes
@@ -322,6 +332,7 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   useEffect(() => { const k = (e) => { if (e.key === "Escape") onClose(); }; document.addEventListener("keydown", k); document.body.style.overflow = "hidden"; return () => { document.removeEventListener("keydown", k); document.body.style.overflow = ""; }; }, []);
   useEffect(() => () => gallery.forEach((g) => g.kind === "file" && URL.revokeObjectURL(g.u)), []);
+  useEffect(() => () => Object.values(varImg).forEach((x) => x?.u && URL.revokeObjectURL(x.u)), []);
 
   // Photos are shrunk BEFORE they enter the gallery, so the picture previewed
   // here is byte-for-byte the one that gets uploaded. A phone camera writes
@@ -338,6 +349,24 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     setPrepping(false);
     setGallery((s) => [...s, ...ready.map((file) => ({ kind: "file", file, u: URL.createObjectURL(file) }))].slice(0, 12));
   };
+  // One hidden input serves every variant row; varTarget remembers which row
+  // asked, so twenty variants do not need twenty file inputs in the DOM.
+  const pickVarImg = (id) => { varTarget.current = id; varFileRef.current?.click(); };
+  const takeVarImg = async (file) => {
+    const id = varTarget.current;
+    if (!id || !file) return;
+    setPrepping(true);
+    const keep = gallery.reduce((a, g) => a + (g.kind === "file" ? g.file.size : 0), 0)
+      + Object.values(varImg).reduce((a, x) => a + (x?.file?.size || 0), 0);
+    const [small] = await shrinkBatch([file], keep);
+    setPrepping(false);
+    setVarImg((s) => {
+      // Release the preview this replaces, or the tab leaks a blob per retake.
+      if (s[id]?.u) URL.revokeObjectURL(s[id].u);
+      return { ...s, [id]: { file: small, u: URL.createObjectURL(small) } };
+    });
+  };
+
   const makePrimary = (g) => setGallery((s) => [g, ...s.filter((x) => x !== g)]);
   const removeImg = (g) => setGallery((s) => s.filter((x) => x !== g));
   const addUrl = () => { const u = urlIn.trim(); if (!/^https?:\/\//.test(u)) { setErr("Paste a full image link starting with http"); return; } setGallery((s) => [...s, { kind: "url", u }].slice(0, 12)); setUrlIn(""); setErr(""); };
@@ -366,11 +395,27 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     for (const k of ["product_name", "product_code", "category", "brand", "tags", "regular_price", "sale_price", "stock_status", "description"]) fd.append(k, f[k] ?? "");
     fd.append("stock_qty", f.stock_qty === "" || f.stock_qty === null ? "" : String(f.stock_qty));
     fd.append("options", JSON.stringify(f.options.filter((o) => o.name.trim() && o.values.length)));
-    fd.append("variants", JSON.stringify(f.variants.filter((v) => (v.name || "").trim() || Object.keys(v.attrs || {}).length)));
+
     // Order is the owner's; each new file becomes "upload:N" in that order.
     const files = gallery.filter((g) => g.kind === "file");
     fd.append("image_urls", JSON.stringify(gallery.map((g) => g.kind === "url" ? g.u : `upload:${files.indexOf(g)}`)));
     for (const g of files) fd.append("images", g.file);
+
+    // Variant photos ride in the SAME `images` list, numbered after the
+    // gallery, and each variant points at its own index. The server keeps the
+    // claimed ones out of the gallery, so a shirt in twelve colours does not
+    // show a customer twelve pictures when they only asked to see the shirt.
+    // A row counts as real if it has a name, attributes, OR a photo. Without
+    // the photo clause, someone who picked a picture and had not typed the name
+    // yet would watch the row — and the photo they just chose — disappear on
+    // save, with nothing said.
+    const kept = f.variants.filter((v) => (v.name || "").trim() || Object.keys(v.attrs || {}).length || varImg[v.id]?.file || v.image_url);
+    const withPhoto = kept.filter((v) => varImg[v.id]?.file);
+    for (const v of withPhoto) fd.append("images", varImg[v.id].file);
+    fd.append("variants", JSON.stringify(kept.map((v) => {
+      const at = withPhoto.findIndex((x) => x.id === v.id);
+      return { ...v, image_url: at >= 0 ? `upload:${files.length + at}` : (v.image_url || "") };
+    })));
     const r = await apiJson(edit ? "/api/products" : "/api/add-product", { method: edit ? "PATCH" : "POST", body: fd });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
@@ -515,13 +560,34 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
             {f.variants.length === 0
               ? <div style={{ padding: "22px 12px", textAlign: "center", color: T.textDim, fontSize: 12.5, borderRadius: 14, background: T.bgAlt, boxShadow: T.nmIn }}>No variants yet. Add options above and generate, or <span onClick={addVariant} style={{ color: T.gold, cursor: "pointer", fontWeight: 600 }}>add one by hand</span>.</div>
               : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {!isMobile && <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1fr) 84px 84px 70px 92px 30px", gap: 8, padding: "0 6px", fontSize: 10.5, color: T.textDim, textTransform: "uppercase", letterSpacing: .7 }}>
-                    <span>Variant</span><span>SKU</span><span>Price</span><span>Sale</span><span>Qty</span><span>Status</span><span /></div>}
+                  {!isMobile && <div style={{ display: "grid", gridTemplateColumns: VAR_COLS, gap: 8, padding: "0 6px", fontSize: 10.5, color: T.textDim, textTransform: "uppercase", letterSpacing: .7 }}>
+                    <span>Photo</span><span>Variant</span><span>SKU</span><span>Price</span><span>Sale</span><span>Qty</span><span>Status</span><span /></div>}
                   {f.variants.map((v, i) => {
                     const cell = { background: T.card, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 13, outline: "none", fontFamily: "inherit", minWidth: 0, width: "100%", boxSizing: "border-box" };
                     const out = v.stock_status === "outofstock" || v.stock_qty === 0 || v.stock_qty === "0";
-                    return <div key={v.id} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "minmax(0,1.6fr) minmax(0,1fr) 84px 84px 70px 92px 30px", gap: 8, alignItems: "center", padding: isMobile ? 10 : "6px 6px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn, opacity: out ? .75 : 1 }}>
-                      <input value={v.name} onChange={(e) => setVar(i, { name: e.target.value })} placeholder="Name (e.g. M / Red)" className="ui-inp" style={{ ...cell, fontWeight: 600, gridColumn: isMobile ? "1 / -1" : undefined }} />
+                    const shot = varImg[v.id]?.u || (/^https?:\/\//.test(v.image_url || "") ? v.image_url : "");
+                    return <div key={v.id} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : VAR_COLS, gap: 8, alignItems: "center", padding: isMobile ? 10 : "6px 6px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn, opacity: out ? .75 : 1 }}>
+                      {/* The picture the bot sends once a customer picks THIS
+                          option — the red one when they ask for red. Without it
+                          every variant of a product looked the same in chat.
+                          On a phone the photo sits beside the name on its own
+                          full-width row; on desktop "display: contents" drops
+                          both straight into the outer grid as two columns. */}
+                      <div style={isMobile
+                        ? { gridColumn: "1 / -1", display: "flex", gap: 8, alignItems: "center" }
+                        : { display: "contents" }}>
+                      <button type="button" onClick={() => pickVarImg(v.id)} disabled={prepping}
+                        title={shot ? "Change this variant's photo" : "Add a photo for this variant"}
+                        aria-label={shot ? `Change photo for ${v.name || "variant"}` : `Add photo for ${v.name || "variant"}`}
+                        className="ui-btn" style={{ width: 44, height: 44, minHeight: 0, flexShrink: 0, padding: 0, borderRadius: 10, overflow: "hidden",
+                          border: shot ? `1px solid ${T.border}` : `1.5px dashed ${T.borderStrong}`, background: shot ? T.card : "transparent",
+                          color: T.textMuted, cursor: prepping ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                        {shot
+                          ? <img src={shot} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          : <i className="ti ti-camera-plus" style={{ fontSize: 17 }} />}
+                      </button>
+                      <input value={v.name} onChange={(e) => setVar(i, { name: e.target.value })} placeholder="Name (e.g. M / Red)" className="ui-inp" style={{ ...cell, fontWeight: 600 }} />
+                      </div>
                       <input value={v.sku} onChange={(e) => setVar(i, { sku: e.target.value })} placeholder="SKU" className="ui-inp" style={cell} />
                       <input value={v.regular_price} onChange={(e) => setVar(i, { regular_price: e.target.value })} placeholder="Price" inputMode="decimal" className="ui-inp" style={cell} />
                       <input value={v.sale_price} onChange={(e) => setVar(i, { sale_price: e.target.value })} placeholder="Sale" inputMode="decimal" className="ui-inp" style={cell} />
@@ -531,6 +597,9 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
                       <button type="button" onClick={() => set("variants", f.variants.filter((_, j) => j !== i))} aria-label="Remove variant" className="ui-btn" style={{ background: "none", border: "none", color: T.danger, cursor: "pointer", fontSize: 16, minHeight: 0, padding: 4, justifySelf: isMobile ? "end" : "center" }}><i className="ti ti-trash" /></button>
                     </div>;
                   })}
+                  <input ref={varFileRef} type="file" accept="image/*" hidden
+                    onChange={(e) => { takeVarImg(e.target.files?.[0]); e.target.value = ""; }} />
+                  <div style={{ fontSize: 11, color: T.textDim }}>Give a variant its own photo and the bot sends that one once the customer picks it — the red shirt when they ask for red.</div>
                   <Btn small onClick={addVariant} style={{ alignSelf: "flex-start", borderRadius: 10 }}><i className="ti ti-plus" style={{ marginRight: 5 }} />Add variant</Btn>
                 </div>}
           </Card>

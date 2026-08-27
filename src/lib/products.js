@@ -120,7 +120,12 @@ export function readProductForm(form) {
 
 // Turns the ordered gallery (URLs + "upload:N" placeholders) into final URLs.
 // Uploaded files nobody referenced are appended, nothing is listed twice.
-export function resolveGallery(order, uploaded) {
+//
+// `claimed` holds the indexes a variant has taken for its own photo. Those are
+// deliberately NOT appended: a variant photo answers "what does the red one
+// look like", and dropping twenty of them into the gallery would make the bot
+// show a customer twenty near-identical pictures of the same shirt.
+export function resolveGallery(order, uploaded, claimed = new Set()) {
   const out = [];
   const seen = new Set();
   const push = (u) => { if (u && !seen.has(u)) { seen.add(u); out.push(u); } };
@@ -128,8 +133,32 @@ export function resolveGallery(order, uploaded) {
     const m = /^upload:(\d+)$/.exec(item);
     push(m ? uploaded[Number(m[1])] : item);
   }
-  for (const u of uploaded) push(u);
+  uploaded.forEach((u, i) => { if (!claimed.has(i)) push(u); });
   return out.slice(0, 12);
+}
+
+// Which uploads the variants have spoken for, so resolveGallery can leave them
+// out. Read before the files are turned into URLs, because the placeholder is
+// what carries the index.
+export function claimedByVariants(variants) {
+  const claimed = new Set();
+  for (const v of variants || []) {
+    const m = /^upload:(\d+)$/.exec(String(v?.image_url || ""));
+    if (m) claimed.add(Number(m[1]));
+  }
+  return claimed;
+}
+
+// Turns each variant's "upload:N" placeholder into the URL of the file that was
+// actually uploaded. A variant that points at a file which never arrived keeps
+// no picture rather than an unusable placeholder — a broken link in a customer's
+// chat is worse than no picture at all.
+export function resolveVariantImages(variants, uploaded) {
+  return (variants || []).map((v) => {
+    const m = /^upload:(\d+)$/.exec(String(v?.image_url || ""));
+    if (!m) return v;
+    return { ...v, image_url: uploaded[Number(m[1])] || "" };
+  });
 }
 
 // Vision runs once per new primary image; the description is stored in

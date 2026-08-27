@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery } from "@/lib/products.js";
+import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 
 // Create one product from the Inventory tab. Multipart form: the fields in
@@ -29,9 +29,15 @@ export async function POST(request) {
     const { fields, files } = readProductForm(await request.formData());
     if (!fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
+    // 8 was enough when every photo went into the gallery. A variant can now
+    // carry its own picture, so a shirt in twelve colours sends more files than
+    // that in one save. The real limit is the request size, which the platform
+    // enforces and the browser now stays under by resizing first; this cap is
+    // only here so a malformed request cannot ask for unbounded work.
     const uploaded = [];
-    for (const f of files.slice(0, 8)) uploaded.push(await uploadProductImage(client.id, f));
-    const images = resolveGallery(fields.image_urls || [], uploaded);
+    for (const f of files.slice(0, 32)) uploaded.push(await uploadProductImage(client.id, f));
+    const variants = resolveVariantImages(fields.variants || [], uploaded);
+    const images = resolveGallery(fields.image_urls || [], uploaded, claimedByVariants(fields.variants || []));
     const image_url = images[0] || "";
 
     const { visual, analyzeError } = await describeImage(image_url, client);
@@ -45,7 +51,7 @@ export async function POST(request) {
       regular_price: fields.regular_price || "", sale_price: fields.sale_price || "",
       stock_status: fields.stock_status || "instock", stock_qty: fields.stock_qty ?? null,
       image_url, images, visual, description: fields.description || "",
-      options: fields.options || [], variants: fields.variants || [],
+      options: fields.options || [], variants,
       created_at: now, updated_at: now,
     };
     const { content, embedding } = await embedProduct(metadata);
