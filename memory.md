@@ -4,7 +4,35 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-27, second thread) — Adding fifteen shirts at once, and talking to the catalogue
+## Last session (2026-08-28) — Product added by conversation, and many photos on one product
+
+`f0c7642`, pushed. The owner asked for the manual add to become a question-and-answer
+with the AI, and for one product to be able to carry many pictures.
+
+- `POST /api/product-interview` — asks one question per turn. The DRAFT travels with
+  every turn and is re-cleaned through `normalizeSet` on arrival (the browser's copy is
+  not trusted either); the model never touches the database and never decides whether
+  the product may be saved. `draftGaps()` in `src/lib/inventory-actions.js` decides that.
+- Blocking: name, price, at least one photo. Asked-but-not-blocking: category, stock.
+  That is the owner's own answer — they ticked both options in the question.
+- Photos: camera button in the composer, `shrinkBatch` so the whole gallery fits ONE
+  add-product request, first photo marked and swappable, any droppable. Only the FIRST
+  is read by vision; its text rides along as `visual` so vision does not run twice.
+- Saved through `/api/add-product` — the same route the drawer uses. Nothing new writes
+  to the catalogue.
+- `Add by chat` sits beside `Add product` in the toolbar and in the empty state. Both
+  ways to add stay; the owner will decide later which becomes primary.
+
+Fixed on the way: the fourth toolbar button broke the phone layout (no `flexWrap` on the
+action row), and the photo remove button was 22px — on a phone the thumbnail is 92px
+with a 44px target wholly inside it.
+
+**Still unverified:** how a real model's JSON parses, in all three AI routes. Google
+Cloud billing is off. Everything around the model is tested.
+
+---
+
+## Earlier session (2026-08-27, second thread) — Adding fifteen shirts at once, and talking to the catalogue
 
 The owner had fifteen photographed box t-shirts and could add four. Three
 commits, all pushed. Started from a real screenshot: fifteen files selected in
@@ -1714,3 +1742,4 @@ automation looks natural to a reviewer.
 - Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
   `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
 - WhatsApp typing indicator also marks the message read.
+

@@ -665,3 +665,15 @@ The route was fine, but the test proved nothing about it.
 from outside the harness — `Invoke-WebRequest` against `localhost:3000` — and expect the
 401 that proves the real code ran. Whenever a response looks suspiciously empty, ask who
 else is answering.
+
+## A new button in a flex row that does not wrap breaks the whole page (2026-08-28)
+
+Adding a fourth button to the Inventory toolbar was one line. On a phone it pushed the
+row to 475px inside a 375px viewport, and because the row had `display:flex` with no
+`flexWrap`, the entire page gained 100px of horizontal scroll. The panel I had just
+built measured clean; the damage was two components away, in code I had not touched
+except to add one button to it.
+
+**Rule:** after adding anything to an existing row, measure `document.body.scrollWidth`
+against `clientWidth` at 375px — not just the new component's own bounds. A flex row
+without `flexWrap` is a page-level overflow waiting for one more child.
