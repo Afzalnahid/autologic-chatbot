@@ -1,5 +1,6 @@
 "use client";
 import { createClient as createSb } from "@/utils/supabase/client";
+import { readJson, offlineError } from "@/lib/api-error.js";
 
 // Supabase session and the authenticated fetch helper. One module owns the
 // token so every tab sends the same one.
@@ -32,6 +33,19 @@ export async function api(url,opts={}){
     }catch{}
   }
   return res;
+}
+
+// api() plus reading the answer, which is what nearly every caller actually
+// wanted. It never throws and never rejects: the result is always an object —
+// the route's own JSON when there is one, and a plain-language sentence when
+// the answer came from the platform instead (a 413, a timeout, a crash page).
+//
+// Callers must NOT call .json() on what comes back; it is already parsed.
+export async function apiJson(url, opts = {}) {
+  let res;
+  try { res = await api(url, opts); }
+  catch { return offlineError(); }
+  return readJson(res);
 }
 
 export function setAuthToken(v){ AUTH_TOKEN = v || ""; }

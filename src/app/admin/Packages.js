@@ -4,6 +4,7 @@ import { T, Card, Btn, Badge, Inp, Select, Switch, useIsMobile, fmtNum } from ".
 // Aliased: this file already has its own FEATURES (the package capability
 // switches), which is a different list entirely.
 import { AREAS, FEATURES as USAGE_FEATURES, featureLabel } from "@/lib/usage-features.js";
+import { readJson, offlineError } from "@/lib/api-error.js";
 
 // Packages & Costs — the business side of the admin console.
 //
@@ -89,7 +90,7 @@ export default function Packages({ token, isSuper }) {
     if (!token) return;
     const r = await fetch(`/api/admin/packages?days=${days}&t=${Date.now()}`, {
       cache: "no-store", headers: { Authorization: `Bearer ${token}` },
-    }).then((x) => x.json()).catch(() => ({ error: "network" }));
+    }).then(readJson).catch(offlineError);
     if (r.error) { setMsg({ ok: false, text: r.error }); return; }
     setD(r);
   }, [token, days]);
@@ -100,7 +101,7 @@ export default function Packages({ token, isSuper }) {
     const r = await fetch("/api/admin/packages", {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
-    }).then((x) => x.json()).catch(() => ({ error: "network" }));
+    }).then(readJson).catch(offlineError);
     setBusy(false);
     if (r.error) { setMsg({ ok: false, text: r.error }); return false; }
     setMsg({ ok: true, text: "Saved." });

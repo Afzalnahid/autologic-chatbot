@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { T, Card, Btn, Badge, Select } from "../dashboard/components/ui.js";
+import { readJson, offlineError } from "@/lib/api-error.js";
 
 // The platform's own AI engine — the key and models that answer for every client
 // who is NOT on their own key. Same shape as the client's AI Engine tab so the
@@ -42,7 +43,7 @@ export default function AIAdmin({ token, superKey, setSuperKey }) {
   const load = useCallback(async () => {
     if (!token) return;
     const r = await fetch(`/api/admin/ai?t=${Date.now()}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } })
-      .then((x) => x.json()).catch(() => ({ error: "network" }));
+      .then(readJson).catch(offlineError);
     if (r.error) { setMsg({ ok: false, text: r.error }); return; }
     setSt(r);
     const saved = String(r.model_chain || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -56,7 +57,7 @@ export default function AIAdmin({ token, superKey, setSuperKey }) {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(withKey ? { "x-admin-key": superKey || "" } : {}) },
       body: JSON.stringify(body),
-    }).then((x) => x.json()).catch(() => ({ error: "network" }));
+    }).then(readJson).catch(offlineError);
     setBusy(false);
     if (r.error) { setMsg({ ok: false, text: r.error }); return null; }
     return r;

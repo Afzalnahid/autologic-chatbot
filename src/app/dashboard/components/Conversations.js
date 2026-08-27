@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Badge, useIsMobile, Select, Switch } from "./ui.js";
-import { api, getSb } from "./session.js";
+import { api, getSb, apiJson } from "./session.js";
 
 // The Conversations tab, moved out of dashboard-client.js unchanged.
 
@@ -80,7 +80,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     fd.append("sender_id",c.id);
     fd.append("kind",kind);
     fd.append("file",file);
-    const r=await api("/api/send-media",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const r=await apiJson("/api/send-media",{method:"POST",body:fd});
     setSending(false);
     if(r.error) alert("Send failed: "+r.error);
     else refresh&&refresh(true);
@@ -181,7 +181,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     const text=input.trim();
     if(!text||sending) return;
     setSending(true); setInput("");
-    const r=await api("/api/send-message",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,text})}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const r=await apiJson("/api/send-message",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id,text})});
     setSending(false);
     if(r.error) alert("Send failed: "+r.error);
     else refresh&&refresh(true);

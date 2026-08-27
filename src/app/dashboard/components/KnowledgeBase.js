@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Badge, Select, useIsMobile, shortDate } from "./ui.js";
-import { api } from "./session.js";
+import { api, apiJson } from "./session.js";
 
 // The Knowledge Base tab: the documents the bot answers from.
 //
@@ -62,7 +62,7 @@ export default function KnowledgeBase() {
     for (const file of picked) {
       setBusy(file.name);
       const fd = new FormData(); fd.append("file", file);
-      const r = await api("/api/knowledge", { method: "POST", body: fd }).then((r) => r.json()).catch(() => ({ error: "network" }));
+      const r = await apiJson("/api/knowledge", { method: "POST", body: fd });
       if (r.error) failed.push(`${file.name} (${r.error})`); else ok++;
       setQueue((q) => ({ ...q, done: q.done + 1 }));
     }

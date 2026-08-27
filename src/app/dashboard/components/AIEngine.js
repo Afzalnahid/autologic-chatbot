@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { T, Card, Btn, Select, Badge, useIsMobile } from "./ui.js";
-import { api } from "./session.js";
+import { api, apiJson } from "./session.js";
 
 // The AI Engine tab — the client's own API key (BYOK) lives here, on its own
 // page instead of buried in Bot Training. The super admin grants permission
@@ -108,7 +108,7 @@ function KeyManager({ st, setSt, isMobile }) {
   const P = hasKey ? PROVIDERS[st.provider] : null;
 
   const removeKey = async () => {
-    const r = await api("/api/ai-key", { method: "DELETE" }).then((x) => x.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson("/api/ai-key", { method: "DELETE" });
     setConfirmRm(false);
     if (r.error) { setMsg({ ok: false, text: r.error }); return; }
     setSt(r); setEditing(false); setMsg({ ok: true, text: "Key removed — your bot is back on the platform's AI." });
@@ -195,7 +195,7 @@ function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg 
   const loadModels = async () => {
     if (!key.trim() || busy) return;
     setBusy("load"); setMsg(null);
-    const r = await api("/api/ai-key/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, api_key: key.trim() }) }).then((x) => x.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson("/api/ai-key/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, api_key: key.trim() }) });
     setBusy(false);
     if (r.error) { setModels(null); setMsg({ ok: false, text: r.error }); return; }
     const list = r.models || [];   // [{id, tier, note}]
@@ -213,7 +213,7 @@ function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg 
     if (!key.trim() || !main || busy) return;
     setBusy("save"); setMsg({ ok: true, text: "Verifying and saving…" });
     const chain = [main, fallback].filter((v, i, a) => v && a.indexOf(v) === i);
-    const r = await api("/api/ai-key", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, api_key: key.trim(), models: chain }) }).then((x) => x.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson("/api/ai-key", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, api_key: key.trim(), models: chain }) });
     setBusy(false);
     if (r.error) { setMsg({ ok: false, text: r.error }); return; }
     onSaved(r);

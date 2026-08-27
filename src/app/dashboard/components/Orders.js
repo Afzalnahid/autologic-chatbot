@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import { T, Card, Btn, Badge, Inp, Select, Segmented, KStat, useIsMobile, taka, shortDate, fmtNum } from "./ui.js";
-import { api } from "./session.js";
+import { api, apiJson } from "./session.js";
 
 // The Orders tab: every order the bot recorded, with what the owner needs to
 // ship it — who, where, what (with photos, sizes and quantities), the money
@@ -52,7 +52,7 @@ export default function Orders({ orders, refresh }) {
 
   const update = async (id, patch) => {
     setBusy(id);
-    const r = await api("/api/orders", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...patch }) }).then(r => r.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson("/api/orders", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...patch }) });
     setBusy("");
     if (r.error) { setToast("Could not save: " + r.error); return null; }
     if (open && open.id === id && r.order) setOpen(r.order);

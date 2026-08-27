@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Inp, Badge, Accordion, Select, Switch, useIsMobile, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
-import { api } from "./session.js";
+import { api, apiJson } from "./session.js";
 import { useT, useLang } from "./i18n.js";
 
 // The Bot Training tab (page key "settings"). Four sub-tabs — Train (the bot
@@ -73,7 +73,7 @@ export default function Settings({settings,setSettings}) {
     const answers=s.questionnaire||{};
     if(!(answers.description||"").trim()){setGenMsg(t("bt.train.genNeedDesc"));return;}
     setGen(true); setGenMsg(t("bt.train.generating"));
-    const r=await api("/api/generate-prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers})}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const r=await apiJson("/api/generate-prompt",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers})});
     setGen(false);
     if(r.error){setGenMsg(t("bt.train.genFail"));return;}
     setS(v=>({...v,businessPrompt:r.prompt})); setGenMsg(t("bt.train.genOk"));
@@ -151,7 +151,7 @@ export default function Settings({settings,setSettings}) {
   const organise=async(o)=>{
     if(orgBusy) return;
     setOrgBusy(o.id);
-    const r=await api("/api/offer-rewrite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:o.title||"",details:o.details||"",products:itemsOf(o)})}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const r=await apiJson("/api/offer-rewrite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:o.title||"",details:o.details||"",products:itemsOf(o)})});
     setOrgBusy(null);
     if(r.error){alert(r.error);return;}
     patchOffer(o.id,{title:r.title,details:r.details});

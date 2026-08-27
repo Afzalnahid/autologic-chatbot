@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { T, Card, Btn, Inp, Badge, Select, Segmented, useIsMobile, taka } from "./ui.js";
-import { api } from "./session.js";
+import { api, apiJson } from "./session.js";
 import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
 import { shrinkBatch } from "@/lib/shrink-image.js";
 
@@ -103,7 +103,7 @@ export default function Inventory({ products, refresh }) {
     if (!sel.size || busyBulk) return;
     if (!confirm(`Delete ${sel.size} product${sel.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
     setBusyBulk(true);
-    const r = await api("/api/products", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [...sel] }) }).then((r) => r.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson("/api/products", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [...sel] }) });
     setBusyBulk(false);
     if (r.error) { setToast("Delete failed: " + r.error); return; }
     setToast(`Deleted ${sel.size} product${sel.size > 1 ? "s" : ""}`); setSel(new Set()); refresh();
@@ -116,7 +116,7 @@ export default function Inventory({ products, refresh }) {
   };
   const del = async (p) => {
     if (!confirm(`Delete "${p.product_name || "this product"}"?`)) return;
-    const r = await api("/api/products", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: p.id }) }).then((r) => r.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson("/api/products", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: p.id }) });
     if (r.error) { setToast("Delete failed: " + r.error); return; }
     setToast("Product deleted"); refresh();
   };
@@ -357,7 +357,7 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     const files = gallery.filter((g) => g.kind === "file");
     fd.append("image_urls", JSON.stringify(gallery.map((g) => g.kind === "url" ? g.u : `upload:${files.indexOf(g)}`)));
     for (const g of files) fd.append("images", g.file);
-    const r = await api(edit ? "/api/products" : "/api/add-product", { method: edit ? "PATCH" : "POST", body: fd }).then((r) => r.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson(edit ? "/api/products" : "/api/add-product", { method: edit ? "PATCH" : "POST", body: fd });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
     onSaved(edit ? "Product updated" : (r.analyzed ? "Product added and photo analysed" : "Product added"));
@@ -580,7 +580,7 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
   };
   const scrape = async () => {
     if (!url || busy) return; setBusy(true); setMsg("Fetching the product…");
-    const r = await api("/api/import-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) }).then((r) => r.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson("/api/import-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
     setBusy(false);
     if (r.error) { setMsg("Failed: " + r.error); return; }
     setMsg(""); onDone(`Added: ${r.name}`); onClose();
@@ -588,7 +588,7 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
   const runImport = async () => {
     if (!imp.siteUrl || !imp.ck || !imp.cs || busy) return;
     setBusy(true); setMsg("Fetching product list…");
-    const r = await api("/api/import-products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(imp) }).then((r) => r.json()).catch(() => ({ error: "network" }));
+    const r = await apiJson("/api/import-products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(imp) });
     if (r.error) { setMsg("Failed: " + r.error); setBusy(false); return; }
     const list = r.products || []; let done = 0, fail = 0;
     for (const prod of list) {

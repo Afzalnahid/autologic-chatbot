@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Inp, Badge, Select } from "./ui.js";
-import { api, getSb, setAuthToken } from "./session.js";
+import { api, getSb, setAuthToken, apiJson } from "./session.js";
 
 // The Profile tab, moved out of dashboard-client.js unchanged.
 
@@ -73,7 +73,7 @@ export default function Profile() {
     if(!file) return;
     setLogoBusy(true);
     const fd=new FormData(); fd.append("logo",file);
-    const r=await api("/api/profile-logo",{method:"POST",body:fd}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const r=await apiJson("/api/profile-logo",{method:"POST",body:fd});
     setLogoBusy(false);
     if(r.error){setMsg("Logo failed: "+r.error);return;}
     await load();
@@ -103,7 +103,7 @@ export default function Profile() {
   const save=async()=>{
     setSaving(true); setMsg("");
     const payload={...form,item_label:AUTO_ITEM[form.business_type]||"item"};
-    const r=await api("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json()).catch(()=>({error:"network"}));
+    const r=await apiJson("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     setSaving(false);
     if(r.error){setMsg("Failed: "+r.error);return;}
     await load();
