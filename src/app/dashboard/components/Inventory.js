@@ -6,6 +6,7 @@ import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js
 import { shrinkBatch } from "@/lib/shrink-image.js";
 import { buildVariants, usableOptions, newVariantId } from "@/lib/variants.js";
 import PhotoBatchSheet from "./PhotoBatch.js";
+import InventoryAssistant from "./InventoryAssistant.js";
 
 // The Inventory tab: the shop's catalogue, organised. Products carry a
 // category, a brand, tags, a photo gallery and — for things that come in
@@ -170,6 +171,11 @@ export default function Inventory({ products, refresh }) {
         <Btn gold onClick={() => setEditor({ mode: "add" })} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-plus" style={{ marginRight: 6 }} />Add product</Btn>
       </div>
     </Card>
+
+    {/* Talking to the catalogue. Folded until asked for, and only shown once
+        there is a catalogue to talk about — there is nothing to ask about an
+        empty one, and the empty state already says what to do next. */}
+    {!empty && <InventoryAssistant products={products} refresh={refresh} />}
 
     {/* Body: category rail + products */}
     {empty
