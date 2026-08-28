@@ -59,20 +59,27 @@ let seq = 0;
 const nextId = () => `d${Date.now().toString(36)}${(seq++).toString(36)}`;
 const splitList = (s) => String(s || "").split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
 
-// "Size" and "Colour" are the two axes a shop in this market actually uses, so
-// they are two plain boxes rather than the drawer's full option builder. Any
-// other axis is still available by opening the product afterwards.
-const optionsOf = (d) => [
-  { name: "Size", values: splitList(d.sizes) },
-  { name: "Colour", values: splitList(d.colours) },
-].filter((o) => o.values.length);
+// What a customer chooses between. "Size" and "Colour" used to be written in
+// here as two fixed boxes — a clothing shop's answer built into everybody's
+// tool. The names now come from the shop's own catalogue, from what the AI
+// reads in the photos, or from whatever the owner types over the top; a phone
+// shop gets Capacity and Model, a food shop Weight and Flavour.
+//
+// The NAMES are shared by the whole batch, because fifteen shirts off one rail
+// are choices along the same axes. The VALUES belong to each product, because
+// one of them may be S–L and the next M–XL.
+const optionsOf = (d, axes) => (axes || [])
+  .map((name) => ({ name, values: splitList(d.opt?.[name]) }))
+  .filter((o) => o.name && o.values.length);
 
 // A product being built: one or more photographs, and the fields they will be
 // saved with. The FIRST photo is the one the bot shows and the one the AI read.
 const blank = (photos) => ({
   id: nextId(), photos,
   product_name: "", regular_price: "", category: "", stock_qty: "",
-  description: "", visual: "", sizes: "", colours: "",
+  // Values keyed by axis name — { Size: "S, M, L", Colour: "Black" }. The names
+  // live on the batch, not on each product.
+  description: "", visual: "", opt: {},
   // What the last read proposed, so a second read can replace its own words
   // without touching the owner's.
   ai: null,
@@ -82,13 +89,20 @@ const blank = (photos) => ({
 // `prefill` is what the chat already asked for — the kind of thing these are,
 // what they cost, the sizes. Everything it carries is applied to every product
 // as it arrives, so the owner is not asked the same three questions twice.
-export default function PhotoBatchSheet({ isMobile, categories = [], prefill, onClose, onDone }) {
+export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = [], prefill, onClose, onDone }) {
   const [drafts, setDrafts] = useState([]);
   const [base, setBase] = useState(prefill?.kind || "");
   const [bulkPrice, setBulkPrice] = useState(prefill?.price || "");
   const [bulkCat, setBulkCat] = useState(prefill?.category || "");
-  const [bulkSizes, setBulkSizes] = useState(prefill?.sizes || "");
-  const [bulkColours, setBulkColours] = useState(prefill?.colours || "");
+  // The choices this batch is sold along, and the values to put on every
+  // product. Seeded from what the chat already asked, then from this shop's own
+  // catalogue; the AI proposes only when neither has anything to say.
+  const [axes, setAxes] = useState(() => {
+    const fromChat = (prefill?.axes || []).map((a) => a.name).filter(Boolean);
+    return fromChat.length ? fromChat : shopAxes.slice(0, 2);
+  });
+  const [bulkOpt, setBulkOpt] = useState(() =>
+    Object.fromEntries((prefill?.axes || []).map((a) => [a.name, (a.values || []).join(", ")])));
   const [prepping, setPrepping] = useState(false);
   const [reading, setReading] = useState(null); // {done, total}
   const [readNote, setReadNote] = useState("");
@@ -170,7 +184,7 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
     // just told us about would be the opposite of organised.
     const shared = {
       regular_price: prefill?.price || "", category: prefill?.category || "",
-      sizes: prefill?.sizes || "", colours: prefill?.colours || "",
+      opt: Object.fromEntries((prefill?.axes || []).map((a) => [a.name, (a.values || []).join(", ")])),
     };
     const fresh = taken.map((file, i) => ({ ...blank([{ id: nextId(), file, u: preview(file) }]), ...shared, takenAt: takenAt[i] }));
     setDrafts((s) => [...s, ...fresh]);
@@ -219,6 +233,12 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
       // The photos were read but the naming step failed. Saying "read 15
       // photos" over fifteen empty name boxes would be a lie.
       if (r.nameError) nameErr = r.nameError;
+      // The AI's guess at what customers choose between here — Size and Colour
+      // for a shirt, Capacity for a phone. Last in line: the chat's answer and
+      // the shop's own catalogue both know better, so this only fills a gap.
+      if (Array.isArray(r.axes) && r.axes.length) {
+        setAxes((s) => (s.filter(Boolean).length ? s : r.axes.slice(0, 2)));
+      }
       // Written back by id — a slow chunk cannot land on the wrong row if the
       // owner has been deleting rows meanwhile — and never over a person's own
       // words. `ai` remembers what the last read proposed, so reading again
@@ -321,7 +341,7 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
     const rest = d.photos.filter((p) => p.id !== photoId);
     // The new row inherits everything but the vision text: that description
     // belongs to the photo that was read, and this is a different picture.
-    const made = { ...blank([photo]), product_name: d.product_name, regular_price: d.regular_price, category: d.category, sizes: d.sizes, colours: d.colours };
+    const made = { ...blank([photo]), product_name: d.product_name, regular_price: d.regular_price, category: d.category, opt: { ...d.opt } };
     return [...s.slice(0, at), { ...d, photos: rest }, made, ...s.slice(at + 1)];
   });
 
@@ -349,7 +369,7 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
   // Everything back to one photo per product, for a batch the AI grouped wrongly.
   const ungroupAll = () => setDrafts((s) => s.flatMap((d) =>
     d.photos.map((p, i) => i === 0 ? { ...d, photos: [p] }
-      : { ...blank([p]), product_name: "", regular_price: d.regular_price, category: d.category, sizes: d.sizes, colours: d.colours })));
+      : { ...blank([p]), product_name: "", regular_price: d.regular_price, category: d.category, opt: { ...d.opt } })));
 
   // ── Filling them all at once ───────────────────────────────────────────────
   // "Box T-shirt" becomes "Box T-shirt 1 … 15". A photo straight off a phone is
@@ -362,6 +382,27 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
     setDrafts((s) => s.map((d, i) => ({ ...d, product_name: `${b} ${i + 1}` })));
   };
   const all = (p) => setDrafts((s) => s.map((d) => ({ ...d, ...p })));
+
+  // ── The choices a customer makes ──────────────────────────────────────────
+  // Renaming an axis carries every product's values across with it, so typing
+  // "Colour" over "Size" does not silently drop what was already filled in.
+  const renameAxis = (i, next) => {
+    const from = axes[i], to = String(next).slice(0, 40);
+    setAxes((s) => s.map((a, j) => j === i ? to : a));
+    setBulkOpt((s) => { const v = s[from]; const out = { ...s }; delete out[from]; if (v !== undefined) out[to] = v; return out; });
+    setDrafts((s) => s.map((d) => {
+      const v = d.opt?.[from];
+      const opt = { ...(d.opt || {}) }; delete opt[from]; if (v !== undefined) opt[to] = v;
+      return { ...d, opt };
+    }));
+  };
+  const dropAxis = (i) => {
+    const gone = axes[i];
+    setAxes((s) => s.filter((_, j) => j !== i));
+    setBulkOpt((s) => { const out = { ...s }; delete out[gone]; return out; });
+    setDrafts((s) => s.map((d) => { const opt = { ...(d.opt || {}) }; delete opt[gone]; return { ...d, opt }; }));
+  };
+  const applyAxis = (name) => setDrafts((s) => s.map((d) => ({ ...d, opt: { ...(d.opt || {}), [name]: bulkOpt[name] || "" } })));
 
   const unnamed = drafts.filter((d) => !d.product_name.trim()).length;
   // Every product here has a photo by definition — it was built from one — so
@@ -379,7 +420,7 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
 
     for (const d of drafts) {
       setMsg(`Adding ${done + fail + dupes + 1} of ${drafts.length}: ${d.product_name}`);
-      const opts = optionsOf(d);
+      const opts = optionsOf(d, axes);
       const fd = new FormData();
       fd.append("product_name", d.product_name.trim());
       fd.append("regular_price", d.regular_price || "");
@@ -477,8 +518,26 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
                   </div>
                   {bulkBox(bulkPrice, setBulkPrice, "Price", () => all({ regular_price: bulkPrice }), { inputMode: "decimal" })}
                   {bulkBox(bulkCat, setBulkCat, "Category, e.g. Men › T-shirt", () => all({ category: bulkCat }), { list: "inv-cats" })}
-                  {bulkBox(bulkSizes, setBulkSizes, "Sizes, e.g. S, M, L, XL", () => all({ sizes: bulkSizes }))}
-                  {bulkBox(bulkColours, setBulkColours, "Colours, e.g. Black, White", () => all({ colours: bulkColours }))}
+                  {/* One row per choice a customer makes. The NAME is a box,
+                      not a label: this shop may sell along Capacity, Weight or
+                      Package, and only they know which. */}
+                  {/* On a phone the name takes its own line and the options,
+                      Apply and remove wrap under it — squeezed onto one line
+                      the options box came out 33px wide. */}
+                  {axes.map((name, i) => <div key={i} style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <Inp emb value={name} onChange={(e) => renameAxis(i, e.target.value)} placeholder="Choice, e.g. Size"
+                      list="inv-axes" aria-label={`Choice ${i + 1} name`}
+                      style={{ marginBottom: 0, width: isMobile ? "100%" : 108, flexShrink: 0 }} />
+                    <Inp emb value={bulkOpt[name] || ""} onChange={(e) => setBulkOpt((s) => ({ ...s, [name]: e.target.value }))}
+                      placeholder={`${name || "Choice"} options, comma separated`} aria-label={`${name || "Choice"} options`}
+                      style={{ marginBottom: 0, flex: 1, minWidth: 130 }} />
+                    <Btn small onClick={() => applyAxis(name)} disabled={busy} style={{ borderRadius: 10, whiteSpace: "nowrap" }}>Apply</Btn>
+                    <button type="button" onClick={() => dropAxis(i)} disabled={busy} aria-label={`Remove the ${name || "choice"} row`} className="ui-btn"
+                      style={{ ...ICON_BTN, color: T.danger, width: 36 }}><i className="ti ti-x" /></button>
+                  </div>)}
+                  {axes.length < 4 && <Btn small onClick={() => setAxes((s) => [...s, ""])} disabled={busy} style={{ borderRadius: 10 }}>
+                    <i className="ti ti-plus" style={{ marginRight: 5 }} />{axes.length ? "Another choice" : "Add sizes, colours…"}
+                  </Btn>}
                   <div style={{ display: "flex", gap: 6 }}>
                     <Btn small onClick={() => read(drafts, drafts)} disabled={busy || !!reading} style={{ borderRadius: 10, flex: 1 }}>
                       <i className="ti ti-sparkles" style={{ marginRight: 5 }} />Read again
@@ -489,6 +548,9 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
                   </div>
                 </div>
                 <datalist id="inv-cats">{categories.map((c) => <option key={c} value={c} />)}</datalist>
+                {/* Whatever this shop has called its choices before, offered
+                    back as suggestions rather than imposed. */}
+                <datalist id="inv-axes">{shopAxes.map((a) => <option key={a} value={a} />)}</datalist>
                 <div style={{ display: bulkOpen ? "block" : "none", fontSize: 11.5, color: T.textDim, marginTop: 9, lineHeight: 1.6 }}>
                   “Name all” numbers them — Box T-shirt 1, 2, 3… “One each” undoes the grouping and makes every photo its own product again.
                 </div>
@@ -546,10 +608,19 @@ export default function PhotoBatchSheet({ isMobile, categories = [], prefill, on
 
                   {d.open && <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) minmax(0,1fr)", gap: 8, padding: "10px 2px 4px" }}>
                     <textarea value={d.description} onChange={(e) => patch(d.id, { description: e.target.value })} rows={3} placeholder="What a customer reads about this product" className="ui-inp" style={{ ...CELL, gridColumn: isMobile ? "auto" : "1 / -1", resize: "vertical", lineHeight: 1.55 }} />
-                    <input value={d.sizes} onChange={(e) => patch(d.id, { sizes: e.target.value })} placeholder="Sizes, e.g. S, M, L" className="ui-inp" style={CELL} />
-                    <input value={d.colours} onChange={(e) => patch(d.id, { colours: e.target.value })} placeholder="Colours, e.g. Black, White" className="ui-inp" style={CELL} />
+                    {/* The batch's choices, with THIS product's values. One
+                        shirt may be S–L and the next M–XL. */}
+                    {axes.filter(Boolean).map((name) => <input key={name} value={d.opt?.[name] || ""}
+                      onChange={(e) => patch(d.id, { opt: { ...(d.opt || {}), [name]: e.target.value } })}
+                      placeholder={`${name}, comma separated`} aria-label={`${name} for product ${i + 1}`} className="ui-inp" style={CELL} />)}
                     <div style={{ gridColumn: isMobile ? "auto" : "1 / -1", fontSize: 11.5, color: T.textDim, lineHeight: 1.6 }}>
-                      {(() => { const n = buildVariants(optionsOf(d), {}).length; return n ? `${n} combination${n > 1 ? "s" : ""} will be created — each one gets its own stock count and photo when you open the product.` : "Leave both empty if this product has no sizes or colours."; })()}
+                      {(() => {
+                        const n = buildVariants(optionsOf(d, axes), {}).length;
+                        if (n) return `${n} combination${n > 1 ? "s" : ""} will be created — each one gets its own stock count and photo when you open the product.`;
+                        return axes.filter(Boolean).length
+                          ? "Leave these empty if this one has no choices."
+                          : "Add a choice above — sizes, colours, capacities — if customers pick between them.";
+                      })()}
                       {i > 0 && <button type="button" onClick={() => mergeUp(d.id)} className="ui-btn"
                         style={{ display: "block", marginTop: 8, padding: "6px 10px", borderRadius: 9, fontSize: 11.5, background: T.card, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 34 }}>
                         <i className="ti ti-arrow-merge-alt-left" style={{ marginRight: 5 }} />These are photos of the product above — join them

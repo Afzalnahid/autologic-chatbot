@@ -4,7 +4,7 @@ import { T, Card, Btn, Inp, Badge, Select, Segmented, useIsMobile, taka } from "
 import { api, apiJson } from "./session.js";
 import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
 import { shrinkBatch } from "@/lib/shrink-image.js";
-import { buildVariants, usableOptions, newVariantId } from "@/lib/variants.js";
+import { buildVariants, usableOptions, newVariantId, knownAxes } from "@/lib/variants.js";
 import { findTwins } from "@/lib/duplicate-keys.js";
 import { productState, MISSING, missingToSell, missingMessage } from "@/lib/readiness.js";
 import PhotoBatchSheet from "./PhotoBatch.js";
@@ -87,6 +87,11 @@ export default function Inventory({ products, refresh }) {
     return [...m.entries()].sort((a, b) => a[0] === "Uncategorized" ? 1 : b[0] === "Uncategorized" ? -1 : a[0].localeCompare(b[0]));
   }, [products]);
   const catNames = cats.map(([c]) => c).filter((c) => c !== "Uncategorized");
+  // What this shop already sells choices along — Size and Colour for clothes,
+  // Capacity and Model for phones, Weight and Flavour for food. Read from their
+  // own products rather than assumed, so nothing here is a clothing shop's
+  // answer imposed on everyone else.
+  const shopAxes = useMemo(() => knownAxes(products), [products]);
 
   const list = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -251,7 +256,7 @@ export default function Inventory({ products, refresh }) {
     {/* Talking to the catalogue. Folded until asked for, and shown even when
         the catalogue is empty — being asked the questions is the gentlest way
         to add the very first product. */}
-    <InventoryAssistant products={products} refresh={refresh} startSignal={chatAdd}
+    <InventoryAssistant products={products} refresh={refresh} startSignal={chatAdd} shopAxes={shopAxes}
       onImport={(kind, prefill) => { setPrefill(prefill || null); setImporter(kind); }} />
 
     {/* Body: category rail + products */}
@@ -348,7 +353,7 @@ export default function Inventory({ products, refresh }) {
       onClose={() => setSweep(false)} onDone={(msg) => { setToast(msg); refresh(); }} />}
 
     {importer === "photos"
-      ? <PhotoBatchSheet isMobile={isMobile} categories={catNames} prefill={prefill} onClose={() => { setImporter(null); setPrefill(null); }} onDone={(msg) => { setToast(msg); refresh(); }} />
+      ? <PhotoBatchSheet isMobile={isMobile} categories={catNames} shopAxes={shopAxes} prefill={prefill} onClose={() => { setImporter(null); setPrefill(null); }} onDone={(msg) => { setToast(msg); refresh(); }} />
       : importer && <ImportSheet kind={importer} isMobile={isMobile} onClose={() => setImporter(null)} onDone={(msg) => { setToast(msg); refresh(); }} />}
   </div>;
 }

@@ -72,11 +72,15 @@ export async function POST(request) {
       }
     }
 
-    const { items, error } = await nameThem(client, drafts, hint, known);
+    const { items, axes, error } = await nameThem(client, drafts, hint, known);
     return NextResponse.json({
       ok: true,
       drafts: drafts.map((d, i) => ({ ...d, ...(items[i] || {}) })),
       nameError: error || null,
+      // The choices a customer picks between for this kind of thing — Size and
+      // Colour for a shirt, Capacity and Model for a phone. A proposal only;
+      // the shop's own axes win over it, and the owner can rename either.
+      axes: axes || [],
     });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -104,7 +108,9 @@ THESE ARE ALL ${hint.toUpperCase()}. That is the kind of thing they are, and it 
 
 NEVER number them. "${hint} 1", "${hint} 2" tells a customer nothing and tells the bot nothing: someone asking for "the one with the flowers" cannot be matched to a number. If two photographs genuinely look the same, say so in the difference rather than falling back on a count.
 ` : ""}
-Answer with JSON only: {"items":[{"n":<the photo number>,"name":"...","category":"...","description":"..."}]}`;
+ALSO name the choices a customer picks between for this kind of thing, as "axes" — at most two, the names only, never the values. A clothing shop's are Size and Colour; a phone shop's are Model and Capacity; a food shop's are Weight and Flavour; a furniture shop's are Material and Size. Use [] when this kind of thing genuinely has no choices.
+
+Answer with JSON only: {"axes":["Size","Colour"],"items":[{"n":<the photo number>,"name":"...","category":"...","description":"..."}]}`;
 
   const lines = usable.map((d) => `Photo ${d.i + 1}: ${String(d.visual).slice(0, 900)}`).join("\n\n");
   const ask = [
@@ -115,8 +121,9 @@ Answer with JSON only: {"items":[{"n":<the photo number>,"name":"...","category"
   try {
     const ai = await getClientAI(client.id, "product.catalog");
     const raw = await ai.chat(system, [{ role: "user", content: ask }]);
+    const parsed = parseAnswer(raw);
     const items = [];
-    for (const it of parseItems(raw)) {
+    for (const it of parsed.items) {
       const n = Number(it?.n);
       if (!Number.isFinite(n) || n < 1 || n > drafts.length) continue;
       items[n - 1] = {
@@ -125,23 +132,30 @@ Answer with JSON only: {"items":[{"n":<the photo number>,"name":"...","category"
         description: String(it.description || "").trim().slice(0, 400),
       };
     }
-    return { items, error: null };
+    // Names only, and only two. A model that answers with values instead of
+    // axis names — ["S","M","L"] — must not turn three sizes into three axes.
+    const axes = (Array.isArray(parsed.axes) ? parsed.axes : [])
+      .map((a) => String(a || "").trim().slice(0, 40))
+      .filter(Boolean)
+      .filter((a, i, all) => all.findIndex((b) => b.toLowerCase() === a.toLowerCase()) === i)
+      .slice(0, 2);
+    return { items, axes, error: null };
   } catch (e) {
     // The photos were still read and the rows still exist. The owner types the
     // names themselves — worse than it should be, not broken.
-    return { items: [], error: e.message };
+    return { items: [], axes: [], error: e.message };
   }
 }
 
 // Models wrap JSON in ```json fences often enough that not handling it is a bug
 // waiting for a bad day.
-function parseItems(raw) {
+function parseAnswer(raw) {
   const text = String(raw || "").replace(/^```(?:json)?/i, "").replace(/```\s*$/, "").trim();
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
-  if (start < 0 || end <= start) return [];
+  if (start < 0 || end <= start) return { items: [], axes: [] };
   try {
     const j = JSON.parse(text.slice(start, end + 1));
-    return Array.isArray(j?.items) ? j.items : [];
-  } catch { return []; }
+    return { items: Array.isArray(j?.items) ? j.items : [], axes: Array.isArray(j?.axes) ? j.axes : [] };
+  } catch { return { items: [], axes: [] }; }
 }

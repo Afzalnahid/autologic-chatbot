@@ -5,7 +5,7 @@ import { apiJson } from "./session.js";
 import { describeAction, draftGaps, LABELS } from "@/lib/inventory-actions.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
-import { buildVariants } from "@/lib/variants.js";
+import { buildVariants, parseAxes } from "@/lib/variants.js";
 
 // Look after the catalogue by talking to it — and add to it the same way.
 //
@@ -56,7 +56,7 @@ const WAYS = [
 const MAX_PHOTOS = 12;
 const emptyDraft = () => ({});
 
-export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport }) {
+export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [] }) {
   const isMobile = useIsMobile();
   // A thumbnail on a phone is big enough to hold a 44px remove button INSIDE
   // it, so the button never overhangs the photo beside it and steals its tap.
@@ -254,10 +254,19 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // to find. These three questions are scripted, not put to the model: they are
   // always the same three, and an AI call to ask "what are these?" would be a
   // cost and a wait for nothing.
+  // The third question is asked in this shop's own words. A clothing shop that
+  // has ever used "Size" is asked about sizes; a phone shop that uses
+  // "Capacity" is asked about capacities. Only a shop with no products yet gets
+  // the general wording — and even then the photos will propose something.
+  const axisWord = shopAxes[0] || "";
   const BATCH_STEPS = [
     { key: "kind", ask: "What kind of thing are these? One answer for all of them — “box t-shirt”, “panjabi”, “phone case”.", placeholder: "e.g. Box T-shirt" },
     { key: "price", ask: "Same price for all of them? Type the price, or say “different”.", placeholder: "e.g. 500", skip: "They are different" },
-    { key: "options", ask: "What sizes or colours do they come in? Type them separated by commas, or skip.", placeholder: "e.g. M, L, XL", skip: "No sizes or colours" },
+    { key: "options", skip: axisWord ? `No ${axisWord.toLowerCase()}` : "No choices",
+      ask: axisWord
+        ? `What ${axisWord.toLowerCase()} do they come in? Separated by commas — or name another choice as well, like “${axisWord}: A, B; Colour: Black”.`
+        : "Do customers pick between anything — sizes, colours, capacities, weights? Type them like “Size: S, M, L”, or skip.",
+      placeholder: axisWord ? `${axisWord} options` : "e.g. Size: S, M, L" },
   ];
 
   const startBatch = () => {
@@ -284,7 +293,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     setMsgs((s) => [...s, { role: "assistant", phase: "batch", actions: [],
       content: `Good. Now add every photo of your ${next.kind || "products"} — front, back, close-ups, all of them together. I will work out which pictures belong to the same one and name each by what makes it different.` }]);
     setBatch(null);
-    onImport?.("photos", { kind: next.kind, price, category: next.kind, sizes: next.options });
+    // "S, M, L" becomes one axis named the way this shop names it;
+    // "Size: S, M; Colour: Black" becomes two. Either is a thing a person types
+    // when asked that question, so both are read.
+    onImport?.("photos", { kind: next.kind, price, category: next.kind, axes: parseAxes(next.options, axisWord || "Size") });
   };
 
   const stopInterview = () => {
