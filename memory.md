@@ -4,7 +4,33 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-28, third thread) — System audit for silent bugs of the duplicate kind
+## Last session (2026-08-28, fourth thread) — Many photos per product on every path, and every import inside the chat
+
+`786a876`, pushed. Owner: "in the chat and add product i see there is only a product adding
+option but here also need the all of this category of import ... a product can be many
+images ... there should have many product import in a time".
+
+**Multi-image was broken on two paths.** `import-one` stored `images: image_url ? [image_url]
+: []` — one picture, always. WooCommerce (`import-products`) read only `images[0]` and dropped
+the rest. A CSV had no way to express a second picture.
+- `imageList()` in `csv.js` takes as many links as one cell holds, accepting comma (Woo),
+  newline (Shopify), pipe, semicolon and space. **The comma splits only when the next thing is
+  another link** — a URL with commas in its query string must stay whole. Tested both ways.
+- `import-one` resolves a gallery from `images` OR a bare `image_url`, dedupes, http-only,
+  caps at 12. First photo is still the only one vision reads — one AI call per product.
+- Sample CSV and header aliases updated (`Images`, `Photos`, `Gallery`, `Featured image`).
+
+**The chat now offers all five ways in** — interview · Many photos · A spreadsheet · A product
+link · WooCommerce — as cards in the empty state and a compact row afterwards. The four imports
+call `onImport(kind)` → `setImporter(kind)` in Inventory, opening the EXISTING sheets. No second
+copy of that UI. Both AI prompts were told they cannot read files and must point at the buttons;
+the interview is told to stop asking and redirect when the owner mentions many products.
+
+Fixed on the way: the panel auto-scrolled to the bottom on open, hiding the first ways-in card
+on a phone. Guarded on `msgs.length`.
+---
+
+## Earlier session (2026-08-28, third thread) — System audit for silent bugs of the duplicate kind
 
 Owner asked: "check the whole system for any other bug like this." Four found and fixed,
 `67d9a1d` `f451ea7` `e02e12b`, all pushed. The class hunted for: **silent, invisible from
@@ -1838,6 +1864,7 @@ automation looks natural to a reviewer.
 - Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
   `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
 - WhatsApp typing indicator also marks the message read.
+
 
 
 
