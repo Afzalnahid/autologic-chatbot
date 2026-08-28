@@ -4,7 +4,39 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-28, fifth thread) — Photo grouping, duplicate photos, and a guided question order
+## Last session (2026-08-28, sixth thread) — Stages 1–3 of the master restructure
+
+Owner showed 15 t-shirt photos (mixed fronts and backs, all different designs) and asked how
+to add and MANAGE them by chat, for any business not just clothing. They answered four design
+questions; three recommended, and **stricter than I proposed on readiness**.
+
+**`e708e5d` — the readiness rule.** `src/lib/readiness.js`: a product needs a **name, a price
+and a photo** or it is not created. Enforced at CREATION only — the edit route deliberately
+does not, because editing is how an older incomplete product gets fixed. Checked in the drawer
+too, so it answers instantly (0 requests) instead of after a round trip. Imports SKIP + COUNT
+those rows (separately from duplicates) with one off-by-default checkbox to override — a
+WooCommerce export with no photos would otherwise lose 60 products. Inventory shows a "Not
+ready" filter + a counting card; a sellable product whose photo could not be read is a separate,
+quieter state.
+
+**`5072e37` — chat is the main section.** Toolbar is now `Offers · Advanced ▾ · [+ Add by chat]`;
+the panel opens on arrival. Advanced holds the form, many photos, CSV, URL, WooCommerce.
+
+**`df77ef6` — "one kind, many designs".**
+- Choosing "several" asks THREE scripted questions first (kind / same price? / sizes), each
+  skippable, then opens the photo sheet **pre-filled** via a new `prefill` prop. Scripted, not
+  AI: same three questions every time, an AI call would be cost and latency for nothing.
+- Naming: when the kind is known the prompt is told the kind is NOT what the name is for —
+  "Box T-shirt — cream with circular back print". Explicitly told never to number them.
+- Grouping now gets **seconds between photos**, read from `file.lastModified` of the ORIGINAL
+  file (the shrunk copy carries today's date). Front+back are seconds apart, next shirt a minute
+  later. Passed as EVIDENCE not a rule — files may be picked in any order.
+
+**Still to do — stage 4:** option axes (Size/Colour) must come from the shop's existing products
++ an AI proposal instead of being hardcoded, so an electronics or food client gets their own.
+---
+
+## Earlier session (2026-08-28, fifth thread) — Photo grouping, duplicate photos, and a guided question order
 
 `ce55892` + `387a5f4`, pushed. Owner attached 15 photos of 15 DIFFERENT shirts in the chat;
 the transcript said "Added 15 photos" while 12 were kept, all on ONE product.
@@ -1900,6 +1932,7 @@ automation looks natural to a reviewer.
 - Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
   `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
 - WhatsApp typing indicator also marks the message read.
+
 
 
 

@@ -776,3 +776,32 @@ the same tick. It also should never have been an error: nothing went wrong.
   one variable means whichever runs last wins, and it is usually the wrong one.
 - After adding a message, check what runs NEXT in the same function. A setter called a few
   lines later is close enough to look unrelated and near enough to erase it.
+
+## A smooth scroll is an animation, and animations do not run when nothing is painting (2026-08-28)
+
+The nudge that keeps the chat composer on screen computed the right correction — I
+instrumented `scrollBy` and watched it be called with `top: 81` — and the page did not move.
+`behavior: "smooth"` schedules an animation, and the Browser pane was not compositing frames,
+so the animation never advanced. The call succeeded, the number was right, and nothing
+happened. I spent four rounds hunting a maths bug that did not exist.
+
+**Rules:**
+- Anything with `behavior: "smooth"` cannot be verified in a pane that is not painting. For a
+  small correction use the default instant scroll: imperceptible, and provable.
+- When a call reports success and the world does not change, suspect that the API is
+  ASYNCHRONOUS or ANIMATED before suspecting your arithmetic. Instrument the call itself —
+  patch it and log its arguments — rather than re-deriving the numbers.
+- The same family as the frozen-keyframe lesson above: in this environment, anything that
+  animates is a thing that silently does not happen.
+
+## A "first run" flag is used up by React running the effect twice (2026-08-28)
+
+To stop the panel scrolling the page on arrival I used `if (firstRun.current) { firstRun.current
+= false; return; }`. React 18 runs effects twice on mount in development, so the FIRST run ate
+the flag and the second one jumped the page 641px — exactly the thing the guard existed to
+prevent, and only in development, which is where I was testing.
+
+**Rule:** a guard against "the first time" must be a condition about STATE, not a flag that gets
+consumed. Here the honest condition was "is there a conversation yet" (`msgs.length`) — which is
+also what the guard actually meant. If you find yourself writing a one-shot flag in an effect,
+ask what real thing distinguishes the first run, and test that instead.
