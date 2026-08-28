@@ -87,6 +87,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const endRef = useRef(null);
   const fileRef = useRef(null);
   const saveRef = useRef(null);
+  const formRef = useRef(null);
   // Every preview URL ever made, released together when the panel goes away.
   // They are deliberately NOT released when a photo is removed from the draft
   // or when the product is saved: the thumbnails stay in the transcript above,
@@ -101,6 +102,28 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // empty panel pushed the ways-in list up and hid the first and best of them,
   // which on a phone is the whole screen the owner is looking at.
   useEffect(() => { if (open && msgs.length) endRef.current?.scrollIntoView({ block: "nearest" }); }, [msgs, open, busy, draft]);
+  // The panel is a fixed height, but it still lives in a page that scrolls, so
+  // being pinned to the bottom of the panel is not the same as being on screen.
+  // Whenever the panel's height changes — opening it, starting or finishing an
+  // interview — the page is nudged just far enough to show the box you type in.
+  // Not on every message: the transcript does its own scrolling, and moving the
+  // page under someone mid-conversation is its own annoyance.
+  useEffect(() => {
+    if (!open) return;
+    // Measured rather than left to scrollIntoView, which counts an element
+    // flush against the bottom edge as already visible and does nothing. This
+    // asks for AIR under the box — sitting exactly on the fold reads as cut off,
+    // and a rounding error puts it over.
+    const t = setTimeout(() => {
+      const r = formRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const past = r.bottom - (window.innerHeight - 24);
+      if (past > 1) window.scrollBy({ top: past, behavior: "smooth" });
+    }, 80);
+    return () => clearTimeout(t);
+    // `mode` rather than the `interviewing` shorthand: that is declared further
+    // down, and a dependency array is read while the component renders.
+  }, [open, mode]);
   useEffect(() => () => blobs.current.forEach(URL.revokeObjectURL), []);
   // Started from outside the panel — the toolbar button, or the empty state.
   useEffect(() => { if (startSignal > 0) { setOpen(true); startInterview(); } }, [startSignal]);
@@ -346,11 +369,16 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       <i className={`ti ti-chevron-${open ? "up" : "down"}`} style={{ fontSize: 16, color: T.textMuted, flexShrink: 0 }} />
     </button>
 
-    {open && <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 16px 14px" }}>
-      {/* Shorter while a product is being built: the draft card and the Save
-          button sit below this list, and on a phone a 400px transcript pushes
-          both off the screen. */}
-      <div style={{ maxHeight: interviewing ? 250 : 400, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
+    {/* Laid out like the Inbox: the panel is a fixed height, the transcript is
+        the only part that grows, and the box you type in is pinned to the
+        bottom of it. It used to be an ordinary stack in the page, so every
+        answer pushed the input further down and it ended up below the fold —
+        the owner was typing into something they could not see. */}
+    {open && <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 16px 14px", display: "flex", flexDirection: "column",
+      height: isMobile ? "min(70dvh, calc(100dvh - 240px))" : "min(560px, calc(100dvh - 300px))" }}>
+      {/* The transcript is what gives way. The product being built and the box
+          you type in keep their room; older messages scroll. */}
+      <div style={{ flex: "1 1 auto", minHeight: 84, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
         {!msgs.length && <div style={{ padding: "6px 0 2px" }}>
           <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.65, marginBottom: 10 }}>
             Add products any of these ways, or ask about the {products?.length || 0} already here — “the winter jackets are 1200 now”, “we are out of the black polo”.
@@ -434,7 +462,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       {/* The product being built, always visible while it is being built, so
           the owner can see what the assistant has understood rather than
           having to trust it. */}
-      {interviewing && <div style={{ borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, padding: 12, marginBottom: 10 }}>
+      {/* The product being built never takes the whole panel: it is capped and
+          scrolls on its own, so a long draft cannot push the transcript away
+          or the Save button off the bottom. */}
+      {interviewing && <div style={{ flex: "0 0 auto", overflowY: "auto", maxHeight: "55%", borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, padding: 12, marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <span style={{ flex: 1, fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7 }}>New product — not saved yet</span>
           <button type="button" onClick={stopInterview} disabled={busy} className="ui-btn" style={{ background: "none", border: "none", color: T.textMuted, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 44, minWidth: 60, padding: "0 6px" }}>Cancel</button>
@@ -488,9 +519,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
         </div>}
       </div>}
 
-      {err && <div style={{ fontSize: 12.5, color: T.danger, display: "flex", gap: 6, marginBottom: 8 }}><i className="ti ti-alert-circle" style={{ fontSize: 15, flexShrink: 0 }} /><span>{err}</span></div>}
+      {err && <div style={{ fontSize: 12.5, color: T.danger, display: "flex", gap: 6, marginBottom: 8, flexShrink: 0 }}><i className="ti ti-alert-circle" style={{ fontSize: 15, flexShrink: 0 }} /><span>{err}</span></div>}
 
-      <form onSubmit={(e) => { e.preventDefault(); ask(input); }} style={{ display: "flex", gap: 8 }}>
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); ask(input); }} style={{ display: "flex", gap: 8, flexShrink: 0 }}>
         {interviewing && <>
           <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
           <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || prepping || photos.length >= MAX_PHOTOS}
@@ -506,7 +537,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
       {/* Still reachable once the conversation has started, as a compact row —
           the full cards belong to the empty state, where there is room. */}
-      {!interviewing && msgs.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9 }}>
+      {!interviewing && msgs.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, flexShrink: 0 }}>
         {WAYS.map((w) => <button key={w.id} type="button" onClick={() => pickWay(w.id)} disabled={busy} className="ui-btn ob-chip"
           title={w.sub}
           style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: w.id === "ask" ? 600 : 500, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
