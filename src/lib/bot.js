@@ -7,11 +7,13 @@ import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
 import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { getClientAI } from "@/lib/ai.js";
-
-function visionPrompt(businessType, itemLabel) {
-  const unit = itemLabel || "item";
-  return `You are an expert product cataloger for a ${businessType || "business"}. First scan the image for any visible ${unit} code or SKU. If found, output only: CODE: <code>. Otherwise ignore background, hands, packaging and logos, and describe ONLY the ${unit} itself with precise physical and visual attributes: type, color, material, shape, distinguishing features. One dense technical paragraph.`;
-}
+// The SAME words that described the product when it was added. A customer's
+// photo and the catalogue photo are both put through this and the two
+// descriptions are embedded and compared, so a second wording here — however
+// reasonable it reads — moves one of them in the vector space and the match
+// quietly gets worse. There was a local copy of this prompt here for exactly
+// that reason: it looked harmless.
+import { visionPrompt } from "@/lib/products.js";
 
 const DEFAULT_PROMPT = "You are a helpful sales assistant. Reply ONLY with a JSON array of objects like {\"type\":\"text_msg\",\"text\":\"...\"}.";
 

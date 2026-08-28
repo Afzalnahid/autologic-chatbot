@@ -682,6 +682,9 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
   const [imp, setImp] = useState({ siteUrl: "", ck: "", cs: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  // The pasted link turned out to be a product the shop already has. Set only
+  // after a refusal, so "Add anyway" cannot be pressed before reading why.
+  const [urlDup, setUrlDup] = useState(false);
   // CSV: the file is read and mapped in the browser, then each row goes
   // through the same /api/import-one the WooCommerce import already uses —
   // so a spreadsheet product is indexed, embedded and deduplicated exactly
@@ -746,12 +749,20 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  const scrape = async () => {
-    if (!url || busy) return; setBusy(true); setMsg("Fetching the product…");
-    const r = await apiJson("/api/import-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+  // `force` is the owner having read that this link looks like something they
+  // already have, and saying they meant it.
+  const scrape = async (force = false) => {
+    if (!url || busy) return; setBusy(true); setMsg("Fetching the product…"); if (!force) setUrlDup(false);
+    const r = await apiJson("/api/import-url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, allow_duplicate: force || undefined }) });
     setBusy(false);
+    // A duplicate is a question, not a failure: the link stays in the box.
+    if (r.duplicate) { setMsg(r.error); setUrlDup(true); return; }
     if (r.error) { setMsg("Failed: " + r.error); return; }
-    setMsg(""); onDone(`Added: ${r.name}`); onClose();
+    setMsg("");
+    onDone(r.analyzeError
+      ? { warn: true, text: `Added: ${r.name} — but the photo could not be analysed, so customers cannot find it by sending a picture.` }
+      : `Added: ${r.name}`);
+    onClose();
   };
   const runImport = async () => {
     if (!imp.siteUrl || !imp.ck || !imp.cs || busy) return;
@@ -851,7 +862,9 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
         : kind === "url"
         ? <>
             <Inp emb label="Product page link" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://yourshop.com/product/…" onKeyDown={(e) => { if (e.key === "Enter") scrape(); }} />
-            <Btn gold onClick={scrape} disabled={busy || !url} style={{ width: "100%", padding: "12px 20px", borderRadius: 14, fontSize: 14 }}>{busy ? "Fetching…" : "Fetch product"}</Btn>
+            <Btn gold onClick={() => scrape()} disabled={busy || !url} style={{ width: "100%", padding: "12px 20px", borderRadius: 14, fontSize: 14 }}>{busy ? "Fetching…" : "Fetch product"}</Btn>
+            {/* Offered only after the warning has been shown, never before. */}
+            {urlDup && <Btn onClick={() => scrape(true)} disabled={busy} style={{ width: "100%", marginTop: 8, padding: "10px 20px", borderRadius: 14, background: T.warnBg, color: T.warn }}>Add anyway</Btn>}
           </>
         : <>
             <div style={{ fontSize: 11.5, color: T.textMuted, marginBottom: 12, lineHeight: 1.6, padding: "10px 12px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn }}>WooCommerce › Settings › Advanced › REST API › Add key (Read) gives you the Consumer key and secret.</div>

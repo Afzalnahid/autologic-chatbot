@@ -8,10 +8,9 @@ import { generateEmbedding, extractProductsFromUrl } from "@/lib/gemini.js";
 import { embedMeter } from "@/lib/usage.js";
 import { checkProductQuota, checkScrapeQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
-
-function visionPrompt(bType, unit) {
-  return `You are an elite product cataloger for a ${bType || "business"}. Produce a precise, search-optimized description of the ${unit || "item"} for perfect semantic matching. First scan for a printed code or SKU; if present begin with: CODE: <exact code>. Ignore background, hands, packaging, watermarks and logos. Describe ONLY the ${unit || "item"}: exact type and subtype, colors, material and finish, shape, patterns, components, size cues and unique features. One dense technical paragraph, no preamble.`;
-}
+// One wording for every photo, here and at message time. See products.js.
+import { visionPrompt, buildContent } from "@/lib/products.js";
+import { findDuplicate, duplicateMessage, urlKey } from "@/lib/duplicates.js";
 
 export async function POST(request) {
   try {
@@ -23,7 +22,8 @@ export async function POST(request) {
     if (!rl.ok) return tooManyRequests(rl.retryAfter, "You have imported many products recently. Please wait a few minutes.");
     const bType = client.business_type || "ecommerce";
     const unit = client.item_label || "product";
-    const { url } = await request.json();
+    const body = await request.json();
+    const url = body?.url;
     if (!url) return NextResponse.json({ error: "missing url" }, { status: 400 });
 
     // Two package gates: room for another product, and website imports left
@@ -44,13 +44,30 @@ export async function POST(request) {
     if (!p?.name) return NextResponse.json({ error: "no product found" }, { status: 404 });
 
     const image_url = p.images?.[0]?.src || "";
+
+    // This route wrote a product straight into the catalogue without ever
+    // asking whether it was already there, so pasting the same link twice made
+    // two rows — and two rows the bot cannot tell apart is exactly what it
+    // answers wrongly from. Checked here, after the scrape (which is what tells
+    // us the name) but before vision and the embedding, so a refusal costs
+    // nothing more.
+    if (!body.allow_duplicate) {
+      const dup = await findDuplicate(client.id, { name: p.name, photoKey: urlKey(image_url) });
+      if (dup) return NextResponse.json({ error: duplicateMessage(dup, unit), duplicate: dup }, { status: 409 });
+    }
+
     let visual = "";
-    if (image_url) { try { const ai = await getClientAI(client.id, "product"); visual = await ai.visionUrl(image_url, visionPrompt(bType, unit)); } catch {} }
+    let analyzeError = null;
+    if (image_url) {
+      try { const ai = await getClientAI(client.id, "product"); visual = await ai.visionUrl(image_url, visionPrompt(bType, unit)); }
+      // Swallowed in silence before, so a product whose photo could not be read
+      // reported a clean success — and stayed invisible to a photo search,
+      // possibly for months, with nothing said.
+      catch (e) { analyzeError = e.message; }
+    }
 
     const codeMatch = visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i);
     const product_code = (codeMatch ? codeMatch[1].trim() : "") || `URL-${Date.now()}`;
-    const content = `Product Code: ${product_code}\nName: ${p.name}\n${visual || p.description || ""}`;
-    const embedding = await (await getClientAI(client.id, "product")).embed(content);
 
     const metadata = {
       client_id: String(client.id),
@@ -66,12 +83,20 @@ export async function POST(request) {
       images: (p.images || []).map(i => i?.src).filter(Boolean).slice(0, 12),
       visual,
       description: String(p.description || "").replace(/<[^>]*>/g, " ").trim(),
+      // Lets the next import recognise the same picture. See duplicates.js.
+      photo_key: urlKey(image_url),
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
 
+    // The same text the drawer embeds, built from the same function. This route
+    // had its own thinner version that left out the category, so an imported
+    // product was quietly harder to find than a typed one.
+    const content = buildContent(metadata);
+    const embedding = await (await getClientAI(client.id, "product")).embed(content);
+
     const { error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, name: p.name });
+    return NextResponse.json({ ok: true, name: p.name, analyzed: !!visual, analyzeError });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

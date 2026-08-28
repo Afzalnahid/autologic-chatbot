@@ -8,11 +8,9 @@ import { generateEmbedding } from "@/lib/gemini.js";
 import { embedMeter } from "@/lib/usage.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
+// One wording for every photo, here and at message time. See products.js.
+import { visionPrompt, buildContent } from "@/lib/products.js";
 import { findDuplicate, findByCode, duplicateMessage, urlKey } from "@/lib/duplicates.js";
-
-function visionPrompt(bType, unit) {
-  return `You are an elite product cataloger for a ${bType || "business"}. Produce a precise, search-optimized description of the ${unit || "item"} for perfect semantic matching. First scan for a printed code or SKU; if present begin with: CODE: <exact code>. Ignore background, hands, packaging, watermarks and logos. Describe ONLY the ${unit || "item"}: exact type and subtype, colors, material and finish, shape, patterns, components, size cues and unique features. One dense technical paragraph, no preamble.`;
-}
 
 export async function POST(request) {
   try {
@@ -58,9 +56,6 @@ export async function POST(request) {
         analyzeError = e.message;
       }
     }
-    const content = `Product Code: ${p.product_code}\nName: ${p.product_name}\n${visual || p.description || ""}`;
-    const embedding = await (await getClientAI(client.id, "product")).embed(content);
-
     const metadata = {
       client_id: String(client.id),
       product_id: p.product_id,
@@ -78,6 +73,13 @@ export async function POST(request) {
       photo_key: urlKey(p.image_url),
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
+
+    // The same text the drawer embeds, built from the same function. This route
+    // had its own thinner version that left the category out, so an imported
+    // product was quietly harder for a customer to find than a typed one —
+    // "something for winter" matched the typed row and not the imported one.
+    const content = buildContent(metadata);
+    const embedding = await (await getClientAI(client.id, "product")).embed(content);
 
     // The rows this one replaces, found before any AI ran.
     for (const id of replacing) await supabase.from("products").delete().eq("id", id).eq("client_id", client.id);
