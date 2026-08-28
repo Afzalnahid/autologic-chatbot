@@ -4,7 +4,43 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-28, fourth thread) — Many photos per product on every path, and every import inside the chat
+## Last session (2026-08-28, fifth thread) — Photo grouping, duplicate photos, and a guided question order
+
+`ce55892` + `387a5f4`, pushed. Owner attached 15 photos of 15 DIFFERENT shirts in the chat;
+the transcript said "Added 15 photos" while 12 were kept, all on ONE product.
+
+**Grouping — several photos become one product.** `/api/photo-group` takes the descriptions
+`/api/photo-draft` already wrote (no images, no vision) and says which photographs are the
+same thing. ONE call for the whole batch — photos are read 6 at a time and nothing can be
+grouped against a photo the model never saw. Prompt is explicitly CAUTIOUS: leaving two
+pictures apart costs a click, merging two shirts loses a product. The answer is rebuilt, not
+trusted — anything unassigned/duplicated/nonsense stands alone, and an unreadable photo is
+never grouped.
+- PhotoBatch draft shape changed: `{ photos: [{id,file,u}] }` instead of `{file,u}`.
+- Manual correction: `↗` splits a photo out, `×` drops it, tap a photo to make it first,
+  "join with the product above" inside an expanded row, "One each" undoes all grouping.
+- Saves one request per product carrying its whole gallery.
+
+**Duplicate photos** — `src/lib/photo-fingerprint.js`, SHA-256 of the bytes in the browser
+before anything uploads. Repeats are dropped, reported, and never read by the AI.
+
+**The "Added 15 photos" lie** is fixed: it says what it kept, what repeated, what did not fit,
+and points at "Many photos" when photos overflow — because that usually means they were never
+one product. 12 per product stays (resolveGallery keeps 12 at the far end).
+
+**Question order.** Chat now asks "one product, or several at once?" between picking a method
+and the first product question — two buttons, `choice: "count"` on the message. And `ASK_ORDER`
+in `inventory-actions.js` was reordered to **name, price, category, stock, PHOTO, options** —
+photos used to be first because the AI can read a name off one, which is the machine's
+convenient order and the wrong one for a person.
+
+**Two bugs of my own, found by testing:** the joined-photo count was read before React ran the
+state updater that set it (now via `joinedRef` + a tick); and the "already here, skipped"
+notice was written into `err`, which the read clears a line later — it has its own `notice`
+state now.
+---
+
+## Earlier session (2026-08-28, fourth thread) — Many photos per product on every path, and every import inside the chat
 
 `786a876`, pushed. Owner: "in the chat and add product i see there is only a product adding
 option but here also need the all of this category of import ... a product can be many
@@ -1864,6 +1900,7 @@ automation looks natural to a reviewer.
 - Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
   `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
 - WhatsApp typing indicator also marks the message read.
+
 
 
 

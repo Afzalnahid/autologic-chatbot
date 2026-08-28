@@ -749,3 +749,30 @@ was written.
 - When auditing, grep for DEFINITIONS of the things the docs call invariant
   (`function visionPrompt|const visionPrompt`), not for uses. Four definitions where the
   doc implies one is the finding.
+
+## A count computed inside a React state updater is not there when you read it (2026-08-28)
+
+The photo grouping merged rows inside `setDrafts((s) => …)` and counted the moved photos
+into a variable in the enclosing scope, then reported that count. It always said zero.
+The updater does not run when it is handed over — it runs at the next render — so the
+count was read before anything had been counted. Nothing errored; the feature worked and
+only the sentence describing it was wrong, which is the kind of bug that ships.
+
+**Rules:**
+- Never read a value that a state updater assigns. If a count can only be computed against
+  current state, assign it to a ref inside the updater and `await` a tick before reading —
+  and ASSIGN rather than accumulate, so React invoking the updater twice in development
+  cannot double it.
+- A number in a message is a claim. Test the message, not just the outcome.
+
+## Clearing an error also clears the notice you just wrote there (2026-08-28)
+
+"2 photos were already here and were skipped" was written into the same `err` state that
+the photo-reading step clears on its first line. The notice appeared and vanished within
+the same tick. It also should never have been an error: nothing went wrong.
+
+**Rules:**
+- "Something happened you should know" and "something failed" are different states. Sharing
+  one variable means whichever runs last wins, and it is usually the wrong one.
+- After adding a message, check what runs NEXT in the same function. A setter called a few
+  lines later is close enough to look unrelated and near enough to erase it.
