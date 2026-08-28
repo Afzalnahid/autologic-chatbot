@@ -79,13 +79,16 @@ const blank = (photos) => ({
   open: false, readErr: null,
 });
 
-export default function PhotoBatchSheet({ isMobile, categories = [], onClose, onDone }) {
+// `prefill` is what the chat already asked for — the kind of thing these are,
+// what they cost, the sizes. Everything it carries is applied to every product
+// as it arrives, so the owner is not asked the same three questions twice.
+export default function PhotoBatchSheet({ isMobile, categories = [], prefill, onClose, onDone }) {
   const [drafts, setDrafts] = useState([]);
-  const [base, setBase] = useState("");
-  const [bulkPrice, setBulkPrice] = useState("");
-  const [bulkCat, setBulkCat] = useState("");
-  const [bulkSizes, setBulkSizes] = useState("");
-  const [bulkColours, setBulkColours] = useState("");
+  const [base, setBase] = useState(prefill?.kind || "");
+  const [bulkPrice, setBulkPrice] = useState(prefill?.price || "");
+  const [bulkCat, setBulkCat] = useState(prefill?.category || "");
+  const [bulkSizes, setBulkSizes] = useState(prefill?.sizes || "");
+  const [bulkColours, setBulkColours] = useState(prefill?.colours || "");
   const [prepping, setPrepping] = useState(false);
   const [reading, setReading] = useState(null); // {done, total}
   const [readNote, setReadNote] = useState("");
@@ -153,7 +156,23 @@ export default function PhotoBatchSheet({ isMobile, categories = [], onClose, on
     // Every photo starts as its own product. The AI proposes the grouping after
     // it has read them, and starting apart is the safe direction: an owner sees
     // more rows than they expected, not fewer products than they have.
-    const fresh = taken.map((file) => blank([{ id: nextId(), file, u: preview(file) }]));
+    // When each photo was taken, kept alongside it. shrinkImage re-encodes and
+    // the new File carries today's date, so the ORIGINAL is read off the file
+    // the owner chose, matched by position. It is what tells the grouping that
+    // two pictures are a front and a back rather than two different shirts.
+    const takenAt = taken.map((f) => {
+      const src = picked[ready.indexOf(f)];
+      const t = Number(src?.lastModified);
+      return Number.isFinite(t) && t > 0 ? t : null;
+    });
+    // Whatever the chat already established is on every product before the
+    // owner sees it. Asking again for the price of fifteen shirts they have
+    // just told us about would be the opposite of organised.
+    const shared = {
+      regular_price: prefill?.price || "", category: prefill?.category || "",
+      sizes: prefill?.sizes || "", colours: prefill?.colours || "",
+    };
+    const fresh = taken.map((file, i) => ({ ...blank([{ id: nextId(), file, u: preview(file) }]), ...shared, takenAt: takenAt[i] }));
     setDrafts((s) => [...s, ...fresh]);
     read(fresh, [...drafts, ...fresh]);
   };
@@ -237,9 +256,17 @@ export default function PhotoBatchSheet({ isMobile, categories = [], onClose, on
   // product, which is what the note reports.
   const group = async (list, readVisuals, allDrafts) => {
     const ids = list.map((d) => d.id);
+    // Seconds since the previous photograph, in the order they are shown. Null
+    // wherever a timestamp is missing, so a batch with none simply falls back
+    // to grouping on what the pictures look like.
+    const gaps = list.map((d, i) => {
+      const prev = list[i - 1]?.takenAt, now = d.takenAt;
+      if (!i || !prev || !now) return null;
+      return Math.max(0, Math.round((now - prev) / 1000));
+    });
     const r = await apiJson("/api/photo-group", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ visuals: ids.map((id) => readVisuals.get(id) || ""), hint: base.trim() }),
+      body: JSON.stringify({ visuals: ids.map((id) => readVisuals.get(id) || ""), hint: base.trim(), gaps }),
     });
     // Grouping is a convenience. If it fails, every photo stays its own product
     // — exactly where the owner already was.

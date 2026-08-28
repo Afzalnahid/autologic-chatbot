@@ -41,6 +41,15 @@ export async function POST(request) {
     const thing = client.item_label || (client.business_type === "agency" ? "service" : "product");
     const hint = String(body.hint || "").trim().slice(0, 80);
 
+    // Seconds between each photograph and the one before it, in the order the
+    // owner chose them. This is the strongest evidence there is and the model
+    // had none of it: a front and a back shot of the same shirt are taken
+    // seconds apart, and the next shirt goes on the hanger a minute later.
+    // Given as evidence, not as a rule — someone who picks files out of order,
+    // or whose phone rewrote the timestamps, must not have their catalogue
+    // wrongly merged because of it.
+    const gaps = (Array.isArray(body.gaps) ? body.gaps : []).map((g) => (Number.isFinite(Number(g)) ? Math.round(Number(g)) : null));
+
     const system = `You are sorting photographs for a shop in Bangladesh. Each numbered description below is ONE photograph. Several photographs may show the SAME ${thing} — a front view, a back view, a close-up of a print, the same garment on a hanger and on a model.
 
 Put each photograph in a group. Photographs of the same ${thing} share a group number.
@@ -49,10 +58,16 @@ BE CAUTIOUS. If you are not sure two photographs are the same ${thing}, put them
 
 Two photographs are the same ${thing} only when the item itself matches — same type, same colour, same print or pattern, same details. A different colour is a different ${thing} here, not a variation. Similar style is not enough.
 
-${hint ? `The owner calls these "${hint}", which tells you the kind of thing they are, NOT that they are all one ${thing}.\n\n` : ""}Answer with JSON only, one entry per photograph, in order:
+${gaps.some((g) => g !== null) ? `WHEN EACH ONE WAS TAKEN is given below as the seconds since the previous photograph, and it is strong evidence. A shop photographs one ${thing} from the front and the back within a few seconds, then takes the next one off the rail — so a gap of a few seconds usually means the same ${thing} and a long gap usually means a new one. Weigh it together with what you see. It is evidence, not a rule: someone may have picked the files in any order.
+
+` : ""}${hint ? `The owner calls these "${hint}", which tells you the kind of thing they are, NOT that they are all one ${thing}.\n\n` : ""}Answer with JSON only, one entry per photograph, in order:
 {"groups":[{"n":1,"g":1},{"n":2,"g":1},{"n":3,"g":2}]}`;
 
-    const ask = visuals.map((v, i) => `Photograph ${i + 1}: ${v || "(could not be read)"}`).join("\n\n");
+    const ask = visuals.map((v, i) => {
+      const g = gaps[i];
+      const when = i === 0 ? "first" : g === null ? "time unknown" : g < 60 ? `${g}s after the previous` : `${Math.round(g / 60)} min after the previous`;
+      return `Photograph ${i + 1} (${when}): ${v || "(could not be read)"}`;
+    }).join("\n\n");
 
     const ai = await getClientAI(client.id, "product.group");
     const raw = await ai.chat(system, [{ role: "user", content: ask }]);

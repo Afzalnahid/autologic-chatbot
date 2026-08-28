@@ -69,6 +69,9 @@ export default function Inventory({ products, refresh }) {
   // instead of doing nothing.
   const [chatAdd, setChatAdd] = useState(0);
   const [sweep, setSweep] = useState(false);
+  // What the chat already asked for — the kind, the price, the sizes — handed
+  // to the photo sheet so the same three questions are not asked twice.
+  const [prefill, setPrefill] = useState(null);
   const [busyBulk, setBusyBulk] = useState(false);
   // A warning has to be readable, not glimpsed: "the photo could not be
   // analysed" is a sentence the owner has to act on, and 3.2s is not enough
@@ -248,7 +251,8 @@ export default function Inventory({ products, refresh }) {
     {/* Talking to the catalogue. Folded until asked for, and shown even when
         the catalogue is empty — being asked the questions is the gentlest way
         to add the very first product. */}
-    <InventoryAssistant products={products} refresh={refresh} startSignal={chatAdd} onImport={(kind) => setImporter(kind)} />
+    <InventoryAssistant products={products} refresh={refresh} startSignal={chatAdd}
+      onImport={(kind, prefill) => { setPrefill(prefill || null); setImporter(kind); }} />
 
     {/* Body: category rail + products */}
     {empty
@@ -344,7 +348,7 @@ export default function Inventory({ products, refresh }) {
       onClose={() => setSweep(false)} onDone={(msg) => { setToast(msg); refresh(); }} />}
 
     {importer === "photos"
-      ? <PhotoBatchSheet isMobile={isMobile} categories={catNames} onClose={() => setImporter(null)} onDone={(msg) => { setToast(msg); refresh(); }} />
+      ? <PhotoBatchSheet isMobile={isMobile} categories={catNames} prefill={prefill} onClose={() => { setImporter(null); setPrefill(null); }} onDone={(msg) => { setToast(msg); refresh(); }} />
       : importer && <ImportSheet kind={importer} isMobile={isMobile} onClose={() => setImporter(null)} onDone={(msg) => { setToast(msg); refresh(); }} />}
   </div>;
 }

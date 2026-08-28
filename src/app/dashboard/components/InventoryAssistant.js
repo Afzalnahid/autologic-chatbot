@@ -47,7 +47,7 @@ const CHIPS = [
 // second copy of them living in here. One implementation, two doors to it.
 const WAYS = [
   { id: "ask", icon: "ti-messages", label: "I’ll ask you the questions", sub: "One product, in your own words" },
-  { id: "photos", icon: "ti-photo-plus", label: "Many photos", sub: "One photo becomes one product" },
+  { id: "photos", icon: "ti-photo-plus", label: "Many at once, from photos", sub: "Front and back of the same one are gathered" },
   { id: "csv", icon: "ti-table", label: "A spreadsheet", sub: "Hundreds at once, from a CSV" },
   { id: "url", icon: "ti-link", label: "A product link", sub: "We read the page for you" },
   { id: "woo", icon: "ti-brand-wordpress", label: "WooCommerce", sub: "Bring your whole shop over" },
@@ -86,12 +86,14 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // anyone has tried to save invites pressing it out of habit.
   const [dup, setDup] = useState(null);
   const [refused, setRefused] = useState(false);
+  // The three questions asked once before a batch of photos. null when not in
+  // one. See startBatch().
+  const [batch, setBatch] = useState(null);
 
   const endRef = useRef(null);
   const fileRef = useRef(null);
   const saveRef = useRef(null);
   const formRef = useRef(null);
-  const firstRun = useRef(true);
   // Every preview URL ever made, released together when the panel goes away.
   // They are deliberately NOT released when a photo is removed from the draft
   // or when the product is saved: the thumbnails stay in the transcript above,
@@ -106,32 +108,42 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // empty panel pushed the ways-in list up and hid the first and best of them,
   // which on a phone is the whole screen the owner is looking at.
   useEffect(() => { if (open && msgs.length) endRef.current?.scrollIntoView({ block: "nearest" }); }, [msgs, open, busy, draft]);
-  // The panel is a fixed height, but it still lives in a page that scrolls, so
-  // being pinned to the bottom of the panel is not the same as being on screen.
-  // Whenever the panel's height changes — opening it, starting or finishing an
-  // interview — the page is nudged just far enough to show the box you type in.
-  // Not on every message: the transcript does its own scrolling, and moving the
-  // page under someone mid-conversation is its own annoyance.
+  // The panel is a fixed height with the composer pinned to its bottom, so what
+  // pushes the box off screen is not the panel growing — it is where the PAGE
+  // happens to be scrolled to, and scrolling the transcript moves that too.
+  //
+  // So the rule is simply: if the box has ended up below the fold, bring it
+  // back, and otherwise do nothing at all. Checked after every message rather
+  // than at fixed moments — the earlier version measured before the layout had
+  // settled and kept missing — but it only ever MOVES the page when the box is
+  // actually out of sight, so it cannot shuffle the page under someone who can
+  // already see what they are typing into.
+  //
+  // Measured rather than left to scrollIntoView, which counts an element flush
+  // against the bottom edge as already visible and does nothing. The 24px is
+  // air: sitting exactly on the fold reads as cut off.
   useEffect(() => {
-    // Never on arrival. The panel starts open, and scrolling the page the
-    // moment somebody lands on Inventory — before they have asked for anything
-    // — is the page moving under them for no reason.
-    if (firstRun.current) { firstRun.current = false; return; }
     if (!open) return;
-    // Measured rather than left to scrollIntoView, which counts an element
-    // flush against the bottom edge as already visible and does nothing. This
-    // asks for AIR under the box — sitting exactly on the fold reads as cut off,
-    // and a rounding error puts it over.
+    // Nothing to keep in view until there is a conversation. Before anyone has
+    // said anything the box is not what they are looking at — the ways in are —
+    // and scrolling the page the moment somebody lands on Inventory is movement
+    // for nothing. A count rather than a "first run" flag on purpose: React runs
+    // effects twice on mount in development, and a flag gets used up by the
+    // first of those and lets the second one jump the page anyway.
+    if (!msgs.length) return;
     const t = setTimeout(() => {
       const r = formRef.current?.getBoundingClientRect();
       if (!r) return;
       const past = r.bottom - (window.innerHeight - 24);
-      if (past > 1) window.scrollBy({ top: past, behavior: "smooth" });
-    }, 80);
+      // Instant, not smooth. A smooth scroll is an animation, and an animation
+      // does not run when the page is not painting — which is how this was
+      // silently doing nothing while reporting the right number. It is an
+      // eighty-pixel correction; nobody sees the difference, and this one can
+      // actually be proved to work.
+      if (past > 1) window.scrollBy({ top: past });
+    }, 120);
     return () => clearTimeout(t);
-    // `mode` rather than the `interviewing` shorthand: that is declared further
-    // down, and a dependency array is read while the component renders.
-  }, [open, mode]);
+  }, [open, mode, msgs.length, photos.length]);
   useEffect(() => () => blobs.current.forEach(URL.revokeObjectURL), []);
   // Started from outside the panel — the toolbar button, or the empty state.
   useEffect(() => { if (startSignal > 0) { setOpen(true); startInterview(); } }, [startSignal]);
@@ -140,13 +152,17 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // The moment the product becomes saveable, put the button where the owner can
   // see it. The panel is tall by then, and a Save button that appears below the
   // fold is a Save button nobody presses.
-  useEffect(() => { if (gaps.ready) saveRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, [gaps.ready]);
+  useEffect(() => { if (gaps.ready) saveRef.current?.scrollIntoView({ block: "nearest" }); }, [gaps.ready]);
 
   // ── Asking ─────────────────────────────────────────────────────────────────
   const ask = async (text) => {
     const q = String(text || "").trim();
     if (!q || busy) return;
     setErr(""); setInput("");
+    // Mid-batch the answers are the wizard's, not the model's. No request goes
+    // anywhere: these three questions have fixed answers and asking an AI what
+    // "box t-shirt" means would be a cost and a wait for nothing.
+    if (batch) return answerBatch(q);
     // The question goes on screen before the request leaves, so the panel never
     // sits blank while a slow answer is on its way.
     const history = [...msgs, { role: "user", content: q, phase: mode }];
@@ -203,6 +219,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // underneath when it closes.
   const pickWay = (id) => {
     if (id === "ask") { askHowMany(); return; }
+    // Many photos is a batch, so it goes through the same three questions —
+    // the chat's job is to ask them. Advanced → "Many photos at once" is the
+    // way straight into the sheet for somebody who does not want to be asked.
+    if (id === "photos") { startBatch(); return; }
     onImport?.(id);
   };
 
@@ -223,8 +243,48 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const answerHowMany = (many) => {
     setMsgs((s) => s.map((m) => m.choice === "count" ? { ...m, choice: null } : m));
     setMsgs((s) => [...s, { role: "user", phase: "chat", content: many ? "Several." : "Just one." }]);
-    if (many) onImport?.("photos");
+    if (many) startBatch();
     else startInterview();
+  };
+
+  // ── Many at once: ask what they have in common, once ───────────────────────
+  // Fifteen shirts off one rail share a kind, a price and a set of sizes. Asked
+  // once here, they are on every product before the owner sees a single row —
+  // instead of being typed fifteen times, or set with a bulk bar the owner has
+  // to find. These three questions are scripted, not put to the model: they are
+  // always the same three, and an AI call to ask "what are these?" would be a
+  // cost and a wait for nothing.
+  const BATCH_STEPS = [
+    { key: "kind", ask: "What kind of thing are these? One answer for all of them — “box t-shirt”, “panjabi”, “phone case”.", placeholder: "e.g. Box T-shirt" },
+    { key: "price", ask: "Same price for all of them? Type the price, or say “different”.", placeholder: "e.g. 500", skip: "They are different" },
+    { key: "options", ask: "What sizes or colours do they come in? Type them separated by commas, or skip.", placeholder: "e.g. M, L, XL", skip: "No sizes or colours" },
+  ];
+
+  const startBatch = () => {
+    setBatch({ step: 0, kind: "", price: "", options: "" });
+    setMsgs((s) => [...s, { role: "assistant", phase: "batch", actions: [], content: BATCH_STEPS[0].ask, skip: BATCH_STEPS[0].skip }]);
+  };
+
+  const answerBatch = (raw) => {
+    const b = batch;
+    if (!b) return;
+    const step = BATCH_STEPS[b.step];
+    const value = String(raw ?? "").trim();
+    const next = { ...b, [step.key]: value, step: b.step + 1 };
+    setBatch(next);
+    setMsgs((s) => [...s, { role: "user", phase: "batch", content: value || `(${step.skip || "skipped"})` }]);
+
+    if (next.step < BATCH_STEPS.length) {
+      setMsgs((s) => [...s, { role: "assistant", phase: "batch", actions: [], content: BATCH_STEPS[next.step].ask, skip: BATCH_STEPS[next.step].skip }]);
+      return;
+    }
+    // Everything they share is known. Now the photos, in the sheet that groups
+    // them — carrying the answers, so nothing is asked twice.
+    const price = /^[\d.,\s]+$/.test(next.price) ? next.price.replace(/[^\d.]/g, "") : "";
+    setMsgs((s) => [...s, { role: "assistant", phase: "batch", actions: [],
+      content: `Good. Now add every photo of your ${next.kind || "products"} — front, back, close-ups, all of them together. I will work out which pictures belong to the same one and name each by what makes it different.` }]);
+    setBatch(null);
+    onImport?.("photos", { kind: next.kind, price, category: next.kind, sizes: next.options });
   };
 
   const stopInterview = () => {
@@ -364,6 +424,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   // ── Rendering ──────────────────────────────────────────────────────────────
   const interviewing = mode === "interview";
+  const batchStep = batch ? BATCH_STEPS[batch.step] : null;
   const filledRows = Object.entries(draft).filter(([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length));
 
   return <Card style={{ padding: 0, marginBottom: 14, overflow: "hidden" }}>
@@ -411,6 +472,12 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
         {msgs.map((m, mi) => <div key={mi} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>
           <div style={{ maxWidth: "88%", padding: "9px 13px", borderRadius: 14, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap",
             background: m.role === "user" ? T.goldBg : T.bgAlt, color: m.role === "user" ? T.gold : T.text, boxShadow: m.role === "user" ? "none" : T.nmIn }}>{m.content}</div>
+
+          {/* A question that can be skipped offers it under the question, not
+              beside the message box: on a phone a button in that row squeezed
+              the box you type in down to ninety-seven pixels. */}
+          {m.skip && batchStep?.skip === m.skip && <button type="button" onClick={() => answerBatch("")} disabled={busy} className="ui-btn ob-chip"
+            style={{ padding: "8px 13px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 40 }}>{m.skip}</button>}
 
           {m.choice === "count" && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Btn gold onClick={() => answerHowMany(false)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
@@ -538,7 +605,8 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             <i className="ti ti-camera-plus" style={{ fontSize: 18 }} />
           </button>
         </>}
-        <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy} placeholder={interviewing ? "Type your answer…" : "Ask, or say what to change…"} aria-label="Message the assistant"
+        <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy}
+          placeholder={batchStep ? batchStep.placeholder : interviewing ? "Type your answer…" : "Ask, or say what to change…"} aria-label="Message the assistant"
           className="ui-inp" style={{ flex: 1, minWidth: 0, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 12, padding: "11px 14px", color: T.text, fontSize: 13, outline: "none", fontFamily: "inherit", boxShadow: T.nmIn }} />
         <Btn gold type="submit" disabled={busy || !input.trim()} aria-label="Send" style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
       </form>

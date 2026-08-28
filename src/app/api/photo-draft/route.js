@@ -99,12 +99,15 @@ Rules:
 - "description" is one plain sentence a customer reads. No marketing adjectives, no invented facts: only what the photo actually shows.
 - Never invent a price, a size, a fabric weight or a brand that is not described.
 - Write in English. The shop translates for its own customers.
+${hint ? `
+THESE ARE ALL ${hint.toUpperCase()}. That is the kind of thing they are, and it is already known — so the name must carry what makes THIS one different from the others: the print, the graphic, the colour, the pattern, the wording on it. Write it as "${hint} — <what is different>", for example "${hint} — cream with circular back print" or "${hint} — olive with small chest logo".
 
+NEVER number them. "${hint} 1", "${hint} 2" tells a customer nothing and tells the bot nothing: someone asking for "the one with the flowers" cannot be matched to a number. If two photographs genuinely look the same, say so in the difference rather than falling back on a count.
+` : ""}
 Answer with JSON only: {"items":[{"n":<the photo number>,"name":"...","category":"...","description":"..."}]}`;
 
   const lines = usable.map((d) => `Photo ${d.i + 1}: ${String(d.visual).slice(0, 900)}`).join("\n\n");
   const ask = [
-    hint ? `The owner calls these "${hint}". Number them from that name when the photos really are variations of one product.` : "",
     known.length ? `The shop's existing categories: ${known.join(", ")}.` : "",
     lines,
   ].filter(Boolean).join("\n\n");
