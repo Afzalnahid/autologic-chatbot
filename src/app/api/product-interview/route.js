@@ -5,7 +5,8 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { getClientAI } from "@/lib/ai.js";
 import { normalizeSet, draftGaps, LABELS, ASK_ORDER } from "@/lib/inventory-actions.js";
-import { findDuplicate, duplicateMessage } from "@/lib/duplicates.js";
+import { findDuplicate } from "@/lib/duplicates.js";
+import { supabase } from "@/lib/supabase.js";
 
 // Adding one product by being asked about it.
 //
@@ -49,16 +50,34 @@ export async function POST(request) {
     const visual = String(body.visual || "").slice(0, 4000);
 
     const gaps = draftGaps(draft, photos);
+    const lang = body.lang === "bn" ? "bn" : "en";
+
+    // The shop's own categories, so the category question offers them rather
+    // than asking the owner to remember what they called things.
+    const { data: rows } = await supabase.from("products")
+      .select("metadata").eq("client_id", client.id).limit(1000);
+    const known = [...new Set((rows || []).map((r) => String(r.metadata?.category || "").trim()).filter(Boolean))].slice(0, 30);
+
+    // A name already in the catalogue, checked BEFORE the model is asked — so
+    // it can ask what makes this one different in the same breath, instead of
+    // the owner being stopped and told a fact they already knew.
+    const already = draft.product_name
+      ? await findDuplicate(client.id, { name: draft.product_name, code: draft.product_code })
+      : null;
+
     const ai = await getClientAI(client.id, "product.interview");
-    const raw = await ai.chat(prompt(client, draft, photos, visual, gaps), messages.length ? messages : [{ role: "user", content: "Let's add a product." }]);
+    const raw = await ai.chat(
+      prompt(client, draft, photos, visual, gaps, { lang, known, clash: already?.product_name || "" }),
+      messages.length ? messages : [{ role: "user", content: "Let's add a product." }],
+    );
     const out = parse(raw);
 
     const merged = { ...draft, ...normalizeSet(out.set) };
     const after = draftGaps(merged, photos);
 
-    // Told the moment the name is given, not held back until Save. "You already
-    // have a Box T-shirt" is a question worth asking while the owner is still
-    // typing the answer to it, and the check costs a query, not an AI call.
+    // Checked again on the merged draft, because the name may have only just
+    // been given. This is what the panel shows and what the NEXT turn's prompt
+    // turns into "what makes this one different".
     const clash = merged.product_name
       ? await findDuplicate(client.id, { name: merged.product_name, code: merged.product_code })
       : null;
@@ -68,8 +87,11 @@ export async function POST(request) {
       reply: out.reply || "What else should I know about it?",
       draft: merged,
       gaps: after,
+      // The name matches something already here. NOT an error and not a refusal
+      // — a shop with fifteen box t-shirts calls all of them box t-shirts. The
+      // panel says so in the owner's own language and the next turn asks what
+      // makes this one different.
       duplicate: clash,
-      duplicateMessage: clash ? duplicateMessage(clash, client.item_label || "product") : "",
       // The model may say it is finished; it is only true if the product can
       // actually be sold.
       done: after.ready && (out.done === true || after.wanted.length === 0),
@@ -86,7 +108,7 @@ const known = (draft) => {
   return lines.length ? lines.join("\n") : "- nothing yet";
 };
 
-function prompt(client, draft, photos, visual, gaps) {
+function prompt(client, draft, photos, visual, gaps, { lang = "en", known = [], clash = "" } = {}) {
   const shop = client.business_type === "agency" ? "service business" : "shop";
   const thing = client.item_label || (client.business_type === "agency" ? "service" : "product");
   // The order to work through: what blocks the save, then what the shop should
@@ -99,9 +121,10 @@ function prompt(client, draft, photos, visual, gaps) {
 HOW TO ASK
 - One question per message. Never a list of questions, never a form.
 - Short and plain. The owner is not a programmer and does not know the field names.
+- EVERY question carries an example of the answer, in brackets at the end. Not a description of the answer — an actual one. "What is it called? (for example: Box T-shirt — green seed print)". "What does it cost? (for example: 500)". Somebody who has never done this before should never have to guess what shape of answer you want.
 - Take whatever they give you, even if it answers three questions at once, and put it in the right places.
 - If an answer is unclear, ask again about that one thing rather than guessing.
-- Reply in the language the owner is writing in. If they write Bangla, answer in Bangla.
+- ${lang === "bn" ? "Write EVERY message in Bangla. The owner has set this dashboard to Bangla. Keep product names, codes and numbers as they typed them." : "Write every message in English unless the owner writes to you in another language, in which case answer in theirs."}
 - Never say the ${thing} has been saved or added. You are only collecting; the owner presses a button at the end.
 - You are adding ONE ${thing} here. If the owner says they have many to add, or mentions a spreadsheet, a CSV, a product link or a WooCommerce shop, stop asking and tell them the buttons under the message box do that in one go — "Many photos", "A spreadsheet", "A product link", "WooCommerce" — and say which one fits. Answering forty questions one at a time is not what they want.
 
@@ -117,7 +140,14 @@ ${photos === 0 ? `\nThere are no photos yet. Ask the owner to attach some with t
 RULES
 - Never invent a price, a stock count, a size or a brand. If it was not said, it is not known.
 - Prices are in taka: digits only, no symbol, no commas.
-- "options" is what a customer chooses between, e.g. [{"name":"Size","values":["S","M","L"]},{"name":"Colour","values":["Black"]}].
+- CATEGORY is its own question, and it is asked with the shop's own categories offered: ${known.length ? known.join(", ") : "they have none yet, so ask what to call the first one"}. Ask which of those it belongs in, or what to call a new one.
+- ONE ${thing} CAN HAVE SEVERAL PHOTOS — a front, a back, a close-up. When you ask for photos, say so, and say they can attach them all at once.
+- "options" is what a customer chooses between, e.g. [{"name":"Size","values":["S","M","L"]},{"name":"Colour","values":["Black"]}]. Ask whether customers pick between anything, and give the example that fits what you can see.
+${clash ? `
+THIS NAME IS ALREADY IN THE CATALOGUE. The owner has a ${thing} called "${clash}". They are almost certainly adding ANOTHER one of the same kind, not repeating themselves — a shop with fifteen box t-shirts calls all of them box t-shirts.
+
+Do NOT tell them it is a duplicate and stop. Ask what makes THIS one different — the print, the colour, the pattern, the wording on it — and then set product_name to "${clash} — <that difference>". A customer asking for "the one with the flowers" can be matched to that; two products with the same name cannot be told apart at all.
+` : ""}
 - You may only fill these fields: ${ASK_ORDER.filter((k) => k !== "photo").join(", ")}. Photos are attached by the owner, not by you.
 - Set "done" to true only when the owner has said they have nothing more to add.
 

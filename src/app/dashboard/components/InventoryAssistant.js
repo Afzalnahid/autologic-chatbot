@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { T, Card, Btn, useIsMobile } from "./ui.js";
 import { apiJson } from "./session.js";
+import { useLang, useT } from "./i18n.js";
 import { describeAction, draftGaps, LABELS } from "@/lib/inventory-actions.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
@@ -58,6 +59,8 @@ const emptyDraft = () => ({});
 
 export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [] }) {
   const isMobile = useIsMobile();
+  const lang = useLang();
+  const t = useT();
   // A thumbnail on a phone is big enough to hold a 44px remove button INSIDE
   // it, so the button never overhangs the photo beside it and steals its tap.
   // On a mouse a small corner cross is fine, and 58px keeps more of them in view.
@@ -131,7 +134,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // effects twice on mount in development, and a flag gets used up by the
     // first of those and lets the second one jump the page anyway.
     if (!msgs.length) return;
-    const t = setTimeout(() => {
+    // `timer`, not `t` — `t` is the translator in this component now, and a
+    // shadow that harmless is exactly the one that bites later.
+    const timer = setTimeout(() => {
       const r = formRef.current?.getBoundingClientRect();
       if (!r) return;
       const past = r.bottom - (window.innerHeight - 24);
@@ -142,7 +147,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       // actually be proved to work.
       if (past > 1) window.scrollBy({ top: past });
     }, 120);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [open, mode, msgs.length, photos.length]);
   useEffect(() => () => blobs.current.forEach(URL.revokeObjectURL), []);
   // Started from outside the panel — the toolbar button, or the empty state.
@@ -314,14 +319,18 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       body: JSON.stringify({
         messages: history.filter((m) => m.phase === "interview").map((m) => ({ role: m.role, content: m.content })),
         draft: d, photos: n, visual: v,
+        // The dashboard's language, so the questions come back in it. The owner
+        // picked it once; nothing should ask them again.
+        lang,
       }),
     });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
     setDraft(r.draft || d);
-    // Surfaced as soon as the name is known, so the owner is not told at the
-    // last moment that the thing they just described is already in the shop.
-    setDup(r.duplicate ? { ...r.duplicate, message: r.duplicateMessage } : null);
+    // A name the shop already uses is not a mistake — fifteen box t-shirts are
+    // all called box t-shirts. Said as a nudge towards what to add to the name,
+    // not as a refusal, and in the owner's own language.
+    setDup(r.duplicate ? { ...r.duplicate, message: t("inv.dupSameName", { name: r.duplicate.product_name }) } : null);
     setMsgs((s) => [...s, { role: "assistant", phase: "interview", content: r.reply }]);
   };
 

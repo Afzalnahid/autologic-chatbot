@@ -74,6 +74,12 @@ export function LangToggle({ compact }) {
 
 const DICT = {
   en: {
+    // ---- the assistant ----
+    // A name the shop already uses is not a mistake. Fifteen box t-shirts are
+    // all called box t-shirts, so this points at what to ADD to the name rather
+    // than telling the owner to stop.
+    "inv.dupSameName": "You already have one called “{name}”. If this is a different design, say what makes it different — the print, the colour — and I will add that to the name so a customer asking for it finds the right one.",
+
     // ---- navigation & shell ----
     "nav.analytics": "Analytics", "nav.conversations": "Inbox", "nav.comments": "Comments",
     "nav.broadcast": "Broadcast", "nav.channels": "Channels", "nav.billing": "Billing",
@@ -267,6 +273,8 @@ const DICT = {
   },
 
   bn: {
+    "inv.dupSameName": "“{name}” নামে একটা আপনার আগেই আছে। এটা যদি আলাদা ডিজাইন হয়, বলুন কীসে আলাদা — প্রিন্ট, রং — নামের সাথে সেটা জুড়ে দেব, যাতে কাস্টমার চাইলে ঠিকটাই পায়।",
+
     "nav.analytics": "অ্যানালিটিক্স", "nav.conversations": "ইনবক্স", "nav.comments": "কমেন্ট",
     "nav.broadcast": "ব্রডকাস্ট", "nav.channels": "চ্যানেল", "nav.billing": "বিলিং",
     "nav.settings": "বট ট্রেনিং", "nav.profile": "প্রোফাইল", "nav.ai": "এআই ইঞ্জিন",
