@@ -4,6 +4,7 @@ import { T, Card, Btn, Inp } from "./ui.js";
 import { apiJson } from "./session.js";
 import { shrinkImage, fileSize } from "@/lib/shrink-image.js";
 import { dropRepeats } from "@/lib/photo-fingerprint.js";
+import { missingToSell } from "@/lib/readiness.js";
 import { buildVariants } from "@/lib/variants.js";
 
 // Turn a folder of photos into products.
@@ -336,11 +337,16 @@ export default function PhotoBatchSheet({ isMobile, categories = [], onClose, on
   const all = (p) => setDrafts((s) => s.map((d) => ({ ...d, ...p })));
 
   const unnamed = drafts.filter((d) => !d.product_name.trim()).length;
+  // Every product here has a photo by definition — it was built from one — so
+  // in practice this is the price. Checked before the run rather than letting
+  // the server refuse fifteen times in a row.
+  const unpriced = drafts.filter((d) => missingToSell({ product_name: d.product_name, regular_price: d.regular_price, image_url: "x" }).includes("price")).length;
 
   // ── Saving ─────────────────────────────────────────────────────────────────
   const run = async () => {
     if (!drafts.length || busy) return;
     if (unnamed) { setErr(`${unnamed} product${unnamed > 1 ? "s have" : " has"} no name yet. Name them, or use “Name all” above.`); return; }
+    if (unpriced) { setErr(`${unpriced} product${unpriced > 1 ? "s have" : " has"} no price. A product without one leaves the bot unable to answer the first thing every customer asks — set one above and press Apply to price them all at once.`); setBulkOpen(true); return; }
     setErr(""); setBusy(true);
     let done = 0, fail = 0, unread = 0, dupes = 0, stop = "";
 
@@ -539,6 +545,7 @@ export default function PhotoBatchSheet({ isMobile, categories = [], onClose, on
         {msg && <div style={{ fontSize: 12.5, color: T.textMuted, marginBottom: 8 }}>{msg}</div>}
         {drafts.length > 0 && !busy && <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 10, lineHeight: 1.6 }}>
           {drafts.length} product{drafts.length > 1 ? "s" : ""} · {photoCount} photo{photoCount > 1 ? "s" : ""} · {fileSize(totalBytes)} after resizing. Reading them uses the same AI allowance saving them would have used anyway.
+          {unpriced > 0 && <span style={{ color: T.warn }}> · {unpriced} still {unpriced > 1 ? "have" : "has"} no price.</span>}
         </div>}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
           <Btn onClick={onClose} disabled={busy} style={{ borderRadius: 12 }}>Cancel</Btn>

@@ -6,6 +6,7 @@ import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js
 import { shrinkBatch } from "@/lib/shrink-image.js";
 import { buildVariants, usableOptions, newVariantId } from "@/lib/variants.js";
 import { findTwins } from "@/lib/duplicate-keys.js";
+import { productState, MISSING, missingToSell, missingMessage } from "@/lib/readiness.js";
 import PhotoBatchSheet from "./PhotoBatch.js";
 import InventoryAssistant from "./InventoryAssistant.js";
 import DuplicateSweep from "./DuplicateSweep.js";
@@ -92,6 +93,9 @@ export default function Inventory({ products, refresh }) {
       if (stock === "instock" && s === "out") return false;
       if (stock === "outofstock" && s !== "out") return false;
       if (stock === "low" && s !== "low") return false;
+      // Not a stock state at all — it shares the filter because it answers the
+      // same shape of question: which of these can the bot actually sell?
+      if (stock === "notready" && productState(p).state === "ready") return false;
       if (!q) return true;
       const hay = [p.product_name, p.product_code, p.category, p.brand, p.description, ...(p.tags || []), ...(p.variants || []).map((v) => `${v.name} ${v.sku}`)].join(" ").toLowerCase();
       return hay.includes(q);
@@ -135,7 +139,13 @@ export default function Inventory({ products, refresh }) {
     setToast("Product deleted"); refresh();
   };
 
-  const stockItems = [{ value: "all", label: "All" }, { value: "instock", label: "In stock" }, { value: "low", label: "Low", badge: stats.low || undefined }, { value: "outofstock", label: "Out", badge: stats.out || undefined }];
+  // Every product the bot cannot fully answer for, and why. Older products —
+  // imported before the rule, or saved without a photo — are the ones this
+  // finds; anything added from now on already has all three.
+  const notReady = useMemo(() => products.map((p) => ({ p, ...productState(p) })).filter((x) => x.state !== "ready"), [products]);
+
+  const stockItems = [{ value: "all", label: "All" }, { value: "instock", label: "In stock" }, { value: "low", label: "Low", badge: stats.low || undefined }, { value: "outofstock", label: "Out", badge: stats.out || undefined },
+    ...(notReady.length ? [{ value: "notready", label: "Not ready", badge: notReady.length }] : [])];
   const catItems = [{ value: "all", label: "All products", icon: "ti-layout-grid", badge: products.length }, ...cats.map(([c, n]) => ({ value: c, label: c, icon: c === "Uncategorized" ? "ti-folder-question" : "ti-folder", badge: n }))];
   const wide = !isMobile;
 
@@ -203,6 +213,29 @@ export default function Inventory({ products, refresh }) {
         </div>
       </div>
       <Btn onClick={() => setSweep(true)} style={{ borderRadius: 12, background: T.card, color: T.warn, whiteSpace: "nowrap" }}>Review them</Btn>
+    </Card>}
+
+    {/* The owner cannot see this from the outside either: these products are in
+        the catalogue but the bot cannot fully answer for them. Anything added
+        from now on has all three; this is what came before the rule. */}
+    {notReady.length > 0 && <Card style={{ padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 11, flexWrap: "wrap" }}>
+      <i className="ti ti-alert-circle" style={{ fontSize: 20, color: T.textMuted, flexShrink: 0 }} />
+      <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>
+          {notReady.length} product{notReady.length > 1 ? "s are" : " is"} not ready to sell
+        </div>
+        <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2, lineHeight: 1.5 }}>
+          {(() => {
+            const tally = {};
+            for (const x of notReady) for (const k of (x.missing.length ? x.missing : ["unreadable"])) tally[k] = (tally[k] || 0) + 1;
+            const parts = Object.entries(tally).map(([k, n]) => k === "unreadable"
+              ? `${n} whose photo could not be read, so ${n > 1 ? "they cannot" : "it cannot"} be found by picture`
+              : `${n} without ${MISSING[k]?.label || k}`);
+            return `${parts.join(", ")}. Open one to fix it.`;
+          })()}
+        </div>
+      </div>
+      <Btn onClick={() => setStock("notready")} style={{ borderRadius: 12, whiteSpace: "nowrap" }}>Show them</Btn>
     </Card>}
 
     {/* Talking to the catalogue. Folded until asked for, and shown even when
@@ -436,6 +469,18 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   // already have, and saying they meant it.
   const save = async (force = false) => {
     if (!f.product_name.trim()) { setErr("Product name is required"); setTab("details"); return; }
+    // The same three things the server insists on when a product is CREATED,
+    // asked for here first so the answer is instant instead of a round trip.
+    // Only on add: editing is how an older incomplete product gets fixed, and
+    // refusing that save would trap it.
+    if (!edit) {
+      const short = missingToSell({ product_name: f.product_name, regular_price: f.regular_price, sale_price: f.sale_price, image_url: gallery.length ? "x" : "" });
+      if (short.length) {
+        setErr(missingMessage(short));
+        setTab(short.includes("photo") && !short.includes("price") ? "photos" : "details");
+        return;
+      }
+    }
     if (busy) return;
     setBusy(true); setErr(""); setDup(null);
     const fd = new FormData();
@@ -685,6 +730,12 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
   // The pasted link turned out to be a product the shop already has. Set only
   // after a refusal, so "Add anyway" cannot be pressed before reading why.
   const [urlDup, setUrlDup] = useState(false);
+  // A product with no price or no photo is one the bot cannot show, so by
+  // default it is not created. An IMPORT is the one place where holding to
+  // that blindly would hurt — somebody else's shop export may simply not carry
+  // photos, and losing sixty products to a rule is worse than the rule. So the
+  // owner can lift it, deliberately, and can see that they have.
+  const [incomplete, setIncomplete] = useState(false);
   // CSV: the file is read and mapped in the browser, then each row goes
   // through the same /api/import-one the WooCommerce import already uses —
   // so a spreadsheet product is indexed, embedded and deduplicated exactly
@@ -713,14 +764,15 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     const { products, skipped } = toProducts(csv.rows, map);
     if (!products.length) { setMsg("Failed: no rows have a name. Check which column is mapped to Name."); return; }
     setBusy(true);
-    let done = 0, fail = 0, unread = 0, dupes = 0;
+    let done = 0, fail = 0, unread = 0, dupes = 0, thin = 0;
     for (const prod of products) {
-      setMsg(`Importing ${done + fail + dupes + 1}/${products.length}: ${prod.product_name}`);
-      const one = await apiJson("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) });
+      setMsg(`Importing ${done + fail + dupes + thin + 1}/${products.length}: ${prod.product_name}`);
+      const one = await apiJson("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...prod, allow_incomplete: incomplete }) });
       if (one.error) fail++;
-      // Something the shop already has. Not a failure — stopping a run of two
-      // hundred products over it would be — but it must be reported, or the
-      // owner is left wondering why the count does not match their file.
+      // Two different reasons a row can be skipped, counted apart because the
+      // owner does something different about each: a duplicate they can ignore,
+      // a row with no price or photo they can fix in the sheet and re-import.
+      else if (one.incomplete) thin++;
       else if (one.skipped) dupes++;
       else { done++; if (one.analyzeError) unread++; }
       await new Promise((r) => setTimeout(r, 300));
@@ -729,6 +781,7 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     const tail = [
       fail ? `${fail} failed` : "",
       dupes ? `${dupes} already in your catalogue` : "",
+      thin ? `${thin} skipped (no price or photo)` : "",
       skipped ? `${skipped} row${skipped > 1 ? "s" : ""} skipped (no name)` : "",
     ].filter(Boolean);
     const line = `Imported ${done}${tail.length ? `, ${tail.join(", ")}` : ""}`;
@@ -749,6 +802,19 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  // Shown above both import buttons. Off by default: a product the bot cannot
+  // show should not be created, and that is the rule everywhere else too.
+  const incompleteBox = <label style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "10px 12px", borderRadius: 12, background: T.bgAlt, marginBottom: 12, cursor: busy ? "default" : "pointer", minHeight: 44 }}>
+    <input type="checkbox" checked={incomplete} disabled={busy} onChange={(e) => setIncomplete(e.target.checked)}
+      style={{ width: 17, height: 17, flexShrink: 0, marginTop: 1, accentColor: T.gold }} />
+    <span style={{ minWidth: 0 }}>
+      <span style={{ display: "block", fontSize: 12.5, fontWeight: 600 }}>Bring in products with no price or no photo too</span>
+      <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginTop: 2, lineHeight: 1.5 }}>
+        Off by default: the bot cannot answer a price it does not have, and cannot match a picture it was never given. Leave it off and those rows are skipped and counted, so you can fix them and import again.
+      </span>
+    </span>
+  </label>;
+
   // `force` is the owner having read that this link looks like something they
   // already have, and saying they meant it.
   const scrape = async (force = false) => {
@@ -769,20 +835,21 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     setBusy(true); setMsg("Fetching product list…");
     const r = await apiJson("/api/import-products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(imp) });
     if (r.error) { setMsg("Failed: " + r.error); setBusy(false); return; }
-    const list = r.products || []; let done = 0, fail = 0, unread = 0, dupes = 0;
+    const list = r.products || []; let done = 0, fail = 0, unread = 0, dupes = 0, thin = 0;
     for (const prod of list) {
-      setMsg(`Importing ${done + fail + dupes + 1}/${list.length}: ${prod.product_name}`);
-      const one = await apiJson("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prod) });
+      setMsg(`Importing ${done + fail + dupes + thin + 1}/${list.length}: ${prod.product_name}`);
+      const one = await apiJson("/api/import-one", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...prod, allow_incomplete: incomplete }) });
       if (one.error) fail++;
       // Already in the catalogue under a different code — reported, not failed.
       // A shop imported twice through two different routes is the usual way
       // this happens.
+      else if (one.incomplete) thin++;
       else if (one.skipped) dupes++;
       else { done++; if (one.analyzeError) unread++; }
       await new Promise((r) => setTimeout(r, 300));
     }
     setBusy(false); setMsg("");
-    const tail = [fail ? `${fail} failed` : "", dupes ? `${dupes} already in your catalogue` : ""].filter(Boolean);
+    const tail = [fail ? `${fail} failed` : "", dupes ? `${dupes} already in your catalogue` : "", thin ? `${thin} skipped (no price or photo)` : ""].filter(Boolean);
     const line = `Imported ${done}${tail.length ? `, ${tail.join(", ")}` : ""}`;
     onDone(unread
       ? { warn: true, text: `${line} — but ${unread} photo${unread > 1 ? "s" : ""} could not be analysed, so those products cannot be found by picture.` }
@@ -853,6 +920,7 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
                       </div>
                     ))}
                   </div>
+                  {incompleteBox}
                   <Btn gold onClick={runCsv} disabled={busy || map.product_name == null} style={{ width: "100%", padding: "12px 20px", borderRadius: 14, fontSize: 14 }}>
                     {busy ? "Importing…" : `Import ${csv.rows.length} product${csv.rows.length === 1 ? "" : "s"}`}
                   </Btn>
@@ -873,6 +941,7 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
               <Inp emb label="Consumer key" value={imp.ck} onChange={(e) => setImp({ ...imp, ck: e.target.value })} placeholder="ck_…" />
               <Inp emb label="Consumer secret" type="password" value={imp.cs} onChange={(e) => setImp({ ...imp, cs: e.target.value })} placeholder="cs_…" />
             </div>
+            {incompleteBox}
             <Btn gold onClick={runImport} disabled={busy} style={{ width: "100%", padding: "12px 20px", borderRadius: 14, fontSize: 14 }}>{busy ? "Importing…" : "Import products"}</Btn>
           </>}
       {msg && <div style={{ fontSize: 12.5, color: msg.startsWith("Failed") ? T.danger : T.textMuted, marginTop: 12, display: "flex", gap: 7, alignItems: "center" }}>{busy && <i className="ti ti-loader-2" style={{ fontSize: 15 }} />}{msg}</div>}

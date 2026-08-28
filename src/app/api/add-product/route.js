@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase.js";
 import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 import { findDuplicate, duplicateMessage, primaryPhotoKey } from "@/lib/duplicates.js";
+import { missingOnForm, missingMessage } from "@/lib/readiness.js";
 
 // Create one product from the Inventory tab. Multipart form: the fields in
 // readProductForm(), plus `images` (several files) — the first image is the
@@ -29,7 +30,22 @@ export async function POST(request) {
 
     const form = await request.formData();
     const { fields, files } = readProductForm(form);
-    if (!fields.product_name) return NextResponse.json({ error: "name required" }, { status: 400 });
+
+    // A name, a price and a photo, before anything is uploaded or read. The
+    // owner's rule: a product they add is one the bot can actually show, and
+    // each of these fails invisibly — no price and it cannot answer the first
+    // question a customer asks; no photo and it cannot be found by picture at
+    // all. Enforced only here, at creation. The edit route deliberately does
+    // NOT enforce it, because editing is how an older incomplete product gets
+    // fixed and refusing the save would trap it.
+    const hasPhoto = files.length > 0 || (fields.image_urls || []).some((u) => /^https?:\/\//.test(u));
+    const missing = missingOnForm(fields, hasPhoto);
+    if (missing.length) {
+      return NextResponse.json(
+        { error: missingMessage(missing, client.item_label || "product"), missing },
+        { status: 400 },
+      );
+    }
 
     // Asked before anything is uploaded, described or embedded: a duplicate
     // that is going to be refused should not cost the client an AI call or

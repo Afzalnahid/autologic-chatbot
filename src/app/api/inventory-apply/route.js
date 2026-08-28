@@ -9,6 +9,7 @@ import { checkProductQuota } from "@/lib/plan-limits.js";
 import { buildVariants } from "@/lib/variants.js";
 import { normalizeActions } from "@/lib/inventory-actions.js";
 import { findDuplicate, duplicateMessage } from "@/lib/duplicates.js";
+import { missingToSell, missingMessage } from "@/lib/readiness.js";
 
 // The inventory assistant, half two: carry out what the owner confirmed.
 //
@@ -64,6 +65,15 @@ async function remove(client, a) {
 }
 
 async function create(client, a) {
+  // The assistant can describe a product in words but cannot take a photograph,
+  // so anything it creates is missing one by definition. Rather than let it
+  // make products the bot cannot show, it is refused with the reason — and the
+  // owner is pointed at the chat, which does collect photos.
+  const missing = missingToSell(a.set);
+  if (missing.length) {
+    return { ok: false, id: null, error: `${missingMessage(missing, client.item_label || "product")} Add it with “Add by chat” instead — that asks for the photos.` };
+  }
+
   // An assistant asked twice in one conversation to "add a red scarf" would
   // otherwise add two. There is no "add anyway" here on purpose: the owner can
   // say so in words, and the assistant will be looking at a catalogue that

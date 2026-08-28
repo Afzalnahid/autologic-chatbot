@@ -9,6 +9,7 @@ import { getClientAI } from "@/lib/ai.js";
 // One wording for every photo, here and at message time. See products.js.
 import { visionPrompt, buildContent } from "@/lib/products.js";
 import { findDuplicate, findByCode, duplicateMessage, urlKey } from "@/lib/duplicates.js";
+import { missingToSell, missingMessage } from "@/lib/readiness.js";
 
 export async function POST(request) {
   try {
@@ -35,6 +36,16 @@ export async function POST(request) {
       .filter((u, i, a) => a.indexOf(u) === i)
       .slice(0, 12);
     const primary = gallery[0] || "";
+
+    // Same rule as every other door: a product the bot cannot show should not
+    // be created. An import is the one place where holding to it blindly would
+    // hurt — a WooCommerce shop with sixty photoless products would lose them
+    // all — so the importer can be told to bring them anyway, and the sheet
+    // makes that a visible choice rather than a silent default.
+    const missing = missingToSell({ product_name: p.product_name, regular_price: p.regular_price, sale_price: p.sale_price, image_url: primary });
+    if (missing.length && !p.allow_incomplete) {
+      return NextResponse.json({ ok: true, skipped: true, incomplete: missing, reason: missingMessage(missing, unit) });
+    }
 
     // Decided before the AI is touched, so a row that will not be kept costs
     // the client nothing.

@@ -11,6 +11,7 @@ import { getClientAI } from "@/lib/ai.js";
 // One wording for every photo, here and at message time. See products.js.
 import { visionPrompt, buildContent } from "@/lib/products.js";
 import { findDuplicate, duplicateMessage, urlKey } from "@/lib/duplicates.js";
+import { missingToSell, missingMessage } from "@/lib/readiness.js";
 
 export async function POST(request) {
   try {
@@ -68,6 +69,14 @@ export async function POST(request) {
 
     const codeMatch = visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i);
     const product_code = (codeMatch ? codeMatch[1].trim() : "") || `URL-${Date.now()}`;
+
+    // The same rule as every other door. A page that gave us no price or no
+    // picture produces a product the bot cannot show, so it is refused with
+    // the reason rather than saved as something half-there.
+    const missing = missingToSell({ product_name: p.name, regular_price: p.regular_price, sale_price: p.sale_price, image_url });
+    if (missing.length && !body.allow_incomplete) {
+      return NextResponse.json({ error: `${missingMessage(missing, unit)} The page did not give us ${missing.length > 1 ? "them" : "it"}.`, incomplete: missing }, { status: 400 });
+    }
 
     const metadata = {
       client_id: String(client.id),
