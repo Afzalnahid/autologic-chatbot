@@ -4,7 +4,36 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-28, sixth thread) — Stages 1–3 of the master restructure
+## Last session (2026-08-28, seventh thread) — Stage 4: option axes come from the shop, not the code
+
+`95ab98a`, pushed. Completes the four-stage restructure. "Size" and "Colour" were two fixed
+boxes in PhotoBatch — a clothing shop's answer built into everybody's tool.
+
+**Three sources, in order** (`src/lib/variants.js`):
+1. **`knownAxes(products)`** — the option names this shop has already used, most used first.
+   Free, instant, and right more often than any guess. The chat's third question is asked in
+   those words: a shop using "Capacity" is asked what capacities, not what sizes.
+2. **The AI** — the naming call in `/api/photo-draft` now also returns `axes` (names only, max
+   2). One extra field in a request already being made, so no extra cost. Names-only is
+   ENFORCED, not just asked for: a model answering `["S","M","L"]` must not make three axes.
+3. **The owner** — every axis is a row with an editable NAME. Renaming carries that axis's
+   values across (`renameAxis`), so typing "Fabric" over "Colour" does not drop what was typed.
+
+**Data shape changed in PhotoBatch:** `d.sizes` / `d.colours` → `d.opt = { [axisName]: "a, b" }`,
+with the NAMES on the batch (`axes` state) and the VALUES per product — a rail of shirts is all
+Size, but one is S–L and the next M–XL.
+
+**`parseAxes(text, fallbackName)`** reads both shapes a person types: `"S, M, L"` → one axis
+named the shop's way; `"Size: S, M; Colour: Black"` → two. Does not split a value at a colon
+inside it (`"Model: A:1, B:2"`).
+
+Fixed on the way: on a phone the axis row was one line and the options box came out 33px with
+the sheet overflowing to 446px. Name takes its own line there now.
+
+**All four stages are done.** Nothing outstanding from the owner's restructure request.
+---
+
+## Earlier session (2026-08-28, sixth thread) — Stages 1–3 of the master restructure
 
 Owner showed 15 t-shirt photos (mixed fronts and backs, all different designs) and asked how
 to add and MANAGE them by chat, for any business not just clothing. They answered four design
@@ -1932,6 +1961,7 @@ automation looks natural to a reviewer.
 - Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
   `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
 - WhatsApp typing indicator also marks the message read.
+
 
 
 
