@@ -28,19 +28,12 @@
 // owner with two rows to tidy up.
 import crypto from "node:crypto";
 import { supabase } from "@/lib/supabase.js";
+// The matching rules themselves live apart, because the dashboard needs them
+// too and cannot import a file that reaches for supabase.
+import { nameKey, codeKey } from "@/lib/duplicate-keys.js";
+export { nameKey, codeKey };
 
 const sha = (s) => crypto.createHash("sha256").update(s).digest("hex").slice(0, 32);
-
-// Case, punctuation and spacing carry no meaning in a product name typed twice
-// by the same person on two different days.
-export function nameKey(s) {
-  return String(s ?? "")
-    .toLowerCase()
-    .replace(/[‘’ʼ]/g, "'")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
-}
-export const codeKey = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 
 // The two photo keys are deliberately in different spaces: an uploaded file and
 // a remote address are not comparable, and prefixing them means they can never
