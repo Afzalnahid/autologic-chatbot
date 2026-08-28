@@ -699,3 +699,20 @@ measurement. `getAnimations()` said `playState: "running", currentTime: 0`. Call
   per-element rects disagree with it, the rects are the ones that are lying.
 - A screenshot that times out with "the pane is not displayed" is the same fact arriving
   by another route — treat every measurement taken in that state as suspect.
+
+## Testing a "find the bad data" feature needs bad data, and putting it in the fixture is a trap (2026-08-28)
+
+The duplicate sweep can only be seen when the catalogue HAS duplicates, and the
+screenshot studio's sample catalogue is deliberately clean. The quick way — adding two
+twins to `src/app/shots/sample.js` — works, and would have quietly poisoned every future
+screenshot with a warning banner that is not part of the product.
+
+I did use the fixture, but as a temporary edit, verified the revert with `git status`
+before committing, and confirmed the banner disappears again on the clean catalogue.
+
+**Rules:**
+- A fixture edited to exercise a feature is a temporary edit, never a commit. Revert it,
+  then re-run once on the clean fixture — a feature that fires on clean data is a worse
+  bug than one that never fires.
+- Note the temporary edit in the session write-up. If the session is interrupted between
+  the edit and the revert, the next one needs to know to check.

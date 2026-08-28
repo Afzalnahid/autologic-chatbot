@@ -4,7 +4,7 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-28, second thread) — Duplicate products blocked at every door
+## Last session (2026-08-28, second thread) — Duplicate products: blocked at every door, and the old ones findable
 
 `cfe9254`, pushed. The owner asked for a duplicate check on every way of adding a
 product, because two rows for one product make the bot answer from whichever the
@@ -28,6 +28,20 @@ search happens to score higher.
 - The check runs before any upload/vision/embed, so a refusal costs no AI call and
   leaves no orphaned photo. And it never blocks an add by failing — a broken lookup logs
   and lets the product through.
+
+**Then `8823abe` + `4a773c3` — the twins already in the catalogue.** Blocking new ones
+does nothing about the pairs already there, which are the ones confusing the bot today.
+- `src/lib/duplicate-keys.js` (pure — `nameKey`, `codeKey` moved out of the server-only
+  `duplicates.js`, plus `findTwins`, `richness`, `twinReason`). The dashboard and the
+  server now share one definition of "same product".
+- `findTwins` runs over the product list the Inventory tab ALREADY holds — no new route,
+  no request. Groups by CONNECTION (union-find), not one key at a time: A~B by code and
+  B~C by photo is one pile of three, not two pairs with B in both.
+- A warning card at the top of Inventory when any exist; `DuplicateSweep.js` shows each
+  pile with what differs, marks the fullest row KEEP (ties → newer), and deletes only
+  what is still marked when the button is pressed. "Leave alone" sets a pile aside.
+- Verified by temporarily seeding two twins into `src/app/shots/sample.js` and driving
+  it, then REVERTING that file (check `git status` is clean if resuming mid-way).
 
 **Unverified:** the slim `select("id, name:metadata->>product_name, …")`. This machine's
 `.env.local` holds PLACEHOLDER Supabase credentials (`example.supabase.co`), so there is
@@ -1777,5 +1791,6 @@ automation looks natural to a reviewer.
 - Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
   `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
 - WhatsApp typing indicator also marks the message read.
+
 
 
