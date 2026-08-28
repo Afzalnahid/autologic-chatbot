@@ -716,3 +716,36 @@ before committing, and confirmed the banner disappears again on the clean catalo
   bug than one that never fires.
 - Note the temporary edit in the session write-up. If the session is interrupted between
   the edit and the revert, the next one needs to know to check.
+
+## `.eq(column, null)` is never true, and the fix looks like it works (2026-08-28)
+
+Writing a guard so one order could not be saved twice, I matched on the customer with
+`.eq("sender_id", senderId || null)`. PostgREST turns that into SQL `sender_id = NULL`,
+which is never true for any row. So for every order with no sender id — every website
+widget order — the guard would have found nothing, concluded "not a duplicate", and
+inserted. The code reads correctly, the tests I could run pass, and the bug only appears
+for one subset of rows.
+
+**Rules:**
+- NULL is asked for with `.is(col, null)`, never `.eq(col, null)`. Any `|| null` inside an
+  `.eq()` is the same bug wearing a disguise.
+- When a guard is written to PREVENT something, the dangerous failure is it silently
+  matching nothing. Ask what the query returns for the empty/missing case specifically —
+  a guard that never fires looks identical to a guard that is never needed.
+- After fixing one instance, sweep for the pattern across the codebase in the same pass.
+
+## A documented invariant is not an enforced one (2026-08-28)
+
+`docs/prompts.md` said `visionPrompt` "must be identical at import time and at message
+time — the two descriptions are embedded and compared, so any drift breaks matching."
+There were four copies, all worded differently. The rule had been written down, agreed
+with, and then broken four times, because each copy looked local and harmless where it
+was written.
+
+**Rules:**
+- An invariant that says "these two must be identical" is only real when there is ONE
+  definition and everything imports it. If a rule can only be kept by remembering it,
+  assume it has already been broken and go and count the copies.
+- When auditing, grep for DEFINITIONS of the things the docs call invariant
+  (`function visionPrompt|const visionPrompt`), not for uses. Four definitions where the
+  doc implies one is the finding.

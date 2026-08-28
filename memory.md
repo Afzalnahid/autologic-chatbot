@@ -4,7 +4,54 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-28, second thread) — Duplicate products: blocked at every door, and the old ones findable
+## Last session (2026-08-28, third thread) — System audit for silent bugs of the duplicate kind
+
+Owner asked: "check the whole system for any other bug like this." Four found and fixed,
+`67d9a1d` `f451ea7` `e02e12b`, all pushed. The class hunted for: **silent, invisible from
+the outside, and the bot answers wrongly.**
+
+**1. `67d9a1d` — FOUR different `visionPrompt` copies.** `docs/prompts.md` states the rule
+(*"must be identical at import time and at message time — the two descriptions are embedded
+and compared"*) and the code had already broken it: copies in `products.js`, `bot.js`,
+`import-one`, `import-url`, no two the same. A customer's photo was described with one
+wording, the catalogue with another, and `searchProducts` has a **0.5 match_score floor** —
+so the drift showed up as *"I could not find that item"* for a product that is right there.
+The `bot.js` copy was worst: *"If found, output only: CODE: <code>"* — a photo with any
+visible SKU produced a description of just the code. **Now one definition in `products.js`**,
+imported by bot.js / import-one / import-url / photo-draft. Rows imported before today keep
+their old text; a re-import rewrites them.
+
+**2. `67d9a1d` — `/api/import-url` was the door nobody updated.** No duplicate check (paste
+the same link twice → two rows), its own thinner `content` (no category, so "something for
+winter" found typed products and not imported ones), `catch {}` around vision hiding
+analyzeError, and no `photo_key`. All four fixed; both importers now use `buildContent`.
+
+**3. `f451ea7` — 13 dead single-tenant helpers in `src/lib/supabase.js`.** `getProducts()`
+returned EVERY shop's catalogue; `deleteProduct(id)` deleted across all shops with the id
+pasted into a PostgREST filter string. Zero callers (checked all 164 source files) so no
+active bug — deleted rather than fixed, because they are one accidental import from a
+cross-tenant leak. The file now exports only the client.
+
+**4. `e02e12b` — one order could be saved twice.** No guard at all: Meta redelivers webhooks,
+and the model repeats the order object when a customer says "confirm" again. Shop packs one
+parcel, sees two orders, counts the money twice. Now refuses on same client + order_code +
+sender_id. Caught a bug in my own first version: `.eq("sender_id", null)` is `= NULL` in SQL,
+never true — website-widget orders would have slipped past every time. Must be `.is()`.
+
+**ACTION FOR THE OWNER — not done, needs the Supabase SQL editor:** the unique index that
+closes the last race (two webhook deliveries at the same instant). SQL and the
+check-for-existing-duplicates query are both in `docs/database.md` under `orders`.
+
+**Checked and found clean:** the client_id-at-the-database invariant (only the dead code
+broke it), the embedding invariant (every embed routes through `getClientAI`), the 24-hour
+messaging window (`broadcast.js` / `followup.js` / `messenger.js`).
+
+**Not audited in depth:** billing/SSLCommerz, bookings/Google Calendar, the admin panel,
+the OAuth connect flows. The sweep concentrated on the catalogue and reply path, where the
+reported bug lived.
+---
+
+## Earlier session (2026-08-28, second thread) — Duplicate products: blocked at every door, and the old ones findable
 
 `cfe9254`, pushed. The owner asked for a duplicate check on every way of adding a
 product, because two rows for one product make the bot answer from whichever the
@@ -1791,6 +1838,7 @@ automation looks natural to a reviewer.
 - Pages owned by a Business Portfolio do **not** appear in `/me/accounts` without
   `business_management`. AutoLogic Systems had to be removed from the portfolio to be connectable.
 - WhatsApp typing indicator also marks the message read.
+
 
 
 
