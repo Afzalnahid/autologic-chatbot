@@ -208,7 +208,7 @@ export default function Inventory({ products, refresh }) {
     {/* Talking to the catalogue. Folded until asked for, and shown even when
         the catalogue is empty — being asked the questions is the gentlest way
         to add the very first product. */}
-    <InventoryAssistant products={products} refresh={refresh} startSignal={chatAdd} />
+    <InventoryAssistant products={products} refresh={refresh} startSignal={chatAdd} onImport={(kind) => setImporter(kind)} />
 
     {/* Body: category rail + products */}
     {empty

@@ -4,8 +4,6 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { generateEmbedding } from "@/lib/gemini.js";
-import { embedMeter } from "@/lib/usage.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
 // One wording for every photo, here and at message time. See products.js.
@@ -28,6 +26,16 @@ export async function POST(request) {
     const p = await request.json();
     if (!p?.product_name) return NextResponse.json({ error: "missing product" }, { status: 400 });
 
+    // Every picture the source had of this product, in its own order. Callers
+    // that only know about one still work: a bare image_url becomes a gallery
+    // of one. Only real http links — vision fetches these.
+    const gallery = (Array.isArray(p.images) && p.images.length ? p.images : [p.image_url])
+      .map((u) => String(u || "").trim())
+      .filter((u) => /^https?:\/\//i.test(u))
+      .filter((u, i, a) => a.indexOf(u) === i)
+      .slice(0, 12);
+    const primary = gallery[0] || "";
+
     // Decided before the AI is touched, so a row that will not be kept costs
     // the client nothing.
     //
@@ -38,16 +46,16 @@ export async function POST(request) {
     // and says so rather than stopping a run of two hundred products.
     const replacing = await findByCode(client.id, p.product_code);
     if (!replacing.length) {
-      const dup = await findDuplicate(client.id, { name: p.product_name, photoKey: urlKey(p.image_url) });
+      const dup = await findDuplicate(client.id, { name: p.product_name, photoKey: urlKey(primary) });
       if (dup) return NextResponse.json({ ok: true, skipped: true, duplicate: dup, reason: duplicateMessage(dup, client.item_label || "product") });
     }
 
     let visual = "";
     let analyzeError = null;
-    if (p.image_url) {
+    if (primary) {
       try {
         const ai = await getClientAI(client.id, "product");
-        visual = await ai.visionUrl(p.image_url, visionPrompt(bType, unit));
+        visual = await ai.visionUrl(primary, visionPrompt(bType, unit));
       } catch (e) {
         // Swallowed silently before, so a whole catalogue could import with
         // not one photo readable and the summary would still say "Imported 40".
@@ -65,12 +73,16 @@ export async function POST(request) {
       regular_price: p.regular_price || "",
       sale_price: p.sale_price || "",
       stock_status: p.stock_status || "instock",
-      image_url: p.image_url || "",
-      images: p.image_url ? [p.image_url] : [],
+      // A product can have several pictures and every source can supply them:
+      // a CSV cell with more than one link, a WooCommerce gallery. Only one was
+      // ever stored, so the rest were lost at the door. The first is the one
+      // the bot shows and the one vision reads, exactly as before.
+      images: gallery,
+      image_url: gallery[0] || "",
       visual,
       description: p.description || "",
       // Lets the next import recognise the same picture. See duplicates.js.
-      photo_key: urlKey(p.image_url),
+      photo_key: urlKey(primary),
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     };
 

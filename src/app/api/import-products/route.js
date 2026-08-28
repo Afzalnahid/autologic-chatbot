@@ -32,6 +32,12 @@ export async function POST(request) {
       regular_price: String(p.regular_price || ""),
       sale_price: String(p.sale_price || ""),
       stock_status: p.stock_status || "instock",
+      // WooCommerce hands over every photo of a product and only the first was
+      // being kept, so a shirt listed with a front, a back and a detail shot
+      // arrived here with one picture and the other two were dropped on the
+      // floor. The gallery travels now; image_url stays as the first of them
+      // because that is the one the bot shows.
+      images: (p.images || []).map((i) => i?.src).filter(Boolean).slice(0, 12),
       image_url: (p.images?.[0]?.src) || "",
       description: strip(p.description || p.short_description),
     }));

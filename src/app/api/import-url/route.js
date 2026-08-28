@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { generateEmbedding, extractProductsFromUrl } from "@/lib/gemini.js";
+import { extractProductsFromUrl } from "@/lib/gemini.js";
 import { embedMeter } from "@/lib/usage.js";
 import { checkProductQuota, checkScrapeQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";

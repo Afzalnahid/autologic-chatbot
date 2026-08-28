@@ -36,10 +36,26 @@ const CHIPS = [
   "How many products are out of stock?",
 ];
 
+// Every way into the catalogue, offered from the one place the owner is already
+// talking. The panel used to offer only the interview, so someone sitting in the
+// chat with a spreadsheet in front of them had to close it, find the Import
+// menu and start again — the chat looked like it could only do one product at a
+// time, which is exactly what it looked like to the owner.
+//
+// The four imports open the sheets that already do that work rather than a
+// second copy of them living in here. One implementation, two doors to it.
+const WAYS = [
+  { id: "ask", icon: "ti-messages", label: "I’ll ask you the questions", sub: "One product, in your own words" },
+  { id: "photos", icon: "ti-photo-plus", label: "Many photos", sub: "One photo becomes one product" },
+  { id: "csv", icon: "ti-table", label: "A spreadsheet", sub: "Hundreds at once, from a CSV" },
+  { id: "url", icon: "ti-link", label: "A product link", sub: "We read the page for you" },
+  { id: "woo", icon: "ti-brand-wordpress", label: "WooCommerce", sub: "Bring your whole shop over" },
+];
+
 const MAX_PHOTOS = 12;
 const emptyDraft = () => ({});
 
-export default function InventoryAssistant({ products, refresh, startSignal = 0 }) {
+export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport }) {
   const isMobile = useIsMobile();
   // A thumbnail on a phone is big enough to hold a 44px remove button INSIDE
   // it, so the button never overhangs the photo beside it and steals its tap.
@@ -77,7 +93,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
   const blobs = useRef([]);
   const preview = (file) => { const u = URL.createObjectURL(file); blobs.current.push(u); return u; };
 
-  useEffect(() => { if (open) endRef.current?.scrollIntoView({ block: "nearest" }); }, [msgs, open, busy, draft]);
+  // Only once there is a conversation to follow. Scrolling to the bottom of an
+  // empty panel pushed the ways-in list up and hid the first and best of them,
+  // which on a phone is the whole screen the owner is looking at.
+  useEffect(() => { if (open && msgs.length) endRef.current?.scrollIntoView({ block: "nearest" }); }, [msgs, open, busy, draft]);
   useEffect(() => () => blobs.current.forEach(URL.revokeObjectURL), []);
   // Started from outside the panel — the toolbar button, or the empty state.
   useEffect(() => { if (startSignal > 0) { setOpen(true); startInterview(); } }, [startSignal]);
@@ -141,6 +160,15 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
     const start = [...msgs, { role: "user", content: "I want to add a product.", phase: "interview" }];
     setMsgs(start);
     turn(start, {}, 0, "");
+  };
+
+  // "I'll ask you the questions" is this panel's own job; the other four open
+  // the sheet that already does that import. An interview in progress is left
+  // exactly as it is — the sheet sits on top and the draft is still here
+  // underneath when it closes.
+  const pickWay = (id) => {
+    if (id === "ask") { startInterview(); return; }
+    onImport?.(id);
   };
 
   const stopInterview = () => {
@@ -273,13 +301,20 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
       <div style={{ maxHeight: interviewing ? 250 : 400, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
         {!msgs.length && <div style={{ padding: "6px 0 2px" }}>
           <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.65, marginBottom: 10 }}>
-            Add a product by answering a few questions, or ask about the {products?.length || 0} already here — “the winter jackets are 1200 now”, “we are out of the black polo”.
+            Add products any of these ways, or ask about the {products?.length || 0} already here — “the winter jackets are 1200 now”, “we are out of the black polo”.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))", gap: 8, marginBottom: 12 }}>
+            {WAYS.map((w) => <button key={w.id} type="button" onClick={() => pickWay(w.id)} className="ui-btn ob-row"
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 13, textAlign: "left", cursor: "pointer", fontFamily: "inherit", minHeight: 52,
+                background: w.id === "ask" ? T.goldBg : T.bgAlt, border: `1px solid ${w.id === "ask" ? T.gold : T.border}`, color: T.text }}>
+              <i className={`ti ${w.icon}`} style={{ fontSize: 19, flexShrink: 0, color: T.gold }} />
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12.5, fontWeight: 600 }}>{w.label}</span>
+                <span style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 1 }}>{w.sub}</span>
+              </span>
+            </button>)}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            <button type="button" onClick={startInterview} className="ui-btn"
-              style={{ padding: "8px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: T.goldBg, border: `1px solid ${T.gold}`, color: T.gold, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>
-              <i className="ti ti-plus" style={{ marginRight: 5 }} />Add a product — I’ll ask the questions
-            </button>
             {CHIPS.map((c) => <button key={c} type="button" onClick={() => ask(c)} className="ui-btn ob-chip"
               style={{ padding: "8px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>{c}</button>)}
           </div>
@@ -408,10 +443,16 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0 
         <Btn gold type="submit" disabled={busy || !input.trim()} aria-label="Send" style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
       </form>
 
-      {!interviewing && msgs.length > 0 && <button type="button" onClick={startInterview} disabled={busy} className="ui-btn"
-        style={{ marginTop: 9, padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "none", border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 34 }}>
-        <i className="ti ti-plus" style={{ marginRight: 5 }} />Add a product — I’ll ask the questions
-      </button>}
+      {/* Still reachable once the conversation has started, as a compact row —
+          the full cards belong to the empty state, where there is room. */}
+      {!interviewing && msgs.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9 }}>
+        {WAYS.map((w) => <button key={w.id} type="button" onClick={() => pickWay(w.id)} disabled={busy} className="ui-btn ob-chip"
+          title={w.sub}
+          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: w.id === "ask" ? 600 : 500, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
+            background: w.id === "ask" ? T.goldBg : "none", border: `1px solid ${w.id === "ask" ? T.gold : T.border}`, color: w.id === "ask" ? T.gold : T.textMuted }}>
+          <i className={`ti ${w.icon}`} style={{ marginRight: 5 }} />{w.id === "ask" ? "Add — I’ll ask" : w.label}
+        </button>)}
+      </div>}
     </div>}
   </Card>;
 }

@@ -60,8 +60,9 @@ export const COLUMNS = [
     aliases: ["category", "categories", "type", "group", "collection"] },
   { key: "description",   label: "Description", required: false,
     aliases: ["description", "details", "detail", "about", "shortdescription", "longdescription"] },
-  { key: "image_url",     label: "Image link",  required: false,
-    aliases: ["image", "imageurl", "imagelink", "photo", "photourl", "picture", "img", "images"] },
+  { key: "image_url",     label: "Image link(s)", required: false,
+    aliases: ["image", "imageurl", "imagelink", "photo", "photourl", "picture", "img", "images",
+      "imageurls", "imagelinks", "photos", "gallery", "imagesrc", "featuredimage"] },
   { key: "stock_status",  label: "Stock",       required: false,
     aliases: ["stock", "stockstatus", "availability", "available", "instock", "quantity", "qty"] },
 ];
@@ -110,6 +111,19 @@ function price(raw) {
 // Rows with no name are dropped and counted — a spreadsheet nearly always has
 // a stray blank or a totals line at the bottom, and silently importing those
 // as nameless products would be worse than skipping them.
+// A product photographed from three angles is one product with three pictures,
+// and a spreadsheet can say so in one cell. The comma is only treated as a
+// separator when the next thing is another link, because a single URL may
+// legitimately carry commas in its query string.
+export function imageList(cell) {
+  return String(cell || "")
+    .split(/[\n\r|;]+|,\s*(?=https?:\/\/)|\s+(?=https?:\/\/)/i)
+    .map((s) => s.trim().replace(/^["']|["']$/g, ""))
+    .filter((s) => /^https?:\/\//i.test(s))
+    .filter((s, i, a) => a.indexOf(s) === i)
+    .slice(0, 12);
+}
+
 export function toProducts(rows, map, { startCode = "CSV" } = {}) {
   const at = (row, key) => (map[key] == null ? "" : String(row[map[key]] ?? "").trim());
   const products = [];
@@ -124,9 +138,12 @@ export function toProducts(rows, map, { startCode = "CSV" } = {}) {
       regular_price: price(at(row, "regular_price")),
       sale_price: price(at(row, "sale_price")),
       stock_status: stockStatus(at(row, "stock_status")),
-      // Only a real http link is passed on: the importer runs vision on it, and
-      // a local file path from someone's computer would just fail slowly.
-      image_url: /^https?:\/\//i.test(at(row, "image_url")) ? at(row, "image_url") : "",
+      // One cell, as many pictures as the shop has of that product. Every
+      // export writes this differently — WooCommerce separates with a comma,
+      // Shopify with a newline, others with a pipe or a space — so all of them
+      // are accepted. Only real http links survive: the importer fetches these,
+      // and a local file path from someone's computer would just fail slowly.
+      images: imageList(at(row, "image_url")),
       description: at(row, "description"),
     });
   });
@@ -136,8 +153,10 @@ export function toProducts(rows, map, { startCode = "CSV" } = {}) {
 // The file the "Download a sample" button hands over. Deliberately filled in,
 // not blank: an owner who has never made a CSV can open this in Excel, replace
 // the two example rows with their own, and be certain the shape is right.
+// The image column shows two links in one cell on purpose: one product can have
+// several pictures, and nobody guesses that from an empty column.
 export const SAMPLE_CSV = [
   "product_name,product_code,regular_price,sale_price,category,stock_status,image_url,description",
-  '"Cotton panjabi — navy",PJ-001,1450,1250,Panjabi,instock,,"Soft cotton, full sleeve, regular fit"',
-  '"Handloom shawl",SH-014,890,,Shawl,instock,,"Handwoven, natural dye"',
+  '"Cotton panjabi — navy",PJ-001,1450,1250,Panjabi,instock,"https://example.com/panjabi-front.jpg | https://example.com/panjabi-back.jpg","Soft cotton, full sleeve, regular fit"',
+  '"Handloom shawl",SH-014,890,,Shawl,instock,https://example.com/shawl.jpg,"Handwoven, natural dye"',
 ].join("\n");
