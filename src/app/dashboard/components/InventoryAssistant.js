@@ -171,8 +171,29 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // exactly as it is — the sheet sits on top and the draft is still here
   // underneath when it closes.
   const pickWay = (id) => {
-    if (id === "ask") { startInterview(); return; }
+    if (id === "ask") { askHowMany(); return; }
     onImport?.(id);
+  };
+
+  // Between "how do you want to add them" and the first question about a
+  // product there is one more thing worth knowing, and getting it wrong is
+  // expensive: an owner with fifteen shirts should not be interviewed about the
+  // first one. Asked as two buttons rather than a sentence, because it has
+  // exactly two answers.
+  const askHowMany = () => {
+    setErr("");
+    setMsgs((s) => [...s,
+      { role: "user", phase: "chat", content: "I want to add products." },
+      { role: "assistant", phase: "chat", actions: [], choice: "count",
+        content: "Is it one product, or several at once?" },
+    ]);
+  };
+
+  const answerHowMany = (many) => {
+    setMsgs((s) => s.map((m) => m.choice === "count" ? { ...m, choice: null } : m));
+    setMsgs((s) => [...s, { role: "user", phase: "chat", content: many ? "Several." : "Just one." }]);
+    if (many) onImport?.("photos");
+    else startInterview();
   };
 
   const stopInterview = () => {
@@ -354,6 +375,15 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
         {msgs.map((m, mi) => <div key={mi} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>
           <div style={{ maxWidth: "88%", padding: "9px 13px", borderRadius: 14, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap",
             background: m.role === "user" ? T.goldBg : T.bgAlt, color: m.role === "user" ? T.gold : T.text, boxShadow: m.role === "user" ? "none" : T.nmIn }}>{m.content}</div>
+
+          {m.choice === "count" && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Btn gold onClick={() => answerHowMany(false)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
+              <i className="ti ti-package" style={{ marginRight: 6 }} />Just one
+            </Btn>
+            <Btn onClick={() => answerHowMany(true)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
+              <i className="ti ti-photo-plus" style={{ marginRight: 6 }} />Several — I have their photos
+            </Btn>
+          </div>}
 
           {m.photoUrls?.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "88%" }}>
             {m.photoUrls.map((u) => <img key={u} src={u} alt="" style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 9, border: `1px solid ${T.border}` }} />)}

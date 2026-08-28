@@ -85,8 +85,13 @@ export const MUST_HAVE = ["product_name", "regular_price", "photo"];
 // Asked every time and shown as missing on the card, but never blocking. A shop
 // that does not count stock must still be able to finish.
 export const SHOULD_HAVE = ["category", "stock_qty"];
-// The order the assistant works through what is still blank.
-export const ASK_ORDER = ["photo", "product_name", "regular_price", "category", "stock_qty", "options", "description", "brand", "sale_price", "product_code", "tags"];
+// The order the assistant works through what is still blank, and it is the
+// owner's order, not the machine's: what the thing IS and what it costs, then
+// its pictures, then the sizes and colours a customer chooses between. Photos
+// used to come first because the AI can read a name off one — which is the
+// convenient order for the AI and the wrong one for a person, who is holding
+// their phone and has not decided what to call it yet.
+export const ASK_ORDER = ["product_name", "regular_price", "category", "stock_qty", "photo", "options", "description", "brand", "sale_price", "product_code", "tags"];
 
 export const LABELS = { ...FIELDS, photo: "Photos" };
 
