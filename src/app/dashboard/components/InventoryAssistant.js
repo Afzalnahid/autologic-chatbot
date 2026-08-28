@@ -4,6 +4,7 @@ import { T, Card, Btn, useIsMobile } from "./ui.js";
 import { apiJson } from "./session.js";
 import { describeAction, draftGaps, LABELS } from "@/lib/inventory-actions.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
+import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
 import { buildVariants } from "@/lib/variants.js";
 
 // Look after the catalogue by talking to it — and add to it the same way.
@@ -92,6 +93,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // and a revoked URL there would leave a row of broken images behind.
   const blobs = useRef([]);
   const preview = (file) => { const u = URL.createObjectURL(file); blobs.current.push(u); return u; };
+  // Fingerprints of every photo attached to the product being built, so the
+  // same one chosen twice is recognised across separate trips to the picker.
+  const seenPhotos = useRef(new Set());
 
   // Only once there is a conversation to follow. Scrolling to the bottom of an
   // empty panel pushed the ways-in list up and hid the first and best of them,
@@ -156,7 +160,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   // ── Being asked ────────────────────────────────────────────────────────────
   const startInterview = () => {
-    setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr(""); setDup(null); setRefused(false);
+    setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr(""); setDup(null); setRefused(false); seenPhotos.current = new Set();
     const start = [...msgs, { role: "user", content: "I want to add a product.", phase: "interview" }];
     setMsgs(start);
     turn(start, {}, 0, "");
@@ -206,14 +210,34 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // exactly what shrinkBatch measures, counting what is already attached.
     const keep = photos.reduce((a, p) => a + p.file.size, 0);
     const ready = await shrinkBatch(picked, keep);
+    // The same picture chosen twice is not two pictures. Caught here, before
+    // anything is uploaded or read, so it costs nothing and is never stored.
+    const { fresh: unique, repeats } = await dropRepeats(ready, seenPhotos.current);
     setPrepping(false);
-    const fresh = ready.map((file) => ({ id: `${Date.now()}${Math.random().toString(36).slice(2, 6)}`, file, u: preview(file) }));
-    const next = [...photos, ...fresh].slice(0, MAX_PHOTOS);
+
+    // One product holds twelve. Anything past that used to be dropped by a
+    // silent .slice() while the transcript still said "Added 15 photos" — the
+    // owner was told a number that was not true. It says what it kept now, and
+    // what it could not, and what to do with the rest.
+    const room = Math.max(0, MAX_PHOTOS - photos.length);
+    const taken = unique.slice(0, room);
+    const overflow = unique.length - taken.length;
+
+    const fresh = taken.map((file) => ({ id: `${Date.now()}${Math.random().toString(36).slice(2, 6)}`, file, u: preview(file) }));
+    const next = [...photos, ...fresh];
     setPhotos(next);
 
-    const line = { role: "user", content: `Added ${fresh.length} photo${fresh.length > 1 ? "s" : ""}.`, phase: "interview", photoUrls: fresh.map((p) => p.u) };
+    const said = [`Added ${fresh.length} photo${fresh.length === 1 ? "" : "s"}.`];
+    if (repeats.length) said.push(`${repeats.length} ${repeats.length === 1 ? "was the same picture" : "were pictures already here"} — skipped.`);
+    if (overflow) said.push(`${overflow} did not fit: one product holds ${MAX_PHOTOS}.`);
+    const line = { role: "user", content: said.join(" "), phase: "interview", photoUrls: fresh.map((p) => p.u) };
     const history = [...msgs, line];
     setMsgs(history);
+
+    // Photos that would not fit usually means these are not all one product.
+    // Saying so is more use than a silent truncation.
+    if (overflow) setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [],
+      content: `${overflow} photo${overflow === 1 ? "" : "s"} could not go on this product — twelve is the most one product can have. If those are different products, press “Many photos” below and add them together instead.` }]);
 
     // Only the first photo is read. It is the one the bot shows and the one a
     // customer's picture is matched against — the same rule /api/add-product
@@ -237,7 +261,14 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     turn(history, d, next.length, v);
   };
 
-  const dropPhoto = (id) => setPhotos((s) => s.filter((x) => x.id !== id));
+  // Removing a photo also forgets its fingerprint, so an owner who takes one
+  // off and changes their mind can put the same one back. The fingerprint is
+  // cached against the file, so asking for it again costs nothing.
+  const dropPhoto = async (id) => {
+    const gone = photos.find((x) => x.id === id);
+    setPhotos((s) => s.filter((x) => x.id !== id));
+    if (gone) { try { seenPhotos.current.delete(await fingerprint(gone.file)); } catch {} }
+  };
   const makeFirst = (id) => setPhotos((s) => { const p = s.find((x) => x.id === id); return p ? [p, ...s.filter((x) => x.id !== id)] : s; });
 
   // `force` is the owner having read that this looks like something they
