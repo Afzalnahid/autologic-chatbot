@@ -144,6 +144,33 @@ the object in Storage — see [error-handling.md](./error-handling.md#orphaned-k
 `total_price` is text because the bot writes a human-readable breakdown. Analytics
 parses the `Total = N` portion.
 
+**One order, one row.** `maybeSaveOrder()` in `bot.js` refuses to insert when the
+same `client_id` + `order_code` + `sender_id` is already there. Both ways it
+tries to happen are ordinary: Meta redelivers a webhook when the handler was
+slow or failed after we had already saved, and the model repeats the whole order
+object when a customer says "ok" or "confirm" a second time. A duplicate order
+means the shop packs one parcel, sees two, calls the customer twice, and counts
+the money twice.
+
+The application check closes both. It cannot close the last one — two webhook
+deliveries arriving at the same instant can both read "not there" before either
+writes. Only the database can, and this index has NOT been applied yet:
+
+```sql
+create unique index concurrently if not exists orders_one_per_code
+  on orders (client_id, order_code, sender_id)
+  where order_code is not null;
+```
+
+Run it in the Supabase SQL editor. It is safe on existing data only if there are
+no duplicates already — check first with:
+
+```sql
+select client_id, order_code, sender_id, count(*)
+from orders where order_code is not null
+group by 1,2,3 having count(*) > 1;
+```
+
 ### `bookings` — agency conversions
 `id`, `client_id`, `customer_name`, `email`, `phone`, `service_want`,
 `meeting_date`, `meeting_time` (text as collected), `meeting_datetime` (timestamptz),

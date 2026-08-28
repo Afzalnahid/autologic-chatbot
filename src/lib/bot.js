@@ -407,6 +407,30 @@ const num = (v) => { const n = Number(String(v ?? "").replace(/[^\d.]/g, "")); r
 async function maybeSaveOrder(items, clientId, senderId, platform) {
   for (const it of items) {
     if (it.type !== "order" || !it.order_code) continue;
+
+    // The same order must not be written twice, and there are two ordinary ways
+    // it tries to be. Meta redelivers a webhook when the handler is slow or
+    // fails after we have already saved, and the model happily repeats the
+    // whole order object when a customer says "ok" or "confirm" a second time.
+    // Either way the shop packs one parcel and sees two orders, calls the
+    // customer twice, and counts the money twice in the analytics — with
+    // nothing on the screen to say which of the two is real.
+    //
+    // Matched on the customer AS WELL as the code. A code repeated for the same
+    // person is a repeat; the same code turning up for a different person is
+    // the model colliding on a short string, and that customer's order must
+    // still be saved.
+    // `.eq(col, null)` asks Postgres for `= NULL`, which is never true — a
+    // website-widget order with no sender id would have slipped past this guard
+    // every time. NULL has to be asked for with `is`.
+    let seen = sb().from("orders")
+      .select("id").eq("client_id", clientId).eq("order_code", it.order_code);
+    seen = senderId ? seen.eq("sender_id", senderId) : seen.is("sender_id", null);
+    const { data: already } = await seen.limit(1).maybeSingle();
+    if (already) {
+      console.log(`[order] ${it.order_code} already saved for this customer — not saving it again`);
+      continue;
+    }
     // Item lines: prefer the structured list; fall back to the flat fields the
     // older prompt produced so nothing is lost either way.
     let lines = Array.isArray(it.items) ? it.items.map(l => ({
