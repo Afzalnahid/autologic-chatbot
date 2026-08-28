@@ -5,8 +5,10 @@ import { api, apiJson } from "./session.js";
 import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
 import { shrinkBatch } from "@/lib/shrink-image.js";
 import { buildVariants, usableOptions, newVariantId } from "@/lib/variants.js";
+import { findTwins } from "@/lib/duplicate-keys.js";
 import PhotoBatchSheet from "./PhotoBatch.js";
 import InventoryAssistant from "./InventoryAssistant.js";
+import DuplicateSweep from "./DuplicateSweep.js";
 
 // The Inventory tab: the shop's catalogue, organised. Products carry a
 // category, a brand, tags, a photo gallery and — for things that come in
@@ -65,6 +67,7 @@ export default function Inventory({ products, refresh }) {
   // boolean, so pressing the button a second time starts a second product
   // instead of doing nothing.
   const [chatAdd, setChatAdd] = useState(0);
+  const [sweep, setSweep] = useState(false);
   const [busyBulk, setBusyBulk] = useState(false);
   // A warning has to be readable, not glimpsed: "the photo could not be
   // analysed" is a sentence the owner has to act on, and 3.2s is not enough
@@ -137,6 +140,10 @@ export default function Inventory({ products, refresh }) {
   const wide = !isMobile;
 
   const empty = products.length === 0;
+  // Twins already in the catalogue. Worked out from the products the tab is
+  // already holding, so noticing them costs no request — and the bot is being
+  // confused by them right now, whether or not anyone goes looking.
+  const twins = useMemo(() => findTwins(products), [products]);
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
     {/* Stats strip — the shape of the catalogue at a glance. */}
@@ -181,6 +188,22 @@ export default function Inventory({ products, refresh }) {
         <Btn gold onClick={() => setEditor({ mode: "add" })} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-plus" style={{ marginRight: 6 }} />Add product</Btn>
       </div>
     </Card>
+
+    {/* Said plainly, above everything else, because the owner cannot see this
+        from the outside: the bot is already answering some questions from the
+        wrong row. Not dismissible — it goes away when it is fixed. */}
+    {twins.length > 0 && <Card style={{ padding: "12px 14px", marginBottom: 14, background: T.warnBg, border: `1px solid color-mix(in srgb, ${T.warn} 35%, transparent)`, display: "flex", alignItems: "center", gap: 11, flexWrap: "wrap" }}>
+      <i className="ti ti-copy" style={{ fontSize: 20, color: T.warn, flexShrink: 0 }} />
+      <div style={{ flex: "1 1 240px", minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.warn }}>
+          {twins.length} product{twins.length > 1 ? "s appear" : " appears"} more than once
+        </div>
+        <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2, lineHeight: 1.5 }}>
+          The bot cannot tell the copies apart, so a customer asking about {twins.length > 1 ? "one of them" : "it"} may be quoted the wrong price or stock.
+        </div>
+      </div>
+      <Btn onClick={() => setSweep(true)} style={{ borderRadius: 12, background: T.card, color: T.warn, whiteSpace: "nowrap" }}>Review them</Btn>
+    </Card>}
 
     {/* Talking to the catalogue. Folded until asked for, and shown even when
         the catalogue is empty — being asked the questions is the gentlest way
@@ -277,6 +300,9 @@ export default function Inventory({ products, refresh }) {
         products out of many files, rather than many products out of one
         source — so it gets its own sheet rather than a fourth branch inside
         ImportSheet. */}
+    {sweep && twins.length > 0 && <DuplicateSweep groups={twins} isMobile={isMobile}
+      onClose={() => setSweep(false)} onDone={(msg) => { setToast(msg); refresh(); }} />}
+
     {importer === "photos"
       ? <PhotoBatchSheet isMobile={isMobile} categories={catNames} onClose={() => setImporter(null)} onDone={(msg) => { setToast(msg); refresh(); }} />
       : importer && <ImportSheet kind={importer} isMobile={isMobile} onClose={() => setImporter(null)} onDone={(msg) => { setToast(msg); refresh(); }} />}
