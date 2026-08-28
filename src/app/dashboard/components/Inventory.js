@@ -190,12 +190,19 @@ export default function Inventory({ products, refresh }) {
         {/* Straight to Bot Training → Offers, so bundling products into a deal
             is one click from where the products live. */}
         <Btn onClick={() => { try { sessionStorage.setItem("al-bt-tab", "offers"); } catch {} window.dispatchEvent(new CustomEvent("al-goto", { detail: "settings" })); }} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-discount-2" style={{ marginRight: 6 }} />Offers</Btn>
-        <Select value="" placeholder="Import" options={[{ value: "photos", label: "From photos — one product each", icon: "ti-photo-plus" }, { value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" }, { value: "url", label: "From a product URL", icon: "ti-link" }, { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" }]} onChange={(v) => setImporter(v)} />
-        {/* Two ways to add one product. The chat asks the questions; the drawer
-            is the full form, and stays for photo ordering and per-variant
-            prices, which are not conversations. */}
-        <Btn onClick={() => setChatAdd((n) => n + 1)} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-message-2-plus" style={{ marginRight: 6 }} />Add by chat</Btn>
-        <Btn gold onClick={() => setEditor({ mode: "add" })} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-plus" style={{ marginRight: 6 }} />Add product</Btn>
+        {/* Everything that is not "just talk to it" now lives behind one word.
+            The form is still here for photo ordering and per-variant prices,
+            which are not conversations, and the four imports are still here —
+            they are simply no longer the first thing an owner has to choose
+            between. Chatting is. */}
+        <Select value="" placeholder="Advanced" options={[
+          { value: "add", label: "Add with the full form", icon: "ti-forms" },
+          { value: "photos", label: "Many photos at once", icon: "ti-photo-plus" },
+          { value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" },
+          { value: "url", label: "From a product URL", icon: "ti-link" },
+          { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" },
+        ]} onChange={(v) => (v === "add" ? setEditor({ mode: "add" }) : setImporter(v))} />
+        <Btn gold onClick={() => setChatAdd((n) => n + 1)} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-message-2-plus" style={{ marginRight: 6 }} />Add by chat</Btn>
       </div>
     </Card>
 

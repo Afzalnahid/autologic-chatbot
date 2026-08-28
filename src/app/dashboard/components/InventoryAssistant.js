@@ -63,7 +63,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // On a mouse a small corner cross is fine, and 58px keeps more of them in view.
   const TH = isMobile ? 92 : 58;
   const X = isMobile ? 44 : 22;
-  const [open, setOpen] = useState(false);
+  // Open on arrival. This is the main way into the catalogue now, not a thing
+  // to go and find: an owner who has to press something before they can start
+  // talking will use the buttons instead, which is what was happening.
+  const [open, setOpen] = useState(true);
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -88,6 +91,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const fileRef = useRef(null);
   const saveRef = useRef(null);
   const formRef = useRef(null);
+  const firstRun = useRef(true);
   // Every preview URL ever made, released together when the panel goes away.
   // They are deliberately NOT released when a photo is removed from the draft
   // or when the product is saved: the thumbnails stay in the transcript above,
@@ -109,6 +113,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // Not on every message: the transcript does its own scrolling, and moving the
   // page under someone mid-conversation is its own annoyance.
   useEffect(() => {
+    // Never on arrival. The panel starts open, and scrolling the page the
+    // moment somebody lands on Inventory — before they have asked for anything
+    // — is the page moving under them for no reason.
+    if (firstRun.current) { firstRun.current = false; return; }
     if (!open) return;
     // Measured rather than left to scrollIntoView, which counts an element
     // flush against the bottom edge as already visible and does nothing. This
