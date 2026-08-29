@@ -160,30 +160,40 @@ export function draftGaps(draft = {}, photos = 0) {
   };
 }
 
-const show = (k, v) => {
+const show = (k, v, t) => {
   if (v === undefined || v === null || v === "") return "";
   if (k === "options") return Array.isArray(v) ? v.map((o) => `${o?.name}: ${(o?.values || []).join(", ")}`).join("; ") : "";
   if (k === "tags") return Array.isArray(v) ? v.join(", ") : String(v);
-  if (k === "stock_status") return v === "outofstock" ? "out of stock" : "in stock";
+  if (k === "stock_status") return t(v === "outofstock" ? "card.outOfStock" : "card.inStock");
   return String(v);
 };
 
 // What the owner reads before pressing the button. `before` is the product as it
 // stands, so a price change reads "450 → 500" rather than just "500" — the
 // difference between confirming a change and confirming a number.
-export function describeAction(a, before) {
-  if (a.do === "delete") return { title: `Delete ${before?.product_name || "this product"}`, danger: true, lines: ["The product and its photos are removed from the catalogue. The bot stops offering it."] };
+//
+// `t` is the dashboard's translator, and it is required rather than optional:
+// this is the only place in the whole panel that was still writing English
+// under a Bangla screen, and a default that quietly falls back to English is
+// how it would come back. Only the browser calls this — the routes import the
+// whitelist, never the describer — so there is always a translator to hand.
+//
+// The field names come from keys that already exist for the drawer, so a label
+// is translated once and read in both places.
+export function describeAction(a, before, t) {
+  const name = before?.product_name;
+  if (a.do === "delete") return { title: t("card.deleteProduct", { name: name || t("card.thisProduct") }), danger: true, lines: [t("card.deleteProductWhy")] };
   if (a.do === "create") return {
-    title: `Add ${a.set.product_name}`,
-    lines: Object.entries(a.set).filter(([k]) => k !== "product_name").map(([k, v]) => `${FIELDS[k]}: ${show(k, v)}`)
-      .concat("No photo yet — open the product to add one, or the bot cannot match it to a customer's picture."),
+    title: t("card.addProduct", { name: a.set.product_name }),
+    lines: Object.entries(a.set).filter(([k]) => k !== "product_name").map(([k, v]) => `${t(`fld.${k}`)}: ${show(k, v, t)}`)
+      .concat(t("card.noPhotoYet")),
   };
   return {
-    title: `Change ${before?.product_name || "product"}`,
+    title: t("card.changeProduct", { name: name || t("card.aProduct") }),
     lines: Object.entries(a.set).map(([k, v]) => {
-      const was = before ? show(k, before[k] ?? "") : "";
-      const now = show(k, v);
-      return was && was !== now ? `${FIELDS[k]}: ${was} → ${now}` : `${FIELDS[k]}: ${now}`;
+      const was = before ? show(k, before[k] ?? "", t) : "";
+      const now = show(k, v, t);
+      return was && was !== now ? `${t(`fld.${k}`)}: ${was} → ${now}` : `${t(`fld.${k}`)}: ${now}`;
     }),
   };
 }

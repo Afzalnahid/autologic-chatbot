@@ -230,6 +230,49 @@ const DICT = {
     // Going somewhere else without leaving the conversation.
     "asst.jump": "Or open",
 
+    // ---- the confirmation cards ----
+    // What the owner reads on a proposal before pressing the button. The two
+    // describers are browser-only, so they take the translator and every word
+    // on a card follows the dashboard's language like everything else.
+    "card.deleteProduct": "Delete {name}",
+    "card.deleteProductWhy": "The product and its photos are removed from the catalogue. The bot stops offering it.",
+    "card.addProduct": "Add {name}",
+    "card.noPhotoYet": "No photo yet — open the product to add one, or the bot cannot match it to a customer's picture.",
+    "card.changeProduct": "Change {name}",
+    "card.thisProduct": "this product", "card.aProduct": "product",
+    "card.inStock": "in stock", "card.outOfStock": "out of stock",
+    "card.on": "on", "card.off": "off", "card.notSet": "not set",
+    "card.addOffer": "Add the offer “{name}”",
+    "card.changeOffer": "Change the offer “{name}”",
+    "card.removeOffer": "Remove the offer “{name}”",
+    "card.removeOfferWhy": "The bot stops mentioning it to customers. Switching it off instead keeps it for later.",
+    "card.offerQuoted": "The bot quotes an offer exactly as written, so read it as a customer would.",
+    "card.bargain": "Set how far the bot may bargain",
+    "card.bargainMode": "How it bargains",
+    "card.bargainPct": "Most it may take off",
+    "card.bargainCustom": "Your own rule",
+    "card.mode.fixed": "never moves on price",
+    "card.mode.limited": "may take a little off",
+    "card.mode.custom": "your own rule",
+    "card.teach": "Teach the bot this",
+    "card.forget": "Make the bot forget this",
+    "card.training": "Update what the bot knows about the business",
+    "card.trainingThen": "Press “Regenerate with AI” on Bot Training afterwards, so the bot writes this into how it answers.",
+    "card.identity": "Change who the bot says it is",
+    "card.followOn": "Turn follow-up messages on",
+    "card.followOnWhy": "The bot messages customers who went quiet, inside Meta's 24-hour window.",
+    "card.followOff": "Turn follow-up messages off",
+    "card.followOffWhy": "The bot stops messaging customers who went quiet.",
+    "card.setting": "Change a setting",
+
+    // The offer's and the bot's own fields. The PROFILE questions are not here:
+    // they are labelled on the Bot Training form already, and a card reads the
+    // same `lbl.*` key so a label is translated once.
+    "sfld.title": "Name", "sfld.details": "What the customer gets",
+    "sfld.valid_until": "Runs until", "sfld.active": "Live",
+    "sfld.botName": "Bot's name", "sfld.businessName": "Business name",
+    "sfld.greeting": "Opening line", "sfld.tone": "Tone", "sfld.languages": "Languages",
+
     // The product's own fields, wherever the assistant names one to the owner.
     // `inventory-actions.js` holds the English labels because the server prompt
     // needs them; these are the ones a person reads.
@@ -558,6 +601,44 @@ const DICT = {
     "asst.aria": "সহকারীকে বার্তা",
 
     "asst.jump": "অথবা খুলুন",
+
+    "card.deleteProduct": "{name} মুছে ফেলুন",
+    "card.deleteProductWhy": "প্রোডাক্ট আর তার ছবিগুলো ক্যাটালগ থেকে চলে যাবে। বট আর এটা কাউকে দেখাবে না।",
+    "card.addProduct": "{name} যোগ করুন",
+    "card.noPhotoYet": "এখনো ছবি নেই — প্রোডাক্টটা খুলে একটা দিন, নইলে কাস্টমারের পাঠানো ছবির সাথে বট এটা মেলাতে পারবে না।",
+    "card.changeProduct": "{name} বদলান",
+    "card.thisProduct": "এই প্রোডাক্ট", "card.aProduct": "প্রোডাক্ট",
+    "card.inStock": "স্টকে আছে", "card.outOfStock": "স্টকে নেই",
+    "card.on": "চালু", "card.off": "বন্ধ", "card.notSet": "ঠিক করা নেই",
+    "card.addOffer": "“{name}” অফারটা যোগ করুন",
+    "card.changeOffer": "“{name}” অফারটা বদলান",
+    "card.removeOffer": "“{name}” অফারটা মুছে ফেলুন",
+    "card.removeOfferWhy": "বট আর কাস্টমারকে এটার কথা বলবে না। মুছে না ফেলে বন্ধ করে রাখলে পরে আবার চালু করা যাবে।",
+    "card.offerQuoted": "বট অফারটা হুবহু যেভাবে লেখা সেভাবেই বলে, তাই কাস্টমার যেভাবে পড়বে সেভাবে একবার পড়ে নিন।",
+    "card.bargain": "বট কতদূর দরদাম করতে পারবে ঠিক করুন",
+    "card.bargainMode": "কীভাবে দরদাম করবে",
+    "card.bargainPct": "সর্বোচ্চ যত ছাড় দিতে পারবে",
+    "card.bargainCustom": "আপনার নিজের নিয়ম",
+    "card.mode.fixed": "দামে কখনো নড়বে না",
+    "card.mode.limited": "একটু ছাড় দিতে পারবে",
+    "card.mode.custom": "আপনার নিজের নিয়ম",
+    "card.teach": "বটকে এটা শেখান",
+    "card.forget": "বটকে এটা ভুলিয়ে দিন",
+    "card.training": "ব্যবসা নিয়ে বট যা জানে তা বদলান",
+    "card.trainingThen": "এরপর Bot Training-এ “এআই দিয়ে আবার লিখুন” চাপুন, যাতে বট এগুলো নিজের উত্তরে কাজে লাগায়।",
+    "card.identity": "বট নিজেকে কী বলে পরিচয় দেবে বদলান",
+    "card.followOn": "ফলো-আপ মেসেজ চালু করুন",
+    "card.followOnWhy": "যে কাস্টমাররা চুপ হয়ে গেছে বট তাদের মেসেজ দেবে, Meta-র ২৪ ঘণ্টার মধ্যে।",
+    "card.followOff": "ফলো-আপ মেসেজ বন্ধ করুন",
+    "card.followOffWhy": "চুপ হয়ে যাওয়া কাস্টমারদের বট আর মেসেজ দেবে না।",
+    "card.setting": "একটা সেটিং বদলান",
+
+    "sfld.title": "নাম", "sfld.details": "কাস্টমার কী পাবে",
+    // "অবস্থা", not "চালু" — the value beside it is already চালু or বন্ধ, and
+    // "চালু: চালু" is not a sentence anybody reads.
+    "sfld.valid_until": "কবে পর্যন্ত", "sfld.active": "অবস্থা",
+    "sfld.botName": "বটের নাম", "sfld.businessName": "ব্যবসার নাম",
+    "sfld.greeting": "শুরুর কথা", "sfld.tone": "ধরন", "sfld.languages": "ভাষা",
 
     "fld.product_name": "নাম", "fld.category": "ক্যাটাগরি", "fld.regular_price": "দাম",
     "fld.description": "বিবরণ", "fld.options": "সাইজ / রং", "fld.photo": "ছবি",

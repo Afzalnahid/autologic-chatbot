@@ -876,7 +876,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
                 // Two describers, one card. A price and an offer read the same
                 // way to the owner; only the half of the dashboard they land in
                 // differs, and that is the server's business, not theirs.
-                const d = c.kind === "setting" ? describeSetting(c.a, m.settingsBefore) : describeAction(c.a, m.before?.[c.a.id]);
+                const d = c.kind === "setting" ? describeSetting(c.a, m.settingsBefore, t) : describeAction(c.a, m.before?.[c.a.id], t);
                 return <label key={ai} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 10, borderRadius: 11, background: T.bgAlt, cursor: m.done ? "default" : "pointer" }}>
                   <input type="checkbox" checked={!!m.picked[ai]} disabled={!!m.done || busy} onChange={() => toggle(mi, ai)}
                     style={{ width: 17, height: 17, flexShrink: 0, marginTop: 1, accentColor: T.gold }} />

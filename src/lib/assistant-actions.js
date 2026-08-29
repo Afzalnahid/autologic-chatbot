@@ -245,84 +245,76 @@ export function applySettingActions(settings, actions) {
   return { next, results };
 }
 
-const show = (k, v) => {
-  if (v === true) return "on";
-  if (v === false) return "off";
-  return String(v ?? "");
-};
-
 // What the owner reads before pressing the button. `before` is the settings as
 // they stand, so a change reads "5% → 10%" rather than just "10%" — the
 // difference between confirming a change and confirming a number.
-export function describeSetting(a, settings) {
+//
+// `t` is the dashboard's translator and is required, not optional: a default
+// that quietly falls back to English is exactly how English comes back under a
+// Bangla screen. Only the browser calls this — the routes import the whitelist
+// and the applier, never the describer — so there is always one to hand.
+//
+// The labels are keys that mostly already exist: the bot's profile questions
+// are labelled on the Bot Training form, so `lbl.*` is read in both places and
+// translated once.
+export function describeSetting(a, settings, t) {
   const offers = offersOf(settings);
   const notes = notesOf(settings);
   const s = settings || {};
   const q = s.questionnaire || {};
+  const show = (v) => (v === true ? t("card.on") : v === false ? t("card.off") : String(v ?? ""));
+  // "was → now", or just "now" when there was nothing there before. The arrow
+  // needs no translation and the label is looked up once.
+  const change = (label, before, after) => (before && before !== after ? `${label}: ${before} → ${after}` : `${label}: ${after}`);
+  const clip = (v, n) => `${String(v).slice(0, n)}${String(v).length > n ? "…" : ""}`;
 
   if (a.do === "offer.create") return {
-    title: `Add the offer “${a.set.title || a.set.details}”`,
-    lines: Object.entries(a.set).filter(([k]) => k !== "title").map(([k, v]) => `${OFFER_FIELDS[k]}: ${show(k, v)}`)
-      .concat("The bot quotes an offer exactly as written, so read it as a customer would."),
+    title: t("card.addOffer", { name: a.set.title || a.set.details }),
+    lines: Object.entries(a.set).filter(([k]) => k !== "title").map(([k, v]) => `${t(`sfld.${k}`)}: ${show(v)}`)
+      .concat(t("card.offerQuoted")),
   };
   if (a.do === "offer.update") {
     const was = offers.find((o) => String(o?.id) === a.id) || {};
     return {
-      title: `Change the offer “${was.title || was.details || "—"}”`,
-      lines: Object.entries(a.set).map(([k, v]) => {
-        const before = show(k, was[k] ?? "");
-        const after = show(k, v);
-        return before && before !== after ? `${OFFER_FIELDS[k]}: ${before} → ${after}` : `${OFFER_FIELDS[k]}: ${after}`;
-      }),
+      title: t("card.changeOffer", { name: was.title || was.details || "—" }),
+      lines: Object.entries(a.set).map(([k, v]) => change(t(`sfld.${k}`), show(was[k] ?? ""), show(v))),
     };
   }
   if (a.do === "offer.delete") {
     const was = offers.find((o) => String(o?.id) === a.id) || {};
-    return { title: `Remove the offer “${was.title || was.details || "—"}”`, danger: true,
-      lines: ["The bot stops mentioning it to customers. Switching it off instead keeps it for later."] };
+    return { title: t("card.removeOffer", { name: was.title || was.details || "—" }), danger: true, lines: [t("card.removeOfferWhy")] };
   }
   if (a.do === "bargain.set") {
     const b = s.bargain || {};
+    const mode = (m) => (m ? t(`card.mode.${m}`) : t("card.notSet"));
     const lines = [];
-    if (a.set.mode && a.set.mode !== b.mode) lines.push(`How it bargains: ${b.mode || "not set"} → ${a.set.mode}`);
-    else if (a.set.mode) lines.push(`How it bargains: ${a.set.mode}`);
+    if (a.set.mode) lines.push(change(t("card.bargainMode"), a.set.mode !== b.mode ? mode(b.mode) : "", mode(a.set.mode)));
     if (a.set.max_discount_pct !== undefined) {
-      const before = b.max_discount_pct;
-      lines.push(before && before !== a.set.max_discount_pct
-        ? `Most it may take off: ${before}% → ${a.set.max_discount_pct}%`
-        : `Most it may take off: ${a.set.max_discount_pct}%`);
+      lines.push(change(t("card.bargainPct"), b.max_discount_pct ? `${b.max_discount_pct}%` : "", `${a.set.max_discount_pct}%`));
     }
-    if (a.set.custom) lines.push(`Your own rule: ${a.set.custom.slice(0, 160)}`);
-    return { title: "Set how far the bot may bargain", lines };
+    if (a.set.custom) lines.push(`${t("card.bargainCustom")}: ${clip(a.set.custom, 160)}`);
+    return { title: t("card.bargain"), lines };
   }
-  if (a.do === "note.add") return { title: "Teach the bot this", lines: [a.set.text] };
+  if (a.do === "note.add") return { title: t("card.teach"), lines: [a.set.text] };
   if (a.do === "note.delete") {
     const was = notes.find((n) => String(n?.id) === a.id) || {};
-    return { title: "Make the bot forget this", danger: true, lines: [was.text || "—"] };
+    return { title: t("card.forget"), danger: true, lines: [was.text || "—"] };
   }
   if (a.do === "training.set") return {
-    title: "Update what the bot knows about the business",
-    lines: Object.entries(a.set).map(([k, v]) => {
-      const before = str(q[k]);
-      return before && before !== v
-        ? `${TRAINING_FIELDS[k]}: ${before.slice(0, 70)}${before.length > 70 ? "…" : ""} → ${v.slice(0, 70)}${v.length > 70 ? "…" : ""}`
-        : `${TRAINING_FIELDS[k]}: ${v.slice(0, 140)}${v.length > 140 ? "…" : ""}`;
-    }).concat("Press “Generate my bot's profile” on Bot Training afterwards, so the bot writes this into how it answers."),
+    title: t("card.training"),
+    lines: Object.entries(a.set)
+      .map(([k, v]) => (str(q[k]) ? change(t(`lbl.${k}`), clip(str(q[k]), 70), clip(v, 70)) : `${t(`lbl.${k}`)}: ${clip(v, 140)}`))
+      .concat(t("card.trainingThen")),
   };
   if (a.do === "identity.set") return {
-    title: "Change who the bot says it is",
-    lines: Object.entries(a.set).map(([k, v]) => {
-      const before = str(k === "tone" || k === "languages" ? q[k] : s[k]);
-      return before && before !== v ? `${IDENTITY_FIELDS[k]}: ${before} → ${v}` : `${IDENTITY_FIELDS[k]}: ${v}`;
-    }),
+    title: t("card.identity"),
+    lines: Object.entries(a.set).map(([k, v]) => change(t(`sfld.${k}`), str(k === "tone" || k === "languages" ? q[k] : s[k]), v)),
   };
   if (a.do === "followup.set") return {
-    title: a.set.enabled ? "Turn follow-up messages on" : "Turn follow-up messages off",
-    lines: [a.set.enabled
-      ? "The bot messages customers who went quiet, inside Meta's 24-hour window."
-      : "The bot stops messaging customers who went quiet."],
+    title: t(a.set.enabled ? "card.followOn" : "card.followOff"),
+    lines: [t(a.set.enabled ? "card.followOnWhy" : "card.followOffWhy")],
   };
-  return { title: "Change a setting", lines: [] };
+  return { title: t("card.setting"), lines: [] };
 }
 
 // A short, honest picture of the settings for the model to answer from. Kept
