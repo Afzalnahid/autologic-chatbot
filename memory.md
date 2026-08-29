@@ -66,6 +66,29 @@ measured at 375px: no horizontal overflow, message box 253px, 171px above the fo
 **Not done, and deliberately:** the dashboard still opens on Analytics, not the assistant —
 moving where the app lands was not asked for. Inventory's empty-state cards are still English;
 the owner scoped the language pass to "the question session".
+
+### Follow-up the same day — `97e0a0a`: the transcript was frozen in one language
+
+Owner sent a screenshot from the LIVE site: dashboard fully Bangla, rule card and question
+still English. Not a missing translation — **`t()` was being called when a message was WRITTEN
+and the finished sentence stored**, so the transcript kept whatever language was selected at
+the time while everything rendered fresh moved.
+
+Messages now hold the **key**, resolved at render by `line(m)`:
+- `m.key` + `m.vars` for the panel's own lines; `m.content` only for what the MODEL wrote and
+  what the OWNER typed — neither can be translated after the fact.
+- `m.varKeys` for a value that is itself a key (the tab name inside "Taking you to Orders").
+- `m.parts` for a report of several sentences ("3 added. 1 was the same picture."), one key
+  each, because a joined string can only ever be half translated.
+- The batch skip chip is matched on **which step** the message belongs to, not on its wording —
+  comparing the sentences made the chip vanish when the language changed under it.
+
+Also: `turn()` now sends `getLang()` read AT REQUEST TIME. `useLang()` returns "en" for the
+first render of every mount, so an interview fired on arrival asked the server for English
+questions on a Bangla dashboard. And `/api/inventory-chat` no longer receives the panel's own
+furniture (the rule card, "Just one.") as if it were conversation.
+
+Lesson recorded in `lessons.md`: **a translated string stored is a translation frozen.**
 ---
 
 ## Earlier session (2026-08-28, seventh thread) — Stage 4: option axes come from the shop, not the code

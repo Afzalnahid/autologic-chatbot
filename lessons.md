@@ -832,3 +832,33 @@ It survived a review, a commit and a push. Two things hid it:
 - A route that cannot be run locally is a route whose bugs are found by the owner. For those,
   read the built string, not just the code that builds it — or extract the pure part and run
   it.
+
+## A translated string stored is a translation frozen (2026-08-29)
+
+The assistant's chat put every line it wrote through `t()` and stored the
+RESULT. The owner pressed বাং: the sidebar, the header and the product card all
+turned Bangla, and the four-line rule card and the question above it stayed in
+English. It read like a missing translation. Both sentences were in the
+dictionary — they had simply been looked up in the past, and a string does not
+change language afterwards.
+
+The tell was that half the screen followed the switch and half did not, split
+exactly along "rendered fresh every pass" versus "computed once and kept". That
+split is the diagnosis, not a clue towards it.
+
+**Rules:**
+- `t()` belongs in render, never in state. Store the KEY and the values, resolve
+  at the point of drawing. Anything held in `useState`, in a ref, or in an array
+  of past messages must hold a key.
+- The same goes for a value INSIDE a sentence that is itself translated (a tab
+  name in "Taking you to Orders") — keep it as a key too, or it is the one
+  English word left in a Bangla line.
+- Do not build a multi-sentence line by joining translated pieces into one
+  string. Keep the pieces, join them at render; a joined string can only ever be
+  half translated.
+- Never match two pieces of UI by comparing their TEXT (`msg.skip ===
+  step.skip`). One is stored and one is live, so they agree only until the
+  language changes. Match on identity — which step, which id.
+- And when a request carries the language: read it at the moment of the request.
+  `useLang()` returns English for the first render of every mount, so anything
+  fired on arrival asks for the wrong language.
