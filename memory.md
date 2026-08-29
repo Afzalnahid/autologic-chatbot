@@ -4,7 +4,71 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-28, seventh thread) — Stage 4: option axes come from the shop, not the code
+## Last session (2026-08-29) — The AI Assistant tab, the question order, and the whole session in Bangla
+
+`f08b5c2` + `02159a2`, pushed. Owner sent a screenshot of the interview warning them off a
+second "Box Tshirt" and asked for the whole way in to be reorganised, plus a tab of its own.
+
+**The question order was sorted by importance, which is the wrong question.** `draftGaps`
+returned blocking → wanted → rest, and the prompt asked in that order — so the assistant
+demanded a PHOTOGRAPH before it had asked what the thing was like. `ASK_ORDER` is now one list
+in the order a person says it out loud: **name → category → price → details → options →
+photos → stock → the rest**. `draftGaps` grew `queue` BESIDE `blocking` rather than reordering
+it, because two routes and the panel read `blocking` for what it has always meant.
+
+Photos are last on purpose and not because they matter least — nothing saves without one. They
+are the only step that LEAVES the conversation (stop typing, open the picker), so everything
+answerable in a sentence is answered first and that trip happens once, at the end.
+
+**Every question now ends with a real answer, not a description of one.** `EXAMPLES` in
+`src/lib/inventory-actions.js`, one per field, in both languages; the prompt prints it beside
+the question and tells the model to use it word for word. Numbers stay digits in the Bangla
+ones — a shop types `500`, not `৫০০`.
+
+**Bug found on the way (was breaking every interview):** `prompt()` in
+`/api/product-interview` took a parameter named `known`, which shadowed the module function
+`known(draft)` used in the same template literal. `${known(draft)}` called an array → threw on
+every turn. Renamed to `cats`. Nothing local could catch it: the route needs a database and an
+AI key to reach that line, and `.env.local` has placeholders for both.
+
+**The assistant has its own tab.** First in the sidebar under a new "Assistant" group,
+`ti-sparkles`. `fullPage` prop lays it out as a page (no collapse header, height from the
+viewport). Three steps, always in this order:
+1. **Where are they coming from** — the five ways in.
+2. **One, or several** — two buttons.
+3. **NEW: what is about to happen** — four lines, before it happens. Somebody new cannot tell
+   an assistant that is collecting from one that is saving. The three imports that open a
+   covering sheet get an "Open it" button so the rule is not hidden in the same breath.
+
+**Tabs are controlled from the chat.** `DESTINATIONS` matches eleven fixed words in both
+languages (no AI call — instant, free, works when the AI does not), gated on `GO_WORDS` so
+"how many orders today" is not answered by navigating away. The empty state also carries a jump
+row with **Bot Training first** (44px targets, not the 36 the other chips use). Imports chosen
+in the chat open the real sheet in Inventory via `invIntent` in `dashboard-client.js`, keyed on
+a timestamp so the same request twice still counts twice.
+
+**111 strings moved into `i18n.js` in both languages** — the ways in, the batch questions, the
+draft card, the photo counts, the save button, the field names (`fld.*`). Two keys wherever
+English needs a plural and Bangla does not; a separate key for the full stop, because the two
+scripts do not end a sentence the same way.
+
+Also fixed: `startInterview` built the transcript from a STALE `msgs` and wrote it back, so
+"one or several?" and "just one" vanished the moment the interview began. The model's seed line
+is now `hidden` instead of showing as an English sentence the owner supposedly said.
+
+**Verified:** 39 tests on the pure order/example rules; machine checks that both dictionaries
+carry the same 325 keys with the same placeholders, that all 111 keys the panel asks for exist
+in both and none is spare, and that PAGES/ICONS/LABELS and the sidebar groups line up at 12.
+Then driven in the browser in Bangla through every path (both counts, all three batch
+questions, both skip chips, the CSV rule button, "অর্ডার দেখাও" → "অর্ডার খুলে দিচ্ছি।"), and
+measured at 375px: no horizontal overflow, message box 253px, 171px above the fold.
+
+**Not done, and deliberately:** the dashboard still opens on Analytics, not the assistant —
+moving where the app lands was not asked for. Inventory's empty-state cards are still English;
+the owner scoped the language pass to "the question session".
+---
+
+## Earlier session (2026-08-28, seventh thread) — Stage 4: option axes come from the shop, not the code
 
 `95ab98a`, pushed. Completes the four-stage restructure. "Size" and "Colour" were two fixed
 boxes in PhotoBatch — a clothing shop's answer built into everybody's tool.

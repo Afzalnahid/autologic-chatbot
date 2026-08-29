@@ -805,3 +805,30 @@ prevent, and only in development, which is where I was testing.
 consumed. Here the honest condition was "is there a conversation yet" (`msgs.length`) — which is
 also what the guard actually meant. If you find yourself writing a one-shot flag in an effect,
 ask what real thing distinguishes the first run, and test that instead.
+
+## A parameter that shadows a function two lines above it (2026-08-29)
+
+`/api/product-interview` had a module-level helper `const known = (draft) => …` that prints
+what the draft already holds, and — added later, by me — a `prompt()` parameter also called
+`known`, holding the shop's list of categories. Both are used inside the SAME template
+literal: `${known(draft)}` on one line and `${known.join(", ")}` forty lines below. The
+parameter shadows the helper, so the first one calls an array, and every turn of every
+interview threw before it reached the model.
+
+It survived a review, a commit and a push. Two things hid it:
+
+- **`node --check` cannot see it.** It is a runtime TypeError, not a syntax error. The file
+  parsed perfectly every time I checked it.
+- **Nothing local reaches that line.** The route wants a session, a database and an AI key
+  before it builds the prompt, and this machine has placeholder Supabase credentials. Every
+  test I had run stopped short of the bug.
+
+**Rules:**
+- When adding a parameter to a function, read the function's whole body for that name FIRST —
+  including inside template literals, where a shadowed call looks like ordinary interpolation
+  and nothing highlights it.
+- Do not give a parameter the same name as anything at module scope in the same file. Name it
+  for what it holds (`cats`), not for the sentence it appears in.
+- A route that cannot be run locally is a route whose bugs are found by the owner. For those,
+  read the built string, not just the code that builds it — or extract the pure part and run
+  it.
