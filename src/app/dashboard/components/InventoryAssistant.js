@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { T, Card, Btn, useIsMobile } from "./ui.js";
 import { apiJson } from "./session.js";
-import { useLang, useT } from "./i18n.js";
+import { getLang, useT } from "./i18n.js";
 import { describeAction, draftGaps } from "@/lib/inventory-actions.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
@@ -106,7 +106,8 @@ function destinationFor(text) {
 
 export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [], fullPage = false, onGo }) {
   const isMobile = useIsMobile();
-  const lang = useLang();
+  // useT subscribes to the language itself, so the whole panel re-renders when
+  // it changes — which is what redraws the transcript in the new language.
   const t = useT();
   // The product's fields, named the way the owner reads them rather than the
   // way the server prompt needs them. inventory-actions.js keeps the English
@@ -217,10 +218,38 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // fold is a Save button nobody presses.
   useEffect(() => { if (gaps.ready) saveRef.current?.scrollIntoView({ block: "nearest" }); }, [gaps.ready]);
 
-  // Both append through the updater rather than rebuilding from `msgs`, which
-  // is the only shape that survives two of them firing in one event handler.
+  // A line the panel wrote ITSELF stores the key it came from, never the
+  // finished sentence.
+  //
+  // Stored as a sentence it is frozen in whatever language was selected the
+  // second it was written, so pressing বাং left the rule card and every
+  // question above it sitting in English while the rest of the screen changed
+  // around them. Storing the key means the whole transcript is rebuilt in the
+  // new language on the next render, which is what the owner expects from a
+  // language switch and what they were promised.
+  //
+  // Only two kinds of line keep literal text, because neither can be
+  // translated after the fact: what the model wrote, and what the owner typed.
+  // `vars` are values that stand as they are — a name, a count. `varKeys` are
+  // values that are themselves keys, so a tab's name inside a sentence follows
+  // the language too rather than being the one English word left in a Bangla
+  // line.
+  const line = (m) => {
+    // A report made of several sentences — "3 added. 1 was the same picture." —
+    // keeps one key per sentence rather than being stitched into a string,
+    // which is the only way the whole of it can change language later.
+    if (m.parts) return m.parts.map(line).join(" ");
+    if (!m.key) return m.content;
+    const vars = { ...m.vars };
+    for (const [k, v] of Object.entries(m.varKeys || {})) vars[k] = t(v);
+    return t(m.key, vars);
+  };
+
+  // All three append through the updater rather than rebuilding from `msgs`,
+  // which is the only shape that survives two of them firing in one handler.
   const say = (m) => setMsgs((s) => [...s, { role: "assistant", phase: "chat", actions: [], ...m }]);
-  const heard = (content) => setMsgs((s) => [...s, { role: "user", phase: "chat", content }]);
+  const heard = (key, vars) => setMsgs((s) => [...s, { role: "user", phase: "chat", key, vars }]);
+  const typed = (content, phase = "chat") => setMsgs((s) => [...s, { role: "user", phase, content }]);
 
   // ── Asking ─────────────────────────────────────────────────────────────────
   const ask = async (text) => {
@@ -236,8 +265,8 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // here, before any request, so it is instant and free.
     const to = onGo && mode === "chat" ? destinationFor(q) : null;
     if (to) {
-      heard(q);
-      say({ content: t("inv.takingYou", { tab: t(`nav.${to}`) }) });
+      typed(q);
+      say({ key: "inv.takingYou", varKeys: { tab: `nav.${to}` } });
       setTimeout(() => onGo(to), 400);
       return;
     }
@@ -250,7 +279,11 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     setBusy(true);
     const r = await apiJson("/api/inventory-chat", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages: history.filter((m) => m.phase === "chat").map((m) => ({ role: m.role, content: m.content })) }),
+      // Only the real conversation: what the owner typed and what the model
+      // said. The panel's own lines — a rule card, "Just one." — are the way
+      // in working, not something anybody said, and feeding them back would
+      // have the model answering its own furniture.
+      body: JSON.stringify({ messages: history.filter((m) => m.phase === "chat" && m.content).map((m) => ({ role: m.role, content: m.content })) }),
     });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
@@ -290,12 +323,12 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const pickWay = (id) => {
     setErr("");
     if (id === "ask") return askHowMany();
-    if (id === "photos") { heard(t("asst.way.photos")); return beginMany(); }
+    if (id === "photos") { heard("asst.way.photos"); return beginMany(); }
     // A spreadsheet, a link and WooCommerce each open a sheet that covers this
     // panel, so their rule gets a button rather than being shown and hidden in
     // the same breath. A rule nobody had time to read is not a rule.
-    heard(t(`asst.way.${id}`));
-    say({ content: t(`asst.rule.${id}`), go: id });
+    heard(`asst.way.${id}`);
+    say({ key: `asst.rule.${id}`, go: id });
   };
 
   // ── Step 2: one, or several ────────────────────────────────────────────────
@@ -306,13 +339,13 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // exactly two answers.
   const askHowMany = () => {
     setErr("");
-    heard(t("asst.start"));
-    say({ choice: "count", content: t("asst.count.ask") });
+    heard("asst.start");
+    say({ choice: "count", key: "asst.count.ask" });
   };
 
   const answerHowMany = (several) => {
     setMsgs((s) => s.map((m) => m.choice === "count" ? { ...m, choice: null } : m));
-    heard(several ? t("asst.count.saidMany") : t("asst.count.saidOne"));
+    heard(several ? "asst.count.saidMany" : "asst.count.saidOne");
     if (several) beginMany(); else beginOne();
   };
 
@@ -321,8 +354,8 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // saved until a button is pressed. The interview and the batch both keep
   // going straight after: their next question appears under the rule, so it
   // stays on screen to be read.
-  const beginOne = () => { say({ content: t("asst.rule.one") }); startInterview(); };
-  const beginMany = () => { say({ content: t("asst.rule.many") }); startBatch(); };
+  const beginOne = () => { say({ key: "asst.rule.one" }); startInterview(); };
+  const beginMany = () => { say({ key: "asst.rule.many" }); startBatch(); };
 
   const startInterview = () => {
     setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr(""); setDup(null); setRefused(false); seenPhotos.current = new Set();
@@ -355,20 +388,23 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // Every one of them carries a real example of the answer, because "what
   // sizes?" and "what sizes? (for example: S, M, L)" are not the same question
   // to somebody who has never been asked it before.
+  // Keys, not sentences, for the same reason the transcript holds keys: these
+  // three questions are re-read on every render, so a language switch mid-batch
+  // changes the question the owner is looking at as well as the ones above it.
   const axisWord = shopAxes[0] || "";
   const axis = { axis: axisWord };
   const BATCH_STEPS = [
-    { key: "kind", ask: t("asst.batch.kind"), placeholder: t("asst.batch.kindPh") },
-    { key: "price", ask: t("asst.batch.price"), placeholder: t("asst.batch.pricePh"), skip: t("asst.batch.priceSkip") },
+    { key: "kind", askKey: "asst.batch.kind", phKey: "asst.batch.kindPh" },
+    { key: "price", askKey: "asst.batch.price", phKey: "asst.batch.pricePh", skipKey: "asst.batch.priceSkip" },
     { key: "options",
-      ask: axisWord ? t("asst.batch.optionsNamed", axis) : t("asst.batch.options"),
-      placeholder: axisWord ? t("asst.batch.optionsPhNamed", axis) : t("asst.batch.optionsPh"),
-      skip: axisWord ? t("asst.batch.optionsSkipNamed", axis) : t("asst.batch.optionsSkip") },
+      askKey: axisWord ? "asst.batch.optionsNamed" : "asst.batch.options",
+      phKey: axisWord ? "asst.batch.optionsPhNamed" : "asst.batch.optionsPh",
+      skipKey: axisWord ? "asst.batch.optionsSkipNamed" : "asst.batch.optionsSkip" },
   ];
 
   const startBatch = () => {
     setBatch({ step: 0, kind: "", price: "", options: "" });
-    say({ phase: "batch", content: BATCH_STEPS[0].ask, skip: BATCH_STEPS[0].skip });
+    say({ phase: "batch", key: BATCH_STEPS[0].askKey, vars: axis, step: 0 });
   };
 
   const answerBatch = (raw) => {
@@ -378,16 +414,20 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     const value = String(raw ?? "").trim();
     const next = { ...b, [step.key]: value, step: b.step + 1 };
     setBatch(next);
-    setMsgs((s) => [...s, { role: "user", phase: "batch", content: value || `(${step.skip || t("asst.skipped")})` }]);
+    // A typed answer is the owner's own words and stays as they wrote them; a
+    // skipped one is the panel speaking for them, so it follows the language.
+    if (value) typed(value, "batch");
+    else setMsgs((s) => [...s, { role: "user", phase: "batch", key: step.skipKey || "asst.skipped", vars: axis, paren: true }]);
 
     if (next.step < BATCH_STEPS.length) {
-      say({ phase: "batch", content: BATCH_STEPS[next.step].ask, skip: BATCH_STEPS[next.step].skip });
+      say({ phase: "batch", key: BATCH_STEPS[next.step].askKey, vars: axis, step: next.step });
       return;
     }
     // Everything they share is known. Now the photos, in the sheet that groups
     // them — carrying the answers, so nothing is asked twice.
     const price = /^[\d.,\s]+$/.test(next.price) ? next.price.replace(/[^\d.]/g, "") : "";
-    say({ phase: "batch", content: t("asst.batch.done", { kind: next.kind || t("asst.way.photos").toLowerCase() }) });
+    say({ phase: "batch", key: "asst.batch.done",
+      ...(next.kind ? { vars: { kind: next.kind } } : { varKeys: { kind: "asst.way.photos" } }) });
     setBatch(null);
     // "S, M, L" becomes one axis named the way this shop names it;
     // "Size: S, M; Colour: Black" becomes two. Either is a thing a person types
@@ -397,7 +437,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   const stopInterview = () => {
     setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
-    say({ content: t("asst.stopped") });
+    say({ key: "asst.stopped" });
   };
 
   // One turn of the interview. The draft, the photo count and the vision text
@@ -408,11 +448,16 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     const r = await apiJson("/api/product-interview", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        messages: history.filter((m) => m.phase === "interview").map((m) => ({ role: m.role, content: m.content })),
+        messages: history.filter((m) => m.phase === "interview").map((m) => ({ role: m.role, content: line(m) })),
         draft: d, photos: n, visual: v,
         // The dashboard's language, so the questions come back in it. The owner
         // picked it once; nothing should ask them again.
-        lang,
+        //
+        // Read at the moment the request is made, not off the last render.
+        // useLang() starts every mount in English and only corrects itself in
+        // an effect, so a turn fired on arrival — the toolbar's "Add by chat" —
+        // would ask the server for English questions on a Bangla dashboard.
+        lang: getLang(),
       }),
     });
     setBusy(false);
@@ -421,7 +466,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // A name the shop already uses is not a mistake — fifteen box t-shirts are
     // all called box t-shirts. Said as a nudge towards what to add to the name,
     // not as a refusal, and in the owner's own language.
-    setDup(r.duplicate ? { ...r.duplicate, message: t("inv.dupSameName", { name: r.duplicate.product_name }) } : null);
+    // The key, not the sentence — the warning is ours, so it follows the
+    // language like everything else the panel says.
+    setDup(r.duplicate ? { ...r.duplicate, key: "inv.dupSameName" } : null);
     setMsgs((s) => [...s, { role: "assistant", phase: "interview", content: r.reply }]);
   };
 
@@ -451,17 +498,19 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     const next = [...photos, ...fresh];
     setPhotos(next);
 
-    const said = [many(fresh.length, "asst.photo.added")];
-    if (repeats.length) said.push(many(repeats.length, "asst.photo.repeats"));
-    if (overflow) said.push(t("asst.photo.overflow", { n: overflow, max: MAX_PHOTOS }));
-    const line = { role: "user", content: said.join(" "), phase: "interview", photoUrls: fresh.map((p) => p.u) };
-    const history = [...msgs, line];
+    // Three separate lines rather than one sentence stitched together, so each
+    // keeps its own key and the whole report follows the language later.
+    const parts = [{ key: fresh.length === 1 ? "asst.photo.added1" : "asst.photo.added", vars: { n: fresh.length } }];
+    if (repeats.length) parts.push({ key: repeats.length === 1 ? "asst.photo.repeats1" : "asst.photo.repeats", vars: { n: repeats.length } });
+    if (overflow) parts.push({ key: "asst.photo.overflow", vars: { n: overflow, max: MAX_PHOTOS } });
+    const said = { role: "user", phase: "interview", parts, photoUrls: fresh.map((p) => p.u) };
+    const history = [...msgs, said];
     setMsgs(history);
 
     // Photos that would not fit usually means these are not all one product.
     // Saying so is more use than a silent truncation.
     if (overflow) setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [],
-      content: t("asst.photo.overflowTip", { n: overflow, max: MAX_PHOTOS }) }]);
+      key: "asst.photo.overflowTip", vars: { n: overflow, max: MAX_PHOTOS } }]);
 
     // Only the first photo is read. It is the one the bot shows and the one a
     // customer's picture is matched against — the same rule /api/add-product
@@ -521,16 +570,18 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // rather than as a red line under the box, because the whole point of this
     // panel is that it talks — and the draft stays exactly where it was.
     if (r.duplicate) {
+      // The server's sentence, in whatever language it wrote it — it is not
+      // ours to re-translate — with our own instruction keyed around it.
       setDup({ ...r.duplicate, message: r.error });
       setRefused(true);
-      setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [], content: t("asst.dupRefused", { message: r.error }) }]);
+      setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [], key: "asst.dupRefused", vars: { message: r.error } }]);
       return;
     }
     if (r.error) { setErr(r.error); return; }
     const name = draft.product_name;
     setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
     setSaved(name);
-    say({ content: t(r.analyzeError ? "asst.addedBlind" : "asst.added", { name }) });
+    say({ key: r.analyzeError ? "asst.addedBlind" : "asst.added", vars: { name } });
     refresh?.();
   };
 
@@ -613,7 +664,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             The proposal cards are addressed by index. */}
         {msgs.map((m, mi) => m.hidden ? null : <div key={mi} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>
           <div style={{ maxWidth: "88%", padding: "9px 13px", borderRadius: 14, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap",
-            background: m.role === "user" ? T.goldBg : T.bgAlt, color: m.role === "user" ? T.gold : T.text, boxShadow: m.role === "user" ? "none" : T.nmIn }}>{m.content}</div>
+            background: m.role === "user" ? T.goldBg : T.bgAlt, color: m.role === "user" ? T.gold : T.text, boxShadow: m.role === "user" ? "none" : T.nmIn }}>{m.paren ? `(${line(m)})` : line(m)}</div>
 
           {/* The rule for an import that opens its own sheet. The button is
               what opens it, so the four lines above stay readable for as long
@@ -625,8 +676,11 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           {/* A question that can be skipped offers it under the question, not
               beside the message box: on a phone a button in that row squeezed
               the box you type in down to ninety-seven pixels. */}
-          {m.skip && batchStep?.skip === m.skip && <button type="button" onClick={() => answerBatch("")} disabled={busy} className="ui-btn ob-chip"
-            style={{ padding: "8px 13px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 40 }}>{m.skip}</button>}
+          {/* Matched on WHICH step this message is, not on its wording —
+              comparing the two sentences meant the chip disappeared the moment
+              the language changed underneath it. */}
+          {m.step !== undefined && batch?.step === m.step && BATCH_STEPS[m.step]?.skipKey && <button type="button" onClick={() => answerBatch("")} disabled={busy} className="ui-btn ob-chip"
+            style={{ padding: "8px 13px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 40 }}>{t(BATCH_STEPS[m.step].skipKey, axis)}</button>}
 
           {m.choice === "count" && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Btn gold onClick={() => answerHowMany(false)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
@@ -720,9 +774,11 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           </span>)}
         </div>}
 
-        {dup?.message && <div style={{ display: "flex", gap: 7, alignItems: "flex-start", padding: "9px 11px", borderRadius: 11, background: T.warnBg, color: T.warn, fontSize: 12, lineHeight: 1.55, marginBottom: 10 }}>
+        {/* Ours is keyed and follows the language; the server's refusal is its
+            own sentence and is shown as it was written. */}
+        {dup && <div style={{ display: "flex", gap: 7, alignItems: "flex-start", padding: "9px 11px", borderRadius: 11, background: T.warnBg, color: T.warn, fontSize: 12, lineHeight: 1.55, marginBottom: 10 }}>
           <i className="ti ti-alert-triangle" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />
-          <span>{dup.message}</span>
+          <span>{dup.key ? t(dup.key, { name: dup.product_name }) : dup.message}</span>
         </div>}
 
         <div style={{ fontSize: 11.5, color: gaps.blocking.length ? T.textMuted : T.textDim, lineHeight: 1.6 }}>
@@ -757,7 +813,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           </button>
         </>}
         <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy}
-          placeholder={batchStep ? batchStep.placeholder : t(interviewing ? "asst.ph.answer" : "asst.ph.chat")} aria-label={t("asst.aria")}
+          placeholder={batchStep ? t(batchStep.phKey, axis) : t(interviewing ? "asst.ph.answer" : "asst.ph.chat")} aria-label={t("asst.aria")}
           className="ui-inp" style={{ flex: 1, minWidth: 0, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 12, padding: "11px 14px", color: T.text, fontSize: 13, outline: "none", fontFamily: "inherit", boxShadow: T.nmIn }} />
         <Btn gold type="submit" disabled={busy || !input.trim()} aria-label={t("common.send")} style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
       </form>
