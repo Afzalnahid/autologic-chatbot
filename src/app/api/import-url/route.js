@@ -9,7 +9,7 @@ import { embedMeter } from "@/lib/usage.js";
 import { checkProductQuota, checkScrapeQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
 // One wording for every photo, here and at message time. See products.js.
-import { visionPrompt, buildContent } from "@/lib/products.js";
+import { visionPrompt, buildContent, describeImages } from "@/lib/products.js";
 import { findDuplicate, duplicateMessage, urlKey } from "@/lib/duplicates.js";
 import { missingToSell, missingMessage } from "@/lib/readiness.js";
 
@@ -78,6 +78,16 @@ export async function POST(request) {
       return NextResponse.json({ error: `${missingMessage(missing, unit)} The page did not give us ${missing.length > 1 ? "them" : "it"}.`, incomplete: missing }, { status: 400 });
     }
 
+    const images = (p.images || []).map(i => i?.src).filter(Boolean).slice(0, 12);
+    // Every other picture on the page, read together. A product page's second
+    // and third photographs are the same thing from another angle — the angle
+    // a customer is as likely to photograph as the first — and the catalogue
+    // knew none of them. Read in parallel under a deadline, and unable to fail
+    // the import: see describeImages().
+    const visuals = images.length > 1
+      ? [visual, ...(await describeImages(images.slice(1), client)).visuals]
+      : [visual];
+
     const metadata = {
       client_id: String(client.id),
       product_code,
@@ -89,8 +99,8 @@ export async function POST(request) {
       image_url,
       // Gallery + vision text, so the Inventory editor can show every photo
       // and re-embed on edit without another vision call.
-      images: (p.images || []).map(i => i?.src).filter(Boolean).slice(0, 12),
-      visual,
+      images,
+      visual, visuals,
       description: String(p.description || "").replace(/<[^>]*>/g, " ").trim(),
       // Lets the next import recognise the same picture. See duplicates.js.
       photo_key: urlKey(image_url),

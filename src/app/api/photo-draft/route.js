@@ -17,12 +17,19 @@ import { checkProductQuota } from "@/lib/plan-limits.js";
 // catalogue — the drafts come back to the browser and only /api/add-product
 // creates a row.
 //
-// The AI cost is deliberately the same as before. Vision already ran on every
-// new product, at save time; it now runs here instead, and the description it
-// produces travels back with the draft and is posted to /api/add-product as
-// `visual`, which skips the second call. One photo, one vision call, exactly as
-// it was — plus a single cheap text call that names the whole batch at once
-// rather than one call per photo.
+// One photo, one vision call. Vision already ran on every new product at save
+// time; it runs here instead, and the description travels back with the draft
+// and is posted to /api/add-product as `visual`, which skips the second call.
+// Naming is a single cheap text call for the whole batch rather than one per
+// photo.
+//
+// Every photo is read now, not only the first of each product — a shop's
+// second and third pictures are the back and the close-up, and a customer who
+// photographs the back was being told the shirt did not exist. So the cost
+// follows the number of PHOTOGRAPHS rather than the number of products. Those
+// extra reads come through `describe_only`, which skips the naming step: the
+// back of a shirt does not need a name of its own, only words a search can
+// match.
 //
 // Nothing is stored. The photos are read straight from the bytes of the request
 // and never reach the image bucket, because an owner who reads fifteen photos
@@ -45,9 +52,15 @@ export async function POST(request) {
     const files = form.getAll("images").filter((f) => f && typeof f !== "string").slice(0, MAX_PER_CALL);
     if (!files.length) return NextResponse.json({ error: "no photos" }, { status: 400 });
 
+    // The extra photos of products that are already on the list are not new
+    // products, so they must not be counted as though they were: a shop adding
+    // fifteen shirts with three photos each would be told it had used
+    // forty-five of its allowance.
+    const describeOnly = String(form.get("describe_only") || "") === "1";
+
     // Checked before any AI call, so an owner who has no room left is told
     // plainly instead of being charged for descriptions they cannot use.
-    const q = await checkProductQuota(client, files.length);
+    const q = await checkProductQuota(client, describeOnly ? 0 : files.length);
     if (!q.ok) return NextResponse.json({ error: q.message }, { status: 403 });
 
     const hint = String(form.get("hint") || "").trim().slice(0, 80);
@@ -71,6 +84,13 @@ export async function POST(request) {
         drafts.push({ visual: "", error: e.message });
       }
     }
+
+    // The SECOND and later photos of a product already have a name — the one
+    // its first photo was given. They are here to be described, so that a
+    // customer who sends the back of the shirt is matched to the shirt, and
+    // asking the model to name a back view as well would be a call spent on an
+    // answer nobody uses and a name nobody wants.
+    if (describeOnly) return NextResponse.json({ ok: true, drafts, nameError: null, axes: [] });
 
     const { items, axes, error } = await nameThem(client, drafts, hint, known);
     return NextResponse.json({

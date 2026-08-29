@@ -193,6 +193,7 @@ const DICT = {
     "asst.thinking": "Thinking…",
     "asst.writing": "Writing it down…",
     "asst.prepping": "Preparing photos…",
+    "asst.reading": "Reading photo {n} of {total}…",
     "asst.aria": "Message the assistant",
 
     // Going somewhere else without leaving the conversation.
@@ -496,6 +497,7 @@ const DICT = {
     "asst.thinking": "ভাবছি…",
     "asst.writing": "লিখে রাখছি…",
     "asst.prepping": "ছবি তৈরি করছি…",
+    "asst.reading": "{total}টার মধ্যে {n} নম্বর ছবি পড়ছি…",
     "asst.aria": "সহকারীকে বার্তা",
 
     "asst.jump": "অথবা খুলুন",

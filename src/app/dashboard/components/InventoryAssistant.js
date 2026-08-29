@@ -70,6 +70,11 @@ const JUMPS = ["settings", "conversations", "orders", "analytics", "broadcast"];
 const JUMP_ICON = { settings: "ti-wand", conversations: "ti-messages", orders: "ti-shopping-cart", analytics: "ti-chart-bar", broadcast: "ti-speakerphone" };
 
 const MAX_PHOTOS = 12;
+// How many photos one trip to /api/photo-draft may carry. Six is the server's
+// cap; the byte budget is what actually decides, because the platform refuses
+// anything over ~4.5 MB at the edge before our code ever runs.
+const READ_PER_CALL = 6;
+const READ_BUDGET = 3_200_000;
 const emptyDraft = () => ({});
 
 // Where "take me to X" can go, in both languages the dashboard speaks. Matched
@@ -138,6 +143,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const [photos, setPhotos] = useState([]);
   const [visual, setVisual] = useState("");
   const [prepping, setPrepping] = useState(false);
+  // Reading the attached photos, one chunk at a time. Twelve of them is a real
+  // wait, and a panel that sits silent through it looks broken.
+  const [reading, setReading] = useState(null); // {done, total}
   const [saved, setSaved] = useState("");
   // Two different things, deliberately kept apart. `dup` is the warning shown
   // as soon as the name is known — "you already have one of these" — which is
@@ -512,22 +520,53 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     if (overflow) setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [],
       key: "asst.photo.overflowTip", vars: { n: overflow, max: MAX_PHOTOS } }]);
 
-    // Only the first photo is read. It is the one the bot shows and the one a
-    // customer's picture is matched against — the same rule /api/add-product
-    // has always followed — so reading the other five would be five calls
-    // spent on descriptions nothing ever looks at.
+    // EVERY photo is read now, not only the first.
+    //
+    // The first one is read WITH a name proposal: it is the picture the
+    // assistant suggests a name, a category and a sentence from. The rest are
+    // described only — the back of a shirt needs words a search can match, not
+    // a name of its own — which is a cheaper call and a shorter wait.
+    //
+    // Reading them is the whole point: a customer who photographs the BACK of
+    // a shirt used to be told the shop did not have it, because the only thing
+    // the catalogue knew about that shirt was what its front looked like.
+    //
+    // Sent a few at a time, because the platform refuses any request over
+    // ~4.5 MB before our code runs. A chunk always carries at least one photo,
+    // so a single large picture cannot loop forever failing to fit.
     let v = visual, d = draft;
-    if (!visual && next.length) {
-      const fd = new FormData();
-      fd.append("images", next[0].file);
-      const rr = await apiJson("/api/photo-draft", { method: "POST", body: fd });
-      const got = rr.drafts?.[0];
-      if (got?.visual) {
-        v = got.visual; setVisual(v);
+    const unread = fresh;
+    if (unread.length) {
+      const got = new Map();
+      let read = 0;
+      for (let i = 0; i < unread.length;) {
+        const chunk = [];
+        let bytes = 0;
+        while (i < unread.length && chunk.length < READ_PER_CALL && (!chunk.length || bytes + unread[i].file.size <= READ_BUDGET)) {
+          bytes += unread[i].file.size; chunk.push(unread[i]); i++;
+        }
+        setReading({ done: read, total: unread.length });
+        const naming = !visual && chunk.some((p) => p.id === next[0]?.id);
+        const fd = new FormData();
+        chunk.forEach((p) => fd.append("images", p.file));
+        if (!naming) fd.append("describe_only", "1");
+        const rr = await apiJson("/api/photo-draft", { method: "POST", body: fd });
+        (rr.drafts || []).forEach((one, n) => { if (chunk[n]) got.set(chunk[n].id, one); });
+        read += chunk.length;
+      }
+      setReading(null);
+
+      // Onto the photograph itself, so a description leaves with the picture it
+      // describes when the owner removes one or makes another the first.
+      setPhotos((s) => s.map((p) => got.has(p.id) ? { ...p, visual: got.get(p.id).visual || "" } : p));
+
+      const first = got.get(next[0]?.id);
+      if (!visual && first?.visual) {
+        v = first.visual; setVisual(v);
         // Suggestions fill only what is still blank. The owner may already have
         // typed the name, and a machine must not talk over them.
         d = { ...draft };
-        for (const k of ["product_name", "category", "description"]) if (!d[k] && got[k]) d[k] = got[k];
+        for (const k of ["product_name", "category", "description"]) if (!d[k] && first[k]) d[k] = first[k];
         setDraft(d);
       }
     }
@@ -558,9 +597,14 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     fd.append("stock_status", draft.stock_status || (draft.stock_qty === 0 ? "outofstock" : "instock"));
     fd.append("options", JSON.stringify(opts));
     fd.append("variants", JSON.stringify(buildVariants(opts, { regular_price: draft.regular_price || "", sale_price: draft.sale_price || "" })));
-    // The description the AI already produced from the first photo, so vision
-    // does not run a second time on a picture it has read.
-    if (visual) fd.append("visual", visual);
+    // Every description the AI already produced, one per photo and in the order
+    // shown — so vision does not run again on pictures already read, and so the
+    // catalogue knows every side of this product rather than only its front.
+    // `vis[0]` rather than the stored `visual`, because making another photo the
+    // first one changes which description belongs to the primary.
+    const vis = photos.map((p) => p.visual || "");
+    if (vis[0] || visual) fd.append("visual", vis[0] || visual);
+    if (vis.some(Boolean)) fd.append("visuals", JSON.stringify(vis));
     photos.forEach((p) => fd.append("images", p.file));
     fd.append("image_urls", JSON.stringify(photos.map((_, i) => `upload:${i}`)));
 
@@ -735,6 +779,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
         {busy && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />{t(interviewing ? "asst.writing" : "asst.thinking")}</div>}
         {prepping && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />{t("asst.prepping")}</div>}
+        {reading && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />{t("asst.reading", { n: Math.min(reading.done + 1, reading.total), total: reading.total })}</div>}
         {saved && !interviewing && <div style={{ fontSize: 12.5, color: T.success, display: "flex", gap: 6 }}><i className="ti ti-check" style={{ fontSize: 15 }} />{t("asst.savedLine", { name: saved })}</div>}
         <div ref={endRef} />
       </div>

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { T, Card, Btn, Inp } from "./ui.js";
 import { apiJson } from "./session.js";
 import { shrinkImage, fileSize } from "@/lib/shrink-image.js";
@@ -28,10 +28,17 @@ import { buildVariants } from "@/lib/variants.js";
 // a click and merging two different shirts loses a product.
 //
 // That reading costs nothing extra: vision already ran on every new product at
-// save time, so it runs HERE instead and the description travels back with the
-// draft as `visual`, which the save skips over. One photo, one vision call — as
-// it always was — plus two cheap text calls for the whole batch, one to name
-// them and one to group them.
+// save time, so it runs HERE instead and the descriptions travel back with the
+// drafts, which the save skips over. One photo, one vision call — as it always
+// was — plus two cheap text calls for the whole batch, one to name them and one
+// to group them.
+//
+// EVERY one of those descriptions is now saved, not only the first of each
+// product. They were all being produced already and all but one thrown away, so
+// a shop that photographed the back of a shirt had a catalogue that knew only
+// its front — and a customer who sent a photo of the back was told the shop did
+// not have it. The description lives on the PHOTOGRAPH, so it moves with the
+// picture when the owner puts it on a different product.
 //
 // Each product is then saved by its own request to /api/add-product, with its
 // whole gallery. That is deliberate and it is what makes the batch reliable:
@@ -72,14 +79,65 @@ const optionsOf = (d, axes) => (axes || [])
   .map((name) => ({ name, values: splitList(d.opt?.[name]) }))
   .filter((o) => o.name && o.values.length);
 
+// Pick a category the shop already uses, or name a new one.
+//
+// This was a plain text box with a <datalist> behind it, which in practice is
+// a plain text box: a datalist shows nothing until you type, gives no sign that
+// a list exists at all, and on most phone browsers never opens. So every row
+// was typed from memory — and typing from memory is how one shop ends up with
+// "T-shirt", "T shirt" and "tshirt" as three categories the bot treats as three
+// unrelated things, with the customer asking for one of them shown a third of
+// the shirts.
+//
+// A native <select> is the right control here and is worth more on a phone than
+// anywhere else: it opens the operating system's own picker, which is a wheel
+// the owner can spin with one thumb.
+//
+// A category the list does not have yet — one the AI has just proposed, or one
+// typed a moment ago on the row above — is added to the list rather than
+// replaced by it. Nothing the owner has already decided is ever silently
+// dropped on the floor.
+const NEW_CAT = "__new_category__";
+function CatPick({ value, onChange, options, disabled, style, aria, placeholder }) {
+  const [typing, setTyping] = useState(false);
+  const list = options || [];
+  // Nothing to choose between yet, so there is nothing a picker could do that
+  // a box does not.
+  const asText = typing || !list.length;
+
+  if (asText) return <div style={{ display: "flex", gap: 4, minWidth: 0 }}>
+    <input value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} autoFocus={typing}
+      placeholder={placeholder || "New category"} aria-label={aria || "Category"} className="ui-inp" style={{ ...style, flex: 1, minWidth: 0 }} />
+    {!!list.length && <button type="button" onClick={() => setTyping(false)} disabled={disabled}
+      aria-label="Choose from the list instead" title="Choose from the list instead" className="ui-btn"
+      style={{ width: 34, minHeight: 0, height: 38, flexShrink: 0, padding: 0, borderRadius: 9, background: T.card, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer" }}>
+      <i className="ti ti-list" />
+    </button>}
+  </div>;
+
+  return <select value={value} disabled={disabled} aria-label={aria || "Category"}
+    onChange={(e) => { if (e.target.value === NEW_CAT) { setTyping(true); onChange(""); } else onChange(e.target.value); }}
+    className="ui-inp" style={{ ...style, cursor: "pointer", appearance: "auto" }}>
+    <option value="">{placeholder || "Category"}</option>
+    {list.map((c) => <option key={c} value={c}>{c}</option>)}
+    <option value={NEW_CAT}>+ New category…</option>
+  </select>;
+}
+
 // A product being built: one or more photographs, and the fields they will be
-// saved with. The FIRST photo is the one the bot shows and the one the AI read.
+// saved with. The FIRST photo is the one the bot shows.
+//
+// The AI's description of a photograph lives ON THE PHOTOGRAPH — `p.visual` —
+// and not on the product. It has to: photos move between products here, and a
+// description that stayed behind when its picture was moved out would describe
+// the wrong thing. It is also what lets the catalogue know what the BACK of a
+// shirt looks like, so a customer who photographs the back is matched to it.
 const blank = (photos) => ({
   id: nextId(), photos,
   product_name: "", regular_price: "", category: "", stock_qty: "",
   // Values keyed by axis name — { Size: "S, M, L", Colour: "Black" }. The names
   // live on the batch, not on each product.
-  description: "", visual: "", opt: {},
+  description: "", opt: {},
   // What the last read proposed, so a second read can replace its own words
   // without touching the owner's.
   ai: null,
@@ -139,6 +197,18 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
   const photoCount = drafts.reduce((a, d) => a + d.photos.length, 0);
   const totalBytes = drafts.reduce((a, d) => a + d.photos.reduce((n, p) => n + p.file.size, 0), 0);
 
+  // What the category picker offers: the shop's own categories, plus every one
+  // proposed or typed in this batch. A category the owner invents on the first
+  // row is on the list by the time they reach the second, which is the whole
+  // point — otherwise fifteen shirts get fifteen slightly different spellings
+  // of the same word.
+  const catList = useMemo(() => {
+    const s = new Set((categories || []).map((c) => String(c).trim()).filter(Boolean));
+    if (bulkCat.trim()) s.add(bulkCat.trim());
+    for (const d of drafts) if (d.category?.trim()) s.add(d.category.trim());
+    return [...s];
+  }, [categories, bulkCat, drafts]);
+
   const add = async (list) => {
     const picked = [...list].filter((x) => x.type?.startsWith("image/"));
     if (!picked.length) return;
@@ -193,9 +263,14 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
 
   // ── Reading, then grouping ────────────────────────────────────────────────
   // Photos go up a few at a time, small enough that the platform lets the
-  // request through. Only the FIRST photo of a product is read — it is the one
-  // the bot shows and the one a customer's picture is matched against, so
-  // reading the rest would be calls spent on descriptions nothing looks at.
+  // request through.
+  //
+  // EVERY photo is read, and it always was — every photo arrives as its own
+  // product and is only gathered afterwards, so by the time three pictures sit
+  // on one shirt, all three have already been described. What was missing was
+  // that only the first one's words were ever saved. They are all saved now,
+  // which is what lets a customer photograph the back of a shirt and be shown
+  // that shirt.
   const read = async (targets, allDrafts) => {
     const list = targets.filter((d) => d.photos[0]?.file);
     if (!list.length) return;
@@ -253,7 +328,10 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
           return (!x[field] || x[field] === x.ai?.[field]) ? next : x[field];
         };
         return {
-          ...x, readErr: got.error || null, visual: got.visual || x.visual,
+          ...x, readErr: got.error || null,
+          // Onto the photograph that was actually read, so it travels with the
+          // picture when the owner moves it to another product.
+          photos: x.photos.map((p, n) => n === 0 && got.visual ? { ...p, visual: got.visual } : p),
           product_name: keep("product_name"), category: keep("category"), description: keep("description"),
           ai: { product_name: got.product_name || "", category: got.category || "", description: got.description || "" },
         };
@@ -339,8 +417,9 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
     if (d.photos.length < 2) return s;
     const photo = d.photos.find((p) => p.id === photoId);
     const rest = d.photos.filter((p) => p.id !== photoId);
-    // The new row inherits everything but the vision text: that description
-    // belongs to the photo that was read, and this is a different picture.
+    // The new row inherits the typed fields. The vision text is not among them
+    // and does not need to be: it lives on the photograph, so it leaves with
+    // the picture it describes and stays out of the row it just left.
     const made = { ...blank([photo]), product_name: d.product_name, regular_price: d.regular_price, category: d.category, opt: { ...d.opt } };
     return [...s.slice(0, at), { ...d, photos: rest }, made, ...s.slice(at + 1)];
   });
@@ -428,9 +507,13 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
       fd.append("stock_qty", d.stock_qty || "");
       fd.append("stock_status", d.stock_qty === "0" ? "outofstock" : "instock");
       fd.append("description", d.description || "");
-      // The description the AI already produced, so vision does not run a
-      // second time on a photo that has just been read.
-      if (d.visual) fd.append("visual", d.visual);
+      // Every description the AI already produced, one per photo and in the
+      // order the photos are shown — so vision does not run a second time on
+      // pictures that have just been read, and so the catalogue knows what all
+      // of this product's sides look like, not only its front.
+      const vis = d.photos.map((p) => p.visual || "");
+      if (vis[0]) fd.append("visual", vis[0]);
+      if (vis.some(Boolean)) fd.append("visuals", JSON.stringify(vis));
       fd.append("options", JSON.stringify(opts));
       fd.append("variants", JSON.stringify(buildVariants(opts, { regular_price: d.regular_price })));
       // The product's whole gallery, in the order shown. The first is primary.
@@ -517,7 +600,15 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
                     <Btn small onClick={nameAll} disabled={busy} style={{ borderRadius: 10, whiteSpace: "nowrap" }}>Name all</Btn>
                   </div>
                   {bulkBox(bulkPrice, setBulkPrice, "Price", () => all({ regular_price: bulkPrice }), { inputMode: "decimal" })}
-                  {bulkBox(bulkCat, setBulkCat, "Category, e.g. Men › T-shirt", () => all({ category: bulkCat }), { list: "inv-cats" })}
+                  {/* Set the category for all of them at once — chosen from
+                      the shop's own list, or named here once and then on the
+                      list for every row below. */}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <CatPick value={bulkCat} onChange={setBulkCat} options={catList} disabled={busy}
+                      aria="Category for all of them" placeholder="Category, e.g. T-shirts"
+                      style={{ ...CELL, height: 40, padding: "9px 11px" }} />
+                    <Btn small onClick={() => all({ category: bulkCat })} disabled={busy} style={{ borderRadius: 10, whiteSpace: "nowrap" }}>Apply</Btn>
+                  </div>
                   {/* One row per choice a customer makes. The NAME is a box,
                       not a label: this shop may sell along Capacity, Weight or
                       Package, and only they know which. */}
@@ -547,7 +638,6 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
                     </Btn>
                   </div>
                 </div>
-                <datalist id="inv-cats">{categories.map((c) => <option key={c} value={c} />)}</datalist>
                 {/* Whatever this shop has called its choices before, offered
                     back as suggestions rather than imposed. */}
                 <datalist id="inv-axes">{shopAxes.map((a) => <option key={a} value={a} />)}</datalist>
@@ -595,7 +685,8 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
                       <input value={d.product_name} onChange={(e) => patch(d.id, { product_name: e.target.value })} placeholder={reading ? "Reading…" : `Product ${i + 1} name`} className="ui-inp" style={{ ...CELL, fontWeight: 600 }} />
                     </div>
                     <input value={d.regular_price} onChange={(e) => patch(d.id, { regular_price: e.target.value })} placeholder="Price" inputMode="decimal" className="ui-inp" style={CELL} />
-                    <input value={d.category} onChange={(e) => patch(d.id, { category: e.target.value })} placeholder="Category" list="inv-cats" className="ui-inp" style={CELL} />
+                    <CatPick value={d.category} onChange={(v) => patch(d.id, { category: v })} options={catList} disabled={busy}
+                      aria={`Category for product ${i + 1}`} style={CELL} />
                     {/* On a phone the last three sit on one line together, so a
                         row does not spill down the screen — and both icons get
                         a 44px target, which a 24px one is not. */}

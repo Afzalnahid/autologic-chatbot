@@ -127,7 +127,7 @@ human, not templates for the bot.
 
 | Prompt | Location | Purpose |
 |---|---|---|
-| `visionPrompt(businessType, itemLabel)` | `products.js` | Describes a product photo. **Must be identical at import time and at message time** — the two descriptions are embedded and compared, so any drift breaks matching. There is exactly ONE definition and every caller imports it: `bot.js` (a customer's photo), `add-product`, `products` (edit), `photo-draft`, `import-one`, `import-url`. Four separate copies had grown here, all worded differently, which is what this rule exists to prevent — never write a second one, however local it looks. |
+| `visionPrompt(businessType, itemLabel)` | `products.js` | Describes a product photo. **Must be identical at import time and at message time** — the two descriptions are embedded and compared, so any drift breaks matching. There is exactly ONE definition and every caller imports it: `bot.js` (a customer's photo), `add-product`, `products` (edit), `photo-draft`, `import-one`, `import-url`. Four separate copies had grown here, all worded differently, which is what this rule exists to prevent — never write a second one, however local it looks. It runs on EVERY photo of a product, not only the first: the descriptions are kept in `metadata.visuals[]` and all of them go into the embedded text, so a customer who photographs the back of a shirt is matched to the shirt. |
 | Audio transcription | `gemini.js` | Transcribes voice notes; keeps Bangla in Bangla script. |
 | `META` | `api/generate-prompt` | The meta-prompt that writes business profiles. |
 

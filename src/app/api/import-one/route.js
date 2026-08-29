@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
 // One wording for every photo, here and at message time. See products.js.
-import { visionPrompt, buildContent } from "@/lib/products.js";
+import { visionPrompt, buildContent, describeImages } from "@/lib/products.js";
 import { findDuplicate, findByCode, duplicateMessage, urlKey } from "@/lib/duplicates.js";
 import { missingToSell, missingMessage } from "@/lib/readiness.js";
 
@@ -75,6 +75,17 @@ export async function POST(request) {
         analyzeError = e.message;
       }
     }
+    // The rest of the gallery, read together. An imported product's other
+    // pictures are the same thing from another angle, which is exactly what a
+    // customer photographs — and until now the catalogue knew none of them.
+    //
+    // They are read in PARALLEL under a deadline, so a product with six
+    // pictures costs about as long as one with two; it is the token bill that
+    // grows with the gallery, not the wait. Nothing here can fail the import:
+    // whatever came back is used and the rest are simply not known.
+    const visuals = gallery.length > 1
+      ? [visual, ...(await describeImages(gallery.slice(1), client)).visuals]
+      : [visual];
     const metadata = {
       client_id: String(client.id),
       product_id: p.product_id,
@@ -90,7 +101,7 @@ export async function POST(request) {
       // the bot shows and the one vision reads, exactly as before.
       images: gallery,
       image_url: gallery[0] || "",
-      visual,
+      visual, visuals,
       description: p.description || "",
       // Lets the next import recognise the same picture. See duplicates.js.
       photo_key: urlKey(primary),

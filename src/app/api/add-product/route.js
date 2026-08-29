@@ -4,15 +4,15 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
+import { readProductForm, uploadProductImage, describeImage, describeImages, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 import { findDuplicate, duplicateMessage, primaryPhotoKey } from "@/lib/duplicates.js";
 import { missingOnForm, missingMessage } from "@/lib/readiness.js";
 
 // Create one product from the Inventory tab. Multipart form: the fields in
 // readProductForm(), plus `images` (several files) — the first image is the
-// primary one the bot shows. Vision describes the primary image so a customer
-// photo can be matched to it later.
+// primary one the bot shows. Vision describes EVERY image, so a customer photo
+// can be matched to it later whichever side of the thing they photographed.
 export async function POST(request) {
   try {
     const { client } = await requireClient(request);
@@ -76,6 +76,24 @@ export async function POST(request) {
       : await describeImage(image_url, client);
     const code = fields.product_code || (visual.match(/CODE:\s*([A-Za-z0-9\s-]+)/i)?.[1]?.trim()) || `M-${Date.now()}`;
 
+    // And now the REST of the gallery. Every photo gets read, not only the one
+    // the bot shows — that was the whole gap. A shop photographs a shirt front,
+    // back and close-up; the catalogue knew the front; a customer sent the back
+    // and was told it could not be found.
+    //
+    // `visuals` lines up with `images`, one description per photo, so a later
+    // edit can tell which picture each description belongs to and re-read only
+    // what is actually new.
+    //
+    // Sent by the browser wherever the browser has already read them (the photo
+    // sheet, the chat), so nothing is paid for twice. Read here otherwise, which
+    // is how the importers get theirs — in parallel, under a deadline, and never
+    // able to fail the save. See describeImages().
+    const given = fields.visuals || [];
+    const visuals = given.length
+      ? images.map((_, i) => given[i] || (i === 0 ? visual : ""))
+      : [visual, ...(images.length > 1 ? (await describeImages(images.slice(1), client)).visuals : [])];
+
     const now = new Date().toISOString();
     const metadata = {
       client_id: String(client.id),
@@ -83,7 +101,7 @@ export async function POST(request) {
       category: fields.category || "", brand: fields.brand || "", tags: fields.tags || [],
       regular_price: fields.regular_price || "", sale_price: fields.sale_price || "",
       stock_status: fields.stock_status || "instock", stock_qty: fields.stock_qty ?? null,
-      image_url, images, visual, description: fields.description || "",
+      image_url, images, visual, visuals, description: fields.description || "",
       // Kept so the next add can tell it is the same picture. See duplicates.js.
       photo_key: photoKey,
       options: fields.options || [], variants,
@@ -92,7 +110,11 @@ export async function POST(request) {
     const { content, embedding } = await embedProduct(metadata);
     const { data, error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id }).select("id").single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, id: data?.id, image_url, analyzed: !!visual, analyzeError });
+    // `read` is how many of this product's photos a customer could send and be
+    // matched on — the primary plus every other one that came back with words.
+    // `read` is how many of this product's photos a customer could send and be
+    // matched on.
+    return NextResponse.json({ ok: true, id: data?.id, image_url, analyzed: !!visual, analyzeError, read: visuals.filter(Boolean).length, photos: images.length });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

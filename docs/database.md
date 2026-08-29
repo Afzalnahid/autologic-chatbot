@@ -110,9 +110,9 @@ Only `role = 'customer'` rows count towards plan limits.
 |---|---|---|
 | `id` | text | PK |
 | `client_id` | uuid | Owner |
-| `content` | text | Text that was embedded (name + code + vision description) |
+| `content` | text | Text that was embedded (name + code + **every** photo's vision description) |
 | `embedding` | vector(768) | `gemini-embedding-001` |
-| `metadata` | jsonb | What the bot sees: name, code, prices, image_url |
+| `metadata` | jsonb | What the bot sees: name, code, prices, image_url, images[], visual, visuals[] |
 | `product_id`, `product_name`, `category` | text | Flat columns for the UI |
 | `regular_price`, `sale_price` | numeric | Price fallback: sale → regular → "contact us" |
 | `image_url`, `stock_status` | text | |

@@ -5,7 +5,7 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
-import { readProductForm, uploadProductImage, describeImage, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
+import { readProductForm, uploadProductImage, describeImages, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
 import { findDuplicate, duplicateMessage, nameKey, codeKey, primaryPhotoKey } from "@/lib/duplicates.js";
 
 export const GET = withErrors(async (request) => {
@@ -20,7 +20,7 @@ export const GET = withErrors(async (request) => {
 // fields readProductForm() knows, `image_urls` (the gallery the owner kept, in
 // order) and new `images` files. Only fields present in the form change.
 // The row is re-embedded when anything the search reads has changed; vision
-// runs again only when the primary image is new.
+// runs again only on photos that were not in the gallery before.
 export const PATCH = withErrors(async (request) => {
   const { client } = await requireClient(request);
   if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -78,15 +78,45 @@ export const PATCH = withErrors(async (request) => {
     if (key.startsWith("b:")) next.photo_key = key;
   }
 
+  // Every photo's description, carried across the edit.
+  //
+  // A picture that is still in the gallery keeps the words it already had:
+  // re-reading a photograph nothing has happened to is a vision call spent on
+  // an answer we are already holding, and reordering the gallery is not a
+  // change to any photograph in it. Only pictures that were not here before are
+  // read — and they are read whether or not they are the primary one, which is
+  // the fix: adding a photo of the back of a shirt to a product that already
+  // existed now teaches the catalogue what its back looks like.
+  //
+  // `prev.visuals` may be absent on every product saved before this existed. In
+  // that case only the primary's description is known, which is exactly what
+  // those rows have always had, and the rest are read on the next edit that
+  // touches the gallery.
   let analyzeError = null;
   const primaryChanged = (next.image_url || "") !== (prev.image_url || "");
-  if (primaryChanged) {
-    const r = await describeImage(next.image_url, client);
-    next.visual = r.visual; analyzeError = r.analyzeError;
+  const galleryChanged = JSON.stringify(prev.images || []) !== JSON.stringify(next.images || []);
+  if (primaryChanged || galleryChanged) {
+    const known = new Map();
+    (prev.images || []).forEach((u, i) => {
+      const v = (prev.visuals || [])[i] || (i === 0 ? prev.visual || "" : "");
+      if (u && v) known.set(u, v);
+    });
+    const imgs = next.images?.length ? next.images : (next.image_url ? [next.image_url] : []);
+    const unread = imgs.filter((u) => !known.has(u));
+    if (unread.length) {
+      const r = await describeImages(unread, client);
+      unread.forEach((u, i) => { if (r.visuals[i]) known.set(u, r.visuals[i]); });
+    }
+    next.visuals = imgs.map((u) => known.get(u) || "");
+    next.visual = next.visuals[0] || "";
+    // Said only about the photo the bot shows and matches on first. A close-up
+    // that could not be read costs that close-up; a primary that could not be
+    // read is the one the owner needs to know about.
+    if (imgs.length && !next.visual) analyzeError = "the photo could not be read";
   }
   next.updated_at = new Date().toISOString();
 
-  const searchKeys = ["product_code", "product_name", "category", "brand", "tags", "description", "options", "visual"];
+  const searchKeys = ["product_code", "product_name", "category", "brand", "tags", "description", "options", "visual", "visuals"];
   const reembed = primaryChanged || searchKeys.some(k => JSON.stringify(prev[k] ?? null) !== JSON.stringify(next[k] ?? null));
   const patch = { metadata: next };
   if (reembed) Object.assign(patch, await embedProduct(next, client.id));

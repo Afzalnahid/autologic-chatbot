@@ -5,8 +5,10 @@
 // Everything the Inventory tab edits lives in `metadata` (jsonb):
 //   product_code, product_name, category, brand, tags[], description,
 //   regular_price, sale_price, stock_status ("instock"|"outofstock"), stock_qty,
-//   image_url (primary), images[] (gallery), visual (vision text, kept so an
-//   edit can re-embed without calling vision again),
+//   image_url (primary), images[] (gallery), visual (vision text for the
+//   PRIMARY photo, kept so an edit can re-embed without calling vision again),
+//   visuals[] (vision text for every photo, so a customer's picture of the back
+//   of a shirt finds the shirt),
 //   options[] ({name, values[]}) and variants[] ({id, name, sku, attrs{},
 //   regular_price, sale_price, stock_qty, stock_status, image_url}).
 import { supabase } from "@/lib/supabase.js";
@@ -63,8 +65,31 @@ export function normalizeVariants(raw) {
   }).filter((v) => v.name).slice(0, 200);
 }
 
-// The text that gets embedded. Richer than before (category, brand, tags and
-// option values), so "red dress size M" finds the right row.
+// Every description this product has, in gallery order, with the primary first
+// and nothing said twice.
+//
+// `visual` has always been the description of the FIRST photo, and for a long
+// time it was the only one that existed. So a shop photographs a shirt from the
+// front, the back and close up, saves all three, and the catalogue knows only
+// what the front looks like. A customer sends a picture of the BACK — the exact
+// garment, photographed by the shop, sitting in the catalogue — and the two
+// descriptions have almost nothing in common, the similarity falls under the
+// 0.5 floor, and the bot says it cannot find it.
+//
+// `visuals` is every photo's description. `visual` is kept beside it, unchanged
+// and still meaning the primary, because duplicate detection and the readiness
+// rule both read it and neither is asking this question.
+export function visualsOf(m) {
+  const all = Array.isArray(m?.visuals) ? m.visuals : [];
+  const list = (all.length ? [m?.visual, ...all] : [m?.visual]).map(str).filter(Boolean);
+  // The same picture described twice only weights the repetition; it adds
+  // nothing a customer could send.
+  return [...new Set(list)];
+}
+
+// The text that gets embedded. Richer than before (category, brand, tags,
+// option values and now every photo), so "red dress size M" finds the right row
+// and so does a photograph of its back.
 export function buildContent(m) {
   const lines = [
     `Product Code: ${m.product_code || ""}`,
@@ -73,8 +98,8 @@ export function buildContent(m) {
     m.brand ? `Brand: ${m.brand}` : "",
     m.tags?.length ? `Tags: ${m.tags.join(", ")}` : "",
     m.options?.length ? `Options: ${m.options.map((o) => `${o.name}: ${o.values.join("/")}`).join("; ")}` : "",
-    m.visual || m.description || "",
-    m.visual && m.description ? m.description : "",
+    ...visualsOf(m),
+    m.description || "",
   ];
   return lines.filter(Boolean).join("\n");
 }
@@ -111,6 +136,10 @@ export function readProductForm(form) {
   // proposes; sending that description back means vision does not run a second
   // time on the same picture at save.
   if (has("visual")) set("visual", str(g("visual")).slice(0, 4000));
+  // The descriptions of the OTHER photos, when the browser has already read
+  // them — the photo sheet and the chat both do, one call per photo, so the
+  // save does not repeat work that has been done and paid for.
+  if (has("visuals")) set("visuals", parseJSON(g("visuals"), []).map((v) => str(v).slice(0, 4000)).slice(0, 12));
   if (has("stock_status")) set("stock_status", str(g("stock_status")) === "outofstock" ? "outofstock" : "instock");
   if (has("stock_qty")) { const q = str(g("stock_qty")); set("stock_qty", q === "" ? null : Math.max(0, Math.floor(num(q)))); }
   if (has("options")) set("options", normalizeOptions(parseJSON(g("options"), [])));
@@ -177,6 +206,41 @@ export async function describeImage(url, client) {
     const ai = await getClientAI(client.id, "product");
     return { visual: await ai.visionUrl(url, visionPrompt(client.business_type || "ecommerce", client.item_label || "product")), analyzeError: null };
   } catch (e) { return { visual: "", analyzeError: e.message }; }
+}
+
+// Every OTHER photo of the same product, read together.
+//
+// Three things make this safe to do on a route with a sixty-second budget, and
+// all three matter:
+//
+// - It runs in parallel, not one after another. Twelve photos read in turn is a
+//   minute on its own.
+// - It has a deadline. Whatever has come back when the clock runs out is what
+//   gets used; the rest are simply not there. A product that saves knowing ten
+//   of its twelve photos is a good outcome. A product that fails to save
+//   because the eleventh was slow is not.
+// - It never throws. These descriptions make the product easier to FIND; they
+//   are not what makes it a product. A photo nobody could read costs that photo
+//   and nothing else.
+//
+// Most saves never reach it: the browser has usually read the photos already,
+// through /api/photo-draft, and posts the descriptions back. This is the path
+// for the importers, where the photos are URLs the browser never held.
+export async function describeImages(urls, client, { deadlineMs = 25000, max = 12 } = {}) {
+  const list = (urls || []).filter(Boolean).slice(0, max);
+  if (!list.length) return { visuals: [], missed: 0 };
+
+  const prompt = visionPrompt(client.business_type || "ecommerce", client.item_label || "product");
+  let ai;
+  try { ai = await getClientAI(client.id, "product"); } catch { return { visuals: list.map(() => ""), missed: list.length }; }
+
+  const out = list.map(() => "");
+  const timeUp = new Promise((r) => setTimeout(r, deadlineMs));
+  await Promise.race([
+    Promise.allSettled(list.map(async (u, i) => { out[i] = await ai.visionUrl(u, prompt); })),
+    timeUp,
+  ]);
+  return { visuals: out, missed: out.filter((v) => !v).length };
 }
 
 // Embeds through the client's AI so a Gemini BYOK client indexes on their own
