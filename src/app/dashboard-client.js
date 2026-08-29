@@ -9,6 +9,7 @@ import Billing from "./dashboard/components/Billing.js";
 import Analytics from "./dashboard/components/Analytics.js";
 import Orders from "./dashboard/components/Orders.js";
 import Inventory from "./dashboard/components/Inventory.js";
+import InventoryAssistant from "./dashboard/components/InventoryAssistant.js";
 import Comments from "./dashboard/components/Comments.js";
 import Profile from "./dashboard/components/Profile.js";
 import Settings from "./dashboard/components/Settings.js";
@@ -20,22 +21,24 @@ import Conversations from "./dashboard/components/Conversations.js";
 import LearnMore from "./dashboard/components/LearnMore.js";
 import { useT, LangToggle } from "./dashboard/components/i18n.js";
 
-const PAGES = ["analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
-// Grouped and ordered the way the day runs: see how it is going, handle people,
-// reach out, then the shop, then the plumbing.
+const PAGES = ["assistant","analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
+// Grouped and ordered the way the day runs: the assistant first, because
+// talking to it is now the shortest way to almost everything — then see how it
+// is going, handle people, reach out, the shop, and the plumbing.
 const GROUPS = [
+  { title: "Assistant", pages: ["assistant"] },
   { title: "Overview",  pages: ["analytics","conversations","comments"] },
   { title: "Outreach",  pages: ["broadcast","channels"] },
   { title: "Business",  pages: ["orders","inventory"] },
   { title: "Account",   pages: ["settings","ai","billing","profile"] },
 ];
-const ICONS = ["ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user","ti-cpu"];
+const ICONS = ["ti-sparkles","ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user","ti-cpu"];
 // "Bot Training" is the settings page: everything on it teaches or tunes the
 // bot, and owners looked straight past a tab called "Settings" for exactly
 // that. The page key stays "settings" so links and code paths are untouched.
 // "AI Engine" (key "ai") is the BYOK home — moved out of Bot Training into its
 // own tab so the API key, provider and model choice are easy to find and manage.
-const LABELS = ["Analytics","Inbox","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile","AI Engine"];
+const LABELS = ["AI Assistant","Analytics","Inbox","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile","AI Engine"];
 
 
 
@@ -527,6 +530,10 @@ export default function Dashboard() {
   const pageRef=useRef("analytics");
   const [page,setPageRaw]=useState("analytics");
   const [upgradeIntent,setUpgradeIntent]=useState({plan:null,cycle:"monthly"});
+  // What the assistant asked Inventory to do when it sent the owner there —
+  // open the CSV sheet, start a photo batch. Carries a timestamp so the same
+  // request twice in a row still counts as two.
+  const [invIntent,setInvIntent]=useState(null);
   const [justConnected,setJustConnected]=useState(null);
   // A popup (Google Calendar, or a channel opened in a new window) reports
   // back with a message; a full-page connect comes back with ?connected=.
@@ -873,11 +880,18 @@ export default function Dashboard() {
             <div style={{marginBottom:isMobile?12:14}}>
               <LearnMore page={page} plain/>
             </div>
+            {/* The assistant has a page of its own now, and it is the first
+                thing in the sidebar. Choosing an import from here takes the
+                owner to Inventory with that sheet already open, rather than a
+                second copy of those sheets living in two places. */}
+            {page==="assistant"&&<InventoryAssistant fullPage products={products} refresh={load}
+              onGo={(to,intent)=>{ if(intent) setInvIntent({...intent,at:Date.now()}); setPage(to); }}
+              onImport={(kind,prefill)=>{ setInvIntent({importer:kind,prefill,at:Date.now()}); setPage("inventory"); }}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
             {page==="broadcast"&&<Broadcast/>}
             {page==="comments"&&<Comments/>}
-            {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load}/>)}
+            {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent}/>)}
             {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load}/>)}
             {page==="channels"&&<Channels onConnect={()=>setStage("connect")} justConnected={justConnected} onDismissConnected={()=>setJustConnected(null)}/>}
             {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}

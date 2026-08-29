@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { T, Card, Btn, useIsMobile } from "./ui.js";
 import { apiJson } from "./session.js";
 import { useLang, useT } from "./i18n.js";
-import { describeAction, draftGaps, LABELS } from "@/lib/inventory-actions.js";
+import { describeAction, draftGaps } from "@/lib/inventory-actions.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
 import { buildVariants, parseAxes } from "@/lib/variants.js";
@@ -15,7 +15,7 @@ import { buildVariants, parseAxes } from "@/lib/variants.js";
 // each of those is one sentence, and each of them was a hunt through a grid, a
 // drawer, a field and a save button.
 //
-// The panel does two jobs.
+// The panel does three jobs.
 //
 // ASKING. The assistant answers, and where a change is implied it PROPOSES it:
 // a card per product saying what would move and what it would move from, with a
@@ -28,15 +28,28 @@ import { buildVariants, parseAxes } from "@/lib/variants.js";
 // right field. A product can carry several photos — the first is the one
 // customers see — and they are attached from the message box like any chat.
 //
+// TAKING YOU THERE. "Show me the orders" opens the Orders tab. The chat is a
+// front door to the whole dashboard, not a box bolted onto one page of it.
+//
+// The way in is always the same three steps, in this order, and the order
+// matters because each step changes what the next one should say:
+//
+//   1. WHERE ARE THEY COMING FROM — being asked, photos, a spreadsheet, a
+//      link, WooCommerce.
+//   2. ONE, OR SEVERAL — asked before anything else, because interviewing
+//      somebody about the first of fifteen shirts is the single mistake here
+//      that costs a whole evening.
+//   3. WHAT IS ABOUT TO HAPPEN — four lines of it, before it happens. Somebody
+//      who has never done this cannot tell an assistant that is collecting
+//      from one that is saving, and that difference is the whole design.
+//
 // The draft is held here and sent with every turn, not remembered by the model.
 // What can be saved is decided by draftGaps, not by the assistant saying it
-// thinks it is finished.
+// thinks it is finished. And every word the panel says for itself goes through
+// the translator: the owner picks a language once, and a chat answering in
+// English under a Bangla screen was the last place that rule was broken.
 
-const CHIPS = [
-  "What is running low?",
-  "Which products have no price?",
-  "How many products are out of stock?",
-];
+const CHIP_KEYS = ["asst.chip.low", "asst.chip.noPrice", "asst.chip.oos"];
 
 // Every way into the catalogue, offered from the one place the owner is already
 // talking. The panel used to offer only the interview, so someone sitting in the
@@ -44,23 +57,66 @@ const CHIPS = [
 // menu and start again — the chat looked like it could only do one product at a
 // time, which is exactly what it looked like to the owner.
 //
-// The four imports open the sheets that already do that work rather than a
+// The three imports open the sheets that already do that work rather than a
 // second copy of them living in here. One implementation, two doors to it.
-const WAYS = [
-  { id: "ask", icon: "ti-messages", label: "I’ll ask you the questions", sub: "One product, in your own words" },
-  { id: "photos", icon: "ti-photo-plus", label: "Many at once, from photos", sub: "Front and back of the same one are gathered" },
-  { id: "csv", icon: "ti-table", label: "A spreadsheet", sub: "Hundreds at once, from a CSV" },
-  { id: "url", icon: "ti-link", label: "A product link", sub: "We read the page for you" },
-  { id: "woo", icon: "ti-brand-wordpress", label: "WooCommerce", sub: "Bring your whole shop over" },
-];
+const WAYS = ["ask", "photos", "csv", "url", "woo"];
+const WAY_ICON = { ask: "ti-messages", photos: "ti-photo-plus", csv: "ti-table", url: "ti-link", woo: "ti-brand-wordpress" };
+
+// Where the assistant can put somebody down without them going looking for a
+// tab. "Bot Training" leads and wears the accent colour: teaching the bot is
+// the other half of what this tab is for, and it is the page owners looked
+// straight past for as long as it was called Settings.
+const JUMPS = ["settings", "conversations", "orders", "analytics", "broadcast"];
+const JUMP_ICON = { settings: "ti-wand", conversations: "ti-messages", orders: "ti-shopping-cart", analytics: "ti-chart-bar", broadcast: "ti-speakerphone" };
 
 const MAX_PHOTOS = 12;
 const emptyDraft = () => ({});
 
-export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [] }) {
+// Where "take me to X" can go, in both languages the dashboard speaks. Matched
+// on the page rather than asked of a model: these are twelve fixed words, the
+// answer is never ambiguous, and an AI call to look one up would be a cost and
+// a wait for nothing — it also keeps working when the AI does not.
+const DESTINATIONS = [
+  { page: "orders", words: ["order", "orders", "booking", "bookings", "অর্ডার", "বুকিং"] },
+  { page: "inventory", words: ["inventory", "catalogue", "catalog", "product", "products", "ইনভেন্টরি", "প্রোডাক্ট"] },
+  { page: "conversations", words: ["inbox", "message", "messages", "chat with customer", "ইনবক্স", "মেসেজ"] },
+  { page: "analytics", words: ["analytics", "report", "reports", "stats", "অ্যানালিটিক্স", "রিপোর্ট"] },
+  { page: "broadcast", words: ["broadcast", "ব্রডকাস্ট"] },
+  { page: "comments", words: ["comment", "comments", "কমেন্ট"] },
+  { page: "channels", words: ["channel", "channels", "facebook", "instagram", "whatsapp", "চ্যানেল"] },
+  { page: "settings", words: ["bot training", "training", "teach the bot", "বট ট্রেনিং", "ট্রেনিং"] },
+  { page: "billing", words: ["billing", "plan", "payment", "বিলিং", "প্যাকেজ"] },
+  { page: "ai", words: ["ai engine", "api key", "এআই ইঞ্জিন"] },
+  { page: "profile", words: ["profile", "প্রোফাইল"] },
+];
+
+// Only when they are ASKING to be taken somewhere. "How many orders today" is a
+// question about orders, not a request to open the tab, and answering it by
+// navigating away would be maddening.
+const GO_WORDS = /\b(go to|open|show me|take me to|switch to)\b|দেখাও|খোলো|নিয়ে যাও|যাও/i;
+
+function destinationFor(text) {
+  const s = String(text || "").toLowerCase();
+  if (!GO_WORDS.test(s)) return null;
+  for (const d of DESTINATIONS) {
+    if (d.words.some((w) => s.includes(w))) return d.page;
+  }
+  return null;
+}
+
+export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [], fullPage = false, onGo }) {
   const isMobile = useIsMobile();
   const lang = useLang();
   const t = useT();
+  // The product's fields, named the way the owner reads them rather than the
+  // way the server prompt needs them. inventory-actions.js keeps the English
+  // labels because the prompt is written in English; these are the ones a
+  // person sees.
+  const fld = (k) => t(`fld.${k}`);
+  // One string for one, another for the rest. Bangla does not inflect a plural
+  // the way English does, so a pair of keys is both cheaper and more honest
+  // than a plural rule that only ever serves one of the two languages.
+  const many = (n, key) => t(n === 1 ? `${key}1` : key, { n });
   // A thumbnail on a phone is big enough to hold a 44px remove button INSIDE
   // it, so the button never overhangs the photo beside it and steals its tap.
   // On a mouse a small corner cross is fine, and 58px keeps more of them in view.
@@ -129,7 +185,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     if (!open) return;
     // Nothing to keep in view until there is a conversation. Before anyone has
     // said anything the box is not what they are looking at — the ways in are —
-    // and scrolling the page the moment somebody lands on Inventory is movement
+    // and scrolling the page the moment somebody lands on the tab is movement
     // for nothing. A count rather than a "first run" flag on purpose: React runs
     // effects twice on mount in development, and a flag gets used up by the
     // first of those and lets the second one jump the page anyway.
@@ -151,13 +207,20 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   }, [open, mode, msgs.length, photos.length]);
   useEffect(() => () => blobs.current.forEach(URL.revokeObjectURL), []);
   // Started from outside the panel — the toolbar button, or the empty state.
-  useEffect(() => { if (startSignal > 0) { setOpen(true); startInterview(); } }, [startSignal]);
+  // It lands on step 2, not straight into an interview: somebody who pressed
+  // "Add by chat" has told us the method and nothing else.
+  useEffect(() => { if (startSignal > 0) { setOpen(true); askHowMany(); } }, [startSignal]);
 
   const gaps = draftGaps(draft, photos.length);
   // The moment the product becomes saveable, put the button where the owner can
   // see it. The panel is tall by then, and a Save button that appears below the
   // fold is a Save button nobody presses.
   useEffect(() => { if (gaps.ready) saveRef.current?.scrollIntoView({ block: "nearest" }); }, [gaps.ready]);
+
+  // Both append through the updater rather than rebuilding from `msgs`, which
+  // is the only shape that survives two of them firing in one event handler.
+  const say = (m) => setMsgs((s) => [...s, { role: "assistant", phase: "chat", actions: [], ...m }]);
+  const heard = (content) => setMsgs((s) => [...s, { role: "user", phase: "chat", content }]);
 
   // ── Asking ─────────────────────────────────────────────────────────────────
   const ask = async (text) => {
@@ -168,6 +231,16 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // anywhere: these three questions have fixed answers and asking an AI what
     // "box t-shirt" means would be a cost and a wait for nothing.
     if (batch) return answerBatch(q);
+
+    // "Show me the orders" — take them there rather than describing it. Matched
+    // here, before any request, so it is instant and free.
+    const to = onGo && mode === "chat" ? destinationFor(q) : null;
+    if (to) {
+      heard(q);
+      say({ content: t("inv.takingYou", { tab: t(`nav.${to}`) }) });
+      setTimeout(() => onGo(to), 400);
+      return;
+    }
     // The question goes on screen before the request leaves, so the panel never
     // sits blank while a slow answer is on its way.
     const history = [...msgs, { role: "user", content: q, phase: mode }];
@@ -181,13 +254,12 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
-    setMsgs((s) => [...s, {
-      role: "assistant", phase: "chat", content: r.reply,
-      actions: r.actions || [], before: r.before || {},
+    say({
+      content: r.reply, actions: r.actions || [], before: r.before || {},
       // Every proposal starts ticked: the owner reads them and unticks what is
       // wrong, rather than having to tick things one at a time to get anywhere.
       picked: (r.actions || []).map(() => true),
-    }]);
+    });
   };
 
   const toggle = (mi, ai) => setMsgs((s) => s.map((m, i) => i !== mi ? m : { ...m, picked: m.picked.map((p, j) => j === ai ? !p : p) }));
@@ -210,27 +282,23 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   const discard = (mi) => setMsgs((s) => s.map((m, i) => i !== mi ? m : { ...m, actions: [], picked: [], dropped: true }));
 
-  // ── Being asked ────────────────────────────────────────────────────────────
-  const startInterview = () => {
-    setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr(""); setDup(null); setRefused(false); seenPhotos.current = new Set();
-    const start = [...msgs, { role: "user", content: "I want to add a product.", phase: "interview" }];
-    setMsgs(start);
-    turn(start, {}, 0, "");
-  };
-
-  // "I'll ask you the questions" is this panel's own job; the other four open
-  // the sheet that already does that import. An interview in progress is left
-  // exactly as it is — the sheet sits on top and the draft is still here
-  // underneath when it closes.
+  // ── Step 1: where are they coming from ─────────────────────────────────────
+  // "I'll ask you the questions" and "From photos" are this panel's own job;
+  // the other three open the sheet that already does that import. An interview
+  // in progress is left exactly as it is — the sheet sits on top and the draft
+  // is still here underneath when it closes.
   const pickWay = (id) => {
-    if (id === "ask") { askHowMany(); return; }
-    // Many photos is a batch, so it goes through the same three questions —
-    // the chat's job is to ask them. Advanced → "Many photos at once" is the
-    // way straight into the sheet for somebody who does not want to be asked.
-    if (id === "photos") { startBatch(); return; }
-    onImport?.(id);
+    setErr("");
+    if (id === "ask") return askHowMany();
+    if (id === "photos") { heard(t("asst.way.photos")); return beginMany(); }
+    // A spreadsheet, a link and WooCommerce each open a sheet that covers this
+    // panel, so their rule gets a button rather than being shown and hidden in
+    // the same breath. A rule nobody had time to read is not a rule.
+    heard(t(`asst.way.${id}`));
+    say({ content: t(`asst.rule.${id}`), go: id });
   };
 
+  // ── Step 2: one, or several ────────────────────────────────────────────────
   // Between "how do you want to add them" and the first question about a
   // product there is one more thing worth knowing, and getting it wrong is
   // expensive: an owner with fifteen shirts should not be interviewed about the
@@ -238,18 +306,39 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // exactly two answers.
   const askHowMany = () => {
     setErr("");
-    setMsgs((s) => [...s,
-      { role: "user", phase: "chat", content: "I want to add products." },
-      { role: "assistant", phase: "chat", actions: [], choice: "count",
-        content: "Is it one product, or several at once?" },
-    ]);
+    heard(t("asst.start"));
+    say({ choice: "count", content: t("asst.count.ask") });
   };
 
-  const answerHowMany = (many) => {
+  const answerHowMany = (several) => {
     setMsgs((s) => s.map((m) => m.choice === "count" ? { ...m, choice: null } : m));
-    setMsgs((s) => [...s, { role: "user", phase: "chat", content: many ? "Several." : "Just one." }]);
-    if (many) startBatch();
-    else startInterview();
+    heard(several ? t("asst.count.saidMany") : t("asst.count.saidOne"));
+    if (several) beginMany(); else beginOne();
+  };
+
+  // ── Step 3: the rule, and then the work ────────────────────────────────────
+  // Four lines saying what is about to happen and, most of all, that nothing is
+  // saved until a button is pressed. The interview and the batch both keep
+  // going straight after: their next question appears under the rule, so it
+  // stays on screen to be read.
+  const beginOne = () => { say({ content: t("asst.rule.one") }); startInterview(); };
+  const beginMany = () => { say({ content: t("asst.rule.many") }); startBatch(); };
+
+  const startInterview = () => {
+    setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr(""); setDup(null); setRefused(false); seenPhotos.current = new Set();
+    // The seed is the whole history this turn needs — turn() keeps only the
+    // interview-phase lines anyway. Built from `msgs` it would be built from a
+    // STALE `msgs` and then written back over the real one, which is how the
+    // two lines the owner had just read — "one or several?", "just one" —
+    // vanished off the transcript the instant the interview began.
+    //
+    // `hidden` because it is addressed to the model, not to the owner: it is
+    // the sentence that opens the conversation on the server's side, and it
+    // was appearing in the transcript as an English line the owner had
+    // supposedly just said, directly under the Bangla one they actually did.
+    const seed = { role: "user", content: "I want to add a product.", phase: "interview", hidden: true };
+    setMsgs((s) => [...s, seed]);
+    turn([seed], {}, 0, "");
   };
 
   // ── Many at once: ask what they have in common, once ───────────────────────
@@ -263,20 +352,23 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // has ever used "Size" is asked about sizes; a phone shop that uses
   // "Capacity" is asked about capacities. Only a shop with no products yet gets
   // the general wording — and even then the photos will propose something.
+  // Every one of them carries a real example of the answer, because "what
+  // sizes?" and "what sizes? (for example: S, M, L)" are not the same question
+  // to somebody who has never been asked it before.
   const axisWord = shopAxes[0] || "";
+  const axis = { axis: axisWord };
   const BATCH_STEPS = [
-    { key: "kind", ask: "What kind of thing are these? One answer for all of them — “box t-shirt”, “panjabi”, “phone case”.", placeholder: "e.g. Box T-shirt" },
-    { key: "price", ask: "Same price for all of them? Type the price, or say “different”.", placeholder: "e.g. 500", skip: "They are different" },
-    { key: "options", skip: axisWord ? `No ${axisWord.toLowerCase()}` : "No choices",
-      ask: axisWord
-        ? `What ${axisWord.toLowerCase()} do they come in? Separated by commas — or name another choice as well, like “${axisWord}: A, B; Colour: Black”.`
-        : "Do customers pick between anything — sizes, colours, capacities, weights? Type them like “Size: S, M, L”, or skip.",
-      placeholder: axisWord ? `${axisWord} options` : "e.g. Size: S, M, L" },
+    { key: "kind", ask: t("asst.batch.kind"), placeholder: t("asst.batch.kindPh") },
+    { key: "price", ask: t("asst.batch.price"), placeholder: t("asst.batch.pricePh"), skip: t("asst.batch.priceSkip") },
+    { key: "options",
+      ask: axisWord ? t("asst.batch.optionsNamed", axis) : t("asst.batch.options"),
+      placeholder: axisWord ? t("asst.batch.optionsPhNamed", axis) : t("asst.batch.optionsPh"),
+      skip: axisWord ? t("asst.batch.optionsSkipNamed", axis) : t("asst.batch.optionsSkip") },
   ];
 
   const startBatch = () => {
     setBatch({ step: 0, kind: "", price: "", options: "" });
-    setMsgs((s) => [...s, { role: "assistant", phase: "batch", actions: [], content: BATCH_STEPS[0].ask, skip: BATCH_STEPS[0].skip }]);
+    say({ phase: "batch", content: BATCH_STEPS[0].ask, skip: BATCH_STEPS[0].skip });
   };
 
   const answerBatch = (raw) => {
@@ -286,17 +378,16 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     const value = String(raw ?? "").trim();
     const next = { ...b, [step.key]: value, step: b.step + 1 };
     setBatch(next);
-    setMsgs((s) => [...s, { role: "user", phase: "batch", content: value || `(${step.skip || "skipped"})` }]);
+    setMsgs((s) => [...s, { role: "user", phase: "batch", content: value || `(${step.skip || t("asst.skipped")})` }]);
 
     if (next.step < BATCH_STEPS.length) {
-      setMsgs((s) => [...s, { role: "assistant", phase: "batch", actions: [], content: BATCH_STEPS[next.step].ask, skip: BATCH_STEPS[next.step].skip }]);
+      say({ phase: "batch", content: BATCH_STEPS[next.step].ask, skip: BATCH_STEPS[next.step].skip });
       return;
     }
     // Everything they share is known. Now the photos, in the sheet that groups
     // them — carrying the answers, so nothing is asked twice.
     const price = /^[\d.,\s]+$/.test(next.price) ? next.price.replace(/[^\d.]/g, "") : "";
-    setMsgs((s) => [...s, { role: "assistant", phase: "batch", actions: [],
-      content: `Good. Now add every photo of your ${next.kind || "products"} — front, back, close-ups, all of them together. I will work out which pictures belong to the same one and name each by what makes it different.` }]);
+    say({ phase: "batch", content: t("asst.batch.done", { kind: next.kind || t("asst.way.photos").toLowerCase() }) });
     setBatch(null);
     // "S, M, L" becomes one axis named the way this shop names it;
     // "Size: S, M; Colour: Black" becomes two. Either is a thing a person types
@@ -306,7 +397,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   const stopInterview = () => {
     setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
-    setMsgs((s) => [...s, { role: "assistant", phase: "chat", content: "Stopped. Nothing was added.", actions: [] }]);
+    say({ content: t("asst.stopped") });
   };
 
   // One turn of the interview. The draft, the photo count and the vision text
@@ -360,9 +451,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     const next = [...photos, ...fresh];
     setPhotos(next);
 
-    const said = [`Added ${fresh.length} photo${fresh.length === 1 ? "" : "s"}.`];
-    if (repeats.length) said.push(`${repeats.length} ${repeats.length === 1 ? "was the same picture" : "were pictures already here"} — skipped.`);
-    if (overflow) said.push(`${overflow} did not fit: one product holds ${MAX_PHOTOS}.`);
+    const said = [many(fresh.length, "asst.photo.added")];
+    if (repeats.length) said.push(many(repeats.length, "asst.photo.repeats"));
+    if (overflow) said.push(t("asst.photo.overflow", { n: overflow, max: MAX_PHOTOS }));
     const line = { role: "user", content: said.join(" "), phase: "interview", photoUrls: fresh.map((p) => p.u) };
     const history = [...msgs, line];
     setMsgs(history);
@@ -370,7 +461,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // Photos that would not fit usually means these are not all one product.
     // Saying so is more use than a silent truncation.
     if (overflow) setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [],
-      content: `${overflow} photo${overflow === 1 ? "" : "s"} could not go on this product — twelve is the most one product can have. If those are different products, press “Many photos” below and add them together instead.` }]);
+      content: t("asst.photo.overflowTip", { n: overflow, max: MAX_PHOTOS }) }]);
 
     // Only the first photo is read. It is the one the bot shows and the one a
     // customer's picture is matched against — the same rule /api/add-product
@@ -432,14 +523,14 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     if (r.duplicate) {
       setDup({ ...r.duplicate, message: r.error });
       setRefused(true);
-      setMsgs((s) => [...s, { role: "assistant", phase: "interview", content: `${r.error} Press “Add anyway” if this really is a different one.`, actions: [] }]);
+      setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [], content: t("asst.dupRefused", { message: r.error }) }]);
       return;
     }
     if (r.error) { setErr(r.error); return; }
     const name = draft.product_name;
     setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
     setSaved(name);
-    setMsgs((s) => [...s, { role: "assistant", phase: "chat", content: `Added “${name}”${r.analyzeError ? " — but the photo could not be read, so customers cannot find it by sending a picture." : "."} Say “add another” whenever you are ready.`, actions: [] }]);
+    say({ content: t(r.analyzeError ? "asst.addedBlind" : "asst.added", { name }) });
     refresh?.();
   };
 
@@ -448,51 +539,88 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const batchStep = batch ? BATCH_STEPS[batch.step] : null;
   const filledRows = Object.entries(draft).filter(([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length));
 
-  return <Card style={{ padding: 0, marginBottom: 14, overflow: "hidden" }}>
-    <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ui-btn"
+  return <Card style={{ padding: 0, marginBottom: fullPage ? 0 : 14, overflow: "hidden", ...(fullPage ? { display: "flex", flexDirection: "column", height: isMobile ? "calc(100dvh - 190px)" : "calc(100vh - 150px)" } : {}) }}>
+    {/* On its own page there is nothing to collapse into — the header is a
+        title, not a switch. */}
+    {fullPage
+      ? <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "13px 16px", flexShrink: 0 }}>
+          <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 10, background: T.goldBg, display: "flex", alignItems: "center", justifyContent: "center" }}><i className="ti ti-sparkles" style={{ fontSize: 17, color: T.gold }} /></span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>{t("inv.assistantTitle")}</span>
+            <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginTop: 1 }}>{t("inv.assistantSub")}</span>
+          </span>
+        </div>
+      : <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ui-btn"
       style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "13px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", color: T.text, textAlign: "left", minHeight: 44 }}>
       <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 10, background: T.goldBg, display: "flex", alignItems: "center", justifyContent: "center" }}><i className="ti ti-message-2-bolt" style={{ fontSize: 17, color: T.gold }} /></span>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>Add and manage products by chatting</span>
-        <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginTop: 1 }}>Answer a few questions to add one, or just say what to change. Nothing happens until you press the button.</span>
+        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>{t("inv.assistantTitle")}</span>
+        <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginTop: 1 }}>{t("inv.assistantSub")}</span>
       </span>
       <i className={`ti ti-chevron-${open ? "up" : "down"}`} style={{ fontSize: 16, color: T.textMuted, flexShrink: 0 }} />
-    </button>
+    </button>}
 
     {/* Laid out like the Inbox: the panel is a fixed height, the transcript is
         the only part that grows, and the box you type in is pinned to the
         bottom of it. It used to be an ordinary stack in the page, so every
         answer pushed the input further down and it ended up below the fold —
         the owner was typing into something they could not see. */}
-    {open && <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 16px 14px", display: "flex", flexDirection: "column",
-      height: isMobile ? "min(70dvh, calc(100dvh - 240px))" : "min(560px, calc(100dvh - 300px))" }}>
+    {(open || fullPage) && <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 16px 14px", display: "flex", flexDirection: "column",
+      ...(fullPage ? { flex: 1, minHeight: 0 } : { height: isMobile ? "min(70dvh, calc(100dvh - 240px))" : "min(560px, calc(100dvh - 300px))" }) }}>
       {/* The transcript is what gives way. The product being built and the box
           you type in keep their room; older messages scroll. */}
       <div style={{ flex: "1 1 auto", minHeight: 84, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
         {!msgs.length && <div style={{ padding: "6px 0 2px" }}>
           <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.65, marginBottom: 10 }}>
-            Add products any of these ways, or ask about the {products?.length || 0} already here — “the winter jackets are 1200 now”, “we are out of the black polo”.
+            {t("asst.intro", { n: products?.length || 0 })}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))", gap: 8, marginBottom: 12 }}>
-            {WAYS.map((w) => <button key={w.id} type="button" onClick={() => pickWay(w.id)} className="ui-btn ob-row"
+            {WAYS.map((w) => <button key={w} type="button" onClick={() => pickWay(w)} className="ui-btn ob-row"
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 13, textAlign: "left", cursor: "pointer", fontFamily: "inherit", minHeight: 52,
-                background: w.id === "ask" ? T.goldBg : T.bgAlt, border: `1px solid ${w.id === "ask" ? T.gold : T.border}`, color: T.text }}>
-              <i className={`ti ${w.icon}`} style={{ fontSize: 19, flexShrink: 0, color: T.gold }} />
+                background: w === "ask" ? T.goldBg : T.bgAlt, border: `1px solid ${w === "ask" ? T.gold : T.border}`, color: T.text }}>
+              <i className={`ti ${WAY_ICON[w]}`} style={{ fontSize: 19, flexShrink: 0, color: T.gold }} />
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 12.5, fontWeight: 600 }}>{w.label}</span>
-                <span style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 1 }}>{w.sub}</span>
+                <span style={{ display: "block", fontSize: 12.5, fontWeight: 600 }}>{t(`asst.way.${w}`)}</span>
+                <span style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 1 }}>{t(`asst.way.${w}Sub`)}</span>
               </span>
             </button>)}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {CHIPS.map((c) => <button key={c} type="button" onClick={() => ask(c)} className="ui-btn ob-chip"
-              style={{ padding: "8px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>{c}</button>)}
+            {CHIP_KEYS.map((c) => <button key={c} type="button" onClick={() => ask(t(c))} className="ui-btn ob-chip"
+              style={{ padding: "8px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>{t(c)}</button>)}
           </div>
+
+          {/* The rest of the dashboard, from inside the conversation. Only on
+              the assistant's own page — in the panel inside Inventory there is
+              a sidebar two inches away and this would be clutter. */}
+          {onGo && <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7, marginBottom: 8 }}>{t("asst.jump")}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {JUMPS.map((p) => <button key={p} type="button" onClick={() => onGo(p)} className="ui-btn ob-chip"
+                /* 44px, not the 36 the other chips use: these are navigation,
+                   and a mis-tap here throws the owner onto the wrong page. */
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 20, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 44,
+                  fontWeight: p === "settings" ? 600 : 500,
+                  background: p === "settings" ? T.goldBg : T.bgAlt, border: `1px solid ${p === "settings" ? T.gold : T.border}`, color: p === "settings" ? T.gold : T.textMuted }}>
+                <i className={`ti ${JUMP_ICON[p]}`} style={{ fontSize: 15 }} />{t(`nav.${p}`)}
+              </button>)}
+            </div>
+          </div>}
         </div>}
 
-        {msgs.map((m, mi) => <div key={mi} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>
+        {/* Nothing is dropped from the array — a hidden line renders as null so
+            that every later index still points at the message it did before.
+            The proposal cards are addressed by index. */}
+        {msgs.map((m, mi) => m.hidden ? null : <div key={mi} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>
           <div style={{ maxWidth: "88%", padding: "9px 13px", borderRadius: 14, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap",
             background: m.role === "user" ? T.goldBg : T.bgAlt, color: m.role === "user" ? T.gold : T.text, boxShadow: m.role === "user" ? "none" : T.nmIn }}>{m.content}</div>
+
+          {/* The rule for an import that opens its own sheet. The button is
+              what opens it, so the four lines above stay readable for as long
+              as the owner wants them there. */}
+          {m.go && <Btn gold onClick={() => onImport?.(m.go)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
+            <i className={`ti ${WAY_ICON[m.go]}`} style={{ marginRight: 6 }} />{t("asst.rule.open")}
+          </Btn>}
 
           {/* A question that can be skipped offers it under the question, not
               beside the message box: on a phone a button in that row squeezed
@@ -502,10 +630,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
           {m.choice === "count" && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Btn gold onClick={() => answerHowMany(false)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
-              <i className="ti ti-package" style={{ marginRight: 6 }} />Just one
+              <i className="ti ti-package" style={{ marginRight: 6 }} />{t("asst.count.one")}
             </Btn>
             <Btn onClick={() => answerHowMany(true)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
-              <i className="ti ti-photo-plus" style={{ marginRight: 6 }} />Several — I have their photos
+              <i className="ti ti-photo-plus" style={{ marginRight: 6 }} />{t("asst.count.many")}
             </Btn>
           </div>}
 
@@ -515,7 +643,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
           {m.actions?.length > 0 && <div style={{ width: "100%", borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, padding: 12 }}>
             <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7, marginBottom: 9 }}>
-              Proposed — nothing has changed yet
+              {t("asst.proposed")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {m.actions.map((a, ai) => {
@@ -536,22 +664,24 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             {m.done
               ? <div style={{ fontSize: 12.5, color: m.done.failed.length ? T.warn : T.success, marginTop: 10, display: "flex", gap: 6 }}>
                   <i className={`ti ti-${m.done.failed.length ? "alert-triangle" : "check"}`} style={{ fontSize: 15, flexShrink: 0 }} />
-                  <span>{m.done.ok} change{m.done.ok === 1 ? "" : "s"} saved{m.done.failed.length ? `, ${m.done.failed.length} could not be: ${m.done.failed.map((f) => f.error).join(", ")}` : ""}.</span>
+                  <span>{m.done.failed.length
+                    ? t("asst.appliedSome", { n: m.done.ok, m: m.done.failed.length, errors: m.done.failed.map((f) => f.error).join(", ") })
+                    : many(m.done.ok, "asst.applied")}</span>
                 </div>
               : <div style={{ display: "flex", gap: 8, marginTop: 11, flexWrap: "wrap" }}>
                   <Btn gold onClick={() => apply(mi)} disabled={busy || !m.picked.some(Boolean)} style={{ borderRadius: 11 }}>
-                    Apply {m.picked.filter(Boolean).length} change{m.picked.filter(Boolean).length === 1 ? "" : "s"}
+                    {many(m.picked.filter(Boolean).length, "asst.apply")}
                   </Btn>
-                  <Btn small onClick={() => discard(mi)} disabled={busy} style={{ borderRadius: 11 }}>Discard</Btn>
+                  <Btn small onClick={() => discard(mi)} disabled={busy} style={{ borderRadius: 11 }}>{t("asst.discard")}</Btn>
                 </div>}
           </div>}
 
-          {m.dropped && <div style={{ fontSize: 12, color: T.textDim }}>Discarded — nothing was changed.</div>}
+          {m.dropped && <div style={{ fontSize: 12, color: T.textDim }}>{t("asst.discarded")}</div>}
         </div>)}
 
-        {busy && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />{interviewing ? "Writing it down…" : "Thinking…"}</div>}
-        {prepping && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />Preparing photos…</div>}
-        {saved && !interviewing && <div style={{ fontSize: 12.5, color: T.success, display: "flex", gap: 6 }}><i className="ti ti-check" style={{ fontSize: 15 }} />“{saved}” is in your catalogue.</div>}
+        {busy && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />{t(interviewing ? "asst.writing" : "asst.thinking")}</div>}
+        {prepping && <div style={{ fontSize: 12.5, color: T.textMuted, display: "flex", gap: 7, alignItems: "center" }}><i className="ti ti-loader-2" style={{ fontSize: 15 }} />{t("asst.prepping")}</div>}
+        {saved && !interviewing && <div style={{ fontSize: 12.5, color: T.success, display: "flex", gap: 6 }}><i className="ti ti-check" style={{ fontSize: 15 }} />{t("asst.savedLine", { name: saved })}</div>}
         <div ref={endRef} />
       </div>
 
@@ -563,18 +693,18 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           or the Save button off the bottom. */}
       {interviewing && <div style={{ flex: "0 0 auto", overflowY: "auto", maxHeight: "55%", borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, padding: 12, marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <span style={{ flex: 1, fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7 }}>New product — not saved yet</span>
-          <button type="button" onClick={stopInterview} disabled={busy} className="ui-btn" style={{ background: "none", border: "none", color: T.textMuted, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 44, minWidth: 60, padding: "0 6px" }}>Cancel</button>
+          <span style={{ flex: 1, fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7 }}>{t("asst.draftTitle")}</span>
+          <button type="button" onClick={stopInterview} disabled={busy} className="ui-btn" style={{ background: "none", border: "none", color: T.textMuted, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 44, minWidth: 60, padding: "0 6px" }}>{t("asst.cancel")}</button>
         </div>
 
         <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: photos.length ? 11 : 0 }}>
           {photos.map((p, i) => <div key={p.id} style={{ position: "relative", width: TH, height: TH }}>
-            <img src={p.u} alt="" onClick={() => makeFirst(p.id)} title={i === 0 ? "Customers see this one" : "Make this the first one"}
+            <img src={p.u} alt="" onClick={() => makeFirst(p.id)} title={t(i === 0 ? "asst.photo.first" : "asst.photo.makeFirst")}
               style={{ width: TH, height: TH, objectFit: "cover", borderRadius: 12, cursor: "pointer", border: `2px solid ${i === 0 ? T.gold : T.border}` }} />
-            {i === 0 && <span style={{ position: "absolute", left: 4, bottom: 4, fontSize: 9.5, fontWeight: 700, padding: "2px 6px", borderRadius: 6, background: T.gold, color: "#fff" }}>1st</span>}
+            {i === 0 && <span style={{ position: "absolute", left: 4, bottom: 4, fontSize: 9.5, fontWeight: 700, padding: "2px 6px", borderRadius: 6, background: T.gold, color: "#fff" }}>{t("asst.photo.firstBadge")}</span>}
             {/* On a phone the target is 44px and sits wholly inside the tile;
                 on a desktop it is a small cross overhanging the corner. */}
-            <button type="button" onClick={() => dropPhoto(p.id)} aria-label={`Remove photo ${i + 1}`} className="ui-btn"
+            <button type="button" onClick={() => dropPhoto(p.id)} aria-label={t("asst.photo.remove", { n: i + 1 })} className="ui-btn"
               style={{ position: "absolute", top: isMobile ? 0 : -7, right: isMobile ? 0 : -7, width: X, height: X, minHeight: 0, padding: 0,
                 background: "none", border: "none", color: T.danger, cursor: "pointer",
                 display: "flex", alignItems: "flex-start", justifyContent: "flex-end", fontSize: 12 }}>
@@ -585,7 +715,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
         {filledRows.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
           {filledRows.map(([k, v]) => <span key={k} style={{ fontSize: 11.5, padding: "5px 10px", borderRadius: 9, background: T.bgAlt, color: T.text, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            <span style={{ color: T.textDim }}>{LABELS[k] || k}: </span>
+            <span style={{ color: T.textDim }}>{fld(k)}: </span>
             {k === "options" ? v.map((o) => `${o.name} (${o.values.join(", ")})`).join("; ") : Array.isArray(v) ? v.join(", ") : String(v)}
           </span>)}
         </div>}
@@ -597,21 +727,21 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
         <div style={{ fontSize: 11.5, color: gaps.blocking.length ? T.textMuted : T.textDim, lineHeight: 1.6 }}>
           {gaps.blocking.length
-            ? <>Still needed before this can be saved: <strong style={{ color: T.text }}>{gaps.blocking.map((k) => LABELS[k]).join(", ")}</strong>.</>
+            ? <>{t("asst.needed")}<strong style={{ color: T.text }}>{gaps.blocking.map(fld).join(", ")}</strong>{t("asst.neededEnd")}</>
             : gaps.wanted.length
-              ? <>Ready to save. <strong style={{ color: T.warn }}>{gaps.wanted.map((k) => LABELS[k]).join(" and ")}</strong> {gaps.wanted.length > 1 ? "are" : "is"} not set — you can add {gaps.wanted.length > 1 ? "them" : "it"} now or save without.</>
-              : "Everything is filled in."}
-          {photos.length > 0 && <> · {photos.length} photo{photos.length > 1 ? "s" : ""}, {fileSize(photos.reduce((a, p) => a + p.file.size, 0))} of {fileSize(GALLERY_BUDGET)}</>}
+              ? <>{t("asst.readyPrefix")}<strong style={{ color: T.warn }}>{gaps.wanted.map(fld).join(" · ")}</strong>{t(gaps.wanted.length > 1 ? "asst.readyMany" : "asst.readyOne")}</>
+              : t("asst.allFilled")}
+          {photos.length > 0 && <> · {t("asst.photoCount", { n: photos.length, size: fileSize(photos.reduce((a, p) => a + p.file.size, 0)), budget: fileSize(GALLERY_BUDGET) })}</>}
         </div>
 
         {/* The ref is on the wrapper, not the button: Btn is a plain function
             component and does not forward one. */}
         {gaps.ready && <div ref={saveRef} style={{ marginTop: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Btn gold onClick={() => save()} disabled={busy || prepping} style={{ borderRadius: 11 }}>
-            <i className="ti ti-check" style={{ marginRight: 6 }} />Save “{draft.product_name}”
+            <i className="ti ti-check" style={{ marginRight: 6 }} />{t("asst.save", { name: draft.product_name })}
           </Btn>
           {/* Only after a save has actually been turned away. */}
-          {refused && <Btn onClick={() => save(true)} disabled={busy || prepping} style={{ borderRadius: 11, background: T.warnBg, color: T.warn }}>Add anyway</Btn>}
+          {refused && <Btn onClick={() => save(true)} disabled={busy || prepping} style={{ borderRadius: 11, background: T.warnBg, color: T.warn }}>{t("asst.addAnyway")}</Btn>}
         </div>}
       </div>}
 
@@ -621,25 +751,25 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
         {interviewing && <>
           <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
           <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || prepping || photos.length >= MAX_PHOTOS}
-            aria-label="Attach photos" title={photos.length >= MAX_PHOTOS ? `${MAX_PHOTOS} photos is the most one product can have` : "Attach photos of this product"} className="ui-btn"
+            aria-label={t("asst.photo.attach")} title={photos.length >= MAX_PHOTOS ? t("asst.photo.full", { max: MAX_PHOTOS }) : t("asst.photo.attach")} className="ui-btn"
             style={{ width: 44, height: 44, flexShrink: 0, minHeight: 0, padding: 0, borderRadius: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <i className="ti ti-camera-plus" style={{ fontSize: 18 }} />
           </button>
         </>}
         <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy}
-          placeholder={batchStep ? batchStep.placeholder : interviewing ? "Type your answer…" : "Ask, or say what to change…"} aria-label="Message the assistant"
+          placeholder={batchStep ? batchStep.placeholder : t(interviewing ? "asst.ph.answer" : "asst.ph.chat")} aria-label={t("asst.aria")}
           className="ui-inp" style={{ flex: 1, minWidth: 0, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 12, padding: "11px 14px", color: T.text, fontSize: 13, outline: "none", fontFamily: "inherit", boxShadow: T.nmIn }} />
-        <Btn gold type="submit" disabled={busy || !input.trim()} aria-label="Send" style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
+        <Btn gold type="submit" disabled={busy || !input.trim()} aria-label={t("common.send")} style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
       </form>
 
       {/* Still reachable once the conversation has started, as a compact row —
           the full cards belong to the empty state, where there is room. */}
       {!interviewing && msgs.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, flexShrink: 0 }}>
-        {WAYS.map((w) => <button key={w.id} type="button" onClick={() => pickWay(w.id)} disabled={busy} className="ui-btn ob-chip"
-          title={w.sub}
-          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: w.id === "ask" ? 600 : 500, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
-            background: w.id === "ask" ? T.goldBg : "none", border: `1px solid ${w.id === "ask" ? T.gold : T.border}`, color: w.id === "ask" ? T.gold : T.textMuted }}>
-          <i className={`ti ${w.icon}`} style={{ marginRight: 5 }} />{w.id === "ask" ? "Add — I’ll ask" : w.label}
+        {WAYS.map((w) => <button key={w} type="button" onClick={() => pickWay(w)} disabled={busy} className="ui-btn ob-chip"
+          title={t(`asst.way.${w}Sub`)}
+          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: w === "ask" ? 600 : 500, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
+            background: w === "ask" ? T.goldBg : "none", border: `1px solid ${w === "ask" ? T.gold : T.border}`, color: w === "ask" ? T.gold : T.textMuted }}>
+          <i className={`ti ${WAY_ICON[w]}`} style={{ marginRight: 5 }} />{t(w === "ask" ? "asst.way.askShort" : `asst.way.${w}`)}
         </button>)}
       </div>}
     </div>}

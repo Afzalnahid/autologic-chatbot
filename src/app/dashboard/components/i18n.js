@@ -78,7 +78,133 @@ const DICT = {
     // A name the shop already uses is not a mistake. Fifteen box t-shirts are
     // all called box t-shirts, so this points at what to ADD to the name rather
     // than telling the owner to stop.
+    "nav.assistant": "AI Assistant",
+    "inv.takingYou": "Taking you to {tab}.",
+    "inv.assistantTitle": "Add and manage products by chatting",
+    "inv.assistantSub": "Answer a few questions to add one, or just say what to change. Nothing happens until you press the button.",
     "inv.dupSameName": "You already have one called “{name}”. If this is a different design, say what makes it different — the print, the colour — and I will add that to the name so a customer asking for it finds the right one.",
+
+    // ---- the assistant's own conversation ----
+    // Every line the panel says for itself, as opposed to the ones the model
+    // writes. They are here rather than in the component for the same reason
+    // as everything else on this list: the owner picks a language once, and
+    // then the whole dashboard is in it — a chat that answers in English under
+    // a Bangla screen is the one place that rule was still being broken.
+    "asst.intro": "How would you like to add products? Pick one below — or ask me about the {n} already in your catalogue.",
+    "asst.chip.low": "What is running low?",
+    "asst.chip.noPrice": "Which products have no price?",
+    "asst.chip.oos": "How many products are out of stock?",
+
+    // Step 1 of the way in: where the products are coming from.
+    "asst.way.ask": "I’ll ask you the questions",
+    "asst.way.askSub": "One at a time, in your own words",
+    "asst.way.askShort": "Add — I’ll ask",
+    "asst.way.photos": "From photos",
+    "asst.way.photosSub": "Front and back of the same one are gathered",
+    "asst.way.csv": "A spreadsheet",
+    "asst.way.csvSub": "Hundreds at once, from a CSV",
+    "asst.way.url": "A product link",
+    "asst.way.urlSub": "We read the page for you",
+    "asst.way.woo": "WooCommerce",
+    "asst.way.wooSub": "Bring your whole shop over",
+
+    // Step 2: one, or a rail of them. Asked before anything else, because
+    // interviewing somebody about the first of fifteen shirts is the one
+    // mistake here that costs a whole evening.
+    "asst.start": "I want to add products.",
+    "asst.count.ask": "One product, or several together?",
+    "asst.count.one": "Just one",
+    "asst.count.many": "Several at once",
+    "asst.count.saidOne": "Just one.",
+    "asst.count.saidMany": "Several together.",
+
+    // Step 3: what is about to happen, before it happens. Four lines, so
+    // nobody is halfway through wondering whether it has already saved.
+    "asst.rule.one": "Here is how it goes:\n1. I ask one thing at a time — name, category, price, details, choices, then the photos.\n2. Every question shows you what an answer looks like.\n3. Say “skip” to anything you do not have.\n4. Nothing is saved until you press Save at the end.",
+    "asst.rule.many": "Here is how it goes:\n1. First, three things they all share — what they are, the price, the choices customers pick between.\n2. Then you attach every photo at once: front, back, close-ups, all together.\n3. I work out which pictures belong to the same one, and name each by what makes it different.\n4. You check the list and press Add. Nothing is saved before that.",
+    "asst.rule.csv": "Here is how it goes:\n1. Download the sample sheet so the column names match.\n2. Fill in one row per product. A row can hold several photo links.\n3. Upload it, and check what I read before anything is added.\n4. Hundreds at a time is fine.",
+    "asst.rule.url": "Here is how it goes:\n1. Paste the address of one product page.\n2. I read the page — the name, the price, the photos.\n3. You check what I found and correct anything wrong.\n4. Nothing is saved until you press Add.",
+    "asst.rule.woo": "Here is how it goes:\n1. Give me your WooCommerce address and its two keys, from WooCommerce → Settings → Advanced → REST API.\n2. I bring across every product with its photos.\n3. You check the list before anything is added.\n4. Your shop stays exactly as it is — nothing is changed there.",
+    "asst.rule.open": "Open it",
+
+    // The three questions asked once for a whole rail.
+    "asst.batch.kind": "What kind of thing are these? One answer for all of them. (for example: Box T-shirt)",
+    "asst.batch.kindPh": "e.g. Box T-shirt",
+    "asst.batch.price": "Same price for all of them? Type the price, or press the button below. (for example: 500)",
+    "asst.batch.pricePh": "e.g. 500",
+    "asst.batch.priceSkip": "They are different",
+    "asst.batch.options": "Do customers pick between anything — sizes, colours, capacities, weights? (for example: Size: S, M, L)",
+    "asst.batch.optionsNamed": "What {axis} do they come in? Separated by commas. (for example: {axis}: A, B; Colour: Black)",
+    "asst.batch.optionsPh": "e.g. Size: S, M, L",
+    "asst.batch.optionsPhNamed": "{axis} options",
+    "asst.batch.optionsSkip": "No choices",
+    "asst.batch.optionsSkipNamed": "No {axis}",
+    "asst.batch.done": "Good. Now add every photo of your {kind} — front, back, close-ups, all of them together. I will work out which pictures belong to the same one and name each by what makes it different.",
+    "asst.skipped": "skipped",
+
+    // The product being built.
+    "asst.stopped": "Stopped. Nothing was added.",
+    "asst.cancel": "Cancel",
+    "asst.draftTitle": "New product — not saved yet",
+    "asst.needed": "Still needed before this can be saved: ",
+    // The field names go between these two, in bold, so the sentence has to be
+    // ended separately — and the two languages do not end a sentence with the
+    // same mark.
+    "asst.neededEnd": ".",
+    "asst.readyOne": " is not set — you can add it now, or save without it.",
+    "asst.readyMany": " are not set — you can add them now, or save without them.",
+    "asst.readyPrefix": "Ready to save. ",
+    "asst.allFilled": "Everything is filled in.",
+    "asst.photoCount": "{n} photos, {size} of {budget}",
+    "asst.save": "Save “{name}”",
+    "asst.addAnyway": "Add anyway",
+    "asst.savedLine": "“{name}” is in your catalogue.",
+    "asst.added": "Added “{name}”. Say “add another” whenever you are ready.",
+    "asst.addedBlind": "Added “{name}” — but the photo could not be read, so customers cannot find it by sending a picture. Say “add another” whenever you are ready.",
+    "asst.dupRefused": "{message} Press “Add anyway” if this really is a different one.",
+
+    // Photos.
+    "asst.photo.added": "Added {n} photos.",
+    "asst.photo.added1": "Added 1 photo.",
+    "asst.photo.repeats": "{n} were already here — skipped.",
+    "asst.photo.repeats1": "1 was the same picture — skipped.",
+    "asst.photo.overflow": "{n} did not fit: one product holds {max}.",
+    "asst.photo.overflowTip": "{n} photos could not go on this product — {max} is the most one product can have. If those are different products, press “From photos” below and add them together instead.",
+    "asst.photo.attach": "Attach photos of this product",
+    "asst.photo.full": "{max} photos is the most one product can have",
+    "asst.photo.first": "Customers see this one",
+    "asst.photo.makeFirst": "Make this the first one",
+    "asst.photo.remove": "Remove photo {n}",
+    "asst.photo.firstBadge": "1st",
+
+    // Proposals — the assistant never changes anything on its own.
+    "asst.proposed": "Proposed — nothing has changed yet",
+    "asst.apply": "Apply {n} changes",
+    "asst.apply1": "Apply 1 change",
+    "asst.discard": "Discard",
+    "asst.discarded": "Discarded — nothing was changed.",
+    "asst.applied": "{n} changes saved.",
+    "asst.applied1": "1 change saved.",
+    "asst.appliedSome": "{n} saved, {m} could not be: {errors}.",
+
+    // The message box.
+    "asst.ph.answer": "Type your answer…",
+    "asst.ph.chat": "Ask, or say what to change…",
+    "asst.thinking": "Thinking…",
+    "asst.writing": "Writing it down…",
+    "asst.prepping": "Preparing photos…",
+    "asst.aria": "Message the assistant",
+
+    // Going somewhere else without leaving the conversation.
+    "asst.jump": "Or open",
+
+    // The product's own fields, wherever the assistant names one to the owner.
+    // `inventory-actions.js` holds the English labels because the server prompt
+    // needs them; these are the ones a person reads.
+    "fld.product_name": "Name", "fld.category": "Category", "fld.regular_price": "Price",
+    "fld.description": "Description", "fld.options": "Sizes / colours", "fld.photo": "Photos",
+    "fld.stock_qty": "Stock", "fld.brand": "Brand", "fld.sale_price": "Sale price",
+    "fld.product_code": "Code", "fld.tags": "Tags", "fld.stock_status": "Availability",
 
     // ---- navigation & shell ----
     "nav.analytics": "Analytics", "nav.conversations": "Inbox", "nav.comments": "Comments",
@@ -86,6 +212,7 @@ const DICT = {
     "nav.settings": "Bot Training", "nav.profile": "Profile", "nav.ai": "AI Engine",
     "nav.inventory": "Inventory", "nav.knowledge": "Knowledge Base",
     "nav.orders": "Orders", "nav.bookings": "Bookings",
+    "group.Assistant": "Assistant",
     "group.Overview": "Overview", "group.Outreach": "Outreach", "group.Business": "Business", "group.Account": "Account",
     "shell.logout": "Log out", "shell.sync": "Sync", "shell.language": "Language",
 
@@ -273,13 +400,117 @@ const DICT = {
   },
 
   bn: {
+    "nav.assistant": "এআই সহকারী",
+    "inv.takingYou": "{tab} খুলে দিচ্ছি।",
+    "inv.assistantTitle": "কথা বলেই প্রোডাক্ট যোগ করুন ও সামলান",
+    "inv.assistantSub": "কয়েকটা প্রশ্নের উত্তর দিলেই একটা যোগ হবে, বা কী বদলাতে চান বলুন। বোতাম না চাপা পর্যন্ত কিছুই হবে না।",
     "inv.dupSameName": "“{name}” নামে একটা আপনার আগেই আছে। এটা যদি আলাদা ডিজাইন হয়, বলুন কীসে আলাদা — প্রিন্ট, রং — নামের সাথে সেটা জুড়ে দেব, যাতে কাস্টমার চাইলে ঠিকটাই পায়।",
+
+    // ---- the assistant's own conversation ----
+    "asst.intro": "প্রোডাক্ট কীভাবে যোগ করতে চান? নিচ থেকে একটা বেছে নিন — অথবা ক্যাটালগে থাকা {n}টা নিয়ে আমাকে জিজ্ঞেস করুন।",
+    "asst.chip.low": "কোনগুলো ফুরিয়ে আসছে?",
+    "asst.chip.noPrice": "কোন প্রোডাক্টের দাম দেওয়া নেই?",
+    "asst.chip.oos": "কয়টা প্রোডাক্ট স্টকে নেই?",
+
+    "asst.way.ask": "আমি প্রশ্ন করি, আপনি উত্তর দিন",
+    "asst.way.askSub": "একটা একটা করে, আপনার নিজের ভাষায়",
+    "asst.way.askShort": "যোগ করুন — আমি জিজ্ঞেস করব",
+    "asst.way.photos": "ছবি থেকে",
+    "asst.way.photosSub": "একই জিনিসের সামনে-পেছনে এক করে নেওয়া হবে",
+    "asst.way.csv": "স্প্রেডশিট",
+    "asst.way.csvSub": "CSV থেকে একসাথে শত শত",
+    "asst.way.url": "প্রোডাক্টের লিংক",
+    "asst.way.urlSub": "পেজটা আমরা পড়ে নেব",
+    "asst.way.woo": "WooCommerce",
+    "asst.way.wooSub": "পুরো দোকান নিয়ে আসুন",
+
+    "asst.start": "প্রোডাক্ট যোগ করতে চাই।",
+    "asst.count.ask": "একটা প্রোডাক্ট, নাকি একসাথে কয়েকটা?",
+    "asst.count.one": "একটাই",
+    "asst.count.many": "একসাথে কয়েকটা",
+    "asst.count.saidOne": "একটাই।",
+    "asst.count.saidMany": "একসাথে কয়েকটা।",
+
+    "asst.rule.one": "নিয়মটা এরকম:\n১. আমি একবারে একটা জিনিস জিজ্ঞেস করব — নাম, ক্যাটাগরি, দাম, বিবরণ, ভ্যারিয়েন্ট, তারপর ছবি।\n২. প্রতিটা প্রশ্নের সাথে উত্তরটা কেমন হবে তার নমুনা থাকবে।\n৩. যেটা নেই সেটায় “skip” লিখে দিন।\n৪. শেষে Save না চাপা পর্যন্ত কিছুই সেভ হবে না।",
+    "asst.rule.many": "নিয়মটা এরকম:\n১. প্রথমে তিনটা প্রশ্ন — সবগুলো কী জিনিস, দাম, আর কাস্টমার কী কী থেকে বেছে নেয়।\n২. তারপর সব ছবি একসাথে দিন: সামনে, পেছনে, ক্লোজ-আপ, সব।\n৩. কোন ছবিগুলো একই জিনিসের, আমি সেটা বের করব আর প্রত্যেকটার নাম দেব কীসে আলাদা তা দিয়ে।\n৪. আপনি তালিকাটা দেখে Add চাপবেন। তার আগে কিছুই সেভ হবে না।",
+    "asst.rule.csv": "নিয়মটা এরকম:\n১. নমুনা শিটটা নামিয়ে নিন, যাতে কলামের নাম মিলে যায়।\n২. প্রতি প্রোডাক্টের জন্য এক লাইন। এক লাইনে কয়েকটা ছবির লিংক দেওয়া যায়।\n৩. আপলোড করুন, আর কিছু যোগ হওয়ার আগে আমি কী পড়লাম দেখে নিন।\n৪. একসাথে শত শত দিলেও সমস্যা নেই।",
+    "asst.rule.url": "নিয়মটা এরকম:\n১. একটা প্রোডাক্ট পেজের ঠিকানা পেস্ট করুন।\n২. আমি পেজটা পড়ব — নাম, দাম, ছবি।\n৩. আমি কী পেলাম দেখে নিন, ভুল থাকলে ঠিক করে দিন।\n৪. Add না চাপা পর্যন্ত কিছুই সেভ হবে না।",
+    "asst.rule.woo": "নিয়মটা এরকম:\n১. আপনার WooCommerce ঠিকানা আর দুইটা কী দিন — WooCommerce → Settings → Advanced → REST API থেকে পাবেন।\n২. আমি সব প্রোডাক্ট ছবিসহ নিয়ে আসব।\n৩. কিছু যোগ হওয়ার আগে তালিকাটা দেখে নিন।\n৪. আপনার দোকান যেমন আছে তেমনই থাকবে — সেখানে কিছু বদলাবে না।",
+    "asst.rule.open": "খুলুন",
+
+    "asst.batch.kind": "এগুলো কী জিনিস? সবগুলোর জন্য একটাই উত্তর। (যেমন: বক্স টি-শার্ট)",
+    "asst.batch.kindPh": "যেমন: বক্স টি-শার্ট",
+    "asst.batch.price": "সবগুলোর দাম কি একই? দামটা লিখুন, বা নিচের বোতামটা চাপুন। (যেমন: 500)",
+    "asst.batch.pricePh": "যেমন: 500",
+    "asst.batch.priceSkip": "দাম আলাদা আলাদা",
+    "asst.batch.options": "কাস্টমার কি কিছু থেকে বেছে নেয় — সাইজ, রং, ক্যাপাসিটি, ওজন? (যেমন: সাইজ: S, M, L)",
+    "asst.batch.optionsNamed": "এগুলোতে কী কী {axis} আছে? কমা দিয়ে আলাদা করুন। (যেমন: {axis}: A, B; রং: কালো)",
+    "asst.batch.optionsPh": "যেমন: সাইজ: S, M, L",
+    "asst.batch.optionsPhNamed": "{axis} কী কী",
+    "asst.batch.optionsSkip": "বেছে নেওয়ার কিছু নেই",
+    "asst.batch.optionsSkipNamed": "{axis} নেই",
+    "asst.batch.done": "ঠিক আছে। এবার আপনার {kind}-এর সব ছবি দিন — সামনে, পেছনে, ক্লোজ-আপ, সব একসাথে। কোন ছবিগুলো একই জিনিসের আমি বের করব, আর প্রত্যেকটার নাম দেব কীসে আলাদা তা দিয়ে।",
+    "asst.skipped": "বাদ দেওয়া হলো",
+
+    "asst.stopped": "বন্ধ করা হলো। কিছুই যোগ হয়নি।",
+    "asst.cancel": "বাতিল",
+    "asst.draftTitle": "নতুন প্রোডাক্ট — এখনো সেভ হয়নি",
+    "asst.needed": "সেভ করার আগে যা লাগবে: ",
+    "asst.neededEnd": "।",
+    "asst.readyOne": " দেওয়া নেই — এখন দিতে পারেন, বা ছাড়াই সেভ করতে পারেন।",
+    "asst.readyMany": " দেওয়া নেই — এখন দিতে পারেন, বা ছাড়াই সেভ করতে পারেন।",
+    "asst.readyPrefix": "সেভ করার মতো হয়ে গেছে। ",
+    "asst.allFilled": "সব দেওয়া হয়ে গেছে।",
+    "asst.photoCount": "{n}টা ছবি, {budget}-এর মধ্যে {size}",
+    "asst.save": "“{name}” সেভ করুন",
+    "asst.addAnyway": "তবুও যোগ করুন",
+    "asst.savedLine": "“{name}” আপনার ক্যাটালগে যোগ হয়েছে।",
+    "asst.added": "“{name}” যোগ হয়েছে। আরেকটা যোগ করতে চাইলে “add another” বলুন।",
+    "asst.addedBlind": "“{name}” যোগ হয়েছে — তবে ছবিটা পড়া যায়নি, তাই কাস্টমার ছবি পাঠিয়ে এটা খুঁজে পাবে না। আরেকটা যোগ করতে চাইলে “add another” বলুন।",
+    "asst.dupRefused": "{message} সত্যিই যদি এটা আলাদা হয়, “তবুও যোগ করুন” চাপুন।",
+
+    "asst.photo.added": "{n}টা ছবি যোগ হয়েছে।",
+    "asst.photo.added1": "১টা ছবি যোগ হয়েছে।",
+    "asst.photo.repeats": "{n}টা আগেই ছিল — বাদ দেওয়া হয়েছে।",
+    "asst.photo.repeats1": "১টা একই ছবি ছিল — বাদ দেওয়া হয়েছে।",
+    "asst.photo.overflow": "{n}টা আঁটেনি: একটা প্রোডাক্টে {max}টা পর্যন্ত ছবি রাখা যায়।",
+    "asst.photo.overflowTip": "{n}টা ছবি এই প্রোডাক্টে রাখা গেল না — একটা প্রোডাক্টে বেশি হলে {max}টা ছবি হয়। ওগুলো যদি আলাদা প্রোডাক্ট হয়, নিচের “ছবি থেকে” চেপে একসাথে যোগ করুন।",
+    "asst.photo.attach": "এই প্রোডাক্টের ছবি দিন",
+    "asst.photo.full": "একটা প্রোডাক্টে বেশি হলে {max}টা ছবি হয়",
+    "asst.photo.first": "কাস্টমার এই ছবিটাই দেখে",
+    "asst.photo.makeFirst": "এটাকে প্রথম ছবি বানান",
+    "asst.photo.remove": "{n} নম্বর ছবি সরান",
+    "asst.photo.firstBadge": "১ম",
+
+    "asst.proposed": "প্রস্তাব — এখনো কিছুই বদলায়নি",
+    "asst.apply": "{n}টা পরিবর্তন প্রয়োগ করুন",
+    "asst.apply1": "১টা পরিবর্তন প্রয়োগ করুন",
+    "asst.discard": "বাদ দিন",
+    "asst.discarded": "বাদ দেওয়া হলো — কিছুই বদলায়নি।",
+    "asst.applied": "{n}টা পরিবর্তন সেভ হয়েছে।",
+    "asst.applied1": "১টা পরিবর্তন সেভ হয়েছে।",
+    "asst.appliedSome": "{n}টা সেভ হয়েছে, {m}টা হয়নি: {errors}।",
+
+    "asst.ph.answer": "উত্তর লিখুন…",
+    "asst.ph.chat": "জিজ্ঞেস করুন, বা কী বদলাতে চান বলুন…",
+    "asst.thinking": "ভাবছি…",
+    "asst.writing": "লিখে রাখছি…",
+    "asst.prepping": "ছবি তৈরি করছি…",
+    "asst.aria": "সহকারীকে বার্তা",
+
+    "asst.jump": "অথবা খুলুন",
+
+    "fld.product_name": "নাম", "fld.category": "ক্যাটাগরি", "fld.regular_price": "দাম",
+    "fld.description": "বিবরণ", "fld.options": "সাইজ / রং", "fld.photo": "ছবি",
+    "fld.stock_qty": "স্টক", "fld.brand": "ব্র্যান্ড", "fld.sale_price": "অফার দাম",
+    "fld.product_code": "কোড", "fld.tags": "ট্যাগ", "fld.stock_status": "স্টক অবস্থা",
 
     "nav.analytics": "অ্যানালিটিক্স", "nav.conversations": "ইনবক্স", "nav.comments": "কমেন্ট",
     "nav.broadcast": "ব্রডকাস্ট", "nav.channels": "চ্যানেল", "nav.billing": "বিলিং",
     "nav.settings": "বট ট্রেনিং", "nav.profile": "প্রোফাইল", "nav.ai": "এআই ইঞ্জিন",
     "nav.inventory": "ইনভেন্টরি", "nav.knowledge": "নলেজ বেজ",
     "nav.orders": "অর্ডার", "nav.bookings": "বুকিং",
+    "group.Assistant": "সহকারী",
     "group.Overview": "সারসংক্ষেপ", "group.Outreach": "যোগাযোগ", "group.Business": "ব্যবসা", "group.Account": "অ্যাকাউন্ট",
     "shell.logout": "লগ আউট", "shell.sync": "রিফ্রেশ", "shell.language": "ভাষা",
 

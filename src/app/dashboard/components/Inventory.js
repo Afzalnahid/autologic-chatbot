@@ -53,7 +53,7 @@ function Thumb({ p, size = 44, radius = 12 }) {
   </div>;
 }
 
-export default function Inventory({ products, refresh }) {
+export default function Inventory({ products, refresh, intent }) {
   const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
@@ -92,6 +92,16 @@ export default function Inventory({ products, refresh }) {
   // own products rather than assumed, so nothing here is a clothing shop's
   // answer imposed on everyone else.
   const shopAxes = useMemo(() => knownAxes(products), [products]);
+
+  // The assistant sent the owner here to do something specific — open the CSV
+  // sheet, start a photo batch with the answers it already collected. Keyed on
+  // `at`, a timestamp, so asking for the same sheet twice in a row opens it
+  // twice rather than being swallowed as "no change".
+  useEffect(() => {
+    if (!intent?.at) return;
+    if (intent.importer) { setPrefill(intent.prefill || null); setImporter(intent.importer); }
+    if (intent.add) setEditor({ mode: "add" });
+  }, [intent?.at]);
 
   const list = useMemo(() => {
     const q = search.trim().toLowerCase();
