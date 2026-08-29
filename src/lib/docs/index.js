@@ -17,6 +17,11 @@ export const GROUPS = ["start", "daily", "outreach", "business", "teach", "accou
 //        them carry blocks tagged with a single business type.
 export const PAGES = [
   { slug: "getting-started", group: "start",    icon: "ti-rocket",            tab: null,            biz: "both" },
+  // Second, and deliberately before the tabs it drives: it is the guided way
+  // through teaching the bot, adding products and setting an offer, so a reader
+  // who follows the manual in order has done all three before reaching the
+  // pages that explain those tabs by hand.
+  { slug: "ai-assistant",    group: "start",    icon: "ti-sparkles",          tab: "assistant",     biz: "both" },
   { slug: "channels",        group: "start",    icon: "ti-plug",              tab: "channels",      biz: "both" },
   { slug: "website-widget",  group: "start",    icon: "ti-world",             tab: "channels",      biz: "both" },
   // The slug says "inbox" (the tab's public name since 2026-08-25); the tab

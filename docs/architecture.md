@@ -73,13 +73,22 @@ src/
 │   ├── page.js                 Public landing page (server-rendered)
 │   ├── pricing/                Public pricing page
 │   ├── privacy/ terms/ contact/ google-calendar/
-│   ├── dashboard/              Route wrapper
-│   ├── dashboard-client.js     The entire client dashboard (single file)
+│   ├── docs/                   The public manual (content in src/lib/docs/)
+│   ├── shots/                  Screenshot studio, dev-only (404 elsewhere)
+│   ├── dashboard/              Route wrapper + components/ (one file per tab)
+│   ├── dashboard-client.js     The dashboard SHELL: auth, onboarding, routing
 │   ├── admin/                  Admin console (separate RBAC)
 │   ├── reset/                  Password reset
 │   └── api/                    All backend routes (see §4)
 ├── lib/
 │   ├── bot.js                  Message pipeline + locked prompts
+│   ├── products.js             Product shape, vision, gallery, embedding
+│   ├── inventory-actions.js    What the assistant may change about a product
+│   ├── assistant-actions.js    What it may change about the bot (offers, training)
+│   ├── readiness.js            Name + price + photo: the rule for "can be sold"
+│   ├── duplicates.js           Refuse the same product twice (code > name > photo)
+│   ├── variants.js             Option axes and their combinations
+│   ├── docs/                   The public manual's copy (en.js / bn.js / index.js)
 │   ├── gemini.js               All AI calls
 │   ├── messenger.js            Outbound Graph API sends
 │   ├── knowledge.js            Document parsing, chunking, RAG
@@ -107,9 +116,15 @@ it would add import churn without changing the bundle.
 
 **Client-facing** (all require a Supabase JWT, scoped by `requireClient`):
 `me`, `profile`, `profile-logo`, `settings`, `products`, `add-product`,
-`import-products`, `import-one`, `import-url`, `orders`, `conversations`,
+`import-products` (WooCommerce **and** Shopify, chosen by `platform`),
+`import-one`, `import-url`, `orders`, `conversations`,
 `contacts`, `channels`, `knowledge`, `bookings`, `analytics`, `billing`,
 `generate-prompt`, `send-message`, `send-media`.
+
+**The AI Assistant** (same JWT, same scoping): `inventory-chat` (answers and
+proposes), `inventory-apply` (carries out what was confirmed),
+`product-interview` (one question at a time), `photo-draft` (reads photos before
+anything is saved), `photo-group` (which pictures are the same product).
 
 **Channel webhooks** (no JWT — verified by Meta signature/token):
 `messenger` (direct messages **and** Facebook Page comments via the `feed` field),
@@ -213,11 +228,11 @@ cron is involved.
 shared state and routes between tabs.
 
 Every tab lives in `src/app/dashboard/components/`:
-`Analytics`, `Billing`, `Bookings`, `Broadcast`, `Channels`, `Comments`,
-`Conversations`, `Inventory`, `KnowledgeBase`, `Orders`, `Profile`,
-`Settings`, `WebsiteWidget`.
+`InventoryAssistant` (the AI Assistant tab), `Analytics`, `Billing`, `Bookings`,
+`Broadcast`, `Channels`, `Comments`, `Conversations`, `Inventory`,
+`KnowledgeBase`, `Orders`, `Profile`, `Settings`, `WebsiteWidget`.
 
-Two modules are shared by all of them:
+Four modules are shared by all of them:
 - `session.js` — the supabase client, the auth token and the `api()` fetch helper.
   The token is written through `setAuthToken()` because an exported `let` cannot be
   assigned from another module.
@@ -225,6 +240,41 @@ Two modules are shared by all of them:
   `useIsMobile`, the stat and chart building blocks, the plan catalogue and the
   money and date formatters. **This is the single source of truth for the design
   system**; tabs must not redefine colours locally.
+- `i18n.js` — every visible string, in English and Bangla, behind `useT()`. A
+  string hardcoded in a component is a string the language switch cannot reach.
+- `back.js` — the back-button stack. Anything that opens ON TOP of a page
+  (a drawer, a sheet, a confirmation) calls `useBackClose(open, close)`, and the
+  shell asks the stack before it moves the page. The last thing to open is the
+  first to be asked.
+
+**History.** Every tab visited is one `pushState` entry, so the phone's back
+button retraces the pages the owner actually saw. Overlays are not entries: they
+are handled by the stack above, which is why one press closes a drawer and the
+next leaves the tab.
+
+## The AI Assistant tab
+
+One place from which the whole dashboard is driven by conversation, and the only
+AI surface in the app — Inventory and Bot Training are hand-driven forms.
+
+It opens on three jobs, in order: **teach the bot → add products → set up an
+offer**, ticked as each is done. Everything it changes goes through the same
+propose-then-confirm contract:
+
+| Piece | Where | What it holds |
+|---|---|---|
+| `src/lib/inventory-actions.js` | shared | What may be changed about a PRODUCT, the ask order, `draftGaps` |
+| `src/lib/assistant-actions.js` | shared | What may be changed about the BOT — offers, bargaining, notes, the profile answers, identity, follow-ups — and `applySettingActions`, which is pure |
+| `/api/inventory-chat` | server | Reads the catalogue AND `app_settings`, and returns words plus proposals. Never writes |
+| `/api/inventory-apply` | server | Carries out only what the owner confirmed. The model never reaches it |
+| `/api/product-interview` | server | One question at a time for a single product. The draft travels with every turn and is re-cleaned on arrival |
+
+Two things are deliberately out of reach: choosing which products an offer covers
+(that is picking real catalogue rows, and a model naming them from memory attaches
+the offer to the wrong one), and sending anything to a customer.
+
+The route names still say "inventory" and now do more than that; renaming a live
+route is a separate job from making it work.
 
 ## Follow-ups
 

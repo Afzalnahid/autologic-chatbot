@@ -212,8 +212,22 @@ rolling window when building the prompt.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | text | **The `client_id` as a string**, not a uuid |
-| `settings` | jsonb | `botName`, `greeting`, `businessPrompt`, `questionnaire`, legacy `systemPrompt` |
+| `settings` | jsonb | Everything the Bot Training tab holds — see below |
 | `updated_at` | timestamptz | |
+
+One row is the whole of what the bot has been taught. The AI Assistant writes to
+it through `applySettingActions` in `src/lib/assistant-actions.js`, which is the
+single place that decides what may change:
+
+| Key | Shape | What it is |
+|---|---|---|
+| `botName`, `businessName`, `greeting` | text | Who the bot says it is |
+| `questionnaire` | object | The profile answers (`description`, `delivery`, `payment`, … — the list per business type is `TRAINING_KEYS_ECOM` / `_AGENCY`), plus `tone`, `languages`, and `notes[]` |
+| `questionnaire.notes[]` | `{id, text}` | One fact each — "we are closed on Fridays". Reaches the bot as its own block |
+| `offers[]` | `{id, title, details, valid_until, active, products[]}` | Deals the bot quotes word for word. `products[]` is picked from the real catalogue on the Offers tab, never by the assistant |
+| `bargain` | `{enabled, mode, max_discount_pct, custom}` | `mode` is `fixed` / `limited` / `custom` |
+| `followup` | `{enabled, delay_hours, message_ecommerce, message_agency, last_run_at}` | See Follow-ups |
+| `businessPrompt` | text | The generated profile. Legacy `systemPrompt` is read as a fallback |
 
 ### `payment_requests` — payment verification
 `id`, `client_id`, `plan`, `billing_cycle`, `amount`, `method`, `sender_number`,

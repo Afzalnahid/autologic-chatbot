@@ -51,6 +51,7 @@ export const UI = {
   // Short sidebar / hub names. The page's own <h1> comes from its copy below.
   names: {
     "getting-started": "Getting started",
+    "ai-assistant": "AI Assistant",
     "channels": "Channels",
     "website-widget": "Website widget",
     "inbox": "Inbox",
@@ -109,6 +110,96 @@ export const DOCS = {
 
       { note: "Nothing you connect is permanent. Every channel has an on/off switch and a **Disconnect** button, and turning a channel off simply means messages wait for you instead of being answered.",
         kind: "tip" },
+    ],
+  },
+
+  "ai-assistant": {
+    title: "AI Assistant",
+    lead: "The one place you talk to your dashboard. Teach the bot, add products and set up offers by answering questions — and nothing is saved until you press the button.",
+    time: 7,
+    blocks: [
+      { h: "What this tab is for",
+        p: [
+          "Every other tab is a form you fill in. This one asks you questions instead, and fills the forms in for you.",
+          "It can do three jobs, and it can reach the rest of the dashboard: ask it about your catalogue, tell it to change a price, or say **show me the orders** and it takes you there.",
+        ] },
+
+      { note: "It never changes anything on its own. Every change appears as a card showing what would move and what it would move from — *Price: 900 → 1200* — with a button underneath. Untick anything wrong. Nothing happens until you press it.",
+        kind: "tip" },
+
+      { h: "The three jobs, in order",
+        p: ["The numbers are not decoration. A bot that has not been told what your business is answers badly about products it does have, and an offer needs a catalogue behind it. A tick appears on each one as you finish it."],
+        table: { head: ["", "What it does"],
+          rows: [
+            ["**1 · Teach the bot**", "It asks what your business is, how you deliver, how people pay, your returns policy, your hours — one question at a time. Skip anything, and stop whenever you like"],
+            ["**2 · Add products**", "One product, or your whole shop at once. See below"],
+            ["**3 · Set up an offer**", "Three questions: what the offer is called, what the customer gets, when it ends"],
+          ] } },
+
+      { h: "Adding one product",
+        p: ["It starts with the picture, because that is the thing you certainly have when you are standing over the product with your phone."],
+        steps: [
+          "Press **Add products**, then **Just one**, then **Take a photo of it**.",
+          "Attach the photos with the camera button beside the message box — front, back, close-ups, all at once. The first one is what customers see.",
+          "The AI reads them and proposes a name, a category and a description, so the questions that follow are corrections rather than blank boxes.",
+          "It then asks for the name, the category, the price, the details and any sizes or colours. Every question shows you what an answer looks like.",
+          "Press **Save** at the end.",
+        ] },
+
+      { note: "At the category question your existing categories appear as buttons — tap one instead of typing. That is what stops a shop ending up with *T-shirt*, *T shirt* and *tshirt* as three categories the bot cannot tell apart.",
+        kind: "tip" },
+
+      { h: "Adding many at once",
+        p: ["Press **Add products**, then **Several at once**, and pick where they are coming from."],
+        table: { head: ["Where from", "What happens"],
+          rows: [
+            ["**All the photos at once**", "Three questions about what they share, then you attach every photo. Front, back and close-ups of the same thing are gathered into one product automatically, and each is named by what makes it different"],
+            ["**A spreadsheet**", "A CSV saved from Excel or Google Sheets. Hundreds at a time"],
+            ["**WooCommerce**", "Your site address and a read-only key pair from WooCommerce › Settings › Advanced › REST API"],
+            ["**Shopify**", "Your `myshopify.com` address and an Admin API token with `read_products`"],
+          ] } },
+
+      { note: "An import never changes your Shopify or WooCommerce shop. It only reads.",
+        kind: "tip" },
+
+      { h: "Getting back to the start",
+        p: [
+          "When a job finishes, the three choices come back on their own — so *I have added the shirt, now let me set the offer* is one tap, not a page reload.",
+          "There is also a **Main menu** button at the top of the tab, and on a phone the back button lands there too.",
+        ] },
+
+      { h: "Just talking to it",
+        p: ["You do not have to use the buttons. Say what you want in your own words and it proposes the change:"],
+        table: { head: ["You say", "It proposes"],
+          rows: [
+            ["*the winter jackets are 1200 now*", "A price change on the matching products"],
+            ["*we are out of the black polo*", "That product marked out of stock"],
+            ["*make an Eid offer, 20% off everything*", "A new offer, worded the way a customer reads it"],
+            ["*tell the bot we are closed on Fridays*", "That fact added to what the bot knows"],
+            ["*show me the orders*", "It opens the Orders tab"],
+          ] } },
+
+      { h: "What it deliberately cannot do",
+        p: ["Two things are kept out of its hands on purpose."],
+        table: { head: ["Not this", "Why, and where instead" ],
+          rows: [
+            ["Choose which products an offer covers", "That means picking real rows out of your catalogue, and a machine naming them from memory would attach the offer to the wrong shirt. Pick them on **Bot Training › Offers**, where the real list is"],
+            ["Send anything to a customer", "Broadcasts and replies go to real people. **Broadcast** and **Inbox** do that, where you can see exactly who receives it"],
+          ] } },
+
+      { h: "The language it speaks",
+        p: ["Everything here — the questions, the examples, the buttons and the confirmation cards — follows the **EN / বাং** switch at the top of the dashboard. Change it mid-conversation and what is already on screen changes with it."] },
+
+      { faq: [
+        { q: "Does it save anything without asking?",
+          a: "No. Every change is a card with a button. Until you press it, nothing has happened." },
+        { q: "I started adding a product and changed my mind.",
+          a: "Press **Cancel** on the product card, the **Main menu** button at the top, or the back button on your phone. Nothing is saved." },
+        { q: "Can I still add products the old way?",
+          a: "Yes. The **Inventory** tab has the full form and all four imports, and it always will. This tab is another door to the same place, not a replacement." },
+        { q: "It says a product with that name already exists.",
+          a: "That is information, not a refusal. Fifteen box t-shirts are all called box t-shirts — tell it what makes this one different, such as the print or the colour, and it adds that to the name so customers can be matched to the right one." },
+      ] },
     ],
   },
 
