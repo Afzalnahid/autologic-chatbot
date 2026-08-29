@@ -32,7 +32,7 @@ async function billingSettings() {
 // like a quiet month.
 const PAGE = 1000;
 const MAX_MSGS = 200000;
-async function pageAll(fetchPage, max = MAX_MSGS) {
+export async function pageAll(fetchPage, max = MAX_MSGS) {
   const rows = [];
   for (let from = 0; from < max; from += PAGE) {
     const { data, error } = await fetchPage(from, from + PAGE - 1);
@@ -185,6 +185,11 @@ export async function GET(request) {
       // month, which is the wrong thing to conclude from it.
       messages_truncated: msgs.truncated,
       usage_truncated: usageQ.truncated,
+      // And when a page came back with an ERROR, which is worse than a ceiling:
+      // the rows are missing and nothing about the total says so. A cost report
+      // reading ৳0 because the database refused is the most convincing wrong
+      // number in the whole panel.
+      read_error: msgs.error || usageQ.error || null,
       // Models being charged at the fallback rate — every dollar under one of
       // these is a house guess, and the panel says so instead of hiding it.
       unpriced: totals.unpriced,

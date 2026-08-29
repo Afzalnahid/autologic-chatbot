@@ -27,8 +27,23 @@ export async function GET(request) {
     // reads ON forever regardless of what was saved.
     const ch = byPlatform.facebook || channels.find(c => c.platform !== "website") || channels[0];
 
+    // Who has written recently, so a contact row can be made for anyone who
+    // does not have one yet.
+    //
+    // This used to ask for EVERY customer message this client has ever had, on
+    // every dashboard poll — and the Inbox polls every forty-five seconds. Two
+    // things wrong with that: it grows without bound, and PostgREST answers an
+    // unbounded select with at most its max-rows and says nothing, so past that
+    // line the newest senders were the ones being dropped and their names never
+    // resolved.
+    //
+    // Newest first and capped, which is the right shape anyway: this loop only
+    // ever ADDS rows for senders that have none, and somebody who wrote months
+    // ago has had a row since the poll that followed their message.
     const { data: allMsgs } = await supabase.from("message_buffer").select("sender_id,role,client_id,platform")
-      .eq("client_id", client.id).eq("role", "customer");
+      .eq("client_id", client.id).eq("role", "customer")
+      .order("created_at", { ascending: false })
+      .limit(3000);
     const senders = allMsgs || [];
     const uniq = [...new Set(senders.map(s => s.sender_id).filter(Boolean))];
     const platformOf = {};
@@ -57,9 +72,23 @@ export async function GET(request) {
       // raced the owner's toggle PUT and silently flipped a fresh OFF back ON.
       // A NEW customer gets a row (bot on by default); an EXISTING row is only
       // ever touched to add a newly-found name, never its switch.
+      //
+      // `ignoreDuplicates` is what actually holds that rule. Without it the
+      // guarantee rested on `map` being complete, and `map` comes from a SELECT
+      // — so a read that came back short for any reason took the branch below,
+      // upserted `bot_enabled: true` over a customer the owner had paused, and
+      // turned their bot back on with nothing anywhere saying so. Now the write
+      // can only ever INSERT: an existing row is untouched whatever the map
+      // happens to believe.
       if (!map[sid]) {
-        await supabase.from("contacts").upsert({ sender_id: sid, client_id: client.id, name, bot_enabled: true }, { onConflict: "client_id,sender_id" });
-        map[sid] = { sender_id: sid, name, bot_enabled: true };
+        const { data: made } = await supabase.from("contacts")
+          .upsert({ sender_id: sid, client_id: client.id, name, bot_enabled: true },
+            { onConflict: "client_id,sender_id", ignoreDuplicates: true })
+          .select("sender_id,name,bot_enabled");
+        // Empty means a row was already there and was left alone — so we do
+        // NOT know its switch, and must not answer as though it were on. It is
+        // simply left out of this response; the next poll reads it properly.
+        if (made?.length) map[sid] = { sender_id: sid, name, bot_enabled: true };
       } else if (name) {
         await supabase.from("contacts").update({ name }).eq("client_id", client.id).eq("sender_id", sid);
         map[sid] = { ...map[sid], name };

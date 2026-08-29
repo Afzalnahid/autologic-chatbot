@@ -139,13 +139,22 @@ export async function messageAllowance(client) {
   return { active: false, reason: "no_plan", limits };
 }
 
+// Said when the count itself could not be read. Deliberately not "you have
+// reached your limit": the owner has not, and telling them they have would send
+// them to the billing page for nothing.
+const COUNT_FAILED = "We could not check your package limit just now. Please try again in a moment.";
+
 // How many products this account may still add.
 export async function checkProductQuota(client, adding = 1) {
   const limits = await limitsFor(client);
   const max = limits.maxProducts;
   if (max === null || max === undefined) return { ok: true, limits };
-  const { count } = await supabase.from("products")
+  const { count, error } = await supabase.from("products")
     .select("id", { count: "exact", head: true }).eq("client_id", client.id);
+  // A failed count used to read as zero, which passes every limit. A quota that
+  // fails OPEN is a quota that does not exist on the day the database hiccups,
+  // and nothing anywhere would have said so. It fails closed, and says why.
+  if (error) return { ok: false, limits, message: COUNT_FAILED };
   const used = count || 0;
   if (used + adding > Number(max)) {
     return {
@@ -163,9 +172,10 @@ export async function checkScrapeQuota(client) {
   const limits = await limitsFor(client);
   const max = limits.maxScrapesPerMonth;
   if (max === null || max === undefined) return { ok: true, limits };
-  const { data } = await supabase.from("usage_daily")
+  const { data, error } = await supabase.from("usage_daily")
     .select("calls").eq("client_id", client.id).eq("kind", "scrape")
-    .gte("day", monthStartISO().slice(0, 10));
+    .gte("day", monthStartISO().slice(0, 10)).limit(2000);
+  if (error) return { ok: false, limits, message: COUNT_FAILED };
   const used = (data || []).reduce((n, r) => n + (r.calls || 0), 0);
   if (used >= Number(max)) {
     return {
@@ -181,8 +191,9 @@ export async function checkKbQuota(client, adding = 1) {
   const limits = await limitsFor(client);
   const max = limits.maxKbFiles;
   if (max === null || max === undefined) return { ok: true, limits };
-  const { count } = await supabase.from("file_registry")
+  const { count, error } = await supabase.from("file_registry")
     .select("id", { count: "exact", head: true }).eq("client_id", client.id);
+  if (error) return { ok: false, limits, message: COUNT_FAILED };
   const used = count || 0;
   if (used + adding > Number(max)) {
     return {

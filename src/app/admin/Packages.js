@@ -421,6 +421,14 @@ function ChannelMessages({ d, rate }) {
       What packages are actually sold on. One message can cost several AI calls — transcribing it, reading its photo, then answering.
     </div>
 
+    {/* Two different kinds of "do not trust this number", and they are not the
+        same warning: a ceiling means the figure is a floor; an error means the
+        rows are simply missing and nothing else on the page knows it. */}
+    {t.read_error && <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "9px 11px", borderRadius: 11, background: T.dangerBg, color: T.danger, fontSize: 12, lineHeight: 1.55, marginBottom: 12 }}>
+      <i className="ti ti-alert-circle" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />
+      <span>A read failed part-way through: <b>{t.read_error}</b>. Figures on this screen are missing rows — do not price anything from them until it loads cleanly.</span>
+    </div>}
+
     {t.messages_truncated && <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "9px 11px", borderRadius: 11, background: T.warnBg, color: T.warn, fontSize: 12, lineHeight: 1.55, marginBottom: 12 }}>
       <i className="ti ti-alert-triangle" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />
       <span>More messages than this read can carry. <b>Every figure below is a floor, not a total.</b> Narrow the window to get an exact count.</span>

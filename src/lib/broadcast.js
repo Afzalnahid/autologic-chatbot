@@ -46,6 +46,33 @@ export async function sendableChannels(clientId) {
 }
 
 // Last inbound message per person, which is what opens the window.
+// The contact rows for a known list of senders, a chunk at a time.
+//
+// 300 ids is comfortably inside any URL limit, and the round trips are nothing
+// beside the send itself.
+//
+// A failed chunk THROWS rather than returning what it managed. Those senders
+// would come back with no row, and a missing row reads as "never opted out" —
+// so swallowing the error is how a delivery failure turns into a message sent
+// to somebody who asked not to get one. Better the owner sees an error and
+// presses the button again.
+//
+// Once the read is exact, a missing row means exactly one thing: this person
+// has no contact row yet, which is ordinary for someone who has just written
+// for the first time. They have never opted out, so sending to them is right.
+const CHUNK = 300;
+async function contactsFor(clientId, ids) {
+  const out = [];
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const { data, error } = await supabase.from("contacts")
+      .select("sender_id, name, bot_enabled, broadcast_opt_out")
+      .eq("client_id", clientId).in("sender_id", ids.slice(i, i + CHUNK));
+    if (error) throw new Error(`could not read who has opted out: ${error.message}`);
+    out.push(...(data || []));
+  }
+  return out;
+}
+
 async function lastInboundBySender(clientId, lookbackHours) {
   const { data } = await supabase
     .from("message_buffer")
@@ -103,13 +130,26 @@ export async function resolveAudience(clientId, businessType, segment = {}) {
   const channels = await sendableChannels(clientId);
   const live = new Set(channels.map((c) => c.platform));
 
-  const [inbound, contactsQ, convertedSet] = await Promise.all([
-    lastInboundBySender(clientId, activeWithin),
-    supabase.from("contacts").select("sender_id, name, bot_enabled, broadcast_opt_out").eq("client_id", clientId),
+  const inbound = await lastInboundBySender(clientId, activeWithin);
+
+  // The contact rows for THESE senders, asked for by name.
+  //
+  // It used to read every contact this client has ever had, unbounded —
+  // PostgREST answers that with at most its max-rows and says nothing about the
+  // rest. A contact row missing from that read is a `ct` of null two screens
+  // below, and the opt-out check is `ct?.broadcast_opt_out`, which on null is
+  // falsy: somebody who asked not to receive broadcasts would have been sent
+  // one. Nothing anywhere would have said so.
+  //
+  // Asked for in chunks because a very long `in(...)` becomes a URL too long to
+  // send, which fails in a way that looks like "no contacts" — the same silence
+  // by a different route.
+  const [contactRows, convertedSet] = await Promise.all([
+    contactsFor(clientId, [...inbound.keys()]),
     convertedFilter === "any" ? Promise.resolve(new Set()) : converted(clientId, businessType),
   ]);
 
-  const contactById = new Map((contactsQ.data || []).map((c) => [c.sender_id, c]));
+  const contactById = new Map(contactRows.map((c) => [c.sender_id, c]));
   const cutoff = Date.now() - activeWithin * 3600 * 1000;
   const windowCutoff = Date.now() - WINDOW_HOURS * 3600 * 1000;
 
