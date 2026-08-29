@@ -358,6 +358,10 @@ function ApiUsage({ d, rate, isMobile }) {
       </div>
     </Card>
 
+    <ChannelMessages d={d} rate={rate} />
+
+    <FeatureCosts byFeature={t.by_feature || {}} totalCost={totalCost} rate={rate} days={d.days} />
+
     {/* Per client */}
     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
       <div style={{ position: "relative", flex: "1 1 200px", minWidth: 0 }}>
@@ -378,6 +382,175 @@ function ApiUsage({ d, rate, isMobile }) {
       isOpen={open === c.client_id} onToggle={() => setOpen(open === c.client_id ? null : c.client_id)} />)}
     {!rows.length && <Card style={{ textAlign: "center", padding: 30, color: T.textDim }}>No client matches that.</Card>}
   </div>;
+}
+
+// Customer messages, and where they arrive.
+//
+// Packages are sold on messages, not on AI calls, so this is the number the
+// business runs on — and it was only reachable by opening every client in turn
+// and adding up in your head. Four things it answers that nothing else did:
+// how many messages the whole platform took, which channels they came in
+// through, what one message costs on average, and which connected channels are
+// close to the monthly limit set on them.
+const CH_ICON = { facebook: "ti-brand-messenger", instagram: "ti-brand-instagram", whatsapp: "ti-brand-whatsapp", website: "ti-world", unknown: "ti-help-circle" };
+const CH_COLOR = { facebook: "#0084FF", instagram: "#E1306C", whatsapp: "#25D366", website: T.gold, unknown: T.textDim };
+const CH_LABEL = { facebook: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp", website: "Website widget", unknown: "Channel not recorded" };
+
+function ChannelMessages({ d, rate }) {
+  const [open, setOpen] = useState(false);
+  const t = d.totals || {};
+  const total = Number(t.messages || 0);
+  const byPlatform = t.messages_by_platform || {};
+  const cost = Number(t.ai_cost_usd || 0);
+
+  // Every connected channel across every client, so a channel running hot is
+  // visible without opening the client it belongs to.
+  const chans = (d.clients || []).flatMap((c) => (c.channels || []).map((ch) => ({
+    ...ch, business: c.business_name || c.owner_email || "—",
+  }))).sort((a, b) => (b.messages || 0) - (a.messages || 0));
+
+  const order = Object.keys(byPlatform).sort((a, b) => byPlatform[b] - byPlatform[a]);
+  const shown = open ? chans : chans.slice(0, 6);
+
+  return <Card>
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ fontSize: 14, fontWeight: 700, flex: "1 1 200px" }}>Customer messages by channel</div>
+      <div style={{ fontSize: 11.5, color: T.textDim }}>last {d.days} days</div>
+    </div>
+    <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 12px" }}>
+      What packages are actually sold on. One message can cost several AI calls — transcribing it, reading its photo, then answering.
+    </div>
+
+    {t.messages_truncated && <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "9px 11px", borderRadius: 11, background: T.warnBg, color: T.warn, fontSize: 12, lineHeight: 1.55, marginBottom: 12 }}>
+      <i className="ti ti-alert-triangle" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />
+      <span>More messages than this read can carry. <b>Every figure below is a floor, not a total.</b> Narrow the window to get an exact count.</span>
+    </div>}
+
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 13 }}>
+      <MiniStat label="Messages" value={`${num(total)}${t.messages_truncated ? "+" : ""}`} />
+      <MiniStat label="AI calls per message" value={total > 0 ? ((t.calls || 0) / total).toFixed(1) : "—"} />
+      <MiniStat label="AI cost per message" value={total > 0 ? bdtFine((cost / total) * rate) : "—"} />
+      <MiniStat label="Connected channels" value={num(chans.length)} />
+    </div>
+
+    {!order.length
+      ? <div style={{ fontSize: 13, color: T.textDim, padding: "6px 0" }}>No customer messages in this window.</div>
+      : <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {order.map((p) => {
+            const n = byPlatform[p] || 0;
+            const share = total > 0 ? (n / total) * 100 : 0;
+            return <div key={p} style={{ flex: "1 1 170px", minWidth: 0, background: T.bgAlt, borderRadius: 13, padding: "12px 14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
+                <i className={`ti ${CH_ICON[p] || CH_ICON.unknown}`} style={{ fontSize: 15, color: CH_COLOR[p] || T.textDim, flexShrink: 0 }} />
+                <span style={{ fontSize: 12.5, fontWeight: 700, minWidth: 0 }}>{CH_LABEL[p] || p}</span>
+                <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.textDim, fontVariantNumeric: "tabular-nums" }}>{pct(share)}</span>
+              </div>
+              <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-.02em", fontVariantNumeric: "tabular-nums" }}>{num(n)}</div>
+              <div style={{ height: 4, borderRadius: 2, background: T.card, marginTop: 8, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${Math.max(2, share)}%`, background: CH_COLOR[p] || T.textDim, opacity: .8 }} />
+              </div>
+            </div>;
+          })}
+        </div>}
+
+    {chans.length > 0 && <div style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7, marginBottom: 7 }}>Busiest channels</div>
+      {shown.map((ch, i) => {
+        // A channel can carry its own monthly cap. Worth seeing before the
+        // client discovers it by being cut off.
+        const cap = Number(ch.msg_limit_monthly || 0);
+        const used = Number(ch.messages || 0);
+        const near = cap > 0 && used >= cap * 0.8;
+        return <div key={`${ch.client_id}-${ch.id}`} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+          <i className={`ti ${CH_ICON[ch.platform] || CH_ICON.unknown}`} style={{ fontSize: 15, color: CH_COLOR[ch.platform] || T.textDim, flexShrink: 0 }} />
+          <span style={{ minWidth: 0, flex: "1 1 140px" }}>
+            <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name || ch.page_id || "—"}</span>
+            <span style={{ display: "block", fontSize: 11, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.business}</span>
+          </span>
+          {ch.status && ch.status !== "connected" && <Badge color={T.textDim}>{ch.status}</Badge>}
+          {cap > 0 && <span style={{ fontSize: 11.5, color: near ? T.warn : T.textDim, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+            {near && <i className="ti ti-alert-triangle" style={{ marginRight: 4 }} />}{num(used)} / {num(cap)}
+          </span>}
+          <span style={{ fontSize: 13.5, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 60, textAlign: "right" }}>{num(used)}</span>
+        </div>;
+      })}
+      {chans.length > 6 && <button type="button" onClick={() => setOpen((v) => !v)} className="ui-btn"
+        style={{ marginTop: 9, background: "none", border: "none", padding: 0, color: T.gold, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+        {open ? "Show fewer" : `Show all ${chans.length}`}
+      </button>}
+    </div>}
+  </Card>;
+}
+
+// Every FEATURE across the whole platform, most expensive first.
+//
+// The three-way split above answers "is the money going on customer chats or on
+// indexing?". This answers the next question, which is the one that changes what
+// gets built: WHICH feature, by name, and what one call of it costs. A feature
+// whose cost per call is ten times its neighbour's is a feature worth looking
+// at, and until now that number existed in the API and was never shown.
+//
+// "Not attributed" is deliberately kept on the list rather than hidden. It means
+// a call site did not name itself, and a line that says so is how it gets fixed.
+function FeatureCosts({ byFeature, totalCost, rate, days }) {
+  const [open, setOpen] = useState(false);
+  const rows = Object.entries(byFeature)
+    .map(([id, v]) => ({
+      id, ...v,
+      area: USAGE_FEATURES[id]?.area || (String(id).split(".")[0] in AREA_INFO ? String(id).split(".")[0] : "unattributed"),
+      label: USAGE_FEATURES[id]?.label || id,
+      note: USAGE_FEATURES[id]?.note || "",
+      // What one call of this feature costs. The number that says whether a
+      // feature is expensive per USE, as opposed to merely used a lot.
+      each: (v.calls || 0) > 0 ? (Number(v.cost || 0) + Number(v.ownKeyCost || 0)) / v.calls : 0,
+    }))
+    .sort((a, b) => (b.cost + b.ownKeyCost) - (a.cost + a.ownKeyCost));
+
+  if (!rows.length) return null;
+  const shown = open ? rows : rows.slice(0, 6);
+  const worst = Math.max(...rows.map((r) => r.each), 0) || 1;
+
+  return <Card>
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ fontSize: 14, fontWeight: 700, flex: "1 1 200px" }}>What each feature costs</div>
+      <div style={{ fontSize: 11.5, color: T.textDim }}>{rows.length} features · last {days} days</div>
+    </div>
+    <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 12px" }}>
+      Sorted by total spend. <b style={{ color: T.text }}>Each</b> is what one call of that feature costs on average — a feature that is expensive per use is a different problem from one that is merely used a lot.
+    </div>
+
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      {shown.map((r, i) => {
+        const total = Number(r.cost || 0) + Number(r.ownKeyCost || 0);
+        const share = totalCost > 0 ? (r.cost / totalCost) * 100 : 0;
+        return <div key={r.id} style={{ padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
+            <span style={{ width: 9, height: 9, borderRadius: 3, background: AREA_COLOR[r.area] || T.textDim, flexShrink: 0, alignSelf: "center" }} />
+            <span style={{ fontSize: 13, fontWeight: 600, flex: "1 1 150px", minWidth: 0 }}>{r.label}</span>
+            <span style={{ fontSize: 11.5, color: T.textDim, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{num(r.calls || 0)} calls</span>
+            <span style={{ fontSize: 11.5, color: T.textDim, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>each {bdtFine(r.each * rate)}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", minWidth: 74, textAlign: "right" }}>{bdtFine(total * rate)}</span>
+            <span style={{ fontSize: 11.5, color: T.textDim, fontVariantNumeric: "tabular-nums", minWidth: 42, textAlign: "right" }}>{pct(share)}</span>
+          </div>
+          {/* Bar by cost PER CALL, not by total — the totals are already the
+              column above, and this is the only place the expensive-per-use
+              ones stand out. */}
+          <div style={{ height: 4, borderRadius: 2, background: T.bgAlt, marginTop: 7, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${Math.max(2, (r.each / worst) * 100)}%`, background: AREA_COLOR[r.area] || T.textDim, opacity: .75 }} />
+          </div>
+          {r.note && <div style={{ fontSize: 11, color: T.textDim, marginTop: 5, lineHeight: 1.5 }}>{r.note}</div>}
+          {r.area === "unattributed" && <div style={{ fontSize: 11, color: T.warn, marginTop: 5, lineHeight: 1.5 }}>
+            <i className="ti ti-alert-triangle" style={{ marginRight: 5 }} />This call site did not name itself. Real money, no feature — worth tracing.
+          </div>}
+        </div>;
+      })}
+    </div>
+
+    {rows.length > 6 && <button type="button" onClick={() => setOpen((v) => !v)} className="ui-btn"
+      style={{ marginTop: 10, background: "none", border: "none", padding: 0, color: T.gold, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+      {open ? "Show fewer" : `Show all ${rows.length}`}
+    </button>}
+  </Card>;
 }
 
 // How much of the total is measured and how much is a house guess. A cost report

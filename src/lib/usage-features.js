@@ -34,14 +34,22 @@ export const FEATURES = {
   "bot.tag": { area: "bot", label: "Auto-tagging", note: "Labelling a conversation when the word rules cannot" },
   "bot.comment": { area: "bot", label: "Comment replies", note: "Answering a public comment on a post" },
 
-  "product.vision": { area: "catalogue", label: "Describing product photos", note: "Once per new primary image" },
+  "product.vision": { area: "catalogue", label: "Describing product photos", note: "One call per photo — every side of a product, not only the first" },
   "product.embed": { area: "catalogue", label: "Indexing products", note: "Once per product saved or imported" },
   "product.scrape": { area: "catalogue", label: "Reading a website page", note: "Website import — the most expensive single call" },
   "product.chat": { area: "catalogue", label: "Product import (other)", note: "" },
+  "product.interview": { area: "catalogue", label: "Adding a product by chat", note: "One call per question asked while building one product" },
+  "product.catalog": { area: "catalogue", label: "Naming a batch of photos", note: "One call for a whole batch, not one per photo" },
+  "product.group": { area: "catalogue", label: "Grouping photos", note: "Deciding which pictures are the same product. Text only, one call per batch" },
   "knowledge.embed": { area: "catalogue", label: "Indexing documents", note: "Once per ~1,200 characters of an uploaded file" },
 
   "platform.prompt": { area: "platform", label: "Writing the bot profile", note: "Generate-with-AI in Bot Training" },
   "platform.offer": { area: "platform", label: "Rewriting an offer", note: "Polish button on an offer" },
+  // The assistant answering and proposing. It is a dashboard tool the owner
+  // presses, not a per-product cost, so it belongs beside the other two rather
+  // than in the catalogue: a shop that adds no products can still run this all
+  // day asking what is low on stock.
+  "product.assistant": { area: "platform", label: "AI Assistant chat", note: "Answering the owner and proposing changes. One call per message they send" },
 
   legacy: { area: "unattributed", label: "Recorded before the split", note: "Older rows: real cost, but no feature was stored yet" },
   other: { area: "unattributed", label: "Not attributed", note: "A call site that did not name itself — treat as a bug" },

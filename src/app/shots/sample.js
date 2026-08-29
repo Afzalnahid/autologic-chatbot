@@ -434,6 +434,11 @@ const ADMIN_PACKAGES = {
     fixed_monthly_usd: 45,
     fixed_window_usd: 45,
     messages: 4820 + 1240 + 96,
+    // Where those messages arrived. Four channels, so the screenshot shows the
+    // widget beside the three Meta ones rather than a single bar.
+    messages_by_platform: { facebook: 3120, whatsapp: 1580, instagram: 980, website: 476 },
+    messages_truncated: false,
+    usage_truncated: false,
   },
 };
 

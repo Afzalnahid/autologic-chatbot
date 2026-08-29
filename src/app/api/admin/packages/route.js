@@ -20,6 +20,30 @@ async function billingSettings() {
   return { ...DEFAULTS, ...(data?.settings || {}) };
 }
 
+// Read every row a query would return, a page at a time.
+//
+// PostgREST answers an unbounded select with at most its configured max-rows
+// and says nothing about the ones it left behind, so a plain `.select()` used
+// for COUNTING is a number that is right until the platform gets busy and then
+// silently wrong. Paging asks for exactly what it gets.
+//
+// `truncated` is the honest half: past the ceiling the answer is a floor, and
+// the panel is told so rather than being handed a smaller number that looks
+// like a quiet month.
+const PAGE = 1000;
+const MAX_MSGS = 200000;
+async function pageAll(fetchPage, max = MAX_MSGS) {
+  const rows = [];
+  for (let from = 0; from < max; from += PAGE) {
+    const { data, error } = await fetchPage(from, from + PAGE - 1);
+    if (error) return { rows, truncated: false, error: error.message };
+    const batch = data || [];
+    rows.push(...batch);
+    if (batch.length < PAGE) return { rows, truncated: false };
+  }
+  return { rows, truncated: true };
+}
+
 const daysAgo = (n) => {
   const d = new Date(Date.now() - n * 86400000);
   return dhakaDay(d);
@@ -38,28 +62,45 @@ export async function GET(request) {
     supabase.from("plans").select("*").order("sort"),
     loadPrices(),
     supabase.from("platform_costs").select("*").order("id"),
-    supabase.from("usage_daily").select("*").gte("day", since),
+    // Paged for the same reason as the messages below: every cost figure on
+    // the screen is a sum of these rows, and a capped read is a cost report
+    // that is quietly too low.
+    pageAll((from, to) => supabase.from("usage_daily").select("*").gte("day", since).order("day", { ascending: true }).range(from, to)),
     supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type"),
     supabase.from("channels").select("id,client_id,platform,page_id,name,status,msg_limit_monthly"),
     billingSettings(),
   ]);
 
   const plans = plansQ.data || [];
-  const usage = usageQ.data || [];
+  const usage = usageQ.rows || [];
   const clients = clientsQ.data || [];
   const channels = channelsQ.data || [];
 
-  // Messages actually received in the window, per client and per channel — the
-  // number packages are sold on, kept separate from AI calls (one message can
-  // cost several calls: transcribe + vision + chat).
-  const { data: msgs } = await supabase
+  // Messages actually received in the window, per client, per channel and per
+  // platform — the number packages are sold on, kept separate from AI calls
+  // (one message can cost several calls: transcribe + vision + chat).
+  //
+  // Read in PAGES. It used to be one unbounded select, which PostgREST answers
+  // with at most `db-max-rows` and no complaint — so past that line every
+  // number on this screen was quietly short, and short in a way that looks like
+  // a quiet month rather than a bug. Paging also puts a ceiling on it: a
+  // platform busy enough to pass MAX_MSGS says so out loud instead of
+  // pretending, and the panel shows that it is a floor.
+  const msgs = await pageAll((from, to) => supabase
     .from("message_buffer").select("client_id,page_id,platform,role,created_at")
-    .eq("role", "customer").gte("created_at", new Date(Date.now() - days * 86400000).toISOString());
+    .eq("role", "customer").gte("created_at", new Date(Date.now() - days * 86400000).toISOString())
+    .order("created_at", { ascending: true }).range(from, to));
 
   const msgByClient = new Map();
   const msgByChannel = new Map();
-  for (const m of msgs || []) {
+  const msgByPlatform = {};
+  for (const m of msgs.rows) {
     msgByClient.set(m.client_id, (msgByClient.get(m.client_id) || 0) + 1);
+    // A message whose channel cannot be named is still a message. It is counted
+    // for the client and for the platform, and only the per-channel line
+    // cannot have it — saying "unknown" is better than losing the row.
+    const p = m.platform || "unknown";
+    msgByPlatform[p] = (msgByPlatform[p] || 0) + 1;
     if (m.page_id) {
       const k = `${m.client_id}|${m.page_id}`;
       msgByChannel.set(k, (msgByChannel.get(k) || 0) + 1);
@@ -134,6 +175,16 @@ export async function GET(request) {
       by_area: totals.byArea,
       by_feature: totals.byFeature,
       by_model: totals.byModel,
+      // Customer messages across the whole platform, and where they arrived.
+      // This is what packages are sold on, so it is worth its own number rather
+      // than being reachable only by opening every client in turn.
+      messages: msgs.rows.length,
+      messages_by_platform: msgByPlatform,
+      // True when the read hit its ceiling, which makes every message figure a
+      // FLOOR. Said out loud: a number that is quietly short reads as a quiet
+      // month, which is the wrong thing to conclude from it.
+      messages_truncated: msgs.truncated,
+      usage_truncated: usageQ.truncated,
       // Models being charged at the fallback rate — every dollar under one of
       // these is a house guess, and the panel says so instead of hiding it.
       unpriced: totals.unpriced,
