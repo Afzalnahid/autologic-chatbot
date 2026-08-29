@@ -4,7 +4,59 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-29) — The AI Assistant tab, the question order, and the whole session in Bangla
+## Last session (2026-08-29, second thread) — One AI surface: the assistant drives every tab
+
+`7ef4906`, pushed. Owner: "ai assistant tab will be the tab and in inventory and bot trainning
+tab have not the chat interface here, all can be control from the ai asistant tab, all means
+all tab like offer can be set from there… you keep all the tabs like the manual system."
+
+**The chat left two tabs.** Inventory had `<InventoryAssistant>` folded into the top of the
+page; Bot Training's Train sub-tab had a Chat/Form toggle with a scripted interview. Both
+removed. Inventory keeps the drawer, the four imports (the menu is now "Add products", not
+"Advanced") and the filters; Bot Training keeps the form with every field. Each keeps ONE
+button to the assistant, via the existing `al-goto` CustomEvent with detail `"assistant"`.
+
+**`src/lib/assistant-actions.js` (NEW)** — the sister of `inventory-actions.js`, for everything
+that lives in `app_settings.settings`:
+- Verbs: `offer.create/update/delete`, `bargain.set`, `note.add/delete`, `training.set`,
+  `identity.set`, `followup.set`.
+- `applySettingActions(settings, actions)` is **pure** → `{next, results}`. The route reads the
+  row, calls it, writes the copy. 45 tests, no database.
+- `describeSetting(a, settings)` gives the confirmation card its "5% → 10%" reading.
+- `settingsSummary(settings, keys)` is what the model answers from — trimmed, because the whole
+  object contains the generated business profile.
+- **`TRAINING_KEYS_ECOM/AGENCY` moved here from Settings.js** — the assistant needs the same
+  list, and two copies drift invisibly.
+
+**Deliberately NOT possible from the chat:** choosing which products an offer covers (that is
+picking real catalogue rows; a model naming them from memory attaches the offer to the wrong
+shirt — the Offers tab has the real list), and sending anything to a customer (broadcasts and
+replies go to real people).
+
+**Routes extended, not replaced.** `/api/inventory-chat` now also reads `app_settings`, puts
+the summary in the prompt and returns `settingActions` + `settingsBefore` (trimmed by
+`forCards`, so the profile does not ride along). `/api/inventory-apply` takes `settingActions`,
+reads the row ITSELF (never a browser copy), applies, upserts — and if the write fails every
+"ok" result is turned back, because the write is what makes them true. **The route names still
+say "inventory" and now do more than that; renaming a live route is a separate job.**
+
+**The panel** merges both halves into ONE list — `m.cards = [{kind, a}]` — because a price and
+an offer are the same thing to the owner. `apply()` splits them again at the door. The jump row
+went from 5 tabs to **all 11**.
+
+**Verified:** 45 tests on the new rules (an offer switched off survives though `false` is
+falsy; an unknown tone is dropped while the rest of the action applies; 200% clamps to 50 and
+0% is refused; deleting a gone offer reports it and changes nothing). In the browser: one
+sentence → five cards, unticking one made the button say "Apply 4 changes" and the payload
+split 1 product / 3 settings with the unticked one absent. Inventory: no composer, no panel.
+Bot Training: no toggle, no bubbles, 14 fields. 375px Bangla: 11 chips at 44px, no overflow.
+
+**Tidy-up left behind:** the `q.*` i18n keys (the one-at-a-time question wordings) are now
+unreferenced — kept on purpose, they are how a person recognises each question and the
+assistant will want them.
+---
+
+## Earlier session (2026-08-29) — The AI Assistant tab, the question order, and the whole session in Bangla
 
 `f08b5c2` + `02159a2`, pushed. Owner sent a screenshot of the interview warning them off a
 second "Box Tshirt" and asked for the whole way in to be reorganised, plus a tab of its own.
