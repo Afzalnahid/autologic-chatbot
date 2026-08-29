@@ -4,7 +4,65 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-29, third thread) — "What do you want to do?", Shopify, and cards in Bangla
+## Last session (2026-08-30) — Sequence, back button, docs, admin views, and a read audit
+
+`9734d7e`, `77a4806`, `3eb852e`, `c570605`, pushed. Owner gave seven tasks in order and they
+were done in that order.
+
+**1–2. The assistant's sequence and the way home.** The three jobs are numbered **teach the bot
+→ add products → set up an offer**, ticked as each is done (`INTENTS[].done(products, settings)`),
+with the first undone one leading. Nothing is locked. The menu comes back on its own when a job
+finishes (`say({key, menu:true})`), there is a **Main menu** button in the header, and back on a
+phone lands there. It APPENDS — a "start over" that wiped the transcript would be a worse answer.
+
+**3. The back button, across the whole dashboard.** NEW `src/app/dashboard/components/back.js`:
+- `window.__alBack` was ONE global slot that one component wrote to. Two overlays open → the
+  second replaced the first, whose close never ran, and its cleanup cleared the slot anyway.
+- Now a **stack**: `useBackClose(open, close)`, last-opened asked first, `false` falls through.
+  Nine overlays registered (product drawer, four import sheets, duplicate sweep, order, booking,
+  KB confirm, prompt editor, inbox thread) + the assistant's own half-finished product.
+- `setPage` now pushes a REAL history entry per tab, so back = previous page. It used to collapse
+  every tab into one entry landing on Analytics. First entry stamped on mount.
+- 14 tests, including: out-of-order closes do not drop each other's entries, and a handler that
+  THROWS neither claims the press nor breaks the stack.
+
+**4. Docs.** New manual page `ai-assistant` (2nd in "Start here"), in both languages —
+`src/lib/docs/{index,en,bn}.js`. No screenshot: a missing one renders a placeholder box on the
+live site, so the block was left out. `docs/architecture.md` was badly stale (still called
+dashboard-client.js "the entire client dashboard (single file)"); now carries the four shared
+dashboard modules, the back stack, the history rule and an AI Assistant section.
+`docs/database.md` now documents every key of `app_settings.settings`.
+
+**5. Feature calculation (admin).** New `FeatureCosts` in `Packages.js`: every feature by name,
+sorted by spend, with **cost per call** (the bar is drawn by per-call, not total — the only place
+an expensive-per-USE feature stands out). **Four features were reporting under unregistered
+names** (`product.assistant`, `product.interview`, `product.catalog`, `product.group`) and landing
+in "Not attributed"; registered now — the three per-product ones under `catalogue`, the
+assistant's chat under `platform`.
+
+**6. Channel message counting (admin).** New `ChannelMessages`: platform-wide message total,
+split by channel (website widget beside the three Meta ones), AI calls and cost per message, and
+the busiest channels across all clients with each channel's own monthly cap.
+
+**7. Read audit — the bug class, swept.** Script found 23 unbounded selects. Three mattered:
+- **`broadcast.js` sent to people who OPTED OUT.** Unbounded contacts read → missing row →
+  `ct?.broadcast_opt_out` is falsy on null → sent. Now `contactsFor()` asks for exactly the
+  senders being considered, in chunks of 300, and **throws** on a failed chunk.
+- **`/api/contacts` turned a PAUSED customer's bot back on.** "Is this sender new?" came from a
+  SELECT-built map; new → upsert with `bot_enabled: true`. A short read took that branch for an
+  existing contact. Now `ignoreDuplicates: true` — the write can only INSERT. Also stopped
+  pulling every message ever on every 45s poll.
+- **Quotas failed OPEN.** `count || 0` on a failed read = 0 = under every limit. Products,
+  scrapes and KB files now fail closed with a retry message. **The bot's message quota is left
+  failing open on purpose** — a customer's reply must not be withheld for bookkeeping.
+- `pageAll` swallowed read errors into zeros; the error now reaches the panel in red, separate
+  from the amber "this is a floor". 17 tests on the pager.
+
+**Still open:** no screenshot for the AI Assistant docs page; the `orders_one_per_code` SQL and
+Google Cloud billing remain owner tasks.
+---
+
+## Earlier session (2026-08-29, third thread) — "What do you want to do?", Shopify, and cards in Bangla
 
 `72db0f2` + `1bcff38`, pushed. Owner asked for an intent menu, a photo-first single-product
 flow, real e-commerce platform imports (Shopify), and category selection in the chat.

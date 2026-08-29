@@ -909,3 +909,38 @@ The only visible sign was an untracked `aa.mjs` in `git status`, which I had bee
   answer was "t is not a function" and it took a hand-written probe to see it.
 - ESM caches by resolved URL. When a test rewrites the module it imports, add a unique query so
   node cannot hand back the copy it already has.
+
+## A read that comes back short, and the code that reads "short" as "none" (2026-08-30)
+
+A supabase select with no `limit`, no `single`, no `count` and no `range` is answered by
+PostgREST with at most its configured max-rows, and nothing in the reply says rows were left
+behind. Used for counting or for building a lookup, that is a number which is correct until the
+platform gets busy and then quietly wrong.
+
+Wrong is not the dangerous part. The DIRECTION is: a short count reads as a quiet month, and a
+missing lookup row reads as "no such record" — both of which are plausible answers, so nobody
+investigates. Three real cases came out of one sweep:
+
+- The broadcast audience read every contact unbounded, then checked `ct?.broadcast_opt_out`.
+  A missing row makes that falsy, so somebody who opted out gets the message.
+- The contacts poll decided "is this sender new?" from a SELECT-built map, and "new" meant an
+  upsert carrying `bot_enabled: true`. A short read turned a deliberately paused customer's bot
+  back on.
+- Quota checks did `const { count } = …; const used = count || 0;`. A failed count is zero, and
+  zero is under every limit.
+
+**Rules:**
+- A select whose result is COUNTED or turned into a lookup must be bounded on purpose: `count:
+  "exact", head: true` to count, `.in(ids)` to look up a known set, or paged with `.range()`.
+  Never a bare `.select()`.
+- Ask for the rows you need by NAME. `.in("sender_id", ids)` is both correct and cheaper than
+  reading a whole table to index it.
+- Decide what a MISSING row means before you rely on one. `ct?.optedOut` treats absent as
+  permission. If absence is ambiguous, the read is the thing to fix — not the check.
+- A guarantee that rests on a query being complete is not a guarantee. `ignoreDuplicates` makes
+  "never touch an existing row" true by construction; a correct map only makes it likely.
+- Failing open versus failing closed is a decision, not a default. Owner-facing limits fail
+  closed and say "try again"; a customer's reply fails open, because bookkeeping must never cost
+  somebody an answer. Write down which one each is.
+- A helper that swallows an error into an empty result turns a database outage into a confident
+  ৳0. Return the error and let the screen say the rows are missing.
