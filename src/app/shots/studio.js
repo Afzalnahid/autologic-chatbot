@@ -39,7 +39,7 @@ const TABS = {
   comments:         () => <Comments />,
   broadcast:        () => <Broadcast />,
   inventory:        () => <Inventory products={PROPS.products} refresh={noop} />,
-  assistant:        () => <InventoryAssistant fullPage products={PROPS.products} refresh={noop} onGo={noop} onImport={noop} />,
+  assistant:        () => <InventoryAssistant fullPage products={PROPS.products} settings={PROPS.settings} refresh={noop} onGo={noop} onImport={noop} />,
   knowledge:        () => <KnowledgeBase />,
   orders:           () => <Orders orders={PROPS.orders} refresh={noop} />,
   bookings:         () => <Bookings calConnected clientId="demo" />,

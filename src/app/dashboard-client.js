@@ -20,6 +20,7 @@ import Channels from "./dashboard/components/Channels.js";
 import Conversations from "./dashboard/components/Conversations.js";
 import LearnMore from "./dashboard/components/LearnMore.js";
 import { useT, LangToggle } from "./dashboard/components/i18n.js";
+import { runBack } from "./dashboard/components/back.js";
 
 const PAGES = ["assistant","analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
 // Grouped and ordered the way the day runs: the assistant first, because
@@ -542,26 +543,28 @@ export default function Dashboard() {
     window.addEventListener("message",h);
     return ()=>window.removeEventListener("message",h);
   },[]);
-  // One history entry for "inside a tab", not one per tab visited. Hopping
-  // between six tabs used to leave six entries, so getting out took six presses.
+  // Back goes to the PREVIOUS PAGE, the way every app the owner already uses
+  // behaves. One entry per tab actually visited.
+  //
+  // It used to collapse every tab into a single entry, so back from anywhere
+  // landed on Analytics — chosen because hopping between six tabs left six
+  // entries and getting out took six presses. That is not a bug, though: it is
+  // what a history is, and it is what somebody pressing back expects to
+  // retrace. Leaving the app is what the app switcher is for.
   const HOME="analytics";
-  const pushed=useRef(false);
   const setPage=(p)=>{
     if(typeof window==="undefined"){ setPageRaw(p); return; }
     setPageRaw(prev=>{
       if(p===prev) return p;
-      if(p===HOME&&pushed.current){
-        // Walk the entry back instead of replacing it, so the phone's back
-        // button never lands on a state that looks identical to this one.
-        pushed.current=false;
-        window.history.back();
-        return prev;
-      }
-      if(prev===HOME&&p!==HOME){ window.history.pushState({page:p},"","#"+p); pushed.current=true; }
-      else window.history.replaceState({page:p},"","#"+p);
+      window.history.pushState({page:p},"","#"+p);
       return p;
     });
   };
+  // The very first entry has no state of its own, so a press before any
+  // navigation would pop to `null` and be read as HOME. Stamped on mount.
+  useEffect(()=>{
+    if(!window.history.state?.page) window.history.replaceState({page:pageRef.current},"","#"+pageRef.current);
+  },[]);
   // Any tab can send the owner to another tab (e.g. Profile's "Manage plan"
   // opens Billing) without threading a prop through the whole tree.
   useEffect(()=>{
@@ -571,13 +574,15 @@ export default function Dashboard() {
   },[]);
   useEffect(()=>{
     const onPop=(e)=>{
-      // A sub-view claims the press first; only then does the tab give way.
-      if(window.__alBack&&window.__alBack()){
+      // Anything OPEN ON TOP of the page claims the press first — a drawer, a
+      // sheet, a picker inside it — and only when nothing does does the page
+      // itself give way. The entry is pushed back so the next press has
+      // somewhere to go; without it the second press would leave the app.
+      if(runBack()){
         window.history.pushState({page:pageRef.current},"","#"+pageRef.current);
         return;
       }
       const to=e.state?.page||HOME;
-      pushed.current = to!==HOME;
       setPageRaw(to);
       // The phone's hardware/gesture back button retraces the same path the
       // in-app Back arrow does, so it opens the menu again the same way —

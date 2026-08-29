@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { T, Card, Btn, Badge, Inp, Select, Segmented, KStat, useIsMobile, taka, shortDate, fmtNum } from "./ui.js";
 import { api, apiJson } from "./session.js";
+import { useBackClose } from "./back.js";
 
 // The Orders tab: every order the bot recorded, with what the owner needs to
 // ship it — who, where, what (with photos, sizes and quantities), the money
@@ -48,6 +49,8 @@ export default function Orders({ orders, refresh }) {
   const [open, setOpen] = useState(null);
   const [busy, setBusy] = useState("");
   const [toast, setToast] = useState("");
+  // The open order answers the back press before the tab does.
+  useBackClose(!!open, () => setOpen(null));
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2800); return () => clearTimeout(t); }, [toast]);
 
   const update = async (id, patch) => {

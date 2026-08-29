@@ -10,6 +10,7 @@ import { productState, MISSING, missingToSell, missingMessage } from "@/lib/read
 import PhotoBatchSheet from "./PhotoBatch.js";
 import DuplicateSweep from "./DuplicateSweep.js";
 import { useT } from "./i18n.js";
+import { useBackClose } from "./back.js";
 
 // The Inventory tab: the shop's catalogue, organised. Products carry a
 // category, a brand, tags, a photo gallery and — for things that come in
@@ -102,6 +103,13 @@ export default function Inventory({ products, refresh, intent }) {
   // own products rather than assumed, so nothing here is a clothing shop's
   // answer imposed on everyone else.
   const shopAxes = useMemo(() => knownAxes(products), [products]);
+
+  // Everything that opens ON TOP of this tab answers the phone's back button
+  // before the tab does, innermost first. A half-typed product must not be
+  // thrown away because the owner pressed back expecting to close the drawer.
+  useBackClose(!!editor, () => setEditor(null));
+  useBackClose(!!importer, () => { setImporter(null); setPrefill(null); });
+  useBackClose(sweep, () => setSweep(false));
 
   // The assistant sent the owner here to do something specific — open the CSV
   // sheet, start a photo batch with the answers it already collected. Keyed on

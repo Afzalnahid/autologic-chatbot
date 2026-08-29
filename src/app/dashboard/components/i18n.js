@@ -98,12 +98,17 @@ const DICT = {
 
     // Step 1: what do you want to do at all. Not "how would you like to add
     // products" — that is the right SECOND question and the wrong first one.
+    // In order: a bot that has not been told what the business is answers
+    // badly about products it does have, and an offer needs a catalogue behind
+    // it. The numbers say where to start; nothing is locked.
+    "asst.intent.train": "Teach the bot",
+    "asst.intent.trainSub": "What it should know about your business",
     "asst.intent.add": "Add products",
     "asst.intent.addSub": "One, or your whole shop at once",
     "asst.intent.offer": "Set up an offer",
     "asst.intent.offerSub": "A deal the bot quotes to customers",
-    "asst.intent.train": "Teach the bot",
-    "asst.intent.trainSub": "What it should know about your business",
+    "asst.mainMenu": "Main menu",
+    "asst.whatNext": "Done. What next?",
 
     // Step 2 and 3: one or several, and then how.
     "asst.one.ask": "How would you like to add it?",
@@ -488,12 +493,14 @@ const DICT = {
     "asst.chip.offer": "ঈদের অফার দিন — সবকিছুতে ২০% ছাড়",
     "asst.chip.teach": "বটকে বলুন শুক্রবার আমরা বন্ধ",
 
+    "asst.intent.train": "বটকে শেখান",
+    "asst.intent.trainSub": "আপনার ব্যবসার কী কী জানা দরকার",
     "asst.intent.add": "প্রোডাক্ট যোগ করুন",
     "asst.intent.addSub": "একটা, বা পুরো দোকান একসাথে",
     "asst.intent.offer": "অফার সেট করুন",
     "asst.intent.offerSub": "বট কাস্টমারকে যে ডিলটা বলবে",
-    "asst.intent.train": "বটকে শেখান",
-    "asst.intent.trainSub": "আপনার ব্যবসার কী কী জানা দরকার",
+    "asst.mainMenu": "মূল মেনু",
+    "asst.whatNext": "হয়ে গেছে। এবার কী?",
 
     "asst.one.ask": "কীভাবে যোগ করতে চান?",
     "asst.one.photo": "ছবি তুলে দিন",

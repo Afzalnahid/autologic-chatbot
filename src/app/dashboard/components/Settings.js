@@ -4,6 +4,7 @@ import { T, Card, Btn, Inp, Badge, Accordion, Select, Switch, useIsMobile, SAMPL
 import { api, apiJson } from "./session.js";
 import { useT, useLang } from "./i18n.js";
 import { TRAINING_KEYS_ECOM, TRAINING_KEYS_AGENCY } from "@/lib/assistant-actions.js";
+import { useBackClose } from "./back.js";
 
 // The Bot Training tab (page key "settings"). Four sub-tabs — Train (what the
 // bot knows about the business), Offers (deals the bot quotes exactly),
@@ -105,6 +106,8 @@ export default function Settings({settings,setSettings}) {
 
   // ---------- prompt editor ----------
   const [promptFull,setPromptFull]=useState(false);
+  // The full-screen prompt editor answers the back press before the tab does.
+  useBackClose(promptFull,()=>setPromptFull(false));
   const promptText=s.businessPrompt||s.systemPrompt||"";
 
   // ---------- offers ----------

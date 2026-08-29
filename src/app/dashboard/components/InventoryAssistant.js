@@ -5,6 +5,7 @@ import { apiJson } from "./session.js";
 import { getLang, useT } from "./i18n.js";
 import { describeAction, draftGaps } from "@/lib/inventory-actions.js";
 import { describeSetting, trainingKeys } from "@/lib/assistant-actions.js";
+import { useBackClose } from "./back.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
 import { buildVariants, parseAxes } from "@/lib/variants.js";
@@ -61,10 +62,16 @@ const CHIP_KEYS = ["asst.chip.low", "asst.chip.noPrice", "asst.chip.offer", "ass
 // This tab used to open on "how would you like to add products", which is the
 // right SECOND question and the wrong first one — it made a tab that can set an
 // offer and teach the bot look like a product importer with a chat bolted on.
+//
+// IN ORDER, and the order is not decoration. A bot that has not been told what
+// the business is answers badly about products it does have; a product with no
+// catalogue behind it cannot be put in an offer. Doing them the other way round
+// is not forbidden — the owner presses whichever they like — but the numbers
+// say which one pays off first, and the tick says which are already done.
 const INTENTS = [
-  { id: "add", icon: "ti-package" },
-  { id: "offer", icon: "ti-discount-2" },
-  { id: "train", icon: "ti-wand" },
+  { id: "train", icon: "ti-wand", done: (p, s) => !!String(s?.questionnaire?.description || "").trim() },
+  { id: "add", icon: "ti-package", done: (p) => (p?.length || 0) > 0 },
+  { id: "offer", icon: "ti-discount-2", done: (p, s) => (Array.isArray(s?.offers) ? s.offers : []).some((o) => o?.active !== false && String(o?.title || o?.details || "").trim()) },
 ];
 
 // Every fork in the road, as buttons. A question with a known, small set of
@@ -385,6 +392,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     if (r.error) { setErr(r.error); return; }
     const failed = (r.results || []).filter((x) => !x.ok);
     setMsgs((s) => s.map((x, i) => i !== mi ? x : { ...x, done: { ok: r.done, failed } }));
+    // The job is finished, so the way back to the other two is offered without
+    // being asked for.
+    if (r.done) say({ key: "asst.whatNext", menu: true });
     refresh?.();
   };
 
@@ -553,10 +563,19 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     say({ key: id === "offer" ? "asst.offer.ready" : "asst.train.ready", cards, settingsBefore: settings || {}, picked: [true] });
   };
 
-  const stopInterview = () => {
-    setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
-    say({ key: "asst.stopped" });
+  // Back to the three things this tab does — from a finished job, from a
+  // half-finished one the owner has changed their mind about, or from the
+  // header button. It APPENDS rather than resetting: the conversation above is
+  // what the owner just did, and throwing it away to show a menu would be a
+  // strange way to offer them a menu.
+  const backToMenu = (key = "asst.whatNext") => {
+    setWiz(null);
+    if (mode === "interview") { setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setDup(null); setRefused(false); }
+    setErr("");
+    say({ key, menu: true });
   };
+
+  const stopInterview = () => backToMenu("asst.stopped");
 
   // One turn of the interview. The draft, the photo count and the vision text
   // are passed explicitly rather than read from state, because a turn is often
@@ -735,12 +754,48 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     const name = draft.product_name;
     setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual("");
     setSaved(name);
-    say({ key: r.analyzeError ? "asst.addedBlind" : "asst.added", vars: { name } });
+    // Saved, and then straight back to the three things — because "I have
+    // added the shirt, now let me set the offer" was a road with no way back
+    // along it short of reloading the page.
+    say({ key: r.analyzeError ? "asst.addedBlind" : "asst.added", vars: { name }, menu: true });
     refresh?.();
   };
 
   // ── Rendering ──────────────────────────────────────────────────────────────
   const interviewing = mode === "interview";
+
+  // The three things this tab does, IN ORDER, with a tick on the ones already
+  // done and the first undone one leading. Rendered from one place because it
+  // appears twice: at the top of an empty panel, and again every time a job
+  // finishes — which is how the owner gets BACK here without losing the
+  // conversation. A "start over" that wiped the transcript would be a worse
+  // answer to the same question.
+  const menu = <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))", gap: 8, marginBottom: 12 }}>
+    {INTENTS.map((w, n) => {
+      const done = w.done(products, settings);
+      // The one to do next: the first that is not done. Everything is
+      // pressable — this only says where to start.
+      const next = !done && INTENTS.slice(0, n).every((x) => x.done(products, settings));
+      return <button key={w.id} type="button" onClick={() => pickIntent(w.id)} disabled={busy} className="ui-btn ob-row"
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 13px", borderRadius: 13, textAlign: "left", cursor: "pointer", fontFamily: "inherit", minHeight: 56,
+          background: next ? T.goldBg : T.bgAlt, border: `1px solid ${next ? T.gold : T.border}`, color: T.text, opacity: done ? .82 : 1 }}>
+        <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center",
+          background: done ? `color-mix(in srgb, ${T.success} 14%, transparent)` : T.card, color: done ? T.success : T.gold, fontSize: 12.5, fontWeight: 700 }}>
+          {done ? <i className="ti ti-check" style={{ fontSize: 14 }} /> : n + 1}
+        </span>
+        <i className={`ti ${w.icon}`} style={{ fontSize: 19, flexShrink: 0, color: T.gold }} />
+        <span style={{ minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>{t(`asst.intent.${w.id}`)}</span>
+          <span style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 1 }}>{t(`asst.intent.${w.id}Sub`)}</span>
+        </span>
+      </button>;
+    })}
+  </div>;
+
+  // On a phone, back out of a half-finished product or a wizard to the three
+  // things — not out of the tab. The draft is thrown away either way, but
+  // landing on the menu says so; landing on Analytics looks like a crash.
+  useBackClose(interviewing || !!wiz, () => backToMenu());
   const filledRows = Object.entries(draft).filter(([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length));
 
   return <Card style={{ padding: 0, marginBottom: fullPage ? 0 : 14, overflow: "hidden", ...(fullPage ? { display: "flex", flexDirection: "column", height: isMobile ? "calc(100dvh - 190px)" : "calc(100vh - 150px)" } : {}) }}>
@@ -753,6 +808,12 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>{t("inv.assistantTitle")}</span>
             <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginTop: 1 }}>{t("inv.assistantSub")}</span>
           </span>
+          {/* Always a way back to the three things, from wherever the
+              conversation has got to. Only once there IS a conversation —
+              on an empty panel the menu is already the whole screen. */}
+          {msgs.length > 0 && <Btn small onClick={() => backToMenu()} disabled={busy} style={{ flexShrink: 0, borderRadius: 11, whiteSpace: "nowrap" }}>
+            <i className="ti ti-arrow-back-up" style={{ marginRight: 5 }} />{t("asst.mainMenu")}
+          </Btn>}
         </div>
       : <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ui-btn"
       style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "13px 16px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", color: T.text, textAlign: "left", minHeight: 44 }}>
@@ -778,19 +839,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.65, marginBottom: 10 }}>
             {t("asst.intro", { n: products?.length || 0 })}
           </div>
-          {/* The three things this tab does, asked as one question. Which of
-              them the owner picks decides every question after it. */}
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))", gap: 8, marginBottom: 12 }}>
-            {INTENTS.map((w, n) => <button key={w.id} type="button" onClick={() => pickIntent(w.id)} className="ui-btn ob-row"
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 13px", borderRadius: 13, textAlign: "left", cursor: "pointer", fontFamily: "inherit", minHeight: 56,
-                background: n === 0 ? T.goldBg : T.bgAlt, border: `1px solid ${n === 0 ? T.gold : T.border}`, color: T.text }}>
-              <i className={`ti ${w.icon}`} style={{ fontSize: 20, flexShrink: 0, color: T.gold }} />
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>{t(`asst.intent.${w.id}`)}</span>
-                <span style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 1 }}>{t(`asst.intent.${w.id}Sub`)}</span>
-              </span>
-            </button>)}
-          </div>
+          {menu}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {CHIP_KEYS.map((c) => <button key={c} type="button" onClick={() => ask(t(c))} className="ui-btn ob-chip"
               style={{ padding: "8px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>{t(c)}</button>)}
@@ -855,6 +904,11 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
               style={{ padding: "8px 13px", borderRadius: 20, fontSize: 12, background: T.goldBg, border: `1px solid ${T.gold}`, color: T.gold, cursor: "pointer", fontFamily: "inherit", minHeight: 40, fontWeight: 600 }}>{t(WIZARDS[wiz.id].finishKey)}</button>}
             <span style={{ alignSelf: "center", fontSize: 11.5, color: T.textDim }}>{m.step + 1} / {wizSteps.length}</span>
           </div>}
+
+          {/* The three things again, under whatever just finished. This is the
+              way back to the main interface, and it is offered rather than
+              hunted for. */}
+          {m.menu && <div style={{ width: "100%" }}>{menu}</div>}
 
           {/* A fork in the road, as buttons. They go away once answered. */}
           {m.choice && CHOICES[m.choice] && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

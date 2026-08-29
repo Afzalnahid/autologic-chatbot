@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Badge, Accordion, Select, Segmented, useIsMobile } from "./ui.js";
 import { api } from "./session.js";
+import { useBackClose } from "./back.js";
 
 // The Bookings tab, moved out of dashboard-client.js unchanged.
 
@@ -329,6 +330,8 @@ export default function Bookings({calConnected,clientId}) {
   const [day,setDay]=useState(null);
   const [search,setSearch]=useState("");
   const [open,setOpen]=useState(null);        // the booking whose drawer is showing
+  // The open booking answers the back press before the tab does.
+  useBackClose(!!open,()=>setOpen(null));
 
   const load=async()=>{
     setLoading(true);

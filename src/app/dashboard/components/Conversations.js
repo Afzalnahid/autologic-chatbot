@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Badge, useIsMobile, Select, Switch } from "./ui.js";
 import { api, getSb, apiJson } from "./session.js";
+import { useBackClose } from "./back.js";
 
 // The Conversations tab, moved out of dashboard-client.js unchanged.
 
@@ -48,12 +49,8 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   const isMobile=useIsMobile();
   const [sel,setSel]=useState(-1);
   // The open conversation answers the back press before the tab does, so one
-  // press closes the chat and the next leaves the tab.
-  useEffect(()=>{
-    if(typeof window==="undefined") return;
-    window.__alBack = () => { if(sel>=0){ setSel(-1); return true; } return false; };
-    return ()=>{ if(window.__alBack) window.__alBack=null; };
-  },[sel]);
+  // press closes the chat and the next goes to the previous page.
+  useBackClose(sel>=0,()=>setSel(-1));
   useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&sel>=0);},[sel,isMobile]);
   // Changing a filter can drop the conversation that was open; let it go rather
   // than leaving an index pointing at nothing.

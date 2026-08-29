@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Badge, Select, useIsMobile, shortDate } from "./ui.js";
 import { api, apiJson } from "./session.js";
+import { useBackClose } from "./back.js";
 
 // The Knowledge Base tab: the documents the bot answers from.
 //
@@ -37,6 +38,9 @@ export default function KnowledgeBase() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
   const [confirm, setConfirm] = useState(null);    // the file awaiting a yes
+  // "Are you sure" answers the back press: pressing back at a confirmation
+  // means no, and it must never fall through and leave the tab instead.
+  useBackClose(!!confirm, () => setConfirm(null));
   const [drag, setDrag] = useState(false);
   const fileRef = useRef(null);
   const isMobile = useIsMobile();
