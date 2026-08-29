@@ -862,3 +862,24 @@ split is the diagnosis, not a clue towards it.
 - And when a request carries the language: read it at the moment of the request.
   `useLang()` returns English for the first render of every mount, so anything
   fired on arrival asks for the wrong language.
+
+## A control character in the source that nothing will show you (2026-08-29)
+
+I wrote a sentinel value for a "+ New category…" option and what landed in the file was a
+literal NUL byte, not the text I meant. Everything downstream was consistent with itself — the
+constant, the `<option value>` and the comparison all used the same byte — so the code looked
+right, parsed clean, and the dropdown rendered. It simply could never be selected in a way the
+comparison would recognise, and the "new category" branch was dead code.
+
+What it cost: two rounds of debugging React state, convinced the component was remounting,
+because the ONE thing I never questioned was whether the file contained the characters I had
+typed. It only came out when I dumped the option values as JSON and the escape appeared.
+
+**Rules:**
+- `git status` or `grep` calling a source file **binary** is not a curiosity — it means a
+  control character got in. Chase it the moment it appears.
+- When state "does not update" and the handler reads correctly, print the VALUES the comparison
+  is actually made of, JSON-encoded so invisible characters show themselves. Do that before
+  theorising about the framework.
+- Sentinels should be words — `__new_category__` — never a character nobody can see. A value
+  that cannot be read in the file cannot be checked by reading the file.

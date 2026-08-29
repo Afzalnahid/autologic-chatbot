@@ -89,6 +89,50 @@ questions on a Bangla dashboard. And `/api/inventory-chat` no longer receives th
 furniture (the rule card, "Just one.") as if it were conversation.
 
 Lesson recorded in `lessons.md`: **a translated string stored is a translation frozen.**
+
+### Follow-up 2 — `b13ebdf`: every photo is read, and a category is picked not typed
+
+Owner: "in the image to product add option here also should have to category select adding
+option and make sure that every image should have to image analysis that when customer send
+image then analysis image or images can match and find out the details."
+
+**Only the FIRST photo of a product was ever described.** A shop photographs a shirt front,
+back and close-up; the catalogue knew the front; a customer sent the back and was told it could
+not be found (similarity under the 0.5 floor). Now `metadata.visuals[]` holds one description
+per photo, aligned with `images`, and `buildContent` embeds all of them. `metadata.visual` is
+unchanged and still means the primary — `duplicate-keys.js` and `readiness.js` read it.
+
+- **PhotoBatch costs nothing extra.** Every photo already arrives as its own product and is
+  described before grouping — all but one description was being thrown away. The description
+  now lives on the PHOTO (`p.visual`), not the draft, so it moves with the picture on
+  splitOut / mergeUp instead of staying behind to describe something else.
+- **The chat** reads the first photo with a name proposal and the rest through the new
+  `describe_only=1` on `/api/photo-draft` (skips the naming call). Chunked 6 at a time /
+  3.2 MB. Quota counts 0 for describe_only — extra photos are not extra products.
+- **Everywhere else** (drawer, CSV, product link, WooCommerce) `describeImages()` reads the
+  rest of the gallery server-side: **parallel, 25s deadline, never throws**. Parallel is what
+  keeps it affordable — six pictures take about as long as two; only the token bill grows.
+- **Editing** re-reads only photos not previously in the gallery, so reordering is free.
+
+**Category is a real `<select>` now** (`CatPick` in PhotoBatch), on the bulk row and every
+product row — the datalist behind the old text box never opened on phones, so everything was
+typed from memory and one shop got "T-shirt" / "T shirt" / "tshirt". "+ New category…" swaps to
+a box with a way back. `catList` = shop's categories + anything the AI proposed + anything
+typed in this batch, so a new one invented on row 1 is on the list by row 2.
+
+**Bug found on the way:** the "new category" sentinel went into the source as a literal **NUL
+byte** — git reported PhotoBatch.js as a binary file, and reading the code showed nothing. It
+is `"__new_category__"` now. Lesson recorded.
+
+**Verified:** 20 tests on `visualsOf`/`buildContent` (including that a product saved before this
+existed builds character-for-character the text it always did). In the browser: 3 photos in,
+2 merged → that product posted both descriptions aligned to its images; a category picked from
+the list and a new one typed, which then appeared in every other row; 8 photos in the chat →
+6 read with naming + 2 with describe_only, save posted all 8 in gallery order; 375px, no
+overflow.
+
+**Cost note for the owner:** vision now runs once per PHOTO instead of once per product. Three
+photos per product is three times the vision spend on that product.
 ---
 
 ## Earlier session (2026-08-28, seventh thread) — Stage 4: option axes come from the shop, not the code
