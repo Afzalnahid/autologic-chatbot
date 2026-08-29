@@ -4,7 +4,63 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-29, second thread) — One AI surface: the assistant drives every tab
+## Last session (2026-08-29, third thread) — "What do you want to do?", Shopify, and cards in Bangla
+
+`72db0f2` + `1bcff38`, pushed. Owner asked for an intent menu, a photo-first single-product
+flow, real e-commerce platform imports (Shopify), and category selection in the chat.
+
+**The assistant's first question is now WHAT, not HOW.** Three intents — Add products / Set up
+an offer / Teach the bot — and the choice decides everything after it:
+- Add → one or several? → **one**: take a photo | from a product link · **several**: all the
+  photos at once | a spreadsheet | WooCommerce | Shopify
+- Offer → 3 scripted questions → a confirm card (`offer.create`)
+- Train → the profile questions in the shop's own wording (`q.${bk}.${k}` — the keys kept from
+  the removed Bot Training chat) → a confirm card (`training.set`), skippable, with "that is
+  enough for now"
+
+**One product starts from the PHOTO.** `startInterview()` no longer calls `turn()` — it says
+"attach the picture" and `addPhotos()` fires the first turn. By then the AI has proposed name,
+category and description, so the questions are corrections rather than blank boxes.
+
+**Category chips** appear under the interview's category question, from the shop's own
+catalogue (`gaps.queue[0] === "category"`, computed locally in the panel).
+
+**Three scripted interviews now share ONE runner** (`wiz` state + `WIZARDS` registry): the
+photo batch's shared details, the offer, and the training. They differ only in questions and
+in what happens at the end.
+
+**Shopify import (NEW).** `/api/import-products` takes `platform: "woo" | "shopify"` (defaults
+to woo). Shopify: Admin API token, `products.json` paged by **since_id** (no Link-header
+parsing, cannot loop). Mapped to the same shape → same `/api/import-one`.
+- **compare_at_price is the "was" figure** — the cheapest variant's price becomes `sale_price`
+  and compare_at becomes `regular_price`, and only when compare_at is actually higher.
+- The `Title / Default Title` option pair is Shopify's placeholder for "no choices" and is
+  dropped, or every customer gets a meaningless size picker.
+- `shopDomain()` accepts the address however typed but **refuses their own domain** rather than
+  guessing — guessing would send the owner's token to somebody else's server.
+- `/api/import-one` now carries **options + brand**, which it never did: a Shopify shirt in
+  four sizes arrived as one row the bot could not offer a size from.
+
+**Cards are translated (`1bcff38`).** `describeAction`/`describeSetting` take the dashboard's
+translator, required not optional. Labels reuse `lbl.*` (the Bot Training form's) and `fld.*`.
+Bangla `sfld.active` is "অবস্থা", because the literal label gave "চালু: চালু".
+
+**Fixed on the way:** stripping HTML left a space before punctuation that followed a tag —
+"heavy `<b>`cotton`</b>`, oversized" reached customers as "cotton , oversized".
+
+**THE TEST HARNESS HAD BEEN LYING.** Three suites wrote a stripped copy of an app module to the
+CWD and imported it relative to the TEST FILE. Run from the scratchpad those coincide; run with
+an absolute path from the project root they do not — so it imported a STALE copy and reported
+45 green against code that no longer existed. Now `shim.mjs` → `loadPure()`: URL-addressed temp
+file beside the test, cache-busting query on the import. Lesson recorded.
+
+**Verified:** 35 Shopify tests, 51 settings tests (6 new on card translation), all suites green
+honestly. In the browser in Bangla: all three intents end to end, the photo-first flow with
+real categories as chips, and one answer producing a product card plus two settings cards with
+every line in Bangla.
+---
+
+## Earlier session (2026-08-29, second thread) — One AI surface: the assistant drives every tab
 
 `7ef4906`, pushed. Owner: "ai assistant tab will be the tab and in inventory and bot trainning
 tab have not the chat interface here, all can be control from the ai asistant tab, all means

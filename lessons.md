@@ -883,3 +883,29 @@ typed. It only came out when I dumped the option values as JSON and the escape a
   theorising about the framework.
 - Sentinels should be words — `__new_category__` — never a character nobody can see. A value
   that cannot be read in the file cannot be checked by reading the file.
+
+## A test that writes to one place and reads from another (2026-08-29)
+
+Three suites load an app module under node by writing a copy with its imports stripped, then
+importing that copy. They wrote it with `writeFileSync("aa.mjs", src)` — relative to the
+CURRENT WORKING DIRECTORY — and read it with `import("./aa.mjs")` — relative to the TEST FILE.
+
+Run with `cd scratchpad && node t-assist.mjs` those are the same directory and everything
+works. Run as `node C:\...\scratchpad\t-assist.mjs` from the project root they are not: each
+run wrote a fresh copy into the project where nothing read it, and imported whatever stale copy
+was last left beside the test. The suite reported 45 passed against code that had since changed
+under it, including a function that now throws.
+
+The only visible sign was an untracked `aa.mjs` in `git status`, which I had been reading past.
+
+**Rules:**
+- In a test that materialises a file, address it ONCE and by URL: `new URL(name,
+  import.meta.url)` for both the write and the import. Never mix a cwd-relative write with a
+  module-relative read; they agree only by accident.
+- An untracked file appearing in the project root that no code put there is a tool writing
+  somewhere it did not mean to. Chase it the first time it shows up.
+- After changing a function's SIGNATURE, make one test fail on purpose before believing the
+  suite. A green run right after a breaking change is a claim, not a result — here the honest
+  answer was "t is not a function" and it took a hand-written probe to see it.
+- ESM caches by resolved URL. When a test rewrites the module it imports, add a unique query so
+  node cannot hand back the copy it already has.
