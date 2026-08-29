@@ -885,6 +885,7 @@ export default function Dashboard() {
                 owner to Inventory with that sheet already open, rather than a
                 second copy of those sheets living in two places. */}
             {page==="assistant"&&<InventoryAssistant fullPage products={products} refresh={load}
+              businessType={bt} settings={settings}
               onGo={(to,intent)=>{ if(intent) setInvIntent({...intent,at:Date.now()}); setPage(to); }}
               onImport={(kind,prefill)=>{ setInvIntent({importer:kind,prefill,at:Date.now()}); setPage("inventory"); }}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}

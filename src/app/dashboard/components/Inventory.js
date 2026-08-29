@@ -228,6 +228,7 @@ export default function Inventory({ products, refresh, intent }) {
           { value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" },
           { value: "url", label: "From a product URL", icon: "ti-link" },
           { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" },
+          { value: "shopify", label: "From Shopify", icon: "ti-brand-shopee" },
         ]} onChange={(v) => (v === "add" ? setEditor({ mode: "add" }) : setImporter(v))} />
         {/* The chat is one tab away, not on this page. A door to it, not a
             second copy of it: two panels that both add products are two things
@@ -759,7 +760,10 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
 // ── Import sheet (CSV / product URL / WooCommerce) ──────────────────────────
 function ImportSheet({ kind, isMobile, onClose, onDone }) {
   const [url, setUrl] = useState("");
-  const [imp, setImp] = useState({ siteUrl: "", ck: "", cs: "" });
+  // WooCommerce wants a URL and a key pair; Shopify wants a myshopify address
+  // and one token. One state holds both, because a sheet only ever shows one
+  // platform's boxes at a time.
+  const [imp, setImp] = useState({ siteUrl: "", ck: "", cs: "", shop: "", token: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   // The pasted link turned out to be a product the shop already has. Set only
@@ -866,9 +870,13 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
     onClose();
   };
   const runImport = async () => {
-    if (!imp.siteUrl || !imp.ck || !imp.cs || busy) return;
+    // Each platform has its own two or three boxes, and none of them may be
+    // empty — the server would only refuse a moment later, having made the
+    // owner wait for it.
+    const ready = kind === "shopify" ? imp.shop && imp.token : imp.siteUrl && imp.ck && imp.cs;
+    if (!ready || busy) return;
     setBusy(true); setMsg("Fetching product list…");
-    const r = await apiJson("/api/import-products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(imp) });
+    const r = await apiJson("/api/import-products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...imp, platform: kind }) });
     if (r.error) { setMsg("Failed: " + r.error); setBusy(false); return; }
     const list = r.products || []; let done = 0, fail = 0, unread = 0, dupes = 0, thin = 0;
     for (const prod of list) {
@@ -894,8 +902,8 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
   return <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
     <div onClick={(e) => e.stopPropagation()} className="ui-page" role="dialog" aria-modal="true" style={{ width: "100%", maxWidth: 520, background: T.card, borderRadius: isMobile ? "22px 22px 0 0" : 22, boxShadow: T.nmOut, border: `1px solid ${T.border}`, padding: "22px 20px calc(20px + env(safe-area-inset-bottom))" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 13, background: T.card, boxShadow: T.nmSm, display: "flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${kind === "csv" ? "ti-table" : kind === "url" ? "ti-link" : "ti-brand-wordpress"}`} style={{ fontSize: 20, color: T.gold }} /></div>
-        <div style={{ flex: 1 }}><div style={{ fontSize: 15.5, fontWeight: 700 }}>{kind === "csv" ? "Import from a spreadsheet" : kind === "url" ? "Import from a product URL" : "Import from WooCommerce"}</div>
+        <div style={{ width: 42, height: 42, borderRadius: 13, background: T.card, boxShadow: T.nmSm, display: "flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${kind === "csv" ? "ti-table" : kind === "url" ? "ti-link" : kind === "shopify" ? "ti-brand-shopee" : "ti-brand-wordpress"}`} style={{ fontSize: 20, color: T.gold }} /></div>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 15.5, fontWeight: 700 }}>{kind === "csv" ? "Import from a spreadsheet" : kind === "url" ? "Import from a product URL" : kind === "shopify" ? "Import from Shopify" : "Import from WooCommerce"}</div>
           <div style={{ fontSize: 12, color: T.textMuted }}>{kind === "csv" ? "A CSV saved from Excel or Google Sheets" : kind === "url" ? "We fetch the name, photo, price and description" : "All published products come into your inventory"}</div></div>
         <button onClick={onClose} disabled={busy} className="pbtn" aria-label="Close" style={{ width: 36, height: 36, borderRadius: 11 }}><i className="ti ti-x" style={{ fontSize: 17 }} /></button>
       </div>
@@ -968,6 +976,19 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
             <Btn gold onClick={() => scrape()} disabled={busy || !url} style={{ width: "100%", padding: "12px 20px", borderRadius: 14, fontSize: 14 }}>{busy ? "Fetching…" : "Fetch product"}</Btn>
             {/* Offered only after the warning has been shown, never before. */}
             {urlDup && <Btn onClick={() => scrape(true)} disabled={busy} style={{ width: "100%", marginTop: 8, padding: "10px 20px", borderRadius: 14, background: T.warnBg, color: T.warn }}>Add anyway</Btn>}
+          </>
+        : kind === "shopify"
+        ? <>
+            <div style={{ fontSize: 11.5, color: T.textMuted, marginBottom: 12, lineHeight: 1.6, padding: "10px 12px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn }}>
+              Shopify admin › Settings › Apps and sales channels › <b style={{ color: T.text }}>Develop apps</b> › Create an app › Configure Admin API scopes › tick <b style={{ color: T.text }}>read_products</b> › Install › reveal the Admin API access token.
+            </div>
+            <Inp emb label="Shop address" value={imp.shop} onChange={(e) => setImp({ ...imp, shop: e.target.value })} placeholder="your-shop.myshopify.com" />
+            {/* The permanent address, not the one customers see. A shop on its
+                own domain still answers on myshopify.com, and the API only
+                answers there. */}
+            <Inp emb label="Admin API access token" type="password" value={imp.token} onChange={(e) => setImp({ ...imp, token: e.target.value })} placeholder="shpat_…" />
+            {incompleteBox}
+            <Btn gold onClick={runImport} disabled={busy} style={{ width: "100%", padding: "12px 20px", borderRadius: 14, fontSize: 14 }}>{busy ? "Importing…" : "Import products"}</Btn>
           </>
         : <>
             <div style={{ fontSize: 11.5, color: T.textMuted, marginBottom: 12, lineHeight: 1.6, padding: "10px 12px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn }}>WooCommerce › Settings › Advanced › REST API › Add key (Read) gives you the Consumer key and secret.</div>

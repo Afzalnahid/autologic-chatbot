@@ -7,7 +7,8 @@ import { supabase } from "@/lib/supabase.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
 // One wording for every photo, here and at message time. See products.js.
-import { visionPrompt, buildContent, describeImages } from "@/lib/products.js";
+import { visionPrompt, buildContent, describeImages, normalizeOptions } from "@/lib/products.js";
+import { buildVariants } from "@/lib/variants.js";
 import { findDuplicate, findByCode, duplicateMessage, urlKey } from "@/lib/duplicates.js";
 import { missingToSell, missingMessage } from "@/lib/readiness.js";
 
@@ -86,15 +87,25 @@ export async function POST(request) {
     const visuals = gallery.length > 1
       ? [visual, ...(await describeImages(gallery.slice(1), client)).visuals]
       : [visual];
+    // The choices a customer picks between, when the source knows them —
+    // Shopify hands over its own options, and they mean the same thing as ours.
+    // Dropping them made an imported shirt a single row where the shop sells
+    // four sizes, and the bot could not offer a size it had never been told
+    // about. The combinations are built from the same function the drawer uses,
+    // so an imported product and a typed one are the same shape.
+    const options = normalizeOptions(p.options);
     const metadata = {
       client_id: String(client.id),
       product_id: p.product_id,
       product_code: p.product_code,
       product_name: p.product_name,
       category: p.category || "",
+      brand: p.brand || "",
       regular_price: p.regular_price || "",
       sale_price: p.sale_price || "",
       stock_status: p.stock_status || "instock",
+      options,
+      variants: options.length ? buildVariants(options, { regular_price: p.regular_price || "", sale_price: p.sale_price || "" }) : [],
       // A product can have several pictures and every source can supply them:
       // a CSV cell with more than one link, a WooCommerce gallery. Only one was
       // ever stored, so the rest were lost at the door. The first is the one

@@ -96,10 +96,25 @@ const DICT = {
     "asst.chip.offer": "Make an Eid offer — 20% off everything",
     "asst.chip.teach": "Tell the bot we are closed on Fridays",
 
+    // Step 1: what do you want to do at all. Not "how would you like to add
+    // products" — that is the right SECOND question and the wrong first one.
+    "asst.intent.add": "Add products",
+    "asst.intent.addSub": "One, or your whole shop at once",
+    "asst.intent.offer": "Set up an offer",
+    "asst.intent.offerSub": "A deal the bot quotes to customers",
+    "asst.intent.train": "Teach the bot",
+    "asst.intent.trainSub": "What it should know about your business",
+
+    // Step 2 and 3: one or several, and then how.
+    "asst.one.ask": "How would you like to add it?",
+    "asst.one.photo": "Take a photo of it",
+    "asst.one.url": "From a product link",
+    "asst.many.ask": "Where are they coming from?",
+    "asst.orNewCat": "or type a new one",
+
     // Step 1 of the way in: where the products are coming from.
-    "asst.way.ask": "I’ll ask you the questions",
-    "asst.way.askSub": "One at a time, in your own words",
-    "asst.way.askShort": "Add — I’ll ask",
+    "asst.way.shopify": "Shopify",
+    "asst.way.shopifySub": "Bring your Shopify catalogue over",
     "asst.way.photos": "From photos",
     "asst.way.photosSub": "Front and back of the same one are gathered",
     "asst.way.csv": "A spreadsheet",
@@ -112,16 +127,17 @@ const DICT = {
     // Step 2: one, or a rail of them. Asked before anything else, because
     // interviewing somebody about the first of fifteen shirts is the one
     // mistake here that costs a whole evening.
-    "asst.start": "I want to add products.",
     "asst.count.ask": "One product, or several together?",
     "asst.count.one": "Just one",
     "asst.count.many": "Several at once",
-    "asst.count.saidOne": "Just one.",
-    "asst.count.saidMany": "Several together.",
 
     // Step 3: what is about to happen, before it happens. Four lines, so
     // nobody is halfway through wondering whether it has already saved.
-    "asst.rule.one": "Here is how it goes:\n1. I ask one thing at a time — name, category, price, details, choices, then the photos.\n2. Every question shows you what an answer looks like.\n3. Say “skip” to anything you do not have.\n4. Nothing is saved until you press Save at the end.",
+    "asst.rule.one": "Here is how it goes:\n1. Photo first — attach one or more with the camera button, and I will read them.\n2. Then I ask one thing at a time: name, category, price, details, choices.\n3. Every question shows you what an answer looks like. Say “skip” to anything you do not have.\n4. Nothing is saved until you press Save at the end.",
+    "asst.photoFirst": "Start with the picture — tap the camera button beside the message box. Front, back, close-ups: attach them all at once, and the first one is what customers see. I will read them and fill in what I can, then ask you the rest.",
+    "asst.rule.shopify": "Here is how it goes:\n1. In your Shopify admin: Settings → Apps and sales channels → Develop apps → Create an app.\n2. Configure Admin API scopes, tick read_products, then Install and reveal the token.\n3. Give me your shop address (the one ending in myshopify.com) and that token.\n4. You check the list before anything is added. Your Shopify shop is not changed.",
+    "asst.rule.offer": "Here is how it goes:\n1. Three questions: what the offer is called, what the customer gets, and when it ends.\n2. The bot quotes an offer word for word, so write it the way a customer should read it.\n3. You see it as a card and press the button. Nothing is saved before that.\n4. Which products it covers is picked on the Offers tab, where the real list is.",
+    "asst.rule.train": "Here is how it goes:\n1. I ask what the bot should know — delivery, payment, returns, hours, and so on.\n2. Answer in your own words, skip anything that does not apply, and stop whenever you like.\n3. You see everything you said as one card and press the button.\n4. Then press “Regenerate with AI” on Bot Training so it writes this into how it answers.",
     "asst.rule.many": "Here is how it goes:\n1. First, three things they all share — what they are, the price, the choices customers pick between.\n2. Then you attach every photo at once: front, back, close-ups, all together.\n3. I work out which pictures belong to the same one, and name each by what makes it different.\n4. You check the list and press Add. Nothing is saved before that.",
     "asst.rule.csv": "Here is how it goes:\n1. Download the sample sheet so the column names match.\n2. Fill in one row per product. A row can hold several photo links.\n3. Upload it, and check what I read before anything is added.\n4. Hundreds at a time is fine.",
     "asst.rule.url": "Here is how it goes:\n1. Paste the address of one product page.\n2. I read the page — the name, the price, the photos.\n3. You check what I found and correct anything wrong.\n4. Nothing is saved until you press Add.",
@@ -142,6 +158,20 @@ const DICT = {
     "asst.batch.optionsSkipNamed": "No {axis}",
     "asst.batch.done": "Good. Now add every photo of your {kind} — front, back, close-ups, all of them together. I will work out which pictures belong to the same one and name each by what makes it different.",
     "asst.skipped": "skipped",
+
+    // Setting up an offer, and teaching the bot. Both end as a card the owner
+    // confirms, the same as every other change this panel makes.
+    "asst.offer.name": "What should the offer be called? (for example: Eid sale)",
+    "asst.offer.namePh": "e.g. Eid sale",
+    "asst.offer.what": "What does the customer get? Write it the way they should read it. (for example: 20% off everything, free delivery over 2000)",
+    "asst.offer.whatPh": "e.g. 20% off everything",
+    "asst.offer.until": "When does it end? (for example: 15 April)",
+    "asst.offer.untilPh": "e.g. 15 April",
+    "asst.offer.untilSkip": "No end date",
+    "asst.offer.ready": "Here is the offer. Read it as a customer would, then press the button — nothing is saved until you do. Which products it covers is picked on the Offers tab.",
+    "asst.train.finish": "That is enough for now",
+    "asst.train.ready": "Here is everything you told me. Press the button to save it, then press “Regenerate with AI” on Bot Training so it writes this into how it answers.",
+    "asst.nothingSaid": "You skipped all of them, so there is nothing to save. Start again whenever you like.",
 
     // The product being built.
     "asst.stopped": "Stopped. Nothing was added.",
@@ -415,9 +445,21 @@ const DICT = {
     "asst.chip.offer": "ঈদের অফার দিন — সবকিছুতে ২০% ছাড়",
     "asst.chip.teach": "বটকে বলুন শুক্রবার আমরা বন্ধ",
 
-    "asst.way.ask": "আমি প্রশ্ন করি, আপনি উত্তর দিন",
-    "asst.way.askSub": "একটা একটা করে, আপনার নিজের ভাষায়",
-    "asst.way.askShort": "যোগ করুন — আমি জিজ্ঞেস করব",
+    "asst.intent.add": "প্রোডাক্ট যোগ করুন",
+    "asst.intent.addSub": "একটা, বা পুরো দোকান একসাথে",
+    "asst.intent.offer": "অফার সেট করুন",
+    "asst.intent.offerSub": "বট কাস্টমারকে যে ডিলটা বলবে",
+    "asst.intent.train": "বটকে শেখান",
+    "asst.intent.trainSub": "আপনার ব্যবসার কী কী জানা দরকার",
+
+    "asst.one.ask": "কীভাবে যোগ করতে চান?",
+    "asst.one.photo": "ছবি তুলে দিন",
+    "asst.one.url": "প্রোডাক্টের লিংক থেকে",
+    "asst.many.ask": "কোথা থেকে আনব?",
+    "asst.orNewCat": "অথবা নতুন একটা লিখুন",
+
+    "asst.way.shopify": "Shopify",
+    "asst.way.shopifySub": "Shopify-এর ক্যাটালগ নিয়ে আসুন",
     "asst.way.photos": "ছবি থেকে",
     "asst.way.photosSub": "একই জিনিসের সামনে-পেছনে এক করে নেওয়া হবে",
     "asst.way.csv": "স্প্রেডশিট",
@@ -427,14 +469,15 @@ const DICT = {
     "asst.way.woo": "WooCommerce",
     "asst.way.wooSub": "পুরো দোকান নিয়ে আসুন",
 
-    "asst.start": "প্রোডাক্ট যোগ করতে চাই।",
     "asst.count.ask": "একটা প্রোডাক্ট, নাকি একসাথে কয়েকটা?",
     "asst.count.one": "একটাই",
     "asst.count.many": "একসাথে কয়েকটা",
-    "asst.count.saidOne": "একটাই।",
-    "asst.count.saidMany": "একসাথে কয়েকটা।",
 
-    "asst.rule.one": "নিয়মটা এরকম:\n১. আমি একবারে একটা জিনিস জিজ্ঞেস করব — নাম, ক্যাটাগরি, দাম, বিবরণ, ভ্যারিয়েন্ট, তারপর ছবি।\n২. প্রতিটা প্রশ্নের সাথে উত্তরটা কেমন হবে তার নমুনা থাকবে।\n৩. যেটা নেই সেটায় “skip” লিখে দিন।\n৪. শেষে Save না চাপা পর্যন্ত কিছুই সেভ হবে না।",
+    "asst.rule.one": "নিয়মটা এরকম:\n১. আগে ছবি — মেসেজ বাক্সের পাশের ক্যামেরা বোতাম দিয়ে এক বা একাধিক ছবি দিন, আমি পড়ে নেব।\n২. তারপর একবারে একটা করে জিজ্ঞেস করব: নাম, ক্যাটাগরি, দাম, বিবরণ, ভ্যারিয়েন্ট।\n৩. প্রতিটা প্রশ্নের সাথে উত্তরের নমুনা থাকবে। যেটা নেই সেটায় “skip” লিখে দিন।\n৪. শেষে Save না চাপা পর্যন্ত কিছুই সেভ হবে না।",
+    "asst.photoFirst": "ছবি দিয়েই শুরু করুন — মেসেজ বাক্সের পাশের ক্যামেরা বোতামে চাপ দিন। সামনে, পেছনে, ক্লোজ-আপ: সব একসাথে দিন, প্রথমটাই কাস্টমার দেখবে। আমি পড়ে যা পারি ভরে দেব, বাকিটা জিজ্ঞেস করব।",
+    "asst.rule.shopify": "নিয়মটা এরকম:\n১. Shopify অ্যাডমিনে: Settings → Apps and sales channels → Develop apps → Create an app।\n২. Configure Admin API scopes-এ read_products টিক দিন, তারপর Install করে টোকেনটা দেখুন।\n৩. আপনার শপ ঠিকানা (myshopify.com দিয়ে শেষ হয় যেটা) আর ওই টোকেনটা দিন।\n৪. কিছু যোগ হওয়ার আগে তালিকাটা দেখে নিন। আপনার Shopify দোকানে কিছু বদলাবে না।",
+    "asst.rule.offer": "নিয়মটা এরকম:\n১. তিনটা প্রশ্ন: অফারের নাম কী, কাস্টমার কী পাবে, আর কবে শেষ হবে।\n২. বট অফারটা হুবহু বলে, তাই কাস্টমার যেভাবে পড়বে সেভাবেই লিখুন।\n৩. একটা কার্ড হিসেবে দেখবেন, তারপর বোতাম চাপবেন। তার আগে কিছুই সেভ হবে না।\n৪. কোন প্রোডাক্টে অফারটা লাগবে সেটা Offers ট্যাবে বাছবেন, ওখানে আসল তালিকা আছে।",
+    "asst.rule.train": "নিয়মটা এরকম:\n১. বটের কী কী জানা দরকার জিজ্ঞেস করব — ডেলিভারি, পেমেন্ট, রিটার্ন, খোলার সময়, এসব।\n২. নিজের ভাষায় উত্তর দিন, যেটা খাটে না বাদ দিন, যখন খুশি থামুন।\n৩. আপনি যা যা বলেছেন সব একটা কার্ডে দেখে বোতাম চাপবেন।\n৪. তারপর Bot Training-এ “এআই দিয়ে আবার লিখুন” চাপবেন, যাতে বট এগুলো নিজের উত্তরে কাজে লাগায়।",
     "asst.rule.many": "নিয়মটা এরকম:\n১. প্রথমে তিনটা প্রশ্ন — সবগুলো কী জিনিস, দাম, আর কাস্টমার কী কী থেকে বেছে নেয়।\n২. তারপর সব ছবি একসাথে দিন: সামনে, পেছনে, ক্লোজ-আপ, সব।\n৩. কোন ছবিগুলো একই জিনিসের, আমি সেটা বের করব আর প্রত্যেকটার নাম দেব কীসে আলাদা তা দিয়ে।\n৪. আপনি তালিকাটা দেখে Add চাপবেন। তার আগে কিছুই সেভ হবে না।",
     "asst.rule.csv": "নিয়মটা এরকম:\n১. নমুনা শিটটা নামিয়ে নিন, যাতে কলামের নাম মিলে যায়।\n২. প্রতি প্রোডাক্টের জন্য এক লাইন। এক লাইনে কয়েকটা ছবির লিংক দেওয়া যায়।\n৩. আপলোড করুন, আর কিছু যোগ হওয়ার আগে আমি কী পড়লাম দেখে নিন।\n৪. একসাথে শত শত দিলেও সমস্যা নেই।",
     "asst.rule.url": "নিয়মটা এরকম:\n১. একটা প্রোডাক্ট পেজের ঠিকানা পেস্ট করুন।\n২. আমি পেজটা পড়ব — নাম, দাম, ছবি।\n৩. আমি কী পেলাম দেখে নিন, ভুল থাকলে ঠিক করে দিন।\n৪. Add না চাপা পর্যন্ত কিছুই সেভ হবে না।",
@@ -454,6 +497,18 @@ const DICT = {
     "asst.batch.optionsSkipNamed": "{axis} নেই",
     "asst.batch.done": "ঠিক আছে। এবার আপনার {kind}-এর সব ছবি দিন — সামনে, পেছনে, ক্লোজ-আপ, সব একসাথে। কোন ছবিগুলো একই জিনিসের আমি বের করব, আর প্রত্যেকটার নাম দেব কীসে আলাদা তা দিয়ে।",
     "asst.skipped": "বাদ দেওয়া হলো",
+
+    "asst.offer.name": "অফারটার নাম কী দেবেন? (যেমন: ঈদ সেল)",
+    "asst.offer.namePh": "যেমন: ঈদ সেল",
+    "asst.offer.what": "কাস্টমার কী পাবে? কাস্টমার যেভাবে পড়বে সেভাবেই লিখুন। (যেমন: সবকিছুতে ২০% ছাড়, ২০০০ টাকার উপরে ফ্রি ডেলিভারি)",
+    "asst.offer.whatPh": "যেমন: সবকিছুতে ২০% ছাড়",
+    "asst.offer.until": "কবে শেষ হবে? (যেমন: ১৫ এপ্রিল)",
+    "asst.offer.untilPh": "যেমন: ১৫ এপ্রিল",
+    "asst.offer.untilSkip": "শেষ তারিখ নেই",
+    "asst.offer.ready": "এই হলো অফারটা। কাস্টমার যেভাবে পড়বে সেভাবে একবার পড়ে নিয়ে বোতাম চাপুন — তার আগে কিছুই সেভ হবে না। কোন প্রোডাক্টে লাগবে সেটা Offers ট্যাবে বাছবেন।",
+    "asst.train.finish": "আপাতত এটুকুই",
+    "asst.train.ready": "আপনি যা যা বললেন সব এখানে। সেভ করতে বোতাম চাপুন, তারপর Bot Training-এ “এআই দিয়ে আবার লিখুন” চাপুন যাতে বট এগুলো নিজের উত্তরে কাজে লাগায়।",
+    "asst.nothingSaid": "সবগুলোই বাদ দিয়েছেন, তাই সেভ করার মতো কিছু নেই। যখন খুশি আবার শুরু করুন।",
 
     "asst.stopped": "বন্ধ করা হলো। কিছুই যোগ হয়নি।",
     "asst.cancel": "বাতিল",

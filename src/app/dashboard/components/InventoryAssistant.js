@@ -1,10 +1,10 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { T, Card, Btn, useIsMobile } from "./ui.js";
 import { apiJson } from "./session.js";
 import { getLang, useT } from "./i18n.js";
 import { describeAction, draftGaps } from "@/lib/inventory-actions.js";
-import { describeSetting } from "@/lib/assistant-actions.js";
+import { describeSetting, trainingKeys } from "@/lib/assistant-actions.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
 import { buildVariants, parseAxes } from "@/lib/variants.js";
@@ -55,16 +55,51 @@ import { buildVariants, parseAxes } from "@/lib/variants.js";
 // was and what it no longer is.
 const CHIP_KEYS = ["asst.chip.low", "asst.chip.noPrice", "asst.chip.offer", "asst.chip.teach"];
 
-// Every way into the catalogue, offered from the one place the owner is already
-// talking. The panel used to offer only the interview, so someone sitting in the
-// chat with a spreadsheet in front of them had to close it, find the Import
-// menu and start again — the chat looked like it could only do one product at a
-// time, which is exactly what it looked like to the owner.
+// The first question, and the only one that is not about products: what does
+// the owner want to do at all.
 //
-// The three imports open the sheets that already do that work rather than a
-// second copy of them living in here. One implementation, two doors to it.
-const WAYS = ["ask", "photos", "csv", "url", "woo"];
-const WAY_ICON = { ask: "ti-messages", photos: "ti-photo-plus", csv: "ti-table", url: "ti-link", woo: "ti-brand-wordpress" };
+// This tab used to open on "how would you like to add products", which is the
+// right SECOND question and the wrong first one — it made a tab that can set an
+// offer and teach the bot look like a product importer with a chat bolted on.
+const INTENTS = [
+  { id: "add", icon: "ti-package" },
+  { id: "offer", icon: "ti-discount-2" },
+  { id: "train", icon: "ti-wand" },
+];
+
+// Every fork in the road, as buttons. A question with a known, small set of
+// answers is a row of buttons, not a sentence somebody has to phrase correctly
+// — and the panel then knows exactly what was chosen instead of guessing at it.
+//
+// `count` is asked before anything else about a product, because interviewing
+// somebody about the first of fifteen shirts is the single mistake here that
+// costs a whole evening.
+const CHOICES = {
+  count: [
+    { id: "one", icon: "ti-package", key: "asst.count.one" },
+    { id: "many", icon: "ti-stack-2", key: "asst.count.many" },
+  ],
+  // One product, two ways in — and both of them start from the picture.
+  one: [
+    { id: "photo", icon: "ti-camera-plus", key: "asst.one.photo" },
+    { id: "url", icon: "ti-link", key: "asst.one.url" },
+  ],
+  // Several at once. The last three open the sheet that already does that
+  // import rather than a second copy of it living in here.
+  many: [
+    { id: "photos", icon: "ti-photo-plus", key: "asst.way.photos" },
+    { id: "csv", icon: "ti-table", key: "asst.way.csv" },
+    { id: "woo", icon: "ti-brand-wordpress", key: "asst.way.woo" },
+    { id: "shopify", icon: "ti-brand-shopee", key: "asst.way.shopify" },
+  ],
+};
+
+// The compact row under the message box once a conversation has started.
+const WAYS = ["photos", "csv", "url", "woo", "shopify"];
+const WAY_ICON = { ask: "ti-messages", photo: "ti-camera-plus", photos: "ti-photo-plus", csv: "ti-table", url: "ti-link", woo: "ti-brand-wordpress", shopify: "ti-brand-shopee" };
+// Which of them opens a sheet on top of this panel, so its rule needs a button
+// rather than being shown and hidden in the same breath.
+const SHEETS = new Set(["csv", "url", "woo", "shopify"]);
 
 // EVERY tab, reachable from here without going to look for it. Not a shortlist
 // of the popular ones: the owner asked for one page from which the whole
@@ -122,8 +157,13 @@ function destinationFor(text) {
   return null;
 }
 
-export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [], fullPage = false, onGo }) {
+export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [], fullPage = false, onGo, businessType = "ecommerce", settings = null }) {
   const isMobile = useIsMobile();
+  // The categories this shop already uses, offered under the question that asks
+  // for one. Read from the catalogue rather than kept anywhere: it is always
+  // right, and a category stops existing the moment its last product does.
+  const categories = useMemo(() => [...new Set((products || [])
+    .map((p) => String(p?.category || "").trim()).filter(Boolean))], [products]);
   // useT subscribes to the language itself, so the whole panel re-renders when
   // it changes — which is what redraws the transcript in the new language.
   const t = useT();
@@ -167,9 +207,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // anyone has tried to save invites pressing it out of habit.
   const [dup, setDup] = useState(null);
   const [refused, setRefused] = useState(false);
-  // The three questions asked once before a batch of photos. null when not in
-  // one. See startBatch().
-  const [batch, setBatch] = useState(null);
+  // A scripted interview in progress — { id, step, answers } — or null.
+  // See WIZARDS.
+  const [wiz, setWiz] = useState(null);
 
   const endRef = useRef(null);
   const fileRef = useRef(null);
@@ -231,7 +271,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // Started from outside the panel — the toolbar button, or the empty state.
   // It lands on step 2, not straight into an interview: somebody who pressed
   // "Add by chat" has told us the method and nothing else.
-  useEffect(() => { if (startSignal > 0) { setOpen(true); askHowMany(); } }, [startSignal]);
+  useEffect(() => { if (startSignal > 0) { setOpen(true); pickIntent("add"); } }, [startSignal]);
 
   const gaps = draftGaps(draft, photos.length);
   // The moment the product becomes saveable, put the button where the owner can
@@ -280,7 +320,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // Mid-batch the answers are the wizard's, not the model's. No request goes
     // anywhere: these three questions have fixed answers and asking an AI what
     // "box t-shirt" means would be a cost and a wait for nothing.
-    if (batch) return answerBatch(q);
+    if (wiz) return answerWiz(q);
 
     // "Show me the orders" — take them there rather than describing it. Matched
     // here, before any request, so it is instant and free.
@@ -350,124 +390,167 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   const discard = (mi) => setMsgs((s) => s.map((m, i) => i !== mi ? m : { ...m, cards: [], picked: [], dropped: true }));
 
-  // ── Step 1: where are they coming from ─────────────────────────────────────
-  // "I'll ask you the questions" and "From photos" are this panel's own job;
-  // the other three open the sheet that already does that import. An interview
-  // in progress is left exactly as it is — the sheet sits on top and the draft
-  // is still here underneath when it closes.
-  const pickWay = (id) => {
+  // ── Step 1: what do you want to do at all ──────────────────────────────────
+  const pickIntent = (id) => {
     setErr("");
-    if (id === "ask") return askHowMany();
-    if (id === "photos") { heard("asst.way.photos"); return beginMany(); }
-    // A spreadsheet, a link and WooCommerce each open a sheet that covers this
-    // panel, so their rule gets a button rather than being shown and hidden in
-    // the same breath. A rule nobody had time to read is not a rule.
-    heard(`asst.way.${id}`);
+    heard(`asst.intent.${id}`);
+    if (id === "add") return say({ choice: "count", key: "asst.count.ask" });
+    if (id === "offer") { say({ key: "asst.rule.offer" }); return startWiz("offer"); }
+    if (id === "train") { say({ key: "asst.rule.train" }); return startWiz("train"); }
+  };
+
+  // ── Step 2 and 3: one or several, and then how ─────────────────────────────
+  // Each answer takes its own buttons away as it is given, so the transcript
+  // reads as a conversation that happened rather than a form still waiting.
+  const answerChoice = (kind, id) => {
+    setErr("");
+    setMsgs((s) => s.map((m) => m.choice === kind ? { ...m, choice: null } : m));
+    const label = CHOICES[kind].find((c) => c.id === id)?.key;
+    if (label) heard(label);
+
+    if (kind === "count") return say({ choice: id, key: id === "one" ? "asst.one.ask" : "asst.many.ask" });
+
+    // One product. Both ways start from the picture — the owner is holding
+    // their phone, and a photograph is the one thing they certainly have.
+    if (kind === "one") {
+      if (id === "photo") { say({ key: "asst.rule.one" }); return startInterview(); }
+      say({ key: "asst.rule.url", go: "url" });
+      return;
+    }
+    // Several. The photo batch is this panel's own job; the rest open a sheet
+    // on top of it, so their rule gets a button rather than being shown and
+    // hidden in the same breath. A rule nobody had time to read is not a rule.
+    if (id === "photos") { say({ key: "asst.rule.many" }); return startWiz("photos"); }
     say({ key: `asst.rule.${id}`, go: id });
   };
 
-  // ── Step 2: one, or several ────────────────────────────────────────────────
-  // Between "how do you want to add them" and the first question about a
-  // product there is one more thing worth knowing, and getting it wrong is
-  // expensive: an owner with fifteen shirts should not be interviewed about the
-  // first one. Asked as two buttons rather than a sentence, because it has
-  // exactly two answers.
-  const askHowMany = () => {
+  // Straight from the compact row under the message box, which skips the two
+  // questions because pressing "A spreadsheet" has already answered both.
+  const pickWay = (id) => {
     setErr("");
-    heard("asst.start");
-    say({ choice: "count", key: "asst.count.ask" });
+    heard(`asst.way.${id}`);
+    if (id === "photos") { say({ key: "asst.rule.many" }); return startWiz("photos"); }
+    say({ key: `asst.rule.${id}`, go: id });
   };
-
-  const answerHowMany = (several) => {
-    setMsgs((s) => s.map((m) => m.choice === "count" ? { ...m, choice: null } : m));
-    heard(several ? "asst.count.saidMany" : "asst.count.saidOne");
-    if (several) beginMany(); else beginOne();
-  };
-
-  // ── Step 3: the rule, and then the work ────────────────────────────────────
-  // Four lines saying what is about to happen and, most of all, that nothing is
-  // saved until a button is pressed. The interview and the batch both keep
-  // going straight after: their next question appears under the rule, so it
-  // stays on screen to be read.
-  const beginOne = () => { say({ key: "asst.rule.one" }); startInterview(); };
-  const beginMany = () => { say({ key: "asst.rule.many" }); startBatch(); };
 
   const startInterview = () => {
     setMode("interview"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setSaved(""); setErr(""); setDup(null); setRefused(false); seenPhotos.current = new Set();
-    // The seed is the whole history this turn needs — turn() keeps only the
-    // interview-phase lines anyway. Built from `msgs` it would be built from a
-    // STALE `msgs` and then written back over the real one, which is how the
-    // two lines the owner had just read — "one or several?", "just one" —
-    // vanished off the transcript the instant the interview began.
+    // The PHOTO first, and no question until it is here.
     //
-    // `hidden` because it is addressed to the model, not to the owner: it is
-    // the sentence that opens the conversation on the server's side, and it
-    // was appearing in the transcript as an English line the owner had
-    // supposedly just said, directly under the Bangla one they actually did.
-    const seed = { role: "user", content: "I want to add a product.", phase: "interview", hidden: true };
-    setMsgs((s) => [...s, seed]);
-    turn([seed], {}, 0, "");
+    // The questions used to come first and the photograph last, which is the
+    // order somebody describes a thing in — but not the order they have it in.
+    // The owner is standing over the shirt with their phone; the picture is the
+    // one thing they certainly have, and once it is attached the AI has already
+    // proposed a name, a category and a sentence, so the questions that follow
+    // are corrections rather than blank boxes.
+    //
+    // No turn() here: addPhotos() fires the first one once there is something
+    // to talk about. Typing instead of attaching also starts it, so nobody is
+    // stuck behind a camera they did not want.
+    say({ phase: "interview", key: "asst.photoFirst" });
   };
 
-  // ── Many at once: ask what they have in common, once ───────────────────────
-  // Fifteen shirts off one rail share a kind, a price and a set of sizes. Asked
-  // once here, they are on every product before the owner sees a single row —
-  // instead of being typed fifteen times, or set with a bulk bar the owner has
-  // to find. These three questions are scripted, not put to the model: they are
-  // always the same three, and an AI call to ask "what are these?" would be a
-  // cost and a wait for nothing.
-  // The third question is asked in this shop's own words. A clothing shop that
-  // has ever used "Size" is asked about sizes; a phone shop that uses
-  // "Capacity" is asked about capacities. Only a shop with no products yet gets
-  // the general wording — and even then the photos will propose something.
-  // Every one of them carries a real example of the answer, because "what
-  // sizes?" and "what sizes? (for example: S, M, L)" are not the same question
-  // to somebody who has never been asked it before.
-  // Keys, not sentences, for the same reason the transcript holds keys: these
-  // three questions are re-read on every render, so a language switch mid-batch
-  // changes the question the owner is looking at as well as the ones above it.
+  // ── Scripted interviews ────────────────────────────────────────────────────
+  // A fixed list of questions, asked one at a time, with the answers kept until
+  // the end. No model is involved: these questions are always the same and
+  // their answers always the same shape, so an AI call to ask them would be a
+  // cost and a wait for nothing — and they keep working when the AI does not.
+  //
+  // Three share this runner. `photos` collects what a rail of shirts has in
+  // common before the photo sheet opens; `offer` writes a deal the bot will
+  // quote; `train` walks the questions the Bot Training tab asks on its form.
+  //
+  // Every step holds KEYS rather than sentences, for the same reason the
+  // transcript does: a language switch mid-interview has to change the question
+  // the owner is looking at, not only the ones above it.
   const axisWord = shopAxes[0] || "";
   const axis = { axis: axisWord };
-  const BATCH_STEPS = [
-    { key: "kind", askKey: "asst.batch.kind", phKey: "asst.batch.kindPh" },
-    { key: "price", askKey: "asst.batch.price", phKey: "asst.batch.pricePh", skipKey: "asst.batch.priceSkip" },
-    { key: "options",
-      askKey: axisWord ? "asst.batch.optionsNamed" : "asst.batch.options",
-      phKey: axisWord ? "asst.batch.optionsPhNamed" : "asst.batch.optionsPh",
-      skipKey: axisWord ? "asst.batch.optionsSkipNamed" : "asst.batch.optionsSkip" },
-  ];
+  const bk = businessType === "agency" ? "agency" : "ecom";
+  const WIZARDS = {
+    photos: {
+      done: "asst.batch.done",
+      steps: [
+        { key: "kind", askKey: "asst.batch.kind", phKey: "asst.batch.kindPh" },
+        { key: "price", askKey: "asst.batch.price", phKey: "asst.batch.pricePh", skipKey: "asst.batch.priceSkip" },
+        { key: "options",
+          askKey: axisWord ? "asst.batch.optionsNamed" : "asst.batch.options",
+          phKey: axisWord ? "asst.batch.optionsPhNamed" : "asst.batch.optionsPh",
+          skipKey: axisWord ? "asst.batch.optionsSkipNamed" : "asst.batch.optionsSkip" },
+      ],
+    },
+    offer: {
+      steps: [
+        { key: "title", askKey: "asst.offer.name", phKey: "asst.offer.namePh" },
+        { key: "details", askKey: "asst.offer.what", phKey: "asst.offer.whatPh" },
+        { key: "valid_until", askKey: "asst.offer.until", phKey: "asst.offer.untilPh", skipKey: "asst.offer.untilSkip" },
+      ],
+    },
+    // One question per thing the bot should know about this business, in the
+    // order the Bot Training form asks them, worded the same way. Fourteen is a
+    // lot to sit through, so every one can be skipped and the whole thing can
+    // be finished early with what has been said so far.
+    train: {
+      finishKey: "asst.train.finish",
+      steps: trainingKeys(businessType).map((k) => ({
+        key: k, askKey: `q.${bk}.${k}`, phKey: `ph.${bk}.${k}`, skipKey: "common.skip", long: true,
+      })),
+    },
+  };
+  const wizSteps = wiz ? WIZARDS[wiz.id].steps : null;
+  const wizStep = wiz && wizSteps[wiz.step] ? wizSteps[wiz.step] : null;
 
-  const startBatch = () => {
-    setBatch({ step: 0, kind: "", price: "", options: "" });
-    say({ phase: "batch", key: BATCH_STEPS[0].askKey, vars: axis, step: 0 });
+  const startWiz = (id) => {
+    const first = WIZARDS[id].steps[0];
+    setWiz({ id, step: 0, answers: {} });
+    say({ phase: "wiz", key: first.askKey, vars: axis, step: 0, wiz: id });
   };
 
-  const answerBatch = (raw) => {
-    const b = batch;
-    if (!b) return;
-    const step = BATCH_STEPS[b.step];
+  const answerWiz = (raw, finish = false) => {
+    if (!wiz) return;
+    const steps = WIZARDS[wiz.id].steps;
+    const step = steps[wiz.step];
     const value = String(raw ?? "").trim();
-    const next = { ...b, [step.key]: value, step: b.step + 1 };
-    setBatch(next);
+    const answers = { ...wiz.answers, ...(value ? { [step.key]: value } : {}) };
+
     // A typed answer is the owner's own words and stays as they wrote them; a
     // skipped one is the panel speaking for them, so it follows the language.
-    if (value) typed(value, "batch");
-    else setMsgs((s) => [...s, { role: "user", phase: "batch", key: step.skipKey || "asst.skipped", vars: axis, paren: true }]);
+    if (value) typed(value, "wiz");
+    else if (!finish) setMsgs((s) => [...s, { role: "user", phase: "wiz", key: step.skipKey || "asst.skipped", vars: axis, paren: true }]);
 
-    if (next.step < BATCH_STEPS.length) {
-      say({ phase: "batch", key: BATCH_STEPS[next.step].askKey, vars: axis, step: next.step });
+    const next = wiz.step + 1;
+    if (!finish && next < steps.length) {
+      setWiz({ ...wiz, step: next, answers });
+      say({ phase: "wiz", key: steps[next].askKey, vars: axis, step: next, wiz: wiz.id });
       return;
     }
-    // Everything they share is known. Now the photos, in the sheet that groups
-    // them — carrying the answers, so nothing is asked twice.
-    const price = /^[\d.,\s]+$/.test(next.price) ? next.price.replace(/[^\d.]/g, "") : "";
-    say({ phase: "batch", key: "asst.batch.done",
-      ...(next.kind ? { vars: { kind: next.kind } } : { varKeys: { kind: "asst.way.photos" } }) });
-    setBatch(null);
-    // "S, M, L" becomes one axis named the way this shop names it;
-    // "Size: S, M; Colour: Black" becomes two. Either is a thing a person types
-    // when asked that question, so both are read.
-    onImport?.("photos", { kind: next.kind, price, category: next.kind, axes: parseAxes(next.options, axisWord || "Size") });
+    setWiz(null);
+    finishWiz(wiz.id, answers);
+  };
+
+  const finishWiz = (id, answers) => {
+    if (id === "photos") {
+      const price = /^[\d.,\s]+$/.test(answers.price || "") ? answers.price.replace(/[^\d.]/g, "") : "";
+      say({ phase: "wiz", key: "asst.batch.done",
+        ...(answers.kind ? { vars: { kind: answers.kind } } : { varKeys: { kind: "asst.way.photos" } }) });
+      // "S, M, L" becomes one axis named the way this shop names it;
+      // "Size: S, M; Colour: Black" becomes two. Either is a thing a person
+      // types when asked that question, so both are read.
+      onImport?.("photos", { kind: answers.kind, price, category: answers.kind, axes: parseAxes(answers.options, axisWord || "Size") });
+      return;
+    }
+    // The other two end where every change in this panel ends: as a card the
+    // owner reads and confirms. Built here rather than asked of the model —
+    // the answers are already in the right shape, and a round trip could only
+    // reword what the owner just typed.
+    const a = id === "offer"
+      ? { do: "offer.create", set: { title: answers.title || "", details: answers.details || "", ...(answers.valid_until ? { valid_until: answers.valid_until } : {}), active: true } }
+      : { do: "training.set", set: answers };
+    if (!Object.keys(a.set).filter((k) => a.set[k] && k !== "active").length) {
+      say({ key: "asst.nothingSaid" });
+      return;
+    }
+    const cards = [{ kind: "setting", a }];
+    say({ key: id === "offer" ? "asst.offer.ready" : "asst.train.ready", cards, settingsBefore: settings || {}, picked: [true] });
   };
 
   const stopInterview = () => {
@@ -658,7 +741,6 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   // ── Rendering ──────────────────────────────────────────────────────────────
   const interviewing = mode === "interview";
-  const batchStep = batch ? BATCH_STEPS[batch.step] : null;
   const filledRows = Object.entries(draft).filter(([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length));
 
   return <Card style={{ padding: 0, marginBottom: fullPage ? 0 : 14, overflow: "hidden", ...(fullPage ? { display: "flex", flexDirection: "column", height: isMobile ? "calc(100dvh - 190px)" : "calc(100vh - 150px)" } : {}) }}>
@@ -696,14 +778,16 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.65, marginBottom: 10 }}>
             {t("asst.intro", { n: products?.length || 0 })}
           </div>
+          {/* The three things this tab does, asked as one question. Which of
+              them the owner picks decides every question after it. */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))", gap: 8, marginBottom: 12 }}>
-            {WAYS.map((w) => <button key={w} type="button" onClick={() => pickWay(w)} className="ui-btn ob-row"
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 13, textAlign: "left", cursor: "pointer", fontFamily: "inherit", minHeight: 52,
-                background: w === "ask" ? T.goldBg : T.bgAlt, border: `1px solid ${w === "ask" ? T.gold : T.border}`, color: T.text }}>
-              <i className={`ti ${WAY_ICON[w]}`} style={{ fontSize: 19, flexShrink: 0, color: T.gold }} />
+            {INTENTS.map((w, n) => <button key={w.id} type="button" onClick={() => pickIntent(w.id)} className="ui-btn ob-row"
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 13px", borderRadius: 13, textAlign: "left", cursor: "pointer", fontFamily: "inherit", minHeight: 56,
+                background: n === 0 ? T.goldBg : T.bgAlt, border: `1px solid ${n === 0 ? T.gold : T.border}`, color: T.text }}>
+              <i className={`ti ${w.icon}`} style={{ fontSize: 20, flexShrink: 0, color: T.gold }} />
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 12.5, fontWeight: 600 }}>{t(`asst.way.${w}`)}</span>
-                <span style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 1 }}>{t(`asst.way.${w}Sub`)}</span>
+                <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>{t(`asst.intent.${w.id}`)}</span>
+                <span style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 1 }}>{t(`asst.intent.${w.id}Sub`)}</span>
               </span>
             </button>)}
           </div>
@@ -744,22 +828,39 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             <i className={`ti ${WAY_ICON[m.go]}`} style={{ marginRight: 6 }} />{t("asst.rule.open")}
           </Btn>}
 
-          {/* A question that can be skipped offers it under the question, not
-              beside the message box: on a phone a button in that row squeezed
-              the box you type in down to ninety-seven pixels. */}
-          {/* Matched on WHICH step this message is, not on its wording —
-              comparing the two sentences meant the chip disappeared the moment
-              the language changed underneath it. */}
-          {m.step !== undefined && batch?.step === m.step && BATCH_STEPS[m.step]?.skipKey && <button type="button" onClick={() => answerBatch("")} disabled={busy} className="ui-btn ob-chip"
-            style={{ padding: "8px 13px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 40 }}>{t(BATCH_STEPS[m.step].skipKey, axis)}</button>}
+          {/* The shop's own categories, under the question that asks for one.
+              Only under the LAST message and only while that is what is being
+              asked, so old questions do not keep a row of buttons under them.
+              Typing a new one still works — this is a shortcut, not a fence —
+              and it is what stops one shop ending up with "T-shirt", "T shirt"
+              and "tshirt" as three categories the bot cannot tell apart. */}
+          {interviewing && mi === msgs.length - 1 && m.role === "assistant" && gaps.queue?.[0] === "category" && categories.length > 0 &&
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {categories.slice(0, 12).map((c) => <button key={c} type="button" onClick={() => ask(c)} disabled={busy} className="ui-btn ob-chip"
+                style={{ padding: "8px 13px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.text, cursor: "pointer", fontFamily: "inherit", minHeight: 40 }}>{c}</button>)}
+              <span style={{ alignSelf: "center", fontSize: 11.5, color: T.textDim }}>{t("asst.orNewCat")}</span>
+            </div>}
 
-          {m.choice === "count" && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Btn gold onClick={() => answerHowMany(false)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
-              <i className="ti ti-package" style={{ marginRight: 6 }} />{t("asst.count.one")}
-            </Btn>
-            <Btn onClick={() => answerHowMany(true)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
-              <i className="ti ti-photo-plus" style={{ marginRight: 6 }} />{t("asst.count.many")}
-            </Btn>
+          {/* The question being asked right now can be skipped, and a long one
+              can be left early with whatever has been said. Both sit UNDER the
+              question rather than beside the message box: on a phone a button
+              in that row squeezed the box you type in down to ninety-seven
+              pixels. Matched on WHICH step the message is, not on its wording —
+              comparing the sentences meant the chips vanished the moment the
+              language changed underneath them. */}
+          {m.step !== undefined && m.wiz === wiz?.id && wiz?.step === m.step && <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {wizSteps[m.step]?.skipKey && <button type="button" onClick={() => answerWiz("")} disabled={busy} className="ui-btn ob-chip"
+              style={{ padding: "8px 13px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 40 }}>{t(wizSteps[m.step].skipKey, axis)}</button>}
+            {WIZARDS[wiz.id].finishKey && <button type="button" onClick={() => answerWiz("", true)} disabled={busy} className="ui-btn ob-chip"
+              style={{ padding: "8px 13px", borderRadius: 20, fontSize: 12, background: T.goldBg, border: `1px solid ${T.gold}`, color: T.gold, cursor: "pointer", fontFamily: "inherit", minHeight: 40, fontWeight: 600 }}>{t(WIZARDS[wiz.id].finishKey)}</button>}
+            <span style={{ alignSelf: "center", fontSize: 11.5, color: T.textDim }}>{m.step + 1} / {wizSteps.length}</span>
+          </div>}
+
+          {/* A fork in the road, as buttons. They go away once answered. */}
+          {m.choice && CHOICES[m.choice] && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {CHOICES[m.choice].map((c, n) => <Btn key={c.id} gold={n === 0} onClick={() => answerChoice(m.choice, c.id)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
+              <i className={`ti ${c.icon}`} style={{ marginRight: 6 }} />{t(c.key)}
+            </Btn>)}
           </div>}
 
           {m.photoUrls?.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "88%" }}>
@@ -888,19 +989,27 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           </button>
         </>}
         <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy}
-          placeholder={batchStep ? t(batchStep.phKey, axis) : t(interviewing ? "asst.ph.answer" : "asst.ph.chat")} aria-label={t("asst.aria")}
+          placeholder={wizStep ? t(wizStep.phKey, axis) : t(interviewing ? "asst.ph.answer" : "asst.ph.chat")} aria-label={t("asst.aria")}
           className="ui-inp" style={{ flex: 1, minWidth: 0, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 12, padding: "11px 14px", color: T.text, fontSize: 13, outline: "none", fontFamily: "inherit", boxShadow: T.nmIn }} />
         <Btn gold type="submit" disabled={busy || !input.trim()} aria-label={t("common.send")} style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
       </form>
 
       {/* Still reachable once the conversation has started, as a compact row —
-          the full cards belong to the empty state, where there is room. */}
-      {!interviewing && msgs.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, flexShrink: 0 }}>
+          the full cards belong to the empty state, where there is room. These
+          skip the two questions, because pressing "A spreadsheet" has already
+          answered both of them. Hidden mid-interview and mid-wizard, where they
+          would be an invitation to abandon a half-finished product. */}
+      {!interviewing && !wiz && msgs.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, flexShrink: 0 }}>
+        <button type="button" onClick={() => pickIntent("add")} disabled={busy} className="ui-btn ob-chip"
+          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
+            background: T.goldBg, border: `1px solid ${T.gold}`, color: T.gold }}>
+          <i className="ti ti-plus" style={{ marginRight: 5 }} />{t("asst.intent.add")}
+        </button>
         {WAYS.map((w) => <button key={w} type="button" onClick={() => pickWay(w)} disabled={busy} className="ui-btn ob-chip"
           title={t(`asst.way.${w}Sub`)}
-          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: w === "ask" ? 600 : 500, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
-            background: w === "ask" ? T.goldBg : "none", border: `1px solid ${w === "ask" ? T.gold : T.border}`, color: w === "ask" ? T.gold : T.textMuted }}>
-          <i className={`ti ${WAY_ICON[w]}`} style={{ marginRight: 5 }} />{t(w === "ask" ? "asst.way.askShort" : `asst.way.${w}`)}
+          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
+            background: "none", border: `1px solid ${T.border}`, color: T.textMuted }}>
+          <i className={`ti ${WAY_ICON[w]}`} style={{ marginRight: 5 }} />{t(`asst.way.${w}`)}
         </button>)}
       </div>}
     </div>}
