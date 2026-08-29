@@ -86,14 +86,49 @@ export const MUST_HAVE = ["product_name", "regular_price", "photo"];
 // that does not count stock must still be able to finish.
 export const SHOULD_HAVE = ["category", "stock_qty"];
 // The order the assistant works through what is still blank, and it is the
-// owner's order, not the machine's: what the thing IS and what it costs, then
-// its pictures, then the sizes and colours a customer chooses between. Photos
-// used to come first because the AI can read a name off one — which is the
-// convenient order for the AI and the wrong one for a person, who is holding
-// their phone and has not decided what to call it yet.
-export const ASK_ORDER = ["product_name", "regular_price", "category", "stock_qty", "photo", "options", "description", "brand", "sale_price", "product_code", "tags"];
+// owner's order, not the machine's — the order they would say it out loud in:
+// what it IS and where it lives, what it costs, what it is like, what a
+// customer picks between, and the photos LAST.
+//
+// Photos are last on purpose, and they are not last because they matter least
+// — nothing can be saved without one. They are last because that is the only
+// step that leaves the conversation: the owner has to stop typing, open their
+// phone's picker and find the pictures. Everything that can be answered in a
+// sentence is answered first, so that trip happens once, at the end, with the
+// product otherwise finished.
+//
+// Photos used to come earlier still, before even the name, because the AI can
+// read a name off one — the convenient order for the AI and the wrong one for
+// a person, who is holding their phone and has not decided what to call it yet.
+export const ASK_ORDER = ["product_name", "category", "regular_price", "description", "options", "photo", "stock_qty", "brand", "sale_price", "product_code", "tags"];
 
 export const LABELS = { ...FIELDS, photo: "Photos" };
+
+// An ACTUAL answer for every question, not a description of one.
+//
+// "What size does it come in?" is a fine question and a person still hesitates
+// over it — do they type "medium", "M", "M/L", "all sizes"? Every question the
+// assistant asks carries one of these on the end of it, so nobody has to guess
+// the shape of the answer, and the answers come back in a shape that parses.
+//
+// Both languages, because the dashboard has both and an English example under a
+// Bangla question is the same guessing game again. Names and numbers are left
+// as they are in the Bangla ones: a shop writes "500", not "৫০০", into a price.
+export const EXAMPLES = {
+  product_name: { en: "Box T-shirt — green seed print", bn: "বক্স টি-শার্ট — সবুজ সিড প্রিন্ট" },
+  category: { en: "T-shirts", bn: "টি-শার্ট" },
+  regular_price: { en: "500", bn: "500" },
+  description: { en: "Heavy cotton, oversized fit, does not shrink in the wash", bn: "মোটা সুতি কাপড়, ওভারসাইজ ফিট, ধুলে ছোট হয় না" },
+  options: { en: "Size: S, M, L; Colour: Black, White", bn: "সাইজ: S, M, L; রং: কালো, সাদা" },
+  photo: { en: "the front, the back, and a close-up — all at once", bn: "সামনে, পেছনে আর একটা ক্লোজ-আপ — একসাথেই" },
+  stock_qty: { en: "12", bn: "12" },
+  brand: { en: "Aarong", bn: "আড়ং" },
+  sale_price: { en: "450", bn: "450" },
+  product_code: { en: "BOXT-GRN-01", bn: "BOXT-GRN-01" },
+  tags: { en: "summer, cotton, gift", bn: "গরমের, সুতি, গিফট" },
+};
+
+export const exampleFor = (key, lang = "en") => EXAMPLES[key]?.[lang === "bn" ? "bn" : "en"] || EXAMPLES[key]?.en || "";
 
 const filled = (draft, k, photos) => {
   if (k === "photo") return (photos || 0) > 0;
@@ -106,6 +141,13 @@ const filled = (draft, k, photos) => {
 // What is still blank, split by how much it matters. `ready` is the only thing
 // that decides whether the product can be saved — the assistant's own opinion
 // that it is finished does not.
+//
+// `queue` is what to ASK next, and it is deliberately a different thing from
+// `blocking`. Importance and order are not the same question: a photo blocks
+// the save and is still the last thing worth asking for. Sorting the questions
+// by importance is what made the assistant demand a picture before it had
+// asked what the thing was like — correct by its own lights, and nonsense to
+// the person answering.
 export function draftGaps(draft = {}, photos = 0) {
   const gap = (list) => list.filter((k) => !filled(draft, k, photos));
   const blocking = gap(MUST_HAVE);
@@ -113,6 +155,7 @@ export function draftGaps(draft = {}, photos = 0) {
     blocking,
     wanted: gap(SHOULD_HAVE),
     rest: gap(ASK_ORDER.filter((k) => !MUST_HAVE.includes(k) && !SHOULD_HAVE.includes(k))),
+    queue: gap(ASK_ORDER),
     ready: blocking.length === 0,
   };
 }

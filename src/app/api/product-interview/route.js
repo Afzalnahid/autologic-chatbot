@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { getClientAI } from "@/lib/ai.js";
-import { normalizeSet, draftGaps, LABELS, ASK_ORDER } from "@/lib/inventory-actions.js";
+import { normalizeSet, draftGaps, LABELS, ASK_ORDER, exampleFor } from "@/lib/inventory-actions.js";
 import { findDuplicate } from "@/lib/duplicates.js";
 import { supabase } from "@/lib/supabase.js";
 
@@ -56,7 +56,7 @@ export async function POST(request) {
     // than asking the owner to remember what they called things.
     const { data: rows } = await supabase.from("products")
       .select("metadata").eq("client_id", client.id).limit(1000);
-    const known = [...new Set((rows || []).map((r) => String(r.metadata?.category || "").trim()).filter(Boolean))].slice(0, 30);
+    const cats = [...new Set((rows || []).map((r) => String(r.metadata?.category || "").trim()).filter(Boolean))].slice(0, 30);
 
     // A name already in the catalogue, checked BEFORE the model is asked — so
     // it can ask what makes this one different in the same breath, instead of
@@ -67,7 +67,7 @@ export async function POST(request) {
 
     const ai = await getClientAI(client.id, "product.interview");
     const raw = await ai.chat(
-      prompt(client, draft, photos, visual, gaps, { lang, known, clash: already?.product_name || "" }),
+      prompt(client, draft, photos, visual, gaps, { lang, cats, clash: already?.product_name || "" }),
       messages.length ? messages : [{ role: "user", content: "Let's add a product." }],
     );
     const out = parse(raw);
@@ -108,20 +108,37 @@ const known = (draft) => {
   return lines.length ? lines.join("\n") : "- nothing yet";
 };
 
-function prompt(client, draft, photos, visual, gaps, { lang = "en", known = [], clash = "" } = {}) {
+// `cats`, not `known`. It used to be `known`, which is also the name of the
+// function two lines above that prints what the draft already holds — so the
+// parameter shadowed it and `${known(draft)}` called an array. Every turn of
+// every interview threw, and nothing here could catch it locally, because the
+// route needs a database and an AI key to reach that line at all.
+function prompt(client, draft, photos, visual, gaps, { lang = "en", cats = [], clash = "" } = {}) {
   const shop = client.business_type === "agency" ? "service business" : "shop";
   const thing = client.item_label || (client.business_type === "agency" ? "service" : "product");
-  // The order to work through: what blocks the save, then what the shop should
-  // have, then the rest. Naming it explicitly is what stops the model asking
-  // for a brand before it has asked for a price.
-  const queue = [...gaps.blocking, ...gaps.wanted, ...gaps.rest].map((k) => LABELS[k] || k);
+  // The order to work through, and it is ONE list, in the order a person would
+  // say it out loud: what it is, where it belongs, what it costs, what it is
+  // like, what a customer picks between, then the photos.
+  //
+  // It used to be three lists stitched together — what blocks the save first,
+  // then what the shop should have, then the rest — which sorted the questions
+  // by how much they matter. That is not the same question as what to ask next,
+  // and it is why the assistant demanded a photograph before it had asked what
+  // the thing was like.
+  //
+  // Every line carries a real answer, not a description of one. Nobody should
+  // have to guess what shape of answer a question wants.
+  const queue = gaps.queue.map((k) => {
+    const eg = exampleFor(k, lang);
+    return `${LABELS[k] || k}${eg ? ` — an answer looks like: ${eg}` : ""}`;
+  });
 
   return `You are helping the owner of a ${shop} in Bangladesh add ONE ${thing} to their catalogue, by asking them about it. Their business is "${client.business_name || "this business"}".
 
 HOW TO ASK
 - One question per message. Never a list of questions, never a form.
 - Short and plain. The owner is not a programmer and does not know the field names.
-- EVERY question carries an example of the answer, in brackets at the end. Not a description of the answer — an actual one. "What is it called? (for example: Box T-shirt — green seed print)". "What does it cost? (for example: 500)". Somebody who has never done this before should never have to guess what shape of answer you want.
+- EVERY question carries an example of the answer, in brackets at the end. Not a description of the answer — an actual one. Use the example printed beside that question in the list below, word for word. "What is it called? (for example: Box T-shirt — green seed print)". "What does it cost? (for example: 500)". Somebody who has never done this before should never have to guess what shape of answer you want.
 - Take whatever they give you, even if it answers three questions at once, and put it in the right places.
 - If an answer is unclear, ask again about that one thing rather than guessing.
 - ${lang === "bn" ? "Write EVERY message in Bangla. The owner has set this dashboard to Bangla. Keep product names, codes and numbers as they typed them." : "Write every message in English unless the owner writes to you in another language, in which case answer in theirs."}
@@ -132,17 +149,20 @@ WHAT IS ALREADY KNOWN
 ${known(draft)}
 - Photos attached: ${photos}${visual ? `\n- What the AI sees in the first photo (do NOT read this back to the owner word for word; use it to suggest a name or category): ${visual.slice(0, 700)}` : ""}
 
-WHAT IS STILL MISSING, in the order to ask for it
+WHAT IS STILL MISSING, in the order to ask for it. Ask for number 1 now — not number 3, not two of them at once.
 ${queue.length ? queue.map((q, i) => `${i + 1}. ${q}`).join("\n") : "Nothing — everything has been answered."}
-${gaps.blocking.length ? `\nThe ${thing} CANNOT be saved until these are given: ${gaps.blocking.map((k) => LABELS[k]).join(", ")}. Ask for the first of them now.` : `\nEverything required is there. Ask about anything still missing above, and when the owner has nothing more to add, tell them they can press Save.`}
-${photos === 0 ? `\nThere are no photos yet. Ask the owner to attach some with the photo button beside the message box — one ${thing} can have several pictures, and the first one is the one customers see. Without a photo the bot cannot recognise this ${thing} when a customer sends a picture.` : ""}
+${gaps.blocking.length
+  ? `\nThe ${thing} cannot be SAVED until ${gaps.blocking.map((k) => LABELS[k]).join(", ")} ${gaps.blocking.length > 1 ? "are" : "is"} given — but that is about saving, not about what to ask next. Keep to the order above; the owner will be shown what is still needed.`
+  : `\nEverything required is there. Ask about anything still missing above, and when the owner has nothing more to add, tell them they can press Save.`}
+${gaps.queue[0] === "photo" ? `\nPhotos are the next thing to ask for. Say to use the photo button beside the message box, that one ${thing} can have several pictures — a front, a back, a close-up — that they can attach them all at once, and that the first one is what customers see.` : ""}
 
 RULES
 - Never invent a price, a stock count, a size or a brand. If it was not said, it is not known.
 - Prices are in taka: digits only, no symbol, no commas.
-- CATEGORY is its own question, and it is asked with the shop's own categories offered: ${known.length ? known.join(", ") : "they have none yet, so ask what to call the first one"}. Ask which of those it belongs in, or what to call a new one.
+- CATEGORY is its own question, asked straight after the name, and it is asked with the shop's own categories offered: ${cats.length ? cats.join(", ") : "they have none yet, so ask what to call the first one"}. Ask which of those it belongs in, or what to call a new one.
 - ONE ${thing} CAN HAVE SEVERAL PHOTOS — a front, a back, a close-up. When you ask for photos, say so, and say they can attach them all at once.
 - "options" is what a customer chooses between, e.g. [{"name":"Size","values":["S","M","L"]},{"name":"Colour","values":["Black"]}]. Ask whether customers pick between anything, and give the example that fits what you can see.
+- Nothing here is compulsory except what blocks the save. If the owner says "no", "none" or "skip" to a question, accept it and move to the next one. Asking twice for a description a shop does not write is how a five-question job becomes a chore.
 ${clash ? `
 THIS NAME IS ALREADY IN THE CATALOGUE. The owner has a ${thing} called "${clash}". They are almost certainly adding ANOTHER one of the same kind, not repeating themselves — a shop with fifteen box t-shirts calls all of them box t-shirts.
 
