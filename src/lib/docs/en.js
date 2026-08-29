@@ -124,6 +124,8 @@ export const DOCS = {
           "It can do three jobs, and it can reach the rest of the dashboard: ask it about your catalogue, tell it to change a price, or say **show me the orders** and it takes you there.",
         ] },
 
+      { shot: "assistant", cap: "The tab as it opens: the three jobs in order with a tick on the ones already done, a few things you can just say, and every other tab one tap away." },
+
       { note: "It never changes anything on its own. Every change appears as a card showing what would move and what it would move from — *Price: 900 → 1200* — with a button underneath. Untick anything wrong. Nothing happens until you press it.",
         kind: "tip" },
 

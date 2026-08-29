@@ -58,8 +58,19 @@ the busiest channels across all clients with each channel's own monthly cap.
 - `pageAll` swallowed read errors into zeros; the error now reaches the panel in red, separate
   from the amber "this is a floor". 17 tests on the pager.
 
-**Still open:** no screenshot for the AI Assistant docs page; the `orders_one_per_code` SQL and
-Google Cloud billing remain owner tasks.
+**Screenshot (done after the above):** `scripts/make-doc-shot.mjs` — NEW, there was no capture
+script at all, which is why manual pages could ship without pictures. `node
+scripts/make-doc-shot.mjs assistant --h=660` with the dev server running writes both themes as
+1600-wide WebP. Chrome takes the PNG and a canvas in the same Chrome encodes the WebP, so there
+is no image dependency. Retries three times: headless Chrome on Windows dies at random with an
+access violation and no output.
+- **The height is the WINDOW, not the content.** Most tabs are as tall as their data; the
+  assistant is a panel sized to the viewport, so 1000 left ~500px of dead space. 660 fits it.
+- The pane cannot verify this: `loading="lazy"` needs compositing, so `naturalWidth` is 0 there
+  however long you wait. Decode with `createImageBitmap(blob)` instead — that proved both files
+  are real `image/webp` at 1600×660.
+
+**Still open:** the `orders_one_per_code` SQL and Google Cloud billing remain owner tasks.
 ---
 
 ## Earlier session (2026-08-29, third thread) — "What do you want to do?", Shopify, and cards in Bangla
