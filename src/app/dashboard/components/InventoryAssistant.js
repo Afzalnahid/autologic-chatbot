@@ -4,6 +4,7 @@ import { T, Card, Btn, useIsMobile } from "./ui.js";
 import { apiJson } from "./session.js";
 import { getLang, useT } from "./i18n.js";
 import { describeAction, draftGaps } from "@/lib/inventory-actions.js";
+import { describeSetting } from "@/lib/assistant-actions.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
 import { buildVariants, parseAxes } from "@/lib/variants.js";
@@ -49,7 +50,10 @@ import { buildVariants, parseAxes } from "@/lib/variants.js";
 // the translator: the owner picks a language once, and a chat answering in
 // English under a Bangla screen was the last place that rule was broken.
 
-const CHIP_KEYS = ["asst.chip.low", "asst.chip.noPrice", "asst.chip.oos"];
+// Four things to try, two from each half of what this tab reaches — so the
+// first thing an owner reads is not "this is for products", which is what it
+// was and what it no longer is.
+const CHIP_KEYS = ["asst.chip.low", "asst.chip.noPrice", "asst.chip.offer", "asst.chip.teach"];
 
 // Every way into the catalogue, offered from the one place the owner is already
 // talking. The panel used to offer only the interview, so someone sitting in the
@@ -62,12 +66,21 @@ const CHIP_KEYS = ["asst.chip.low", "asst.chip.noPrice", "asst.chip.oos"];
 const WAYS = ["ask", "photos", "csv", "url", "woo"];
 const WAY_ICON = { ask: "ti-messages", photos: "ti-photo-plus", csv: "ti-table", url: "ti-link", woo: "ti-brand-wordpress" };
 
-// Where the assistant can put somebody down without them going looking for a
-// tab. "Bot Training" leads and wears the accent colour: teaching the bot is
-// the other half of what this tab is for, and it is the page owners looked
-// straight past for as long as it was called Settings.
-const JUMPS = ["settings", "conversations", "orders", "analytics", "broadcast"];
-const JUMP_ICON = { settings: "ti-wand", conversations: "ti-messages", orders: "ti-shopping-cart", analytics: "ti-chart-bar", broadcast: "ti-speakerphone" };
+// EVERY tab, reachable from here without going to look for it. Not a shortlist
+// of the popular ones: the owner asked for one page from which the whole
+// dashboard is driven, and a list that quietly stops at five is a list that
+// sends them back to the sidebar for the sixth.
+//
+// "Bot Training" leads and wears the accent colour — teaching the bot is the
+// other half of what this tab is for, and it is the page owners looked straight
+// past for as long as it was called Settings.
+const JUMPS = ["settings", "inventory", "orders", "conversations", "comments", "broadcast", "analytics", "channels", "billing", "ai", "profile"];
+const JUMP_ICON = {
+  settings: "ti-wand", inventory: "ti-package", orders: "ti-shopping-cart",
+  conversations: "ti-messages", comments: "ti-message-circle-2", broadcast: "ti-speakerphone",
+  analytics: "ti-chart-bar", channels: "ti-plug", billing: "ti-credit-card",
+  ai: "ti-cpu", profile: "ti-user",
+};
 
 const MAX_PHOTOS = 12;
 // How many photos one trip to /api/photo-draft may carry. Six is the server's
@@ -255,7 +268,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   // All three append through the updater rather than rebuilding from `msgs`,
   // which is the only shape that survives two of them firing in one handler.
-  const say = (m) => setMsgs((s) => [...s, { role: "assistant", phase: "chat", actions: [], ...m }]);
+  const say = (m) => setMsgs((s) => [...s, { role: "assistant", phase: "chat", cards: [], ...m }]);
   const heard = (key, vars) => setMsgs((s) => [...s, { role: "user", phase: "chat", key, vars }]);
   const typed = (content, phase = "chat") => setMsgs((s) => [...s, { role: "user", phase, content }]);
 
@@ -295,11 +308,19 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
+    // One list, whichever half of the dashboard each proposal is about — a
+    // price and an offer are the same thing to the owner: something that will
+    // happen if they leave it ticked. The `kind` is only there so the card
+    // knows which describer to read it with.
+    const cards = [
+      ...(r.actions || []).map((a) => ({ kind: "product", a })),
+      ...(r.settingActions || []).map((a) => ({ kind: "setting", a })),
+    ];
     say({
-      content: r.reply, actions: r.actions || [], before: r.before || {},
+      content: r.reply, cards, before: r.before || {}, settingsBefore: r.settingsBefore || null,
       // Every proposal starts ticked: the owner reads them and unticks what is
       // wrong, rather than having to tick things one at a time to get anywhere.
-      picked: (r.actions || []).map(() => true),
+      picked: cards.map(() => true),
     });
   };
 
@@ -307,12 +328,18 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   const apply = async (mi) => {
     const m = msgs[mi];
-    const chosen = m.actions.filter((_, i) => m.picked[i]);
+    const chosen = m.cards.filter((_, i) => m.picked[i]);
     if (!chosen.length || busy) return;
     setBusy(true); setErr("");
     const r = await apiJson("/api/inventory-apply", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ actions: chosen }),
+      // Split apart again at the door, because the two halves are written to
+      // two different places and only the server may decide what a proposal is
+      // allowed to touch.
+      body: JSON.stringify({
+        actions: chosen.filter((c) => c.kind === "product").map((c) => c.a),
+        settingActions: chosen.filter((c) => c.kind === "setting").map((c) => c.a),
+      }),
     });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
@@ -321,7 +348,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     refresh?.();
   };
 
-  const discard = (mi) => setMsgs((s) => s.map((m, i) => i !== mi ? m : { ...m, actions: [], picked: [], dropped: true }));
+  const discard = (mi) => setMsgs((s) => s.map((m, i) => i !== mi ? m : { ...m, cards: [], picked: [], dropped: true }));
 
   // ── Step 1: where are they coming from ─────────────────────────────────────
   // "I'll ask you the questions" and "From photos" are this panel's own job;
@@ -517,7 +544,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
     // Photos that would not fit usually means these are not all one product.
     // Saying so is more use than a silent truncation.
-    if (overflow) setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [],
+    if (overflow) setMsgs((s) => [...s, { role: "assistant", phase: "interview", cards: [],
       key: "asst.photo.overflowTip", vars: { n: overflow, max: MAX_PHOTOS } }]);
 
     // EVERY photo is read now, not only the first.
@@ -618,7 +645,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       // ours to re-translate — with our own instruction keyed around it.
       setDup({ ...r.duplicate, message: r.error });
       setRefused(true);
-      setMsgs((s) => [...s, { role: "assistant", phase: "interview", actions: [], key: "asst.dupRefused", vars: { message: r.error } }]);
+      setMsgs((s) => [...s, { role: "assistant", phase: "interview", cards: [], key: "asst.dupRefused", vars: { message: r.error } }]);
       return;
     }
     if (r.error) { setErr(r.error); return; }
@@ -739,13 +766,16 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             {m.photoUrls.map((u) => <img key={u} src={u} alt="" style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 9, border: `1px solid ${T.border}` }} />)}
           </div>}
 
-          {m.actions?.length > 0 && <div style={{ width: "100%", borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, padding: 12 }}>
+          {m.cards?.length > 0 && <div style={{ width: "100%", borderRadius: 14, border: `1px solid ${T.border}`, background: T.card, padding: 12 }}>
             <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7, marginBottom: 9 }}>
               {t("asst.proposed")}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {m.actions.map((a, ai) => {
-                const d = describeAction(a, m.before?.[a.id]);
+              {m.cards.map((c, ai) => {
+                // Two describers, one card. A price and an offer read the same
+                // way to the owner; only the half of the dashboard they land in
+                // differs, and that is the server's business, not theirs.
+                const d = c.kind === "setting" ? describeSetting(c.a, m.settingsBefore) : describeAction(c.a, m.before?.[c.a.id]);
                 return <label key={ai} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 10, borderRadius: 11, background: T.bgAlt, cursor: m.done ? "default" : "pointer" }}>
                   <input type="checkbox" checked={!!m.picked[ai]} disabled={!!m.done || busy} onChange={() => toggle(mi, ai)}
                     style={{ width: 17, height: 17, flexShrink: 0, marginTop: 1, accentColor: T.gold }} />

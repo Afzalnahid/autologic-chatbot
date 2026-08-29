@@ -80,8 +80,8 @@ const DICT = {
     // than telling the owner to stop.
     "nav.assistant": "AI Assistant",
     "inv.takingYou": "Taking you to {tab}.",
-    "inv.assistantTitle": "Add and manage products by chatting",
-    "inv.assistantSub": "Answer a few questions to add one, or just say what to change. Nothing happens until you press the button.",
+    "inv.assistantTitle": "Run the whole dashboard by talking to it",
+    "inv.assistantSub": "Products, offers, what the bot knows, how far it bargains. It shows you every change before anything happens.",
     "inv.dupSameName": "You already have one called “{name}”. If this is a different design, say what makes it different — the print, the colour — and I will add that to the name so a customer asking for it finds the right one.",
 
     // ---- the assistant's own conversation ----
@@ -90,10 +90,11 @@ const DICT = {
     // as everything else on this list: the owner picks a language once, and
     // then the whole dashboard is in it — a chat that answers in English under
     // a Bangla screen is the one place that rule was still being broken.
-    "asst.intro": "How would you like to add products? Pick one below — or ask me about the {n} already in your catalogue.",
+    "asst.intro": "Add products with the buttons below, or just say what you want — about your {n} products, your offers, or what the bot should know. Nothing is saved until you press a button.",
     "asst.chip.low": "What is running low?",
     "asst.chip.noPrice": "Which products have no price?",
-    "asst.chip.oos": "How many products are out of stock?",
+    "asst.chip.offer": "Make an Eid offer — 20% off everything",
+    "asst.chip.teach": "Tell the bot we are closed on Fridays",
 
     // Step 1 of the way in: where the products are coming from.
     "asst.way.ask": "I’ll ask you the questions",
@@ -234,15 +235,15 @@ const DICT = {
 
     // ---- Train ----
     "bt.train.title": "Teach it your business",
-    "bt.train.sub": "Answer the bot's questions — it writes its own training from them",
-    "bt.train.viewChat": "Chat", "bt.train.viewForm": "Form",
-    "bt.train.intro": "Hi! I'm your bot. Answer a few questions and I'll learn your business. Write in whichever language you like — skip anything, change anything later.",
-    "bt.train.done": "That's everything — thank you! Press the button below and I'll turn your answers into my business profile. You can redo this chat anytime; your answers stay.",
-    "bt.train.generate": "Generate my bot's profile",
+    "bt.train.sub": "Fill in what it should know — it writes its own training from this",
+    "bt.train.answered": "{n} of {total} answered",
+    // The one-at-a-time version of these questions lives on the AI Assistant
+    // tab now. The keys the chat used are gone with it; the `q.*` block below
+    // is what phrased those questions and is kept, because it is the wording a
+    // person recognises and the assistant will want it.
+    "bt.train.askThere": "Prefer to be asked? The AI Assistant can fill any of this in from a conversation, and shows you the change before it saves.",
     "bt.train.generating": "Generating…",
-    "bt.train.redo": "Redo the chat",
     "bt.train.regen": "Regenerate with AI",
-    "bt.train.skipped": "(skipped)",
     "bt.train.genOk": "Generated. Review it in Behavior → Advanced, then Save.",
     "bt.train.genNeedDesc": "Please describe your business first",
     "bt.train.genFail": "Could not generate — please try again.",
@@ -403,15 +404,16 @@ const DICT = {
   bn: {
     "nav.assistant": "এআই সহকারী",
     "inv.takingYou": "{tab} খুলে দিচ্ছি।",
-    "inv.assistantTitle": "কথা বলেই প্রোডাক্ট যোগ করুন ও সামলান",
-    "inv.assistantSub": "কয়েকটা প্রশ্নের উত্তর দিলেই একটা যোগ হবে, বা কী বদলাতে চান বলুন। বোতাম না চাপা পর্যন্ত কিছুই হবে না।",
+    "inv.assistantTitle": "কথা বলেই পুরো ড্যাশবোর্ড চালান",
+    "inv.assistantSub": "প্রোডাক্ট, অফার, বট কী জানে, কতদূর দরদাম করবে। কিছু হওয়ার আগে কী বদলাচ্ছে দেখিয়ে দেয়।",
     "inv.dupSameName": "“{name}” নামে একটা আপনার আগেই আছে। এটা যদি আলাদা ডিজাইন হয়, বলুন কীসে আলাদা — প্রিন্ট, রং — নামের সাথে সেটা জুড়ে দেব, যাতে কাস্টমার চাইলে ঠিকটাই পায়।",
 
     // ---- the assistant's own conversation ----
-    "asst.intro": "প্রোডাক্ট কীভাবে যোগ করতে চান? নিচ থেকে একটা বেছে নিন — অথবা ক্যাটালগে থাকা {n}টা নিয়ে আমাকে জিজ্ঞেস করুন।",
+    "asst.intro": "নিচের বোতাম দিয়ে প্রোডাক্ট যোগ করুন, অথবা যা চান বলুন — আপনার {n}টা প্রোডাক্ট, অফার, বা বট কী জানবে তা নিয়ে। বোতাম না চাপা পর্যন্ত কিছুই সেভ হবে না।",
     "asst.chip.low": "কোনগুলো ফুরিয়ে আসছে?",
     "asst.chip.noPrice": "কোন প্রোডাক্টের দাম দেওয়া নেই?",
-    "asst.chip.oos": "কয়টা প্রোডাক্ট স্টকে নেই?",
+    "asst.chip.offer": "ঈদের অফার দিন — সবকিছুতে ২০% ছাড়",
+    "asst.chip.teach": "বটকে বলুন শুক্রবার আমরা বন্ধ",
 
     "asst.way.ask": "আমি প্রশ্ন করি, আপনি উত্তর দিন",
     "asst.way.askSub": "একটা একটা করে, আপনার নিজের ভাষায়",
@@ -530,15 +532,11 @@ const DICT = {
     "bt.tab.train": "শেখান", "bt.tab.offers": "অফার", "bt.tab.bargain": "দরদাম", "bt.tab.behavior": "আচরণ",
 
     "bt.train.title": "ব্যবসার কথা শেখান",
-    "bt.train.sub": "বটের প্রশ্নের উত্তর দিন — সে নিজেই নিজের প্রশিক্ষণ লিখে নেবে",
-    "bt.train.viewChat": "চ্যাট", "bt.train.viewForm": "ফর্ম",
-    "bt.train.intro": "হ্যালো! আমি আপনার বট। কয়েকটা প্রশ্নের উত্তর দিন, আমি আপনার ব্যবসা শিখে নেব। যে ভাষায় খুশি লিখুন — যেকোনো প্রশ্ন বাদ দিতে পারেন, পরে বদলানোও যাবে।",
-    "bt.train.done": "সব হয়ে গেছে — ধন্যবাদ! নিচের বোতামে চাপ দিন, আমি আপনার উত্তরগুলো দিয়ে আমার ব্যবসায়িক প্রোফাইল তৈরি করব। চাইলে যেকোনো সময় আবার এই চ্যাট করতে পারবেন; উত্তরগুলো থেকে যাবে।",
-    "bt.train.generate": "আমার প্রোফাইল তৈরি করুন",
+    "bt.train.sub": "বট কী কী জানবে তা লিখে দিন — সে নিজেই নিজের প্রশিক্ষণ লিখে নেবে",
+    "bt.train.answered": "{total}টার মধ্যে {n}টার উত্তর দেওয়া",
+    "bt.train.askThere": "প্রশ্ন করে নিলে সুবিধা হয়? এআই সহকারী কথা বলেই এর যেকোনোটা পূরণ করে দিতে পারে, আর সেভ করার আগে কী বদলাচ্ছে দেখিয়ে দেয়।",
     "bt.train.generating": "তৈরি হচ্ছে…",
-    "bt.train.redo": "আবার শুরু করুন",
     "bt.train.regen": "এআই দিয়ে আবার লিখুন",
-    "bt.train.skipped": "(বাদ দেওয়া হয়েছে)",
     "bt.train.genOk": "তৈরি হয়েছে। আচরণ → অ্যাডভান্সড-এ দেখে নিয়ে সেভ করুন।",
     "bt.train.genNeedDesc": "আগে আপনার ব্যবসার কথা লিখুন",
     "bt.train.genFail": "তৈরি করা যায়নি — আবার চেষ্টা করুন।",

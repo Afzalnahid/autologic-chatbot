@@ -6,9 +6,10 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { getClientAI } from "@/lib/ai.js";
 import { FIELDS, normalizeActions } from "@/lib/inventory-actions.js";
+import { normalizeSettingActions, settingsSummary, trainingKeys, OFFER_FIELDS, TRAINING_FIELDS, IDENTITY_FIELDS, TONES, LANGUAGES } from "@/lib/assistant-actions.js";
 
-// The inventory assistant, half one: it answers questions about the catalogue
-// and PROPOSES changes. It never makes one.
+// The assistant, half one: it answers questions and PROPOSES changes. It never
+// makes one.
 //
 // That split is the whole design. An assistant that can quietly edit a shop's
 // prices is a liability — a misheard sentence becomes a wrong price a customer
@@ -17,9 +18,16 @@ import { FIELDS, normalizeActions } from "@/lib/inventory-actions.js";
 // out, and only after the owner has looked at each one and pressed the button.
 //
 // The model is also given no way to reach the database. It answers with JSON
-// naming a product id and a few whitelisted fields; anything outside that list
-// (photos, a variant's own price, another shop's product) cannot be expressed,
-// let alone applied.
+// naming an id and a few whitelisted fields; anything outside those lists
+// (photos, a variant's own price, another shop's product, a setting nobody put
+// on the list) cannot be expressed, let alone applied.
+//
+// It reaches past the catalogue now. The owner asked for one place from which
+// the whole dashboard is driven, so this route is also shown the shop's OFFERS,
+// how far the bot may bargain, what it has been taught and who it says it is —
+// everything the Bot Training tab holds, which is one row in app_settings. The
+// route name still says inventory; what it does is wider than that, and
+// renaming a live route is a separate job from making it work.
 
 // How much of the catalogue the model is shown. A shop with two thousand
 // products cannot be sent whole, so the rows most likely to be the subject are
@@ -42,17 +50,22 @@ export async function POST(request) {
       .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content).slice(0, 4000) }));
     if (!messages.length) return NextResponse.json({ error: "nothing to answer" }, { status: 400 });
 
-    const { data: rows } = await supabase.from("products")
-      .select("id,metadata,created_at").eq("client_id", client.id)
-      .order("created_at", { ascending: false }).limit(1000);
+    // Both halves of what the owner can talk about, read together: the shop's
+    // catalogue and everything the Bot Training tab holds.
+    const [{ data: rows }, { data: setRow }] = await Promise.all([
+      supabase.from("products").select("id,metadata,created_at").eq("client_id", client.id)
+        .order("created_at", { ascending: false }).limit(1000),
+      supabase.from("app_settings").select("settings").eq("id", String(client.id)).maybeSingle(),
+    ]);
     const all = (rows || []).map((r) => ({ id: r.id, ...(r.metadata || {}) }));
+    const settings = setRow?.settings || {};
 
     const last = messages[messages.length - 1].content;
     const shown = pick(all, last, CONTEXT_ROWS);
     const hidden = all.length - shown.length;
 
     const ai = await getClientAI(client.id, "product.assistant");
-    const raw = await ai.chat(systemPrompt(client, all, shown, hidden), messages);
+    const raw = await ai.chat(systemPrompt(client, all, shown, hidden, settings), messages);
     const parsed = parse(raw);
 
     // Only proposals about products this shop owns survive. The model has no
@@ -60,18 +73,47 @@ export async function POST(request) {
     const owned = new Set(all.map((p) => String(p.id)));
     const actions = normalizeActions(parsed.actions).filter((a) => a.do === "create" || owned.has(String(a.id)));
 
+    // The same rule for the settings half: an offer or a note the model names
+    // has to be one that is actually there, or the proposal is dropped before
+    // the owner is ever shown it.
+    const offerIds = new Set((Array.isArray(settings.offers) ? settings.offers : []).map((o) => String(o?.id)));
+    const noteIds = new Set((Array.isArray(settings.questionnaire?.notes) ? settings.questionnaire.notes : []).map((n) => String(n?.id)));
+    const settingActions = normalizeSettingActions(parsed.settings).filter((a) => {
+      if (a.do === "offer.update" || a.do === "offer.delete") return offerIds.has(String(a.id));
+      if (a.do === "note.delete") return noteIds.has(String(a.id));
+      return true;
+    });
+
     return NextResponse.json({
       ok: true,
       reply: parsed.reply || "I could not put that into words. Try asking it a different way.",
       actions,
+      settingActions,
       // The panel reads each product as it stands now, to show "450 → 500"
       // rather than just "500".
       before: Object.fromEntries(actions.filter((a) => a.id).map((a) => [a.id, all.find((p) => String(p.id) === String(a.id)) || null])),
+      // The same idea for the other half, and it is one object rather than a
+      // map because every settings proposal is a change to the same thing.
+      // Trimmed to what the cards actually read: the generated business profile
+      // is thousands of words and would ride along in every message for nothing.
+      settingsBefore: settingActions.length ? forCards(settings) : null,
     });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+
+// Only the parts of the settings a proposal card reads back, so "5% → 10%" can
+// be shown. `businessPrompt` is deliberately not among them: it is the whole
+// generated profile, it is never what a card compares against, and sending it
+// with every answer would be a page of text riding along for nothing.
+const forCards = (s) => ({
+  botName: s.botName || "", businessName: s.businessName || "", greeting: s.greeting || "",
+  offers: Array.isArray(s.offers) ? s.offers : [],
+  bargain: s.bargain || {},
+  followup: { enabled: !!s.followup?.enabled },
+  questionnaire: s.questionnaire || {},
+});
 
 // The rows most likely to be what the owner just talked about: anything whose
 // name, code or category shares a word with the message, then the newest.
@@ -100,35 +142,55 @@ const line = (p) => [
   p.variants?.length ? `variants=${p.variants.length}` : "",
 ].filter(Boolean).join(" | ");
 
-function systemPrompt(client, all, shown, hidden) {
+function systemPrompt(client, all, shown, hidden, settings) {
   const inStock = all.filter((p) => p.stock_status !== "outofstock").length;
-  return `You help the owner of a ${client.business_type === "agency" ? "service business" : "shop"} in Bangladesh look after their catalogue, by conversation. Their business is "${client.business_name || "this business"}".
+  const agency = client.business_type === "agency";
+  const keys = trainingKeys(client.business_type);
+  return `You run the dashboard of a ${agency ? "service business" : "shop"} in Bangladesh, by conversation, for its owner. Their business is "${client.business_name || "this business"}". You are the one place from which the whole thing is driven: the catalogue, the offers the bot quotes, how far it may bargain, what it has been taught, and who it says it is.
 
 WHAT YOU CAN DO
-- Answer questions about the catalogue from the list below.
-- PROPOSE changes. You never make a change yourself: every proposal is shown to the owner and only happens if they press a button. Say so when it matters, and never claim something is done.
+- Answer questions from what you are shown below. It is everything you can see.
+- PROPOSE changes. You never make a change yourself: every proposal is shown to the owner as a card and only happens if they press a button. Say so when it matters, and never claim something is done.
 - Ask a question back when the request is ambiguous. Proposing the wrong change is worse than asking.
-- You cannot read files or open websites. When the owner mentions a spreadsheet, a CSV, a product link, a WooCommerce shop, or says they have many ${client.business_type === "agency" ? "services" : "products"} to add, point at the buttons under the message box: "Many photos", "A spreadsheet", "A product link", "WooCommerce". Say which one fits. Never offer to do it yourself.
+- Take the owner to another tab when that is what they want. You do not need to do anything for that — the panel recognises "show me the orders", "open bot training" on its own. Just answer normally.
+- You cannot read files or open websites. When the owner mentions a spreadsheet, a CSV, a product link, a WooCommerce shop, or says they have many ${agency ? "services" : "products"} to add, point at the buttons under the message box: "From photos", "A spreadsheet", "A product link", "WooCommerce". Say which one fits. Never offer to do it yourself.
+- You cannot send anything to a customer. Broadcasts and replies are not yours; say the owner does that on Broadcast or Inbox.
 
 THE CATALOGUE
 ${all.length} products in total, ${inStock} of them in stock.${hidden > 0 ? ` You are shown ${shown.length} of them below — ${hidden} are NOT in this list, so never say the shop does not have something; say you cannot see it and ask for the name or code.` : ""}
 
 ${shown.map(line).join("\n") || "(the catalogue is empty)"}
 
-RULES
+THE BOT'S OWN SETTINGS
+${settingsSummary(settings, keys)}
+
+RULES — THE CATALOGUE
 - Only propose a change to a product whose id appears above. Copy the id exactly.
 - Fields you may set: ${Object.keys(FIELDS).join(", ")}. Nothing else. Photos and per-variant prices cannot be changed here — say the owner must open the product for those.
 - "options" sets the choices a customer picks from, e.g. [{"name":"Size","values":["S","M","L"]}]. Changing it rebuilds that product's variants; stock counts already typed against a combination are kept.
-- Never invent a price, a stock count or a product that the owner has not given you.
 - One proposal per product per answer.
 - Deleting is permanent. Only propose it when the owner has clearly asked for that product to be removed.
+
+RULES — THE BOT'S SETTINGS
+- OFFERS are deals the bot quotes to customers word for word, so write them as a customer should read them. Fields: ${Object.keys(OFFER_FIELDS).join(", ")}. You cannot choose WHICH products an offer covers — that is picked from the real catalogue on the Offers tab — so say that when it matters.
+- Switching an offer off ("active": false) keeps it for later; deleting throws it away. Prefer switching off unless the owner says remove.
+- BARGAINING: "mode" is one of fixed (never moves on price), limited (may take up to max_discount_pct off), custom (the owner's own rule in words).
+- TEACHING: "note.add" is how the bot learns one more fact — "we are closed on Fridays", "delivery is free over 2000". Short, plain, one fact each.
+- TRAINING answers are the long-form profile: ${keys.join(", ")}. Setting one REPLACES what is there, so read the old answer back if you are only adding to it.
+- IDENTITY: ${Object.keys(IDENTITY_FIELDS).join(", ")}. "tone" must be exactly one of: ${TONES.join(" | ")}. "languages" must be exactly one of: ${LANGUAGES.join(" | ")}.
+- Only propose an offer or note change with an id that appears above. Copy it exactly.
+
+RULES — BOTH
+- Never invent a price, a stock count, an offer or a fact the owner has not given you.
 - Prices are in taka; write digits only, no currency symbol.
 - Reply in the language the owner is writing in.
 
 ANSWER FORMAT
 JSON only, nothing before or after:
-{"reply":"what you say to the owner","actions":[{"do":"update","id":"<id>","set":{"regular_price":"500"}}]}
-Use "actions":[] when you are only answering or asking. Verbs: "update" (needs id), "create" (needs set.product_name), "delete" (needs id).`;
+{"reply":"what you say to the owner","actions":[{"do":"update","id":"<id>","set":{"regular_price":"500"}}],"settings":[{"do":"offer.create","set":{"title":"Eid sale","details":"20% off everything until 15 April"}}]}
+Use empty arrays when you are only answering or asking.
+Catalogue verbs: "update" (needs id), "create" (needs set.product_name), "delete" (needs id).
+Settings verbs: "offer.create", "offer.update" (needs id), "offer.delete" (needs id), "bargain.set", "note.add", "note.delete" (needs id), "training.set", "identity.set", "followup.set".`;
 }
 
 // Models wrap JSON in ```json fences often enough that not handling it is a bug
@@ -141,8 +203,8 @@ function parse(raw) {
   if (start >= 0 && end > start) {
     try {
       const j = JSON.parse(text.slice(start, end + 1));
-      if (j && typeof j === "object") return { reply: String(j.reply || "").trim(), actions: j.actions };
+      if (j && typeof j === "object") return { reply: String(j.reply || "").trim(), actions: j.actions, settings: j.settings };
     } catch {}
   }
-  return { reply: text.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim(), actions: [] };
+  return { reply: text.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim(), actions: [], settings: [] };
 }

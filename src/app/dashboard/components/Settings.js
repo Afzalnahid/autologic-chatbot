@@ -1,12 +1,22 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { T, Card, Btn, Inp, Badge, Accordion, Select, Switch, useIsMobile, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
 import { api, apiJson } from "./session.js";
 import { useT, useLang } from "./i18n.js";
+import { TRAINING_KEYS_ECOM, TRAINING_KEYS_AGENCY } from "@/lib/assistant-actions.js";
 
-// The Bot Training tab (page key "settings"). Four sub-tabs — Train (the bot
-// interviews the owner), Offers (deals the bot quotes exactly), Bargaining
-// (how far it may go on price) and Behavior (identity, automation, guardrails).
+// The Bot Training tab (page key "settings"). Four sub-tabs — Train (what the
+// bot knows about the business), Offers (deals the bot quotes exactly),
+// Bargaining (how far it may go on price) and Behavior (identity, automation,
+// guardrails).
+//
+// This is a MANUAL tab. The Train sub-tab used to offer two views of the same
+// fields — a form, and a chat that asked the same questions one at a time — and
+// the chat is gone. Not because it was bad, but because the dashboard now has
+// ONE place where you talk to it, and a chat here meant the owner had to
+// remember which of two conversations knew what. Everything the chat could
+// reach is on the form, and the AI Assistant tab can fill any of it in by
+// conversation and show the change for confirmation before it lands.
 //
 // Every visible string comes from i18n so the dashboard's language switch
 // covers this tab in both English and Bangla; nothing is hardcoded in one
@@ -32,20 +42,15 @@ SERVICES: Presented conversationally · no invented packages or prices · asks a
 MEETINGS: Collects name, email, phone, service, date & time · confirms before booking · Google Meet link sent automatically
 LEADS: Not-ready customers are nurtured, never pushed`;
 
-// Which questions the interview asks, per business type. A shop and an agency
-// are asked genuinely different things — the shop about stock, delivery and
-// returns, the agency about process, timeline and objections — because a bot
-// trained on the wrong questions answers badly in exactly the moments that
-// cost a sale.
-const STEP_KEYS_ECOM = ["description", "products", "delivery", "deliveryAreas", "payment", "advancePay",
-  "returnPolicy", "stock", "warranty", "hours", "catalogLink", "faq", "complaints", "special"];
-const STEP_KEYS_AGENCY = ["description", "services", "pricing", "process", "timeline", "meetingInfo",
-  "clients", "hours", "catalogLink", "contract", "faq", "objections", "special"];
+// Which questions are asked, per business type. They live in
+// `assistant-actions.js` because the AI Assistant tab needs the same list — it
+// can fill one of these in by conversation, so it has to know which ones this
+// business has. Two copies of a list like that drift, and the drift is
+// invisible until a question exists in one place and not the other.
+const STEP_KEYS_ECOM = TRAINING_KEYS_ECOM;
+const STEP_KEYS_AGENCY = TRAINING_KEYS_AGENCY;
 const LONG = new Set(["description", "products", "services", "pricing", "process", "clients",
   "stock", "faq", "objections", "complaints", "special"]);
-// Extra fields that only appear in the Form view for the matching business type.
-const FORM_EXTRA_ECOM = ["products", "deliveryAreas", "advancePay", "stock", "warranty", "complaints"];
-const FORM_EXTRA_AGENCY = ["pricing", "process", "timeline", "clients", "contract", "objections"];
 
 export default function Settings({settings,setSettings}) {
   const t=useT();
@@ -57,7 +62,6 @@ export default function Settings({settings,setSettings}) {
   const [me,setMe]=useState(null);
   // Another tab (Inventory's "Offers" button) can request a sub-tab.
   const [tab,setTab]=useState(()=>{try{const v=sessionStorage.getItem("al-bt-tab");if(v){sessionStorage.removeItem("al-bt-tab");return v;}}catch{}return "train";});
-  const [view,setView]=useState("chat");
   const isMobile=useIsMobile();
   useEffect(()=>{setS(settings);},[settings]);
   useEffect(()=>{api("/api/me").then(r=>r.json()).then(setMe).catch(()=>{});},[]);
@@ -79,14 +83,11 @@ export default function Settings({settings,setSettings}) {
     setS(v=>({...v,businessPrompt:r.prompt})); setGenMsg(t("bt.train.genOk"));
   };
 
-  // ---------- guided interview ----------
+  // Which questions this kind of business is asked. The chat that asked them
+  // one at a time has moved to the AI Assistant tab; the same keys still drive
+  // the form below, so nothing that was answerable stopped being answerable.
   const stepKeys=isEcom?STEP_KEYS_ECOM:STEP_KEYS_AGENCY;
-  const [iv,setIv]=useState(0);
-  const [ivInput,setIvInput]=useState("");
-  const chatRef=useRef(null);
-  useEffect(()=>{ setIvInput(iv<stepKeys.length?(q[stepKeys[iv]]||""):""); },[iv,bType]); // eslint-disable-line
-  useEffect(()=>{ chatRef.current?.scrollTo({top:chatRef.current.scrollHeight,behavior:"smooth"}); },[iv,view]);
-  const ivSend=()=>{ if(iv>=stepKeys.length) return; if(ivInput.trim()) setQ({[stepKeys[iv]]:ivInput.trim()}); setIv(iv+1); };
+  const answered=stepKeys.filter(k=>String(q[k]||"").trim()).length;
 
   // ---------- ongoing training ("teach it more") ----------
   // The interview covers the basics once; a real business keeps learning. Each
@@ -105,16 +106,6 @@ export default function Settings({settings,setSettings}) {
   // ---------- prompt editor ----------
   const [promptFull,setPromptFull]=useState(false);
   const promptText=s.businessPrompt||s.systemPrompt||"";
-
-  const BotBubble=({children})=>
-    <div style={{display:"flex",gap:8,alignItems:"flex-start",maxWidth:"92%"}}>
-      <span style={{width:26,height:26,borderRadius:9,background:T.goldBg,color:T.gold,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,marginTop:2}}><i className="ti ti-robot"/></span>
-      <div style={{background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:"4px 14px 14px 14px",padding:"9px 13px",fontSize:13,lineHeight:1.65}}>{children}</div>
-    </div>;
-  const MeBubble=({children,skipped})=>
-    <div style={{display:"flex",justifyContent:"flex-end"}}>
-      <div style={{maxWidth:"88%",background:skipped?T.bgAlt:T.goldBg,color:skipped?T.textDim:T.text,border:`0.5px solid ${skipped?T.border:`color-mix(in srgb, ${T.gold} 25%, transparent)`}`,borderRadius:"14px 4px 14px 14px",padding:"9px 13px",fontSize:13,lineHeight:1.65,whiteSpace:"pre-wrap",fontStyle:skipped?"italic":"normal"}}>{children}</div>
-    </div>;
 
   // ---------- offers ----------
   const offers=Array.isArray(s.offers)?s.offers:[];
@@ -241,58 +232,35 @@ export default function Settings({settings,setSettings}) {
     {/* ============ TRAIN ============ */}
     {tab==="train"&&<>
     <Card style={{marginBottom:12}}>
-      <Sec icon="ti-messages" title={t("bt.train.title")} sub={t("bt.train.sub")}
-        right={<div style={{display:"inline-flex",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:9,padding:3,gap:3,flexShrink:0}}>
-          {[["chat",t("bt.train.viewChat")],["form",t("bt.train.viewForm")]].map(([id,l])=>
-            <button key={id} onClick={()=>setView(id)} style={{padding:"5px 12px",borderRadius:7,border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,fontFamily:"inherit",background:view===id?T.gold:"transparent",color:view===id?"#fff":T.textMuted}}>{l}</button>)}
-        </div>}/>
+      <Sec icon="ti-forms" title={t("bt.train.title")} sub={t("bt.train.sub")}
+        right={<Badge color={answered?T.success:T.textDim}>{t("bt.train.answered",{n:answered,total:stepKeys.length})}</Badge>}/>
 
-      {view==="chat"&&<>
-        <div ref={chatRef} style={{display:"flex",flexDirection:"column",gap:12,maxHeight:380,overflowY:"auto",padding:"4px 2px",marginBottom:12}}>
-          <BotBubble>{t("bt.train.intro")}</BotBubble>
-          {stepKeys.slice(0,iv).map(k=><div key={k} style={{display:"flex",flexDirection:"column",gap:12}}>
-            <BotBubble>{t(`q.${bk}.${k}`)}</BotBubble>
-            <MeBubble skipped={!(q[k]||"").trim()}>{(q[k]||"").trim()||t("bt.train.skipped")}</MeBubble>
-          </div>)}
-          {iv<stepKeys.length&&<BotBubble>{t(`q.${bk}.${stepKeys[iv]}`)}</BotBubble>}
-          {iv>=stepKeys.length&&<BotBubble>{t("bt.train.done")}</BotBubble>}
+      {/* The questions used to be askable one at a time here as well. That
+          conversation lives on the AI Assistant tab now — one place where you
+          talk to it — and this is the door to it. */}
+      <div style={{display:"flex",gap:9,alignItems:"flex-start",background:T.goldBg,borderRadius:12,padding:"10px 12px",marginBottom:14}}>
+        <i className="ti ti-sparkles" style={{fontSize:16,color:T.gold,flexShrink:0,marginTop:1}}/>
+        <div style={{flex:1,minWidth:0,fontSize:12,color:T.text,lineHeight:1.6}}>{t("bt.train.askThere")}</div>
+        <Btn small gold onClick={()=>window.dispatchEvent(new CustomEvent("al-goto",{detail:"assistant"}))} style={{flexShrink:0,whiteSpace:"nowrap"}}>{t("nav.assistant")}</Btn>
+      </div>
+
+      <Inp textarea label={t("lbl.description")} value={q.description||""} onChange={e=>setQ({description:e.target.value})}
+        inputStyle={{minHeight:130,lineHeight:1.65}} placeholder={t(`ph.${bk}.description`)}/>
+      <div style={{marginBottom:14}}>
+        <div style={{fontSize:11.5,color:T.textMuted,marginBottom:8}}>{t("bt.train.samples")}</div>
+        <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+          {(isEcom?SAMPLE_ECOM:SAMPLE_AGENCY).map(ex=><button key={ex.label} onClick={()=>setQ({description:ex.text})}
+            style={{padding:"6px 13px",borderRadius:20,border:`1px solid ${T.border}`,background:T.bgAlt,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{ex.label}</button>)}
         </div>
-
-        {iv<stepKeys.length?<>
-          <Inp textarea={LONG.has(stepKeys[iv])} value={ivInput} onChange={e=>setIvInput(e.target.value)}
-            placeholder={t(`ph.${bk}.${stepKeys[iv]}`)}
-            inputStyle={LONG.has(stepKeys[iv])?{minHeight:90,lineHeight:1.6}:undefined} style={{marginBottom:10}}/>
-          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-            <Btn gold onClick={ivSend}><i className="ti ti-send" style={{marginRight:6}}/>{t("common.send")}</Btn>
-            <Btn small onClick={()=>setIv(iv+1)}>{t("common.skip")}</Btn>
-            {iv>0&&<Btn small onClick={()=>setIv(iv-1)}><i className="ti ti-arrow-back-up" style={{marginRight:4}}/>{t("common.back")}</Btn>}
-            <span style={{marginLeft:"auto",fontSize:11.5,color:T.textDim}}>{iv+1} / {stepKeys.length}</span>
-          </div>
-        </>:<div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?t("bt.train.generating"):t("bt.train.generate")}</Btn>
-          <Btn small onClick={()=>setIv(0)}><i className="ti ti-refresh" style={{marginRight:4}}/>{t("bt.train.redo")}</Btn>
-        </div>}
-        {genMsg&&<div style={{fontSize:12,color:T.textMuted,marginTop:10}}>{genMsg}</div>}
-      </>}
-
-      {view==="form"&&<>
-        <Inp textarea label={t("lbl.description")} value={q.description||""} onChange={e=>setQ({description:e.target.value})}
-          inputStyle={{minHeight:130,lineHeight:1.65}} placeholder={t(`ph.${bk}.description`)}/>
-        <div style={{marginBottom:14}}>
-          <div style={{fontSize:11.5,color:T.textMuted,marginBottom:8}}>{t("bt.train.samples")}</div>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {(isEcom?SAMPLE_ECOM:SAMPLE_AGENCY).map(ex=><button key={ex.label} onClick={()=>setQ({description:ex.text})}
-              style={{padding:"6px 13px",borderRadius:20,border:`1px solid ${T.border}`,background:T.bgAlt,color:T.textMuted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>{ex.label}</button>)}
-          </div>
-        </div>
-        {/* Every interview question also exists here, driven by the same list,
-            so the two views can never drift apart as questions are added. */}
-        {stepKeys.filter(k=>k!=="description").map(k=>
-          <Inp key={k} textarea={LONG.has(k)} label={t("lbl."+k)} value={q[k]||""}
-            onChange={e=>setQ({[k]:e.target.value})} placeholder={t(`ph.${bk}.${k}`)}/>)}
-        <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?t("bt.train.generating"):t("bt.train.regen")}</Btn>
-        {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
-      </>}
+      </div>
+      {/* Every question this business has, driven by the same list the
+          assistant reads, so the two can never drift apart as questions are
+          added. */}
+      {stepKeys.filter(k=>k!=="description").map(k=>
+        <Inp key={k} textarea={LONG.has(k)} label={t("lbl."+k)} value={q[k]||""}
+          onChange={e=>setQ({[k]:e.target.value})} placeholder={t(`ph.${bk}.${k}`)}/>)}
+      <Btn gold onClick={regenerate} disabled={gen}><i className="ti ti-sparkles" style={{marginRight:6}}/>{gen?t("bt.train.generating"):t("bt.train.regen")}</Btn>
+      {genMsg&&<span style={{fontSize:12,color:T.textMuted,marginLeft:10}}>{genMsg}</span>}
     </Card>
 
     {/* Ongoing training — the bot keeps learning after the interview */}

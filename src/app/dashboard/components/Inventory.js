@@ -8,13 +8,23 @@ import { buildVariants, usableOptions, newVariantId, knownAxes } from "@/lib/var
 import { findTwins } from "@/lib/duplicate-keys.js";
 import { productState, MISSING, missingToSell, missingMessage } from "@/lib/readiness.js";
 import PhotoBatchSheet from "./PhotoBatch.js";
-import InventoryAssistant from "./InventoryAssistant.js";
 import DuplicateSweep from "./DuplicateSweep.js";
+import { useT } from "./i18n.js";
 
 // The Inventory tab: the shop's catalogue, organised. Products carry a
 // category, a brand, tags, a photo gallery and — for things that come in
 // sizes/colours — options and variants. Everything is edited in one drawer;
 // the list is filtered by category rail, stock, search and sort.
+//
+// This is the MANUAL tab. It had a chat panel folded into the top of it, and
+// the assistant now has a tab of its own — so there is one AI surface in the
+// dashboard rather than one per page. Everything here is hand-driven: the
+// drawer, the four imports, the filters. The only thing the chat left behind is
+// a door to it.
+
+// The assistant lives on its own page; this is how the rest of the dashboard
+// asks to be taken there. dashboard-client.js listens for it.
+const goAssistant = () => window.dispatchEvent(new CustomEvent("al-goto", { detail: "assistant" }));
 
 const price = (p) => { const n = Number(String(p ?? "").replace(/[^\d.]/g, "")); return Number.isFinite(n) && n > 0 ? n : null; };
 const LOW = 5;
@@ -67,7 +77,7 @@ export default function Inventory({ products, refresh, intent }) {
   // Bumped to ask the assistant to start an interview. A counter rather than a
   // boolean, so pressing the button a second time starts a second product
   // instead of doing nothing.
-  const [chatAdd, setChatAdd] = useState(0);
+  const t = useT();
   const [sweep, setSweep] = useState(false);
   // What the chat already asked for — the kind, the price, the sizes — handed
   // to the photo sheet so the same three questions are not asked twice.
@@ -208,19 +218,21 @@ export default function Inventory({ products, refresh, intent }) {
         {/* Straight to Bot Training → Offers, so bundling products into a deal
             is one click from where the products live. */}
         <Btn onClick={() => { try { sessionStorage.setItem("al-bt-tab", "offers"); } catch {} window.dispatchEvent(new CustomEvent("al-goto", { detail: "settings" })); }} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-discount-2" style={{ marginRight: 6 }} />Offers</Btn>
-        {/* Everything that is not "just talk to it" now lives behind one word.
-            The form is still here for photo ordering and per-variant prices,
-            which are not conversations, and the four imports are still here —
-            they are simply no longer the first thing an owner has to choose
-            between. Chatting is. */}
-        <Select value="" placeholder="Advanced" options={[
+        {/* This tab is the manual one now. Every way of adding a product by
+            hand is here and in the open — the form, and the four imports —
+            because the chat has moved out to its own tab and this page should
+            not look like it needs one. */}
+        <Select value="" placeholder="Add products" options={[
           { value: "add", label: "Add with the full form", icon: "ti-forms" },
           { value: "photos", label: "Many photos at once", icon: "ti-photo-plus" },
           { value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" },
           { value: "url", label: "From a product URL", icon: "ti-link" },
           { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" },
         ]} onChange={(v) => (v === "add" ? setEditor({ mode: "add" }) : setImporter(v))} />
-        <Btn gold onClick={() => setChatAdd((n) => n + 1)} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-message-2-plus" style={{ marginRight: 6 }} />Add by chat</Btn>
+        {/* The chat is one tab away, not on this page. A door to it, not a
+            second copy of it: two panels that both add products are two things
+            to keep in step, and the owner asked for one. */}
+        <Btn gold onClick={goAssistant} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-sparkles" style={{ marginRight: 6 }} />{t("nav.assistant")}</Btn>
       </div>
     </Card>
 
@@ -263,12 +275,6 @@ export default function Inventory({ products, refresh, intent }) {
       <Btn onClick={() => setStock("notready")} style={{ borderRadius: 12, whiteSpace: "nowrap" }}>Show them</Btn>
     </Card>}
 
-    {/* Talking to the catalogue. Folded until asked for, and shown even when
-        the catalogue is empty — being asked the questions is the gentlest way
-        to add the very first product. */}
-    <InventoryAssistant products={products} refresh={refresh} startSignal={chatAdd} shopAxes={shopAxes}
-      onImport={(kind, prefill) => { setPrefill(prefill || null); setImporter(kind); }} />
-
     {/* Body: category rail + products */}
     {empty
       ? <Card style={{ padding: "clamp(24px,5vw,44px) 20px", textAlign: "center" }}>
@@ -276,9 +282,12 @@ export default function Inventory({ products, refresh, intent }) {
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.02em" }}>Your catalogue is empty</div>
           <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6, maxWidth: 440, margin: "6px auto 22px", lineHeight: 1.6 }}>Add products with photos, prices, categories and sizes or colours. The bot shows them to customers, matches photos and takes orders.</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, maxWidth: 640, margin: "0 auto" }}>
-            {[["ti-message-2-plus", "Add by chat", "Answer a few questions, that is all", () => setChatAdd((n) => n + 1)], ["ti-plus", "Add a product", "Name, photos, price, variants", () => setEditor({ mode: "add" })], ["ti-photo-plus", "Add many from photos", "One photo becomes one product", () => setImporter("photos")], ["ti-table", "Upload a spreadsheet", "A CSV from Excel or Google Sheets", () => setImporter("csv")], ["ti-link", "Paste a product URL", "We fetch name, photo and price", () => setImporter("url")], ["ti-brand-wordpress", "Import WooCommerce", "Bring your whole shop over", () => setImporter("woo")]].map(([ic, t, s, fn]) =>
-              <button key={t} type="button" onClick={fn} className="ui-btn ob-row" style={{ padding: "16px 14px", borderRadius: 16, background: T.card, boxShadow: T.nmSm, border: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit", color: T.text }}>
-                <i className={`ti ${ic}`} style={{ fontSize: 22, color: T.gold }} /><div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>{t}</div><div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2 }}>{s}</div>
+            {/* `label`, not `t` — `t` is the translator in this component now,
+                and a map variable that shadows it is exactly the shadow that
+                bites later. */}
+            {[["ti-sparkles", t("nav.assistant"), "Answer a few questions and it fills the form in", goAssistant], ["ti-plus", "Add a product", "Name, photos, price, variants", () => setEditor({ mode: "add" })], ["ti-photo-plus", "Add many from photos", "One photo becomes one product", () => setImporter("photos")], ["ti-table", "Upload a spreadsheet", "A CSV from Excel or Google Sheets", () => setImporter("csv")], ["ti-link", "Paste a product URL", "We fetch name, photo and price", () => setImporter("url")], ["ti-brand-wordpress", "Import WooCommerce", "Bring your whole shop over", () => setImporter("woo")]].map(([ic, label, s, fn]) =>
+              <button key={label} type="button" onClick={fn} className="ui-btn ob-row" style={{ padding: "16px 14px", borderRadius: 16, background: T.card, boxShadow: T.nmSm, border: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit", color: T.text }}>
+                <i className={`ti ${ic}`} style={{ fontSize: 22, color: T.gold }} /><div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 8 }}>{label}</div><div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2 }}>{s}</div>
               </button>)}
           </div>
         </Card>

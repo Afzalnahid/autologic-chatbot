@@ -8,10 +8,11 @@ import { embedProduct } from "@/lib/products.js";
 import { checkProductQuota } from "@/lib/plan-limits.js";
 import { buildVariants } from "@/lib/variants.js";
 import { normalizeActions } from "@/lib/inventory-actions.js";
+import { normalizeSettingActions, applySettingActions } from "@/lib/assistant-actions.js";
 import { findDuplicate, duplicateMessage } from "@/lib/duplicates.js";
 import { missingToSell, missingMessage } from "@/lib/readiness.js";
 
-// The inventory assistant, half two: carry out what the owner confirmed.
+// The assistant, half two: carry out what the owner confirmed.
 //
 // It takes the proposals, not a conversation — the model is nowhere near this
 // route. Whatever reached the owner's screen is what arrives here, and it is
@@ -31,7 +32,8 @@ export async function POST(request) {
 
     const body = await request.json().catch(() => ({}));
     const actions = normalizeActions(body.actions);
-    if (!actions.length) return NextResponse.json({ error: "nothing to do" }, { status: 400 });
+    const settingActions = normalizeSettingActions(body.settingActions);
+    if (!actions.length && !settingActions.length) return NextResponse.json({ error: "nothing to do" }, { status: 400 });
 
     const adding = actions.filter((a) => a.do === "create").length;
     if (adding) {
@@ -49,11 +51,40 @@ export async function POST(request) {
         results.push({ ok: false, id: a.id || null, error: e.message });
       }
     }
+
+    // Everything the Bot Training tab holds is one row, so the whole settings
+    // half is one read, one pure transformation and one write — and the read
+    // happens HERE rather than being sent up from the browser, so a stale copy
+    // held open in another tab cannot overwrite what has changed since.
+    if (settingActions.length) results.push(...await applySettings(client, settingActions));
+
     const done = results.filter((r) => r.ok).length;
     return NextResponse.json({ ok: true, done, failed: results.length - done, results });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
+}
+
+// The offers, the bargaining rule, what the bot has been taught, who it says it
+// is. All of it lives in `app_settings.settings` for this client, and the rule
+// for what may change is applySettingActions — pure, shared with the panel that
+// showed the owner these cards, and tested without a database.
+async function applySettings(client, settingActions) {
+  const { data: row, error: readErr } = await supabase.from("app_settings")
+    .select("settings").eq("id", String(client.id)).maybeSingle();
+  if (readErr) return [{ ok: false, error: readErr.message }];
+
+  const { next, results } = applySettingActions(row?.settings || {}, settingActions);
+  // Nothing landed — every proposal named something that has since gone. Do not
+  // write; there is nothing to write, and an upsert would still bump the row.
+  if (!results.some((r) => r.ok)) return results;
+
+  const { error } = await supabase.from("app_settings")
+    .upsert({ id: String(client.id), settings: next }, { onConflict: "id" });
+  // The write is what makes any of it true. If it fails, every result that said
+  // "ok" was a lie, so they are all turned back.
+  if (error) return results.map((r) => ({ ok: false, error: error.message, did: r.did }));
+  return results;
 }
 
 async function remove(client, a) {
