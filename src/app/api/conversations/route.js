@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
+import { pageAll } from "@/lib/page.js";
 import { requireClient } from "@/lib/auth.js";
 import { runFollowups } from "@/lib/followup.js";
 
@@ -42,9 +43,15 @@ export async function GET(request) {
       .limit(500);
     const messages = all || [];
 
-    const { data: contactRows } = await supabase.from("contacts")
+    // Paged: this only supplies names, but a short read means the
+    // conversations further down the list lose theirs for no visible reason.
+    // A failure here is swallowed on purpose — the inbox is still usable
+    // without names, which is not true of the contact list itself.
+    const contactRows = await pageAll((from, to) => supabase.from("contacts")
       .select("sender_id,name")
-      .eq("client_id", client.id);
+      .eq("client_id", client.id).range(from, to))
+      .then((r) => r.rows)
+      .catch((e) => { console.error("[conversations] contact names:", e.message); return []; });
     const nameOf = Object.fromEntries(
       (contactRows || []).filter(c => c.name).map(c => [c.sender_id, c.name])
     );

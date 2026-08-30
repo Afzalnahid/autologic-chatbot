@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
+import { pageAll } from "@/lib/page.js";
 import { requireClient } from "@/lib/auth.js";
 
 export async function GET(request) {
@@ -14,8 +15,18 @@ export async function GET(request) {
     // the UI keeps showing "Loading…" instead of a wrong ON.
     if (error) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     if (!client) return NextResponse.json({ contacts: [] });
-    const { data: contactRows, error: e1 } = await supabase.from("contacts").select("*").eq("client_id", client.id);
-    const contacts = contactRows || [];
+    // Paged, not trusted: an unbounded select stops at db-max-rows and comes
+    // back as a normal 200 with a short array, so a shop with more contacts
+    // than the cap was shown a list quietly missing people.
+    let contacts = [];
+    try {
+      contacts = (await pageAll((from, to) => supabase.from("contacts")
+        .select("*").eq("client_id", client.id).range(from, to))).rows;
+    } catch {
+      // A failed read is not an empty address book, and "no contacts yet" is
+      // the wrong thing to tell somebody who has thousands.
+      return NextResponse.json({ error: "Could not load your contacts. Please try again." }, { status: 500 });
+    }
     // Any connected OR paused channel — a paused channel keeps its access token,
     // and the owner should still see who is messaging even while the bot is off.
     // Fetching names must not depend on the bot being live.

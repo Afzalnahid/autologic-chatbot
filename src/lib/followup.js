@@ -98,10 +98,16 @@ export async function runFollowups(client, settings) {
   const ids = [...candidates.keys()];
 
   // Anyone who spoke again after the anchor is not quiet, so they are not due.
-  const { data: newer } = await supabase
+  const { data: newer, error: newerErr } = await supabase
     .from("message_buffer").select("sender_id, created_at")
     .eq("client_id", client.id).eq("role", "customer")
     .in("sender_id", ids).gt("created_at", hoursAgo(cfg.delay_hours));
+  if (newerErr) {
+    // Not "nobody spoke again" — "we do not know". Treating a failed read as an
+    // empty one sends a follow-up to somebody who has just replied.
+    console.error("[followup] could not read who replied since:", newerErr.message);
+    return { skipped: "read_failed", considered: candidates.size };
+  }
   for (const r of newer || []) candidates.delete(r.sender_id);
 
   const [tagsQ, doneQ, contactsQ, convQ] = await Promise.all([
@@ -111,6 +117,23 @@ export async function runFollowups(client, settings) {
     supabase.from("contacts").select("sender_id, bot_enabled, broadcast_opt_out").eq("client_id", client.id).in("sender_id", ids),
     supabase.from(bType === "agency" ? "bookings" : "orders").select("sender_id").eq("client_id", client.id).in("sender_id", ids),
   ]);
+
+  // EVERY one of those four lists is used to EXCLUDE somebody, so a failed read
+  // is never "nobody matched" — it is "we do not know", and `|| []` turns that
+  // into permission to send. Missing rows in doneQ send a second follow-up; in
+  // contactsQ send to somebody who opted out or paused the bot; in convQ send to
+  // somebody who has already ordered. They run in one Promise.all, so ONE of
+  // them failing while the others succeed is the ordinary case, not a rare one.
+  //
+  // The broadcast path was fixed for exactly this in August; follow-ups send to
+  // the same people through the same 24-hour window and were never given the
+  // same treatment.
+  const reads = [["tags", tagsQ], ["follow-ups already sent", doneQ], ["opt-outs", contactsQ], ["orders/bookings", convQ]];
+  const failed = reads.filter(([, q]) => q.error);
+  if (failed.length) {
+    console.error("[followup] skipped:", failed.map(([n, q]) => `${n} — ${q.error.message}`).join("; "));
+    return { skipped: "read_failed", considered: candidates.size };
+  }
 
   const wanted = new Set(INTENT_TAGS[bType]);
   const interested = new Set((tagsQ.data || []).filter((r) => wanted.has(r.tag)).map((r) => r.sender_id));

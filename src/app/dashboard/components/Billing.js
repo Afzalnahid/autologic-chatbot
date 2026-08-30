@@ -102,10 +102,12 @@ export default function Billing({initialPlan,initialCycle}) {
       {limit&&<div style={{marginTop:18}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:6}}>
           <span style={{color:T.textMuted}}>{u.daily_limit?"Messages today":"Messages this month"}</span>
-          <span><strong>{usedNow}</strong> <span style={{color:T.textDim}}>/ {limit.toLocaleString("en-IN")}</span></span>
+          {/* null means the count could not be read. Showing 0 there would tell
+              somebody at their limit that they have used nothing. */}
+          <span><strong>{usedNow===null||usedNow===undefined?"—":usedNow}</strong> <span style={{color:T.textDim}}>/ {limit.toLocaleString("en-IN")}</span></span>
         </div>
         <div style={{height:6,background:T.bgAlt,borderRadius:3,overflow:"hidden"}}>
-          <div style={{height:"100%",width:`${Math.min(100,u.pct||0)}%`,background:(u.pct||0)>90?T.danger:(u.pct||0)>70?T.warn:T.success,borderRadius:3}}/>
+          <div style={{height:"100%",width:u.pct===null||u.pct===undefined?"0%":`${Math.min(100,u.pct)}%`,background:(u.pct||0)>90?T.danger:(u.pct||0)>70?T.warn:T.success,borderRadius:3}}/>
         </div>
         {(u.pct||0)>=90&&<div style={{fontSize:11.5,color:T.warn,marginTop:8}}>
           <i className="ti ti-alert-triangle" style={{marginRight:5}}/>You are close to your limit. Upgrade to keep the bot replying.

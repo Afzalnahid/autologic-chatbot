@@ -24,23 +24,33 @@ function paymentMethods() {
 
 async function usageThisMonth(clientId) {
   const start = startOfMonthDhaka();
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("message_buffer")
     .select("id", { count: "exact", head: true })
     .eq("client_id", clientId)
     .eq("role", "customer")
     .gte("created_at", start.toISOString());
+  // null, not 0, when the count could not be read. Zero is a COMFORTABLE
+  // number: it tells an owner sitting at their limit that they have used
+  // nothing, on the very screen they would use to decide whether to upgrade,
+  // and draws them an empty progress bar to prove it.
+  if (error) return null;
   return count || 0;
 }
 
 async function usageToday(clientId) {
   const start = startOfDayDhaka();
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("message_buffer")
     .select("id", { count: "exact", head: true })
     .eq("client_id", clientId)
     .eq("role", "customer")
     .gte("created_at", start.toISOString());
+  // null, not 0, when the count could not be read. Zero is a COMFORTABLE
+  // number: it tells an owner sitting at their limit that they have used
+  // nothing, on the very screen they would use to decide whether to upgrade,
+  // and draws them an empty progress bar to prove it.
+  if (error) return null;
   return count || 0;
 }
 
@@ -80,8 +90,10 @@ export const GET = withErrors(async (request) => {
       daily_limit: dailyLimit,
       monthly_limit: limit,
       // Fraction of the allowance used, so the UI can draw a bar.
-      pct: dailyLimit ? Math.min(100, Math.round((today / dailyLimit) * 100))
-         : limit ? Math.min(100, Math.round((month / limit) * 100)) : null,
+      // A percentage of an unknown count is not 0%, it is nothing. Without the
+      // null guards `null / limit` is 0 and the bar draws itself empty.
+      pct: dailyLimit ? (today === null ? null : Math.min(100, Math.round((today / dailyLimit) * 100)))
+         : limit ? (month === null ? null : Math.min(100, Math.round((month / limit) * 100))) : null,
     },
     methods: paymentMethods(),
     pending_request: pending,
