@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createAdminClient as createSb } from "@/utils/supabase/client";
 import Packages from "./Packages.js";
 import AIAdmin from "./AIAdmin.js";
+import { useWhere } from "./where.js";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
 
 // The super-admin console. Same design system as the customer dashboard —
@@ -185,14 +186,18 @@ export function AdminApp(props) {
   const { data, refreshing, onRefresh, busy, err, clearErr, act, reviewPayment, del, setRole, removeAdmin, superKey, setSuperKey, allowAiKey, revokeAiKey, openDetail, detail, detailLoading, closeDetail, logout } = props;
   const isMobile = useIsMobile();
   const [mode, toggleTheme] = useTheme();
-  const [page, setPage] = useState("overview");
   const [nav, setNav] = useState(false);
   const [q, setQ] = useState("");
   useEffect(() => { setNav(!isMobile); }, [isMobile]);
   const { overview: o, clients, role, admins, payments = [], attention = [], activity = [] } = data;
   const canEdit = ["super", "full", "editor"].includes(role), canDelete = ["super", "full"].includes(role), isSuper = role === "super";
   const pendingPay = payments.filter((p) => p.status === "pending").length;
-  const go = (p) => { setPage(p); if (isMobile) setNav(false); };
+  // A fragment can be typed by hand, so a page this admin cannot see must not
+  // open just because the address asked for it. Read from NAV rather than a
+  // second list, which would be one more thing to keep in step.
+  const mayOpen = useCallback((p) => NAV.some((g) => g.items.some((i) => i.id === p && (!i.superOnly || role === "super"))), [role]);
+  const [page, subTab, setWhere] = useWhere("overview", mayOpen);
+  const go = (p, t = "") => { setWhere(p, t); if (isMobile) setNav(false); };
   const searchHits = useMemo(() => { const s = q.trim().toLowerCase(); if (!s) return []; return clients.filter((c) => [c.business_name, c.owner_email, c.phone, c.id].join(" ").toLowerCase().includes(s)).slice(0, 6); }, [q, clients]);
   const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on Autologic`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], packages: ["Packages & Costs", "What each package sells for, and what each client costs you"], ai: ["AI Engine", "The platform's own API key and models"], admins: ["Admins", "Who can open this console"] };
   const badgeFor = { payments: pendingPay || undefined, overview: attention.filter((a) => a.level === "high").length || undefined };
@@ -258,7 +263,7 @@ export function AdminApp(props) {
           {page === "overview" && <Overview o={o} clients={clients} attention={attention} activity={activity} openDetail={openDetail} go={go} isMobile={isMobile} />}
           {page === "clients" && <Clients clients={clients} openDetail={openDetail} isMobile={isMobile} />}
           {page === "payments" && <Payments payments={payments} canEdit={canEdit} busy={busy} review={reviewPayment} openDetail={openDetail} isMobile={isMobile} />}
-          {page === "packages" && <Packages token={props.token} isSuper={isSuper} />}
+          {page === "packages" && <Packages token={props.token} isSuper={isSuper} tab={subTab} onTab={(t) => go("packages", t)} />}
           {page === "ai" && isSuper && <AIAdmin token={props.token} superKey={superKey} setSuperKey={setSuperKey} />}
           {page === "admins" && isSuper && <Admins admins={admins || []} superKey={superKey} setSuperKey={setSuperKey} setRole={setRole} removeAdmin={removeAdmin} busy={busy} />}
         </div>

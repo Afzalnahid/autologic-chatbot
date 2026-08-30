@@ -523,6 +523,57 @@ export const SAMPLE = {
   "/api/admin/packages": ADMIN_PACKAGES,
 };
 
+// The admin console's shell takes its data as a prop rather than fetching, so
+// it can be mounted here without a super-admin login. Enough for every section
+// to render — which is what makes the console's navigation checkable at all.
+const series = (base) => Array.from({ length: 14 }, (_, i) => ({
+  day: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10),
+  value: Math.round(base + Math.sin(i / 2) * base * 0.3),
+}));
+
+const ADMIN_CLIENTS = [
+  { id: "c1", business_name: "Nokshi Threads", owner_email: "owner@nokshithreads.com", phone: "01711000111", plan: "pro", business_type: "ecommerce", suspended: false, pending_payment: false, trial_days_left: null, plan_days_left: 18, messages_7d: 1120, messages: 4820, created_at: new Date(Date.now() - 96 * 86400000).toISOString(), last_active: new Date(Date.now() - 3600000).toISOString(), gcal_connected: false, channels: [{ platform: "facebook", status: "connected" }, { platform: "instagram", status: "connected" }] },
+  { id: "c2", business_name: "Meridian Consulting", owner_email: "hello@meridian.com.bd", phone: "01822000222", plan: "agency", business_type: "agency", suspended: false, pending_payment: true, trial_days_left: null, plan_days_left: 5, messages_7d: 310, messages: 1240, created_at: new Date(Date.now() - 61 * 86400000).toISOString(), last_active: new Date(Date.now() - 7200000).toISOString(), gcal_connected: true, channels: [{ platform: "whatsapp", status: "connected" }] },
+  { id: "c3", business_name: "Bengal Ceramics", owner_email: "shop@bengalceramics.com", phone: "01933000333", plan: "starter", business_type: "ecommerce", suspended: false, pending_payment: false, trial_days_left: null, plan_days_left: 26, messages_7d: 24, messages: 96, created_at: new Date(Date.now() - 20 * 86400000).toISOString(), last_active: new Date(Date.now() - 86400000).toISOString(), gcal_connected: false, channels: [{ platform: "facebook", status: "connected" }] },
+  { id: "c4", business_name: "Dhaka Dental", owner_email: "care@dhakadental.com", phone: "01644000444", plan: "trial", business_type: "agency", suspended: false, pending_payment: false, trial_days_left: 1, plan_days_left: null, messages_7d: 8, messages: 8, created_at: new Date(Date.now() - 2 * 86400000).toISOString(), last_active: new Date(Date.now() - 5400000).toISOString(), gcal_connected: false, channels: [] },
+];
+
+export const ADMIN = {
+  email: "snowfix07@gmail.com",
+  role: "super",
+  clients: ADMIN_CLIENTS,
+  admins: [
+    { email: "snowfix07@gmail.com", role: "super", added_at: new Date(Date.now() - 200 * 86400000).toISOString() },
+    { email: "ops@autologic.com.bd", role: "editor", added_at: new Date(Date.now() - 30 * 86400000).toISOString() },
+  ],
+  payments: [
+    { id: "r1", client_id: "c2", business_name: "Meridian Consulting", plan: "agency", cycle: "monthly", amount: 6000, status: "pending", method: "bkash", trx_id: "9F2K1LM4", created_at: new Date(Date.now() - 3 * 3600000).toISOString() },
+    { id: "r2", client_id: "c1", business_name: "Nokshi Threads", plan: "pro", cycle: "monthly", amount: 3500, status: "approved", method: "nagad", trx_id: "7A1B2C3D", created_at: new Date(Date.now() - 9 * 86400000).toISOString() },
+  ],
+  attention: [
+    { kind: "payment", level: "high", client_id: "c2", title: "Payment waiting for review", sub: "Meridian Consulting", at: new Date(Date.now() - 3 * 3600000).toISOString() },
+    { kind: "trial", level: "mid", client_id: "c4", title: "Trial ends in 1 day", sub: "Dhaka Dental", at: new Date(Date.now() + 86400000).toISOString() },
+    { kind: "nochannel", level: "low", client_id: "c4", title: "No channel connected", sub: "Dhaka Dental", at: new Date(Date.now() - 2 * 86400000).toISOString() },
+  ],
+  activity: [
+    { kind: "signup", at: new Date(Date.now() - 2 * 86400000).toISOString(), client_id: "c4", title: "Dhaka Dental signed up", sub: "agency" },
+    { kind: "channel", at: new Date(Date.now() - 5 * 86400000).toISOString(), client_id: "c1", title: "Nokshi Threads connected instagram", sub: "connected" },
+  ],
+  overview: {
+    total_clients: 4, new_clients_7d: 1, new_clients_prev7: 2, paid_clients: 3,
+    mrr: 11000, starter: 1, pro: 1, agency: 1,
+    revenue_30d: 11000, revenue_prev30: 8500,
+    messages_today: 218, messages_7d: 1462, messages_prev7: 1180, customer_messages_7d: 731,
+    orders_7d: 34, orders_prev7: 28, total_orders: 412,
+    bookings_7d: 6, bookings_prev7: 9, total_bookings: 77,
+    connected_channels: 4,
+    plan_mix: { trial: 1, starter: 1, pro: 1, agency: 1, none: 0 },
+    platform_mix: { facebook: 2, instagram: 1, whatsapp: 1 },
+    message_platform_30d: { facebook: 3140, instagram: 1680, whatsapp: 1240 },
+    series: { messages: series(210), signups: series(1) },
+  },
+};
+
 // Handed straight to the components that take props instead of fetching.
 export const PROPS = {
   channels: CHANNELS, convos: CONVOS, products: PRODUCTS, orders: ORDERS, settings: SETTINGS,

@@ -118,12 +118,15 @@ function LimitWarnings({ limits, planId, days }) {
   </div>;
 }
 
-export default function Packages({ token, isSuper }) {
+// `tab`/`onTab` are optional: the console passes them so the open tab lives in
+// the address bar and survives a refresh, and the screenshot studio mounts this
+// on its own with neither, where the internal state is all it needs.
+export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
   const [d, setD] = useState(null);
   const [days, setDays] = useState(30);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
-  const [tab, setTab] = useState("money");
+  const [tabOwn, setTabOwn] = useState("money");
   const isMobile = useIsMobile();
 
   const load = useCallback(async () => {
@@ -175,6 +178,10 @@ export default function Packages({ token, isSuper }) {
     { id: "packages", label: "Packages", icon: "ti-box" },
     { id: "rates", label: "Rates & costs", icon: "ti-adjustments" },
   ];
+  // A tab id out of the address bar is not to be trusted — an unknown one would
+  // render nothing at all and read as a broken page, so it falls back.
+  const tab = TABS.some((x) => x.id === tabProp) ? tabProp : (onTab ? "money" : tabOwn);
+  const setTab = onTab || setTabOwn;
 
   return <div style={{ maxWidth: 1000 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>

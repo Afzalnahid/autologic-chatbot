@@ -17,7 +17,19 @@ import AIEngine from "../dashboard/components/AIEngine.js";
 import Billing from "../dashboard/components/Billing.js";
 import Profile from "../dashboard/components/Profile.js";
 import Packages from "../admin/Packages.js";
-import { SAMPLE, PROPS } from "./sample.js";
+import { AdminApp } from "../admin/admin-client.js";
+import { SAMPLE, PROPS, ADMIN } from "./sample.js";
+
+// The console takes its data as a prop and its actions as callbacks, so it
+// mounts here without a super-admin login. The callbacks do nothing on
+// purpose: this is for looking at and for checking that moving around the
+// console works, not for changing anything.
+const noopAdmin = {
+  data: ADMIN, refreshing: false, busy: null, err: null, detail: null, detailLoading: false, superKey: "",
+  onRefresh: () => {}, clearErr: () => {}, act: () => {}, reviewPayment: () => {}, del: () => {},
+  setRole: () => {}, removeAdmin: () => {}, setSuperKey: () => {}, allowAiKey: () => {}, revokeAiKey: () => {},
+  openDetail: () => {}, closeDetail: () => {}, logout: () => {}, token: "studio",
+};
 
 // The screenshot studio.
 //
@@ -52,6 +64,9 @@ const TABS = {
   // The admin console, not a client tab — it answers from the same stubbed
   // fetch, so the cost breakdown can be checked without a super-admin login.
   "admin-packages": () => <Packages token="studio" isSuper />,
+  // The whole console, so its navigation can be checked: which section a
+  // refresh comes back to, and what the back button does.
+  admin: () => <AdminApp {...noopAdmin} />,
 };
 
 export const TAB_IDS = Object.keys(TABS);
