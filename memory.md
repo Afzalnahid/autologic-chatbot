@@ -4,7 +4,52 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-30) — Sequence, back button, docs, admin views, and a read audit
+## Last session (2026-08-30, second thread) — Live FX, models from the key, and the shape of the bill
+
+`ccd75b0`, pushed. Owner asked for: all models the key can see, an auto-updating USD→BDT rate,
+per-client per-channel usage, and the cost split into platform work vs bot work.
+
+**BUG I INTRODUCED LAST WEEK, visible in their screenshot:** `messages` was set TWICE in the
+same object literal in `/api/admin/packages` — `msgs.rows.length` (right) and, further down,
+the leftover `(msgs || []).length` from when `msgs` was an array. **A duplicate key is silent
+and the LAST one wins**, so the platform total read 0 while the per-platform split built from
+the same rows read correctly. New AST sweep (`t-dupkeys.cjs`, Babel not regex — nesting matters):
+169 files, no other case.
+
+**`src/lib/fx.js` (NEW)** — the dollar rate updates itself.
+- `fetchUsdBdt()` from open.er-api.com (no key). `rateFrom(settings)` decides market vs the
+  owner's override vs house default; `isStale()` gates a refresh to twice a day, off the
+  critical path — a dead currency API leaves the last good number standing.
+- **Bounds 60–400**: a rate off by a FACTOR (wrong field, different base currency) inverts every
+  margin while still looking like a number. Refused rather than used.
+- Manual ON with nothing typed falls through to the market, so no stale number under a "Set by
+  you" badge. 29 tests.
+- The UI reads `d.fx.rate`, NOT `settings.usd_bdt` — reading the raw setting would ignore the
+  market rate the moment one existed.
+
+**Models from the key.** `listGoogleModels` keeps only what a CHATBOT can run on and drops
+embeddings — right there, wrong for a price book, since every product saved is an embedding
+call and a line on the bill. Added `listGoogleModelsRaw` (gemini.js) + `listBillableModels`
+(model-catalog.js) + a `list_models` admin action. The Rates tab now has "Show what my key can
+use" and lists what has no rate, one click to add it.
+
+**`CostShape` (NEW, admin)** — the two sides the owner asked for:
+- **Bot answering customers** ÷ messages, and **what a PHOTO message adds** (`bot.vision` cost ÷
+  its calls). Sample: ৳0.10 a message, +৳0.04 for a photo.
+- **Owner using the dashboard**: AI Assistant · adding products · knowledge · profiles/offers.
+
+**`ClientChannels` (NEW)** — per client, per channel: messages, monthly cap, and cost.
+**The cost is APPORTIONED by message share and says so** — `usage_daily` has no channel column.
+To make it measured: add `page_id` to usage_daily (one migration), then it reads instead of
+divides.
+
+**`post()` in Packages.js now returns the reply, not a boolean** — the model list needs the
+answer. The one caller that used it as a boolean checks `!r?.error` instead (every object is
+truthy).
+
+---
+
+## Earlier session (2026-08-30) — Sequence, back button, docs, admin views, and a read audit
 
 `9734d7e`, `77a4806`, `3eb852e`, `c570605`, pushed. Owner gave seven tasks in order and they
 were done in that order.

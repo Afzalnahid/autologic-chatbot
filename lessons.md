@@ -944,3 +944,28 @@ investigates. Three real cases came out of one sweep:
   somebody an answer. Write down which one each is.
 - A helper that swallows an error into an empty result turns a database outage into a confident
   ৳0. Return the error and let the screen say the rows are missing.
+
+## A duplicate key in an object literal, and the number that reads 0 (2026-08-30)
+
+I changed `msgs` from an array to `{ rows, truncated }` and updated the line that read it. There
+was a SECOND line further down the same object literal, from before, still saying
+`messages: (msgs || []).length`. JavaScript does not warn about a repeated key; the last one
+wins. So `messages` became `undefined` → 0, while `messages_by_platform`, built from the same
+rows a few lines above, stayed correct.
+
+On screen that is a total of 0 with a per-channel split of 36 / 16 / 1 underneath it — which is
+not a shape a reader can explain, and is exactly how the owner found it. Nothing threw, nothing
+logged, and the tests I had all read the object I built rather than the object that shipped.
+
+**Rules:**
+- When a variable changes SHAPE, grep for its name across the whole file before moving on — not
+  just the line you came to change. `msgs` appeared twice; I looked at one.
+- A key set twice in one object literal is always a mistake unless there is a spread between
+  them. It is worth an automated check, and it needs an AST: "the same key twice" is a question
+  about nesting and a regex cannot see nesting. `next/dist/compiled/babel/parser.js` is already
+  in the repo.
+- Two numbers on a screen that disagree with each other are a stronger signal than either being
+  wrong alone. A total of 0 above a non-zero breakdown means the two came from different code
+  paths — find the one that changed.
+- A test that builds the input and reads the output of the same function will not catch this.
+  What catches it is asserting on the RESPONSE the route actually returns.
