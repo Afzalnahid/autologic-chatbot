@@ -1091,3 +1091,33 @@ assertion rather than testing the numbers I expected to see.
 - The stale note is part of the change. The panel said "Not enforced yet — nothing
   reads this" under both boxes; leaving that behind would have told the owner to
   ignore a limit that now bites. A test asserts no such note survives.
+
+## An empty fixture tests the fallback, not the screen (2026-08-31)
+
+Splitting the packages by business type, I went to check the Billing tab in the
+studio and it showed nothing I recognised. The studio's stub answered
+`"/api/plans": { plans: [] }` — an empty array. Billing treats that as "the API
+gave me nothing" and keeps its fallback, the static `PLAN_LIST` in ui.js.
+
+So every screenshot of that tab, and every check anyone made against it, had been
+of the fallback. The live path — the one every real client sees — was never
+rendered here at all. The fixture was not wrong in a way anything could report:
+`{ plans: [] }` is a perfectly valid response.
+
+The same day, the pricing page turned out to have two answers on it. The cards had
+read live packages from `/api/plans` for weeks; the comparison table underneath
+still named trial/starter/pro/agency in every row. Re-price a package and the top
+half changes while the bottom half goes on describing the old ladder.
+
+**Rules:**
+- A fixture that produces an EMPTY result is testing the empty branch. If the
+  component has a fallback, an empty fixture tests the fallback and nothing else.
+  Give the stub the shape it will really receive.
+- Any component with a `useState(FALLBACK)` and a fetch has two screens in it.
+  Know which one the studio is showing before trusting what you see.
+- When one part of a page went live and another did not, the stale part gets no
+  warning and no error — it just keeps being right about last year. Grep for the
+  old identifiers (`PLAN_ORDER`, the old ids) after making anything dynamic; the
+  leftovers are exactly where the hard-coded list still sits.
+- Derive the fixture from one source. The studio's `/api/plans` is now built FROM
+  the admin fixture's plans, so the two cannot disagree about what exists.

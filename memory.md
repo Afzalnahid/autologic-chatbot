@@ -4,7 +4,82 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-30, third thread) — Limits that were decoration, and a console that remembers
+## Last session (2026-08-31) — Two ladders: seven packages, split by business, priced on measured cost
+
+`017b45d`, `c2001e2`, `3e3abdc`, `61402e6`, `4f47288`, `8f480c9`, `dd1c947` — all pushed.
+Owner: separate packages for e-commerce and agency (common free trial, 3 + 3), documentation
+with the features organised, and a price built on the real cost "100% accurate".
+
+### ⚠️ OWNER TASKS, in order
+
+1. **Run `docs/sql/2026-08-31-plans-biz.sql`** — seeds all seven, adds the `biz` column with a
+   CHECK, **clears the trial's per-channel cap of 10 by itself** (no longer a manual step), and
+   hides — does not delete — the old starter/pro/agency.
+2. **Run `docs/sql/2026-08-30-usage-page-id.sql`** — still outstanding from the day before.
+3. **Set the prices in a few days.** The panel shows each package's measured cost and margin;
+   today it has nothing to measure. I did not propose prices, because a proposal today would be
+   a guess and they asked for the opposite.
+4. `orders_one_per_code` index and Google Cloud billing — older, still open.
+
+### What they answered when asked
+
+- **No paying clients** — every account is theirs. So the old three could be replaced outright.
+- On naming they gave direction rather than picking: *two parts, e-commerce on one side and
+  agency on the other, common features in both*.
+- On price: features + real AI cost — assistant, product adding, per message by type,
+  **"embedding, the photo analysis and matching from Supabase"** — plus margin, and say **how
+  many conversations** and **how many moderators** a package replaces.
+
+### The cost model — `c2001e2`, `src/lib/package-cost.js`
+
+Only the COST can be accurate; the price is a decision. Three parts kept apart because they
+behave differently: **bot** grows with traffic, **catalogue** is paid once per product (so it is
+amortised over 12 months), **platform** is the owner in the dashboard.
+
+**Every customer message pays for `bot.chat` AND `bot.embed`** — the reply and the search that
+finds it. That is the owner's embedding cost, and it is what a blended per-message figure hid: a
+3,000-product shop pays it on every message whether or not a product was asked about.
+
+Unmeasured returns **null, never 0**, and `packageCost` reports which of the four message rates
+it actually rests on. The assumptions (mix, messages per conversation, typical use) live in one
+exported `SHAPE` rather than buried in arithmetic where they would read like measurements. The
+moderator figure is deliberately conservative — 60 conversations a day, 26 days — because it
+ends up in a sentence a customer reads. 42 tests.
+
+### Seven packages — `3e3abdc`
+
+Trial (both) + Shop Starter/Growth/Scale + Service Starter/Growth/Scale. **"agency" no longer
+names a tier**, only a business type — it used to be both, so "the agency package for an agency"
+read two ways. `biz` is a COLUMN, not a prefix parsed off the id (that breaks the day somebody
+makes "shopify_addon"). Missing `biz` reads as `both` everywhere: shown to everyone beats hidden
+from the people it was written for. Prices unchanged at 1500/3500/6000 so nothing moved by
+accident.
+
+### Where it shows — `61402e6`, `4f47288`, `8f480c9`, `dd1c947`
+
+- **Pricing page**: "I sell products" / "I offer services". **The comparison table was the stale
+  half of that page** — the cards had read `/api/plans` live for a while, but the table still
+  named trial/starter/pro/agency, so a re-priced package changed one and not the other. Keyed by
+  TIER now, columns from the same list as the cards. Also stripped "3 days" from three places.
+- **Admin panel**: three groups, a "Sold to" selector, and under every package its measured AI
+  cost, **two margins (typical and full — a package can look fine on average and lose money on
+  its heaviest client)**, the price floor at 30% AI, conversations, and moderators replaced.
+- **Billing tab**: only the packages this business can buy. `/api/billing` now returns
+  `business_type`.
+- **`/docs/packages`**, both languages, blocks tagged `biz` so each side reads its own rows on
+  one page. 389 dictionary keys each side.
+
+### Standing notes
+
+- **The studio fixture was lying in two places.** `/api/plans` was an empty array, so the
+  Billing tab fell back to the static `PLAN_LIST` in ui.js — the screen under test was never the
+  one that ships. And the plans fixture was the old three. Both are the real seven now.
+- `.env.example` was missing `CRON_SECRET` (`017b45d`); a check now diffs the code's
+  `process.env` names against the file in both directions.
+
+---
+
+## Earlier session (2026-08-30, third thread) — Limits that were decoration, and a console that remembers
 
 `6d3347a`, `ca42f02`, `2bc7f46`, `74dc77b`, `216cba3`, `a7a9341` — all pushed. It started as a
 plain question ("what does the per-channel **Set cap** button do, when I can already edit the
