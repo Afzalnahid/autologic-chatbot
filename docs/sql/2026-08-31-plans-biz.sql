@@ -44,7 +44,7 @@ create index if not exists plans_biz_active_idx
 -- COSTS to run, measured from real calls — set the prices from that once a few
 -- days of traffic have been metered.
 
-insert into public.plans
+insert into public.plans as p
   (id, biz, name, tagline, sort, active, public, monthly, yearly,
    messages_per_day, messages_per_month, messages_per_channel, channels,
    max_products, max_kb_files, max_scrapes_per_month, max_broadcasts_per_month,
@@ -55,33 +55,33 @@ values
   ('trial', 'both', 'Free Trial', 'Try everything for a few days', 0, true, true, 0, 0,
    30, null, null, 1, 20, 2, 5, 2,
    '{"vision":true,"voice":true,"kb":true,"calendar":true,"comments":false,"widget":true,"broadcast":true,"followup":true,"byok":false}'::jsonb,
-   '[]'::jsonb, false),
+   '["Full access, no card needed","30 customer messages per day","1 channel (Facebook, Instagram or WhatsApp)","AI replies in Bangla & English","Live conversation inbox"]'::jsonb, false),
 
   ('shop_starter', 'ecommerce', 'Shop Starter', 'One channel, your catalogue answering for itself', 1, true, true, 1500, 15000,
    null, 3000, null, 1, 300, 0, 20, 4,
    '{"vision":false,"voice":false,"kb":false,"calendar":false,"comments":false,"widget":true,"broadcast":true,"followup":true,"byok":false}'::jsonb,
-   '[]'::jsonb, false),
+   '["3,000 customer messages / month","1 channel of your choice","Product catalogue & order collection","AI replies in Bangla & English","Live conversation inbox","Analytics dashboard"]'::jsonb, false),
   ('shop_growth', 'ecommerce', 'Shop Growth', 'Every channel, and customers who send photos instead of names', 2, true, true, 3500, 35000,
    null, 15000, null, 3, 3000, 0, 200, 20,
    '{"vision":true,"voice":true,"kb":false,"calendar":false,"comments":true,"widget":true,"broadcast":true,"followup":true,"byok":false}'::jsonb,
-   '[]'::jsonb, true),
+   '["15,000 customer messages / month","All 3 channels — Facebook, Instagram, WhatsApp","Photo product matching (Vision AI)","Voice message understanding","Broadcasts and follow-up messages","Everything in Shop Starter"]'::jsonb, true),
   ('shop_scale', 'ecommerce', 'Shop Scale', 'For a catalogue and a crowd that keep growing', 3, true, true, 6000, 60000,
    null, 50000, null, 3, null, 0, null, null,
    '{"vision":true,"voice":true,"kb":false,"calendar":false,"comments":true,"widget":true,"broadcast":true,"followup":true,"byok":true}'::jsonb,
-   '[]'::jsonb, false),
+   '["50,000 customer messages / month","Unlimited products","Comment automation on your posts","Use your own AI key","Priority support","Everything in Shop Growth"]'::jsonb, false),
 
   ('svc_starter', 'agency', 'Service Starter', 'One channel, answering from your own documents', 4, true, true, 1500, 15000,
    null, 3000, null, 1, 0, 10, 20, 4,
    '{"vision":false,"voice":false,"kb":true,"calendar":false,"comments":false,"widget":true,"broadcast":true,"followup":true,"byok":false}'::jsonb,
-   '[]'::jsonb, false),
+   '["3,000 customer messages / month","1 channel of your choice","Knowledge Base — upload your documents","AI replies in Bangla & English","Live conversation inbox","Analytics dashboard"]'::jsonb, false),
   ('svc_growth', 'agency', 'Service Growth', 'Every channel, and meetings booked while you sleep', 5, true, true, 3500, 35000,
    null, 15000, null, 3, 0, 40, 200, 20,
    '{"vision":false,"voice":true,"kb":true,"calendar":true,"comments":true,"widget":true,"broadcast":true,"followup":true,"byok":false}'::jsonb,
-   '[]'::jsonb, true),
+   '["15,000 customer messages / month","All 3 channels — Facebook, Instagram, WhatsApp","Google Calendar booking with Meet links","Voice message understanding","Broadcasts and follow-up messages","Everything in Service Starter"]'::jsonb, true),
   ('svc_scale', 'agency', 'Service Scale', 'For a practice that answers all day', 6, true, true, 6000, 60000,
    null, 50000, null, 3, 0, null, null, null,
    '{"vision":false,"voice":true,"kb":true,"calendar":true,"comments":true,"widget":true,"broadcast":true,"followup":true,"byok":true}'::jsonb,
-   '[]'::jsonb, false)
+   '["50,000 customer messages / month","Unlimited Knowledge Base documents","Comment automation on your posts","Use your own AI key","Priority support","Everything in Service Growth"]'::jsonb, false)
 
 on conflict (id) do update set
   biz = excluded.biz,
@@ -103,6 +103,9 @@ on conflict (id) do update set
   max_scrapes_per_month = excluded.max_scrapes_per_month,
   max_broadcasts_per_month = excluded.max_broadcasts_per_month,
   features = excluded.features,
+  -- Filled in only when empty, so bullets edited in the panel survive a re-run.
+  feature_list = case when p.feature_list is null or p.feature_list = '[]'::jsonb
+                      then excluded.feature_list else p.feature_list end,
   highlight = excluded.highlight,
   updated_at = now();
 
