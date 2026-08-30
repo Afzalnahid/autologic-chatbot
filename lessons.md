@@ -1121,3 +1121,31 @@ half changes while the bottom half goes on describing the old ladder.
   leftovers are exactly where the hard-coded list still sits.
 - Derive the fixture from one source. The studio's `/api/plans` is now built FROM
   the admin fixture's plans, so the two cannot disagree about what exists.
+
+## Fixing a bug in one file is not fixing it (2026-08-31)
+
+The broadcast path was fixed in August: a missing contact row read as "has not opted
+out", so a failed lookup sent to people who had. The fix was careful — chunked reads
+that throw rather than return what arrived — and it was written up.
+
+Follow-ups send to the same people, through the same 24-hour window, from the sibling
+file, with the same `|| []` on the same kind of exclusion list. Nobody looked, because
+the bug had been "fixed".
+
+A scripted sweep found it in seconds. Reading the code would not have — there is no
+reason to open `followup.js` while fixing `broadcast.js`.
+
+**Rules:**
+- When a bug is fixed, grep for its SHAPE across the whole repo before closing it, not
+  just the file it was reported in. `|| []` on a list used to exclude somebody is a
+  shape, and it is greppable.
+- Write the sweep as a script and keep it. Six checks, each one a bug that shipped
+  here once, and they run in a second. Eyes do not scale and do not repeat.
+- Record what the sweep DISMISSED and why. Half of a good audit's value is the next
+  audit not spending an hour on the same six false positives.
+- `q.data || []` deserves the same suspicion as `count || 0`. Both turn "we do not
+  know" into a permissive answer, and both do it while looking like ordinary defensive
+  code.
+- A partial failure is the one that bites. Follow-ups made four reads at once; a total
+  outage sent nothing (safe), so only ONE of the four failing could cause harm — which
+  is exactly the case no test covers and no one imagines.

@@ -4,7 +4,75 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-31) — Two ladders: seven packages, split by business, priced on measured cost
+## Last session (2026-08-31, second thread) — A scripted audit, and the tests come into the repo
+
+`6bbd9ad`, `bc3ccaa` — pushed. Owner: "analyse the full system for bugs and fix them", then
+"move the tests into the repo and wire npm test".
+
+### ⚠️ OWNER TASKS — unchanged, both still outstanding
+
+1. `docs/sql/2026-08-31-plans-biz.sql` — the seven packages, the `biz` column, and it clears
+   the trial's per-channel cap of 10 itself.
+2. `docs/sql/2026-08-30-usage-page-id.sql` — per-channel cost stays "apportioned" until it runs.
+3. Prices, once a few days of traffic have been metered. `orders_one_per_code`, Google billing.
+
+### **`npm test` NOW EXISTS. RUN IT BEFORE SAYING ANYTHING IS DONE.**
+
+29 suites in `tests/`, ~5 seconds. `node tests/t-limits.mjs` for one, `node tests/run.mjs
+limits quota` for a few. `tests/README.md` explains the shims. **CLAUDE.md now requires it.**
+
+### The audit — `6bbd9ad`, `docs/bug-audit-2026-08-31.md`
+
+Six scripted sweeps over every supabase chain and object literal in `src/`, each for a class
+that has actually shipped here. **38 raised, 5 real.** The doc records what was DISMISSED and
+why, so the next pass does not re-open the same six false positives.
+
+**1. Follow-ups could reach people who had opted out.** The bug fixed on the broadcast path in
+August, sitting untouched in `followup.js` — same people, same 24-hour window. Four reads
+decide who to EXCLUDE and each was `q.data || []`. An empty exclusion list is not "nobody
+matched", it is "we do not know", and `|| []` makes it permission to send:
+`if (c?.broadcast_opt_out) continue;` — no row, undefined, sends. They run in one
+`Promise.all`, so **one failing while the others succeed is the ordinary case**. Now every
+error is checked and the run stops with `skipped: "read_failed"`.
+*Why it hid: one read fails SAFELY (no tags → nobody "interested" → nothing sends), so only a
+PARTIAL failure bit, which is the case nobody tests.*
+
+**2. Contact lists were silently short.** PostgREST caps an unbounded select at `db-max-rows`
+and returns a normal 200 with a short array. `/api/contacts` and `/api/conversations` both read
+`contacts` unbounded. New `src/lib/page.js` → `pageAll()` reads by range and **THROWS** on a
+failed page rather than returning what arrived. **The second `pageAll` in the admin route is
+NOT a duplicate to merge** — it returns the error so the panel can draw a partial month and say
+so; these callers must not render half a contact list.
+
+**3. `/api/billing` counted with `count || 0`** on the screen an owner uses to decide whether to
+upgrade — a failed count drew an empty progress bar for somebody at their limit. Returns null;
+the tab shows `—`. **Zero is a comfortable number, which is what makes it the wrong default.**
+
+### The tests — `bc3ccaa`
+
+They had been in a temp scratch directory: not in git, not run by anything. **I lost one this
+week by writing a new suite under a name that already existed.**
+
+Moving them cost: absolute paths derived from each file's own location; static imports turned
+into relative specifiers (a specifier is a literal, not an expression); eight sibling helper
+modules; two suites concatenating a path that had become a URL object.
+
+**⚠️ AND IT EXPOSED THE MACHINE.** Run together, three runs in a row failed on three DIFFERENT
+suites with no output. Exit `3221225477` = **0xC0000005, an access violation — node itself
+crashes here about one run in five**, the same fault that already makes headless Chrome crash
+(`make-doc-shot.mjs` has retried since August).
+
+`run.mjs` retries a suite 3× **only when the exit is a native crash AND there was no output at
+all**. A genuinely failing suite prints FAIL and exits 1 and is reported the first time, every
+time — *a retry that could rescue a real failure would be worse than the flakiness it fixes.*
+Retries are printed, never silent. **The runner process can crash the same way and cannot retry
+itself: if `npm test` ends with `-1073741819` and no summary, run it again.** Linux is fine.
+
+Verified the alarm rings: a deliberately failing suite → exit 1, named, output shown.
+
+---
+
+## Earlier session (2026-08-31) — Two ladders: seven packages, split by business, priced on measured cost
 
 `017b45d`, `c2001e2`, `3e3abdc`, `61402e6`, `4f47288`, `8f480c9`, `dd1c947` — all pushed.
 Owner: separate packages for e-commerce and agency (common free trial, 3 + 3), documentation
