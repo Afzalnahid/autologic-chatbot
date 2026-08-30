@@ -6,6 +6,15 @@ import { T, Card, Btn, Badge, Inp, Select, Switch, useIsMobile, fmtNum } from ".
 import { AREAS, FEATURES as USAGE_FEATURES, featureLabel } from "@/lib/usage-features.js";
 import { limitConflicts, limitMeaning, trialTotal, trialTextMismatch } from "@/lib/limit-conflicts.js";
 import { clampTrialDays, MIN_TRIAL_DAYS, MAX_TRIAL_DAYS } from "@/lib/plans.js";
+import { perCallRates, packageCost, floorPrice, marginAt } from "@/lib/package-cost.js";
+
+// The package list, in two parts. A shop and a service buy different things, so
+// reading them as one list means holding both in your head at once.
+const BIZ_GROUPS = [
+  ["both", "Everyone", "Shown to both, whichever business they are"],
+  ["ecommerce", "Shops", "Catalogue, orders, photo matching"],
+  ["agency", "Services", "Documents, bookings, calendar"],
+];
 import { readJson, offlineError } from "@/lib/api-error.js";
 
 // Packages & Costs — the business side of the admin console.
@@ -203,7 +212,7 @@ export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
     {tab === "money" && <Money d={d} rate={rate} revenue={revenue} aiCostBdt={aiCostBdt} fixedBdt={fixedBdt} profit={profit} margin={margin} isMobile={isMobile} />}
     {tab === "usage" && <ApiUsage d={d} rate={rate} isMobile={isMobile} />}
     {tab === "clients" && <PerClient d={d} rate={rate} post={post} busy={busy} isMobile={isMobile} />}
-    {tab === "packages" && <PlanEditor d={d} post={post} busy={busy} isSuper={isSuper} />}
+    {tab === "packages" && <PlanEditor d={d} post={post} busy={busy} isSuper={isSuper} rate={rate} />}
     {tab === "rates" && <Rates d={d} post={post} busy={busy} rate={rate} />}
   </div>;
 }
@@ -1143,7 +1152,7 @@ function ClientPanel({ c, rate, post, busy, d }) {
 }
 
 // ── Packages ────────────────────────────────────────────────────────────────
-function PlanEditor({ d, post, busy, isSuper }) {
+function PlanEditor({ d, post, busy, isSuper, rate }) {
   const [editing, setEditing] = useState(null);
   const blank = { id: "", name: "", tagline: "", monthly: 0, yearly: 0, channels: 1, features: {}, feature_list: [], active: true, public: true, sort: (d.plans?.length || 0) + 1 };
 
@@ -1171,7 +1180,59 @@ function PlanEditor({ d, post, busy, isSuper }) {
         if (!r?.error) setEditing(null);
       }} />}
 
-    {(d.plans || []).map((p) => <Card key={p.id}>
+    {BIZ_GROUPS.map(([bizId, heading, hint]) => {
+      const rows = (d.plans || []).filter((p) => (p.biz || "both") === bizId);
+      if (!rows.length) return null;
+      return <div key={bizId} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap", marginTop: 6 }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>{heading}</div>
+          <div style={{ fontSize: 11.5, color: T.textDim }}>{hint}</div>
+        </div>
+        {rows.map((p) => <PlanCard key={p.id} p={p} d={d} rate={rate} onEdit={() => setEditing(p)} />)}
+      </div>;
+    })}
+  </div>;
+}
+
+// What this package costs to run, and what is left of its price.
+//
+// Every figure here comes from metered calls — see package-cost.js. Nothing is
+// shown until something has actually been measured, because a cost invented
+// from an empty book is worse than an empty space: it would be believed.
+function PlanEconomics({ p, d, rate }) {
+  // Platform-wide, not one client's: a package's cost is what it costs to run
+  // for anybody, and one client's month is too small a sample to price from.
+  const rates = perCallRates(d?.totals?.by_feature || {});
+  const c = packageCost(p, rates, {});
+  if (c.total.atTypical === null) {
+    return <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 9 }}>
+      Cost not worked out yet — no AI calls have been metered for {c.unmeasured.join(", ") || "this"}. It appears once the bots have run for a day or two.
+    </div>;
+  }
+  const price = Number(p.monthly) || 0;
+  const margin = marginAt(price, c.total.atTypical, rate);
+  const worst = marginAt(price, c.total.atFull, rate);
+  const floor = floorPrice(c.total.atTypical, rate, 0.3);
+  // A margin that is fine on average and negative on a heavy client is the one
+  // worth seeing, so both are shown and the worse one decides the colour.
+  const tone = worst === null ? T.textDim : worst < 0 ? T.danger : worst < 0.3 ? T.warn : T.success;
+  const pc = (x) => (x === null ? "—" : `${Math.round(x * 100)}%`);
+  const Cell = ({ k, v, c: col }) => <span style={{ fontSize: 11, color: T.textMuted, background: T.bgAlt, borderRadius: 7, padding: "4px 9px" }}>
+    {k}: <b style={{ color: col || T.text }}>{v}</b>
+  </span>;
+  return <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+    <Cell k="AI cost" v={`${bdt(c.total.atTypical * rate)} typical · ${bdt(c.total.atFull * rate)} full`} />
+    <Cell k="Margin" v={`${pc(margin)} typical · ${pc(worst)} full`} c={tone} />
+    <Cell k="Price floor" v={floor === null ? "—" : `${bdt(floor)} at 30% AI`} />
+    {c.conversations !== null && <Cell k="Conversations" v={Number(c.conversations).toLocaleString("en-IN")} />}
+    {c.moderators !== null && <Cell k="Replaces" v={`${c.moderators.toFixed(1)} moderators`} />}
+    {!!c.unmeasured.length && <Cell k="Not measured" v={c.unmeasured.join(", ")} c={T.warn} />}
+  </div>;
+}
+
+// One package in the list, with what it costs to run underneath it.
+function PlanCard({ p, d, rate, onEdit }) {
+  return <Card>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 180px", minWidth: 0 }}>
           <div style={{ fontSize: 14.5, fontWeight: 700 }}>{p.name} {p.highlight && <Badge color={T.gold}>Popular</Badge>} {!p.active && <Badge color={T.textDim}>Off</Badge>}</div>
@@ -1181,16 +1242,16 @@ function PlanEditor({ d, post, busy, isSuper }) {
           <div style={{ fontSize: 16, fontWeight: 700 }}>{bdt(p.monthly)}<span style={{ fontSize: 11.5, color: T.textDim, fontWeight: 400 }}>/mo</span></div>
           <div style={{ fontSize: 11.5, color: T.textDim }}>{bdt(p.yearly)}/yr</div>
         </div>
-        <Btn small onClick={() => setEditing(p)}>Edit</Btn>
+        <Btn small onClick={onEdit}>Edit</Btn>
       </div>
+      <PlanEconomics p={p} d={d} rate={rate} />
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
         {LIMITS.map(([k, label]) => <span key={k} style={{ fontSize: 11, color: T.textMuted, background: T.bgAlt, borderRadius: 7, padding: "4px 9px" }}>
           {label}: <b style={{ color: T.text }}>{p[k] === null || p[k] === undefined ? "∞" : Number(p[k]).toLocaleString()}</b>
         </span>)}
       </div>
       {p.model_chain && <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 8, fontFamily: "monospace" }}><i className="ti ti-cpu" style={{ marginRight: 5 }} />{p.model_chain}</div>}
-    </Card>)}
-  </div>;
+    </Card>;
 }
 
 function PlanForm({ plan, onSave, onCancel, busy, trialDays }) {
@@ -1231,6 +1292,14 @@ function PlanForm({ plan, onSave, onCancel, busy, trialDays }) {
       {num("monthly", "Price / month (৳)", "0")}
       {num("yearly", "Price / year (৳)", "0")}
     </div>
+    {/* Which business may buy this. It decides what the package is allowed to
+        promise as much as what it is shown to: a shop has no calendar to book
+        into, a service has no catalogue to match a photo against. */}
+    <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>Sold to
+      <Select value={p.biz || "both"} onChange={(v) => set("biz", v)}
+        items={[{ value: "both", label: "Everyone (the free trial)" }, { value: "ecommerce", label: "Shops — catalogue, orders, photo matching" }, { value: "agency", label: "Services — documents, bookings, calendar" }]}
+        style={{ marginTop: 4 }} />
+    </label>
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>Tagline
       <input value={p.tagline || ""} onChange={(e) => set("tagline", e.target.value)} placeholder="For growing businesses"
         style={{ width: "100%", marginTop: 4, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit" }} />

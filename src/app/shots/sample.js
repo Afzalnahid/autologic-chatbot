@@ -382,15 +382,20 @@ const ALL = rollUp([...C1_LINES, ...C2_LINES, ...C3_LINES]);
 const ADMIN_PACKAGES = {
   role: "owner",
   days: 30,
+  // The seven real packages, so the studio shows the ladder that is actually
+  // sold rather than the three it replaced. The trial deliberately keeps a
+  // per-channel cap and a monthly figure it should not have, because those are
+  // what the limit warnings exist to catch.
   plans: [
-    // The trial carries the exact contradiction the live panel was found with:
-    // a day-metered plan with a monthly figure that is never read, and a
-    // per-channel cap of 10 that quietly becomes the whole month's ceiling.
-    // Here so LimitWarnings can be seen doing its job without a login.
-    { id: "trial", name: "Free Trial", tagline: "Try everything for 3 days", sort: 0, active: true, public: false, monthly: 0, yearly: 0, messages_per_day: 30, messages_per_month: 900, messages_per_channel: 10, channels: 1, max_products: 20, max_kb_files: 2, max_scrapes_per_month: 5, max_broadcasts_per_month: 2, features: { vision: false, voice: false, kb: false }, feature_list: [] },
-    { id: "starter", name: "Starter", tagline: "One channel, real replies", sort: 1, active: true, public: true, monthly: 1500, yearly: 15000, messages_per_month: 3000, channels: 1, max_products: 300, max_kb_files: 0, max_scrapes_per_month: 20, max_broadcasts_per_month: 4, features: { vision: false, voice: false, kb: false }, feature_list: [] },
-    { id: "pro", name: "Pro", tagline: "Every channel, photos and voice", sort: 2, active: true, public: true, monthly: 3500, yearly: 35000, messages_per_month: 15000, channels: 3, max_products: 3000, max_kb_files: 40, max_scrapes_per_month: 200, max_broadcasts_per_month: 20, highlight: true, features: { vision: true, voice: true, kb: true }, feature_list: [] },
-    { id: "agency", name: "Agency", tagline: "Unlimited, with bookings", sort: 3, active: true, public: true, monthly: 6000, yearly: 60000, messages_per_month: null, channels: 3, max_products: null, max_kb_files: null, max_scrapes_per_month: null, max_broadcasts_per_month: null, features: { vision: true, voice: true, kb: true, calendar: true }, feature_list: [] },
+    { id: "trial", biz: "both", name: "Free Trial", tagline: "Try everything for a few days", sort: 0, active: true, public: true, monthly: 0, yearly: 0, messages_per_day: 30, messages_per_month: 900, messages_per_channel: 10, channels: 1, max_products: 20, max_kb_files: 2, max_scrapes_per_month: 5, max_broadcasts_per_month: 2, features: { vision: true, voice: true, kb: true, calendar: true, widget: true, broadcast: true, followup: true }, feature_list: [] },
+
+    { id: "shop_starter", biz: "ecommerce", name: "Shop Starter", tagline: "One channel, your catalogue answering for itself", sort: 1, active: true, public: true, monthly: 1500, yearly: 15000, messages_per_month: 3000, channels: 1, max_products: 300, max_kb_files: 0, max_scrapes_per_month: 20, max_broadcasts_per_month: 4, features: { widget: true, broadcast: true, followup: true }, feature_list: [] },
+    { id: "shop_growth", biz: "ecommerce", name: "Shop Growth", tagline: "Every channel, and customers who send photos instead of names", sort: 2, active: true, public: true, monthly: 3500, yearly: 35000, messages_per_month: 15000, channels: 3, max_products: 3000, max_kb_files: 0, max_scrapes_per_month: 200, max_broadcasts_per_month: 20, highlight: true, features: { vision: true, voice: true, comments: true, widget: true, broadcast: true, followup: true }, feature_list: [] },
+    { id: "shop_scale", biz: "ecommerce", name: "Shop Scale", tagline: "For a catalogue and a crowd that keep growing", sort: 3, active: true, public: true, monthly: 6000, yearly: 60000, messages_per_month: 50000, channels: 3, max_products: null, max_kb_files: 0, max_scrapes_per_month: null, max_broadcasts_per_month: null, features: { vision: true, voice: true, comments: true, widget: true, broadcast: true, followup: true, byok: true }, feature_list: [] },
+
+    { id: "svc_starter", biz: "agency", name: "Service Starter", tagline: "One channel, answering from your own documents", sort: 4, active: true, public: true, monthly: 1500, yearly: 15000, messages_per_month: 3000, channels: 1, max_products: 0, max_kb_files: 10, max_scrapes_per_month: 20, max_broadcasts_per_month: 4, features: { kb: true, widget: true, broadcast: true, followup: true }, feature_list: [] },
+    { id: "svc_growth", biz: "agency", name: "Service Growth", tagline: "Every channel, and meetings booked while you sleep", sort: 5, active: true, public: true, monthly: 3500, yearly: 35000, messages_per_month: 15000, channels: 3, max_products: 0, max_kb_files: 40, max_scrapes_per_month: 200, max_broadcasts_per_month: 20, highlight: true, features: { voice: true, kb: true, calendar: true, comments: true, widget: true, broadcast: true, followup: true }, feature_list: [] },
+    { id: "svc_scale", biz: "agency", name: "Service Scale", tagline: "For a practice that answers all day", sort: 6, active: true, public: true, monthly: 6000, yearly: 60000, messages_per_month: 50000, channels: 3, max_products: 0, max_kb_files: null, max_scrapes_per_month: null, max_broadcasts_per_month: null, features: { voice: true, kb: true, calendar: true, comments: true, widget: true, broadcast: true, followup: true, byok: true }, feature_list: [] },
   ],
   prices: [
     { provider: "google", model: "__default__", input_per_1m: 0.3, output_per_1m: 2.5 },
