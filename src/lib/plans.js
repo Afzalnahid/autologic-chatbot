@@ -3,6 +3,13 @@
 
 export const CURRENCY = "\u09F3"; // ৳
 
+// How long the free trial runs. It was written as `3 * 24 * 3600 * 1000` inside
+// the start_trial handler and nowhere else, so the admin panel had no way to
+// say what a "per month" box means on a plan that lasts three days. One
+// constant now, read by the handler that starts a trial and by the panel that
+// describes one. Changing it still needs a deploy — it is not a package field.
+export const TRIAL_DAYS = 3;
+
 export const PLANS = {
   trial: {
     id: "trial",

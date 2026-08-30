@@ -217,24 +217,52 @@ enforced in `botAllowed()` (`src/lib/bot.js`):
 `messages_per_month`. The other box is dead — a number typed into it changes
 nothing.
 
-**The per-channel cap is a separate, later check, and it is monthly.** So a
-small figure there quietly becomes the real ceiling
-(`messages_per_channel × channels`) however large the headline says. It counts
-only customer messages carrying that channel's `page_id`, so one busy Page
-cannot eat another's allowance, and hitting it stops that channel alone — the
-client's other channels keep working and they are emailed once a day at most.
+**The per-channel cap is a separate, later check.** So a small figure there
+quietly becomes the real ceiling (`messages_per_channel × channels`) however
+large the headline says. It counts only customer messages carrying that
+channel's `page_id`, so one busy Page cannot eat another's allowance, and
+hitting it stops that channel alone — the client's other channels keep working
+and they are emailed once a day at most.
 
 The precedence for the cap is `channels.msg_limit_monthly` (the **Set cap**
 button, one channel) → the client's `limit_overrides` (their every channel) →
 the package → unlimited.
 
+### The window a "per month" allowance is counted over
+
+`quotaWindowStart(client)` (`src/lib/plan-limits.js`) answers this once for
+every windowed limit — the per-channel cap and website scrapes both read it. A
+calendar month for a package sold by the month; **the trial itself for a
+trial**. A three-day trial that straddled a month end used to have its whole
+allowance reset on the 1st, so the same trial was worth twice as much depending
+on the day it began.
+
+`TRIAL_DAYS` in `src/lib/plans.js` is how long a trial runs. It was written as
+`3 * 24 * 3600 * 1000` inside the `start_trial` handler and nowhere else, which
+is why nothing could say what "per month" meant on a three-day plan. Changing it
+still needs a deploy — it is not a package field.
+
+### Limits that are defined but enforced by nothing
+
+`channels` and `max_broadcasts_per_month` are set in the panel, saved, and
+returned by `limitsFor()` — and no route reads either. Connecting a channel
+checks no allowance, and nothing counts broadcasts against a package. The panel
+says so under each box rather than showing a number that looks enforced.
+
+### Saying it where the number is typed
+
 None of this was visible where the numbers are typed, and a Free Trial package
 was found in production selling "30 a day" while a per-channel cap of 10 ended
-the trial at ten messages for the month. `src/lib/limit-conflicts.js` now turns
-these rules into sentences shown under both limit grids. It only describes —
-enforcement stays in `botAllowed()`, and the day/month test is the same one
-`messageAllowance()` makes, so the panel and the bot cannot drift apart. It is
-a note, not a block: the owner may mean it, so nothing refuses to save.
+the trial at ten messages. `src/lib/limit-conflicts.js` holds the descriptions:
+`limitMeaning()` gives each box the label and note for its package — a trial has
+no months, so its boxes read "/ trial" — `trialTotal()` gives the figure the
+boxes never showed (`3 days × 30 a day = 90`), and `limitConflicts()` covers
+what a single label cannot, the arithmetic across two boxes.
+
+It only describes. Enforcement stays in `botAllowed()` and the quota gates, and
+the day/month test is the same one `messageAllowance()` makes, so the panel and
+the bot cannot drift apart. It is a note, not a block: the owner may mean an odd
+combination, so nothing refuses to save.
 
 ## Broadcast rules
 

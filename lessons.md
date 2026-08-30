@@ -998,3 +998,34 @@ were not peers.
 - The question "what is this button for?" is worth answering from the code every time. This
   one was a plain question with no bug reported, and reading the enforcement to answer it
   found a live trial that ended 89 times too early.
+
+## A unit that does not exist on the plan you are describing (2026-08-30)
+
+The owner looked at the Free Trial package and said the boxes should be in days, because the
+trial lasts three. Reading the code to fix the labels turned up more than a wording problem.
+
+Of the eight limit boxes on that package, THREE were doing nothing. `messages_per_month` is
+never read on a trial (a trial is metered by the day). `channels` is checked by no route at
+all — connecting a channel tests no allowance. `max_broadcasts_per_month` is defined in
+`limitsFor()` and read by nothing anywhere. All three rendered exactly like the boxes that
+work.
+
+And one that DID work was measured over the wrong window: a "per month" allowance on a
+three-day trial resets at the month end, so a trial begun on the 30th was worth twice one
+begun on the 2nd. Nobody would ever see that; it is not visible from either side.
+
+**Rules:**
+- Before writing a label, check the field is read. Grep the camelCase name out of
+  `limitsFor()` across the repo — if the only hit is the line that defines it, the box is
+  decoration. This took one search and found two.
+- A unit belongs to the plan, not to the column. "Per month" on a three-day trial is not a
+  small wording problem, it is a number nobody can reason about — and the owner typing it is
+  the person with the least reason to doubt it.
+- When a period appears in a label, one function must decide the window for every limit that
+  uses it (`quotaWindowStart`). Two places computing "the start of the month" drift the day
+  someone adds a third.
+- Show the number the boxes cannot: `3 days x 30 a day = 90`. Eight fields and not one of
+  them was the figure the owner was actually deciding.
+- A magic number written once, inside a handler, is a fact the rest of the system cannot see.
+  The hardcoded three days in `start_trial` is why nothing else could say what a trial's
+  limits meant.

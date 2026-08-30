@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
 import { chatWithGemini, generateEmbedding, UNCLEAR_AUDIO } from "@/lib/gemini.js";
-import { limitsFor, messageAllowance } from "@/lib/plan-limits.js";
+import { limitsFor, messageAllowance, quotaWindowStart } from "@/lib/plan-limits.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
@@ -82,16 +82,20 @@ export async function botAllowed(channel, senderId) {
     }
   }
 
-  // Per-channel monthly cap: the channel's own value first, else the package's
-  // blanket per-channel figure. Only counts messages that arrived on THIS
-  // channel, so one busy Page cannot eat another Page's allowance.
+  // Per-channel cap: the channel's own value first, else the package's blanket
+  // per-channel figure. Only counts messages that arrived on THIS channel, so
+  // one busy Page cannot eat another Page's allowance.
+  //
+  // The window is a calendar month for a package sold by the month, and the
+  // trial itself for a trial — a three-day trial that straddled a month end
+  // used to get its whole allowance a second time. quotaWindowStart holds that
+  // decision for every windowed limit, so scrapes and this cannot disagree.
   const chLimit = channel.msg_limit_monthly ?? limits.messagesPerChannel;
   if (chLimit !== null && chLimit !== undefined && channel.page_id) {
-    const monthStart = startOfMonthDhaka();
     const { count } = await sb().from("message_buffer")
       .select("id", { count: "exact", head: true })
       .eq("client_id", client.id).eq("role", "customer")
-      .eq("page_id", channel.page_id).gte("created_at", monthStart.toISOString());
+      .eq("page_id", channel.page_id).gte("created_at", quotaWindowStart(client));
     if ((count || 0) > chLimit) {
       return { allowed: false, reason: "quota_channel", client, used: count, limit: chLimit };
     }

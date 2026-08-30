@@ -165,22 +165,37 @@ export async function checkProductQuota(client, adding = 1) {
   return { ok: true, used, limit: max, limits };
 }
 
-// Website scrapes this month. Counted from the metering table (kind "scrape"),
-// which is also what the cost report reads — one source of truth, no separate
-// counter to drift.
+// Where a "per month" allowance starts counting for this client.
+//
+// A calendar month is the right window for a package that is sold by the month.
+// It is the wrong one for a three-day trial, which can straddle a month end: a
+// trial started on the 30th got its whole monthly allowance again on the 1st,
+// so the same trial was worth twice as much depending on the day it began. For
+// a trial the window is the trial itself.
+export const quotaWindowStart = (client) =>
+  (client?.plan === "trial" && client?.trial_start
+    ? new Date(client.trial_start).toISOString()
+    : monthStartISO());
+
+// Website scrapes in the current window. Counted from the metering table (kind
+// "scrape"), which is also what the cost report reads — one source of truth, no
+// separate counter to drift.
 export async function checkScrapeQuota(client) {
   const limits = await limitsFor(client);
   const max = limits.maxScrapesPerMonth;
   if (max === null || max === undefined) return { ok: true, limits };
+  const trial = client?.plan === "trial";
   const { data, error } = await supabase.from("usage_daily")
     .select("calls").eq("client_id", client.id).eq("kind", "scrape")
-    .gte("day", monthStartISO().slice(0, 10)).limit(2000);
+    .gte("day", quotaWindowStart(client).slice(0, 10)).limit(2000);
   if (error) return { ok: false, limits, message: COUNT_FAILED };
   const used = (data || []).reduce((n, r) => n + (r.calls || 0), 0);
   if (used >= Number(max)) {
     return {
       ok: false, used, limit: max, limits,
-      message: `Your ${limits.planName} package includes ${Number(max).toLocaleString("en-IN")} website imports per month and you have used ${used.toLocaleString("en-IN")}. It resets next month, or upgrade for more.`,
+      message: trial
+        ? `Your ${limits.planName} includes ${Number(max).toLocaleString("en-IN")} website imports and you have used ${used.toLocaleString("en-IN")}. Choose a package for more.`
+        : `Your ${limits.planName} package includes ${Number(max).toLocaleString("en-IN")} website imports per month and you have used ${used.toLocaleString("en-IN")}. It resets next month, or upgrade for more.`,
     };
   }
   return { ok: true, used, limit: max, limits };

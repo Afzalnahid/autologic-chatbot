@@ -4,7 +4,7 @@ import { T, Card, Btn, Badge, Inp, Select, Switch, useIsMobile, fmtNum } from ".
 // Aliased: this file already has its own FEATURES (the package capability
 // switches), which is a different list entirely.
 import { AREAS, FEATURES as USAGE_FEATURES, featureLabel } from "@/lib/usage-features.js";
-import { limitConflicts } from "@/lib/limit-conflicts.js";
+import { limitConflicts, limitMeaning, trialTotal } from "@/lib/limit-conflicts.js";
 import { readJson, offlineError } from "@/lib/api-error.js";
 
 // Packages & Costs — the business side of the admin console.
@@ -98,11 +98,19 @@ const LIMITS = [
 // nothing here refuses to save.
 function LimitWarnings({ limits, planId }) {
   const notes = limitConflicts(limits, planId);
-  if (!notes.length) return null;
+  const total = trialTotal(limits, planId);
+  if (!notes.length && !total) return null;
+  const box = (color) => ({ display: "flex", gap: 7, alignItems: "flex-start",
+    background: `color-mix(in srgb, ${color} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
+    borderRadius: 9, padding: "7px 9px", fontSize: 11.5, lineHeight: 1.55, color: T.textMuted });
   return <div style={{ marginTop: 9, display: "grid", gap: 6 }}>
-    {notes.map((n, i) => <div key={i} style={{ display: "flex", gap: 7, alignItems: "flex-start",
-      background: `color-mix(in srgb, ${T.warn} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${T.warn} 30%, transparent)`,
-      borderRadius: 9, padding: "7px 9px", fontSize: 11.5, lineHeight: 1.55, color: T.textMuted }}>
+    {/* The number an owner is actually deciding when they price a trial, which
+        no single box could show. */}
+    {total && <div style={box(T.success)}>
+      <i className="ti ti-sum" style={{ fontSize: 14, color: T.success, flexShrink: 0, marginTop: 1 }} />
+      <span>{total.text}</span>
+    </div>}
+    {notes.map((n, i) => <div key={i} style={box(T.warn)}>
       <i className="ti ti-alert-triangle" style={{ fontSize: 14, color: T.warn, flexShrink: 0, marginTop: 1 }} />
       <span>{n}</span>
     </div>)}
@@ -1073,10 +1081,14 @@ function ClientPanel({ c, rate, post, busy, d }) {
       Every box already holds what the <b style={{ color: T.textMuted }}>{planLabel}</b> package gives. Change one only where this client needs an exception — the rest keep following the package, so raising the package later raises them too. Clear a box to hand that limit back.
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 9 }}>
-      {LIMITS.map(([k, label]) => {
+      {LIMITS.map(([k, fallbackLabel]) => {
         const custom = isCustom(k);
         const pv = fromPlan(k);
         const planText = pv === null || pv === undefined ? "unlimited" : Number(pv).toLocaleString("en-IN");
+        // A trial does not have months, and two of these boxes are read by
+        // nothing. The label says which, per package.
+        const mean = limitMeaning(k, c.plan);
+        const label = mean.label || fallbackLabel;
         return <div key={k}>
           <label style={{ display: "block", fontSize: 11, color: T.textMuted }}>
             {label}
@@ -1100,6 +1112,7 @@ function ClientPanel({ c, rate, post, busy, d }) {
                 {planLabel} gives {planText} — undo
               </button>
             : <span style={{ display: "block", fontSize: 10.5, color: T.textDim, marginTop: 3, padding: "3px 0" }}>from {planLabel}</span>}
+          {mean.note && <span style={{ display: "block", fontSize: 10.5, color: T.warn, marginTop: 1 }}>{mean.note}</span>}
         </div>;
       })}
     </div>
@@ -1160,11 +1173,17 @@ function PlanForm({ plan, onSave, onCancel, busy }) {
   const [p, setP] = useState(() => ({ ...plan, features: { ...(plan.features || {}) } }));
   const set = (k, v) => setP((x) => ({ ...x, [k]: v }));
   const setF = (k, v) => setP((x) => ({ ...x, features: { ...x.features, [k]: v } }));
-  const num = (k, label, hint) => <label key={k} style={{ fontSize: 11, color: T.textMuted }}>
-    {label}
-    <input type="number" min="0" placeholder={hint || "Unlimited"} value={p[k] ?? ""} onChange={(e) => set(k, e.target.value)}
-      style={{ width: "100%", marginTop: 4, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit" }} />
-  </label>;
+  const num = (k, label, hint) => {
+    // Limit boxes carry the period this package actually uses, and say when
+    // nothing reads them; the price and id boxes pass through unchanged.
+    const mean = limitMeaning(k, p.id);
+    return <label key={k} style={{ fontSize: 11, color: T.textMuted }}>
+      {mean.label || label}
+      <input type="number" min="0" placeholder={hint || "Unlimited"} value={p[k] ?? ""} onChange={(e) => set(k, e.target.value)}
+        style={{ width: "100%", marginTop: 4, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit" }} />
+      {mean.note && <span style={{ display: "block", fontSize: 10.5, color: T.warn, marginTop: 3 }}>{mean.note}</span>}
+    </label>;
+  };
 
   return <Card style={{ borderColor: `color-mix(in srgb, ${T.gold} 40%, transparent)` }}>
     <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{plan.id ? `Edit ${plan.name}` : "New package"}</div>
