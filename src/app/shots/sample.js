@@ -398,7 +398,11 @@ const ADMIN_PACKAGES = {
     { id: "supabase", label: "Supabase database", monthly_usd: 25 },
     { id: "resend", label: "Resend email", monthly_usd: 0 },
   ],
-  settings: { usd_bdt: 120 },
+  settings: { usd_bdt: 120, usd_bdt_manual: false, usd_bdt_auto: 122.4, usd_bdt_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString() },
+  // What the server decided the rate is, and where it came from — the panel
+  // reads this rather than the raw setting, so the shot shows a market rate
+  // with its age beside it.
+  fx: { rate: 122.4, source: "market", at: new Date(Date.now() - 5 * 3600 * 1000).toISOString() },
   clients: [
     {
       client_id: "c1", business_name: "Nokshi Threads", owner_email: "owner@nokshithreads.com",

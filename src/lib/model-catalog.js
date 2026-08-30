@@ -6,7 +6,7 @@
 // works). Nothing here hardcodes a model id: Google retires ids without warning,
 // which is exactly what produced the "gemini-2.5-flash is no longer available"
 // error this replaced. The platform is Gemini-only.
-import { listGoogleModels } from "@/lib/gemini.js";
+import { listGoogleModels, listGoogleModelsRaw } from "@/lib/gemini.js";
 
 // "fast"  = cheap and quick — the right default for most replies.
 // "smart" = higher quality, higher cost — a good fallback or upgrade.
@@ -36,6 +36,33 @@ export async function listModels(_provider, apiKey) {
       note: tier === "fast" ? "Low cost · Fast" : "More powerful · Higher cost",
     };
   });
+}
+
+// Everything on the key that can COST money, for the admin price book.
+//
+// `listModels` above answers a different question — what a chatbot can run on —
+// and drops embeddings, which is right there and wrong here: every product
+// saved is an embedding call, and it is a line on the bill. The price book has
+// to be able to name a rate for anything the platform might spend on, or the
+// spend falls through to the "any other model" fallback and every figure under
+// it is a house guess.
+//
+// `kind` is only for reading: which list a model belongs under on screen.
+export function kindOf(id, methods = []) {
+  if (methods.includes("embedContent") || /embedding/i.test(id)) return "embedding";
+  if (/tts|audio|speech/i.test(id)) return "audio";
+  if (/image|imagen/i.test(id)) return "image";
+  return "chat";
+}
+
+export async function listBillableModels(apiKey) {
+  const all = await listGoogleModelsRaw(apiKey);
+  return all
+    // Preview and experimental ids come and go weekly and would fill the screen
+    // with rates nobody will ever spend against.
+    .filter((m) => !/(-preview|-exp|-latest|-\d{3,4}$)/i.test(m.id))
+    .map((m) => ({ id: m.id, name: m.displayName || m.id, kind: kindOf(m.id, m.methods) }))
+    .sort((a, b) => a.kind.localeCompare(b.kind) || a.id.localeCompare(b.id));
 }
 
 // Confirms every model the user picked is really on the key's live list.

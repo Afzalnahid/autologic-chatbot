@@ -6,6 +6,8 @@ import { callerEmail, callerRole, CAN_EDIT, CAN_DELETE } from "@/lib/admin-auth.
 import { loadPrices, summarise, dhakaDay } from "@/lib/usage.js";
 import { invalidatePlans, loadPlans } from "@/lib/plan-limits.js";
 import { getPlatformAI } from "@/lib/platform-ai.js";
+import { fetchUsdBdt, rateFrom, isStale } from "@/lib/fx.js";
+import { listBillableModels } from "@/lib/model-catalog.js";
 
 // The economics side of the admin panel: packages (what we sell), the model
 // price book (what the AI costs us), fixed platform costs, and the real usage
@@ -18,6 +20,28 @@ const DEFAULTS = { usd_bdt: 120 };
 async function billingSettings() {
   const { data } = await supabase.from("app_settings").select("settings").eq("id", BILLING_SETTINGS).maybeSingle();
   return { ...DEFAULTS, ...(data?.settings || {}) };
+}
+
+// Keep the dollar rate current without anyone remembering to.
+//
+// Every cost here is measured in dollars and read in taka, so a rate that
+// drifts makes every margin on the screen wrong at once — and wrong in a way
+// that still looks internally consistent, which is the hardest kind to notice.
+//
+// Refreshed at most twice a day, never on the critical path: if the currency
+// API is slow or down the last good number stands and the panel says how old it
+// is. The owner's own number wins whenever they have said so.
+async function freshRate(settings) {
+  if (settings.usd_bdt_manual || !isStale(settings)) return settings;
+  const rate = await fetchUsdBdt();
+  if (!rate) return settings;
+  const next = { ...settings, usd_bdt_auto: rate, usd_bdt_at: new Date().toISOString() };
+  // Written back so the next page load does not go and ask again. A failed
+  // write costs nothing but another lookup later.
+  await supabase.from("app_settings")
+    .upsert({ id: BILLING_SETTINGS, settings: next }, { onConflict: "id" })
+    .then(() => {}, () => {});
+  return next;
 }
 
 // Read every row a query would return, a page at a time.
@@ -68,8 +92,12 @@ export async function GET(request) {
     pageAll((from, to) => supabase.from("usage_daily").select("*").gte("day", since).order("day", { ascending: true }).range(from, to)),
     supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type"),
     supabase.from("channels").select("id,client_id,platform,page_id,name,status,msg_limit_monthly"),
-    billingSettings(),
+    billingSettings().then(freshRate),
   ]);
+  // What one dollar is worth, and whether that is the market's answer or the
+  // owner's. The panel prints both so a margin can never be read off a number
+  // whose age nobody knows.
+  const fx = rateFrom(settings);
 
   const plans = plansQ.data || [];
   const usage = usageQ.rows || [];
@@ -165,6 +193,7 @@ export async function GET(request) {
     }),
     platform_costs: costsQ.data || [],
     settings,
+    fx,
     clients: rows,
     totals: {
       calls: totals.calls, tokens: totals.tokens,
@@ -196,7 +225,12 @@ export async function GET(request) {
       fixed_monthly_usd: fixedMonthlyUsd,
       // The fixed bill pro-rated to the same window as the AI cost.
       fixed_window_usd: (fixedMonthlyUsd / 30) * days,
-      messages: (msgs || []).length,
+      // `messages` is set once, above. It used to be set again HERE as
+      // `(msgs || []).length` — from when `msgs` was an array. It became
+      // { rows, truncated }, that line became `undefined`, and a duplicate key
+      // in an object literal is silent: the LAST one wins. So the platform
+      // total read 0 while the per-channel split beside it read correctly,
+      // which is exactly what it looked like.
     },
   }, { headers: { "Cache-Control": "no-store" } });
 }
@@ -217,6 +251,37 @@ export async function POST(request) {
   }
 
   const int = (v) => (v === "" || v === null || v === undefined ? null : Math.max(0, Math.round(Number(v) || 0)));
+
+  // Every model the PLATFORM key can see, with the rate we already hold for it.
+  //
+  // The price book was a hand-kept list, so it showed whatever had been typed
+  // into it and nothing else — a model the platform actually runs on but nobody
+  // priced falls through to the "any other model" fallback, and every figure
+  // under it is a house guess wearing a real number's clothes. This asks the
+  // provider what exists.
+  if (action === "list_models") {
+    try {
+      const [models, prices] = await Promise.all([listBillableModels(), loadPrices()]);
+      const priced = new Set(Object.keys(prices).map((k) => k.slice(k.indexOf("/") + 1)));
+      return NextResponse.json({
+        ok: true,
+        models: models.map((m) => ({ ...m, priced: priced.has(m.id) })),
+      }, { headers: { "Cache-Control": "no-store" } });
+    } catch (e) {
+      return NextResponse.json({ error: `Could not read the model list: ${String(e.message || e).slice(0, 200)}` }, { status: 400 });
+    }
+  }
+
+  // Fetch the dollar rate now, rather than waiting for it to go stale.
+  if (action === "refresh_fx") {
+    const rate = await fetchUsdBdt();
+    if (!rate) return NextResponse.json({ error: "Could not reach the currency service. The last rate is still in use." }, { status: 502 });
+    const prev = await billingSettings();
+    const next = { ...prev, usd_bdt_auto: rate, usd_bdt_at: new Date().toISOString() };
+    const { error } = await supabase.from("app_settings").upsert({ id: BILLING_SETTINGS, settings: next }, { onConflict: "id" });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, fx: rateFrom(next) });
+  }
 
   if (action === "save_plan") {
     const p = body.plan || {};

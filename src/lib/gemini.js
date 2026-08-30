@@ -77,6 +77,31 @@ export async function chatWithGemini(systemPrompt, messages, model, opts = {}) {
 // offer the real list, never a guess. Returns short ids ("gemini-2.5-flash",
 // no "models/" prefix). Throws with a clear message when the key is rejected,
 // which doubles as the key-verification step.
+// Every model the key can see, with what each one can do — no filtering.
+//
+// `listGoogleModels` below keeps only what a CHATBOT can run on, which is right
+// for choosing a reply model and wrong for the price book: an embedding model
+// bills like any other and has to be nameable there. This is the raw answer;
+// deciding what to do with it belongs to the caller.
+export async function listGoogleModelsRaw(apiKey) {
+  const key = apiKey || process.env.GEMINI_API_KEY || "";
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=1000`);
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    let reason = `Google rejected the key (HTTP ${r.status})`;
+    try { const j = JSON.parse(body); if (j?.error?.message) reason = j.error.message; } catch {}
+    const err = new Error(reason);
+    err.status = r.status;
+    throw err;
+  }
+  const j = await r.json();
+  return (j.models || []).map((m) => ({
+    id: String(m.name || "").replace(/^models\//, ""),
+    displayName: m.displayName || "",
+    methods: m.supportedGenerationMethods || [],
+  }));
+}
+
 export async function listGoogleModels(apiKey) {
   const key = apiKey || process.env.GEMINI_API_KEY || "";
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=1000`);

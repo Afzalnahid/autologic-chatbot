@@ -22,6 +22,19 @@ const usd = (n) => "$" + (Number(n) || 0).toLocaleString("en-US", { minimumFract
 const bdt = (n) => "৳" + Math.round(Number(n) || 0).toLocaleString("en-IN");
 const pct = (n) => (Number.isFinite(n) ? `${Math.round(n)}%` : "—");
 const num = (n) => (Number(n) || 0).toLocaleString("en-US");
+// How old a number is, in words. An exchange rate with no age beside it is a
+// rate nobody can decide whether to trust.
+const ago = (iso) => {
+  const t = Date.parse(iso || "");
+  if (!Number.isFinite(t)) return null;
+  const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (m < 2) return "just now";
+  if (m < 60) return `${m} minutes ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`;
+  const d = Math.round(h / 24);
+  return `${d} day${d === 1 ? "" : "s"} ago`;
+};
 // Sub-cent amounts are the norm here — a per-call cost rounded to two decimals
 // reads as "$0.00", which looks broken. Show enough digits to see the number.
 const usdFine = (n) => {
@@ -96,22 +109,31 @@ export default function Packages({ token, isSuper }) {
   }, [token, days]);
   useEffect(() => { load(); }, [load]);
 
-  const post = async (body) => {
-    setBusy(true); setMsg(null);
+  // `quiet` is for the actions that only ASK something — reading the model list
+  // off the provider is not a save, so it must not print "Saved." or reload the
+  // whole screen underneath the answer. It returns the reply either way, so a
+  // caller can use what came back instead of guessing from true/false.
+  const post = async (body, { quiet = false } = {}) => {
+    setBusy(true); if (!quiet) setMsg(null);
     const r = await fetch("/api/admin/packages", {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     }).then(readJson).catch(offlineError);
     setBusy(false);
-    if (r.error) { setMsg({ ok: false, text: r.error }); return false; }
+    if (r.error) { if (!quiet) setMsg({ ok: false, text: r.error }); return r; }
+    if (quiet) return r;
     setMsg({ ok: true, text: "Saved." });
     await load();
-    return true;
+    return r;
   };
 
   if (!d) return <Card style={{ textAlign: "center", padding: "44px 20px", color: T.textDim }}>Loading…</Card>;
 
-  const rate = Number(d.settings?.usd_bdt) || 120;
+  // The server decides which rate applies — market, the owner's own, or the
+  // house default — because the same decision has to hold on the server side of
+  // any future report. Reading `settings.usd_bdt` directly here would quietly
+  // ignore the market rate the moment one existed.
+  const rate = Number(d.fx?.rate) || Number(d.settings?.usd_bdt) || 120;
   const t = d.totals || {};
   const revenue = (d.clients || []).reduce((n, c) => n + Number(c.revenue_bdt || 0), 0);
   const aiCostBdt = Number(t.ai_cost_usd || 0) * rate;
@@ -358,6 +380,8 @@ function ApiUsage({ d, rate, isMobile }) {
       </div>
     </Card>
 
+    <CostShape d={d} rate={rate} />
+
     <ChannelMessages d={d} rate={rate} />
 
     <FeatureCosts byFeature={t.by_feature || {}} totalCost={totalCost} rate={rate} days={d.days} />
@@ -382,6 +406,100 @@ function ApiUsage({ d, rate, isMobile }) {
       isOpen={open === c.client_id} onToggle={() => setOpen(open === c.client_id ? null : c.client_id)} />)}
     {!rows.length && <Card style={{ textAlign: "center", padding: 30, color: T.textDim }}>No client matches that.</Card>}
   </div>;
+}
+
+// The shape of the bill: what runs BY ITSELF, and what somebody pressed.
+//
+// The three-part split further up answers "which area", and the feature list
+// below answers "which call". Neither answers the question a price list is
+// actually built from, which is: of every taka spent, how much is the bot
+// answering customers — the part that grows with a client's traffic and has to
+// be covered by the monthly price — and how much is the owner using the
+// dashboard, which is a one-off with each product or offer.
+//
+// The two sides are read differently and that is the point. The bot's cost is
+// divided by MESSAGES, because messages are what packages are sold on. The
+// owner's side is divided by nothing: it is work they chose to do.
+const BOT_AREA = "bot";
+function CostShape({ d, rate }) {
+  const t = d.totals || {};
+  const areas = t.by_area || {};
+  const byFeature = t.by_feature || {};
+  const messages = Number(t.messages || 0);
+  const money = (v) => Number(v?.cost || 0) + Number(v?.ownKeyCost || 0);
+
+  const bot = money(areas[BOT_AREA]);
+  const owner = money(areas.platform) + money(areas.catalogue);
+  const total = bot + owner + money(areas.unattributed);
+  if (!total) return null;
+
+  // A photo costs its own vision call, so the average message and the average
+  // PHOTO message are different numbers — and the gap between them is what a
+  // package has to survive when a shop's customers start sending pictures.
+  const vision = byFeature["bot.vision"] || {};
+  const images = Number(vision.calls || 0);
+  const perMsg = messages > 0 ? bot / messages : null;
+  // What one photo adds ON TOP of an ordinary message: the vision call itself.
+  const perImage = images > 0 ? money(vision) / images : null;
+
+  const clients = (d.clients || []).filter((c) => (c.calls || 0) > 0);
+  const perClient = clients.length ? total / clients.length : null;
+
+  const Side = ({ title, hint, amount, share, colour, lines }) =>
+    <div style={{ flex: "1 1 260px", minWidth: 0, background: T.bgAlt, borderRadius: 13, padding: "13px 15px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <span style={{ width: 9, height: 9, borderRadius: 3, background: colour, flexShrink: 0 }} />
+        <span style={{ fontSize: 12.5, fontWeight: 700 }}>{title}</span>
+        <span style={{ marginLeft: "auto", fontSize: 11.5, color: T.textDim, fontVariantNumeric: "tabular-nums" }}>{pct(share)}</span>
+      </div>
+      <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-.02em", fontVariantNumeric: "tabular-nums" }}>{bdtFine(amount * rate)}</div>
+      <div style={{ fontSize: 11, color: T.textDim, margin: "5px 0 9px", lineHeight: 1.55 }}>{hint}</div>
+      {lines.map(([label, value, note]) => <div key={label} style={{ display: "flex", gap: 8, alignItems: "baseline", padding: "5px 0", borderTop: `1px solid ${T.border}` }}>
+        <span style={{ fontSize: 11.5, color: T.textMuted, flex: "1 1 auto", minWidth: 0 }}>{label}
+          {note && <span style={{ display: "block", fontSize: 10.5, color: T.textDim, marginTop: 1 }}>{note}</span>}
+        </span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{value}</span>
+      </div>)}
+    </div>;
+
+  const feat = (id) => money(byFeature[id]);
+  const sum = (...ids) => ids.reduce((n, id) => n + feat(id), 0);
+
+  return <Card>
+    <div style={{ fontSize: 14, fontWeight: 700 }}>Where the money actually goes</div>
+    <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 13px" }}>
+      The bot answering customers is the cost that grows with traffic and has to be covered by the monthly price. The rest is the owner using the dashboard — real money, but paid once per product or per offer.
+    </div>
+
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <Side title="Bot — answering customers" colour={AREA_COLOR.bot}
+        hint="Runs by itself on every customer message. This is what a package has to pay for."
+        amount={bot} share={total > 0 ? (bot / total) * 100 : 0}
+        lines={[
+          ["Per message", perMsg === null ? "—" : bdtFine(perMsg * rate), `${num(messages)} messages`],
+          ["A photo message costs extra", perImage === null ? "—" : `+ ${bdtFine(perImage * rate)}`, `${num(images)} photos read`],
+          ["Reading the answer out of the catalogue", bdtFine(feat("bot.embed") * rate), "every message searches"],
+          ["Voice notes", bdtFine(feat("bot.voice") * rate), null],
+        ]} />
+
+      <Side title="Owner using the dashboard" colour={AREA_COLOR.platform}
+        hint="Work somebody pressed a button for. Paid once, not per message."
+        amount={owner} share={total > 0 ? (owner / total) * 100 : 0}
+        lines={[
+          ["AI Assistant", bdtFine(sum("product.assistant") * rate), "answering the owner and proposing changes"],
+          ["Adding products", bdtFine(sum("product.vision", "product.embed", "product.interview", "product.catalog", "product.group", "product.chat", "product.scrape") * rate), "photos read, indexed, named"],
+          ["Knowledge documents", bdtFine(feat("knowledge.embed") * rate), null],
+          ["Writing profiles and offers", bdtFine(sum("platform.prompt", "platform.offer") * rate), null],
+        ]} />
+    </div>
+
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+      <MiniStat label="Average client" value={perClient === null ? "—" : bdtFine(perClient * rate)} />
+      <MiniStat label="Clients using AI" value={num(clients.length)} />
+      <MiniStat label="On their own key" value={num((d.clients || []).filter((c) => Number(c.own_key_cost_usd) > 0).length)} />
+      <MiniStat label="Everything, this window" value={bdtFine(total * rate)} />
+    </div>
+  </Card>;
 }
 
 // Customer messages, and where they arrive.
@@ -662,6 +780,8 @@ function ClientUsage({ c, rate, isOpen, onToggle }) {
             <MiniStat label="In / out tokens" value={`${num(c.tokens_in || 0)} / ${num(c.tokens_out || 0)}`} />
           </div>
 
+          <ClientChannels c={c} rate={rate} />
+
           {AREA_ORDER.filter((a) => areas[a]).map((a) =>
             <AreaSection key={a} area={a} v={areas[a]} byFeature={c.by_feature || {}} rate={rate} isAgency={isAgency} />)}
 
@@ -674,6 +794,52 @@ function ClientUsage({ c, rate, isOpen, onToggle }) {
         </>}
     </div>}
   </Card>;
+}
+
+// This client's channels, with what the bot cost on each.
+//
+// The cost is APPORTIONED, not measured, and the panel says so rather than
+// quietly presenting a share as a reading. Usage is recorded per client, per
+// kind and per model — there is no channel on the row — so the honest thing is
+// to split the bot's cost by each channel's share of that client's messages.
+//
+// That is right whenever a message costs about the same wherever it arrives,
+// which is the normal case: the same prompt, the same model. It is wrong when
+// one channel's customers send far more photos than another's, and the way to
+// make it MEASURED is a `page_id` column on usage_daily — one migration, and
+// then this reads instead of divides.
+function ClientChannels({ c, rate }) {
+  const chans = (c.channels || []).slice().sort((a, b) => (b.messages || 0) - (a.messages || 0));
+  if (!chans.length) return null;
+  const botCost = Number(c.by_area?.bot?.cost || 0) + Number(c.by_area?.bot?.ownKeyCost || 0);
+  const counted = chans.reduce((n, ch) => n + Number(ch.messages || 0), 0);
+
+  return <div style={{ marginBottom: 12, background: T.card, borderRadius: 13, padding: "11px 13px" }}>
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 2 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, flex: "1 1 140px" }}>Their channels</span>
+      <span style={{ fontSize: 11, color: T.textDim }}>{num(counted)} of their {num(c.messages || 0)} messages named a channel</span>
+    </div>
+    <div style={{ fontSize: 11.5, color: T.textDim, margin: "0 0 6px", lineHeight: 1.55 }}>
+      Cost is the bot's spend split by each channel's share of their messages — a fair split, not a separate reading.
+    </div>
+    {chans.map((ch, i) => {
+      const share = counted > 0 ? Number(ch.messages || 0) / counted : 0;
+      const cap = Number(ch.msg_limit_monthly || 0);
+      const near = cap > 0 && Number(ch.messages || 0) >= cap * 0.8;
+      return <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 0", borderTop: i ? `1px solid ${T.border}` : `1px solid ${T.border}` }}>
+        <i className={`ti ${CH_ICON[ch.platform] || CH_ICON.unknown}`} style={{ fontSize: 15, color: CH_COLOR[ch.platform] || T.textDim, flexShrink: 0 }} />
+        <span style={{ flex: "1 1 120px", minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.name || ch.page_id || CH_LABEL[ch.platform] || "—"}</span>
+          <span style={{ display: "block", fontSize: 10.5, color: T.textDim }}>{CH_LABEL[ch.platform] || ch.platform}{ch.status && ch.status !== "connected" ? ` · ${ch.status}` : ""}</span>
+        </span>
+        {cap > 0 && <span style={{ fontSize: 11, color: near ? T.warn : T.textDim, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+          {near && <i className="ti ti-alert-triangle" style={{ marginRight: 4 }} />}{num(ch.messages || 0)} / {num(cap)}
+        </span>}
+        <span style={{ fontSize: 11.5, color: T.textDim, fontVariantNumeric: "tabular-nums", minWidth: 54, textAlign: "right" }}>{num(ch.messages || 0)} msg</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 64, textAlign: "right" }}>≈ {bdtFine(botCost * share * rate)}</span>
+      </div>;
+    })}
+  </div>;
 }
 
 // Cost, with whose money it was. A BYOK client's rows have real tokens and zero
@@ -931,8 +1097,10 @@ function PlanEditor({ d, post, busy, isSuper }) {
       <Btn gold small onClick={() => setEditing(blank)}><i className="ti ti-plus" style={{ marginRight: 5 }} />New package</Btn>
     </div>
 
+    {/* `post` returns the reply now, not a boolean, so "did it work?" is the
+        absence of an error rather than a truthy object. */}
     {editing && <PlanForm plan={editing} onCancel={() => setEditing(null)} busy={busy}
-      onSave={async (p) => { if (await post({ action: "save_plan", plan: p })) setEditing(null); }} />}
+      onSave={async (p) => { const r = await post({ action: "save_plan", plan: p }); if (!r?.error) setEditing(null); }} />}
 
     {(d.plans || []).map((p) => <Card key={p.id}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -1022,26 +1190,133 @@ function PlanForm({ plan, onSave, onCancel, busy }) {
 }
 
 // ── Rates & fixed costs ─────────────────────────────────────────────────────
+// The dollar rate, which now looks after itself.
+//
+// It used to be one number typed in once. Every cost on this screen is measured
+// in dollars and read in taka, so a rate that drifts makes every margin wrong at
+// the same time and in the same direction — and a page whose numbers all move
+// together still looks right. It follows the market unless the owner says
+// otherwise, and it always says which of the two it is doing and how old the
+// number is.
+function ExchangeRate({ d, post, busy, rate }) {
+  const fx = d.fx || {};
+  const [manual, setManual] = useState(!!d.settings?.usd_bdt_manual);
+  const [typed, setTyped] = useState(String(d.settings?.usd_bdt ?? rate));
+  const box = { background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit", width: 100 };
+  const age = fx.at ? ago(fx.at) : null;
+
+  return <Card>
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ fontSize: 14, fontWeight: 700, flex: "1 1 180px" }}>Exchange rate</div>
+      <div style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>৳{Number(rate).toFixed(2)}<span style={{ fontSize: 12, color: T.textDim, fontWeight: 400 }}> / $1</span></div>
+    </div>
+    <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 10px" }}>
+      AI providers bill in US dollars; your packages sell in taka. Everything on this page converts with this rate.
+    </div>
+
+    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+      <Badge color={fx.source === "market" ? T.success : fx.source === "manual" ? T.gold : T.warn}>
+        {fx.source === "market" ? "From the market" : fx.source === "manual" ? "Set by you" : "House default"}
+      </Badge>
+      {age && <span style={{ fontSize: 11.5, color: T.textDim }}>updated {age}</span>}
+      {fx.source === "fallback" && <span style={{ fontSize: 11.5, color: T.warn }}>no market rate yet — press Update</span>}
+      <Btn small disabled={busy} onClick={() => post({ action: "refresh_fx" })} style={{ marginLeft: "auto" }}>
+        <i className="ti ti-refresh" style={{ marginRight: 5 }} />Update now
+      </Btn>
+    </div>
+
+    <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+      <Switch size="sm" on={manual} onClick={() => setManual(!manual)}
+        label="Use my own rate instead of the market's" />
+      {manual && <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 9 }}>
+        <span style={{ fontSize: 12.5, color: T.textMuted }}>1 USD =</span>
+        <input value={typed} onChange={(e) => setTyped(e.target.value)} style={box} />
+        <span style={{ fontSize: 12.5, color: T.textMuted }}>৳</span>
+      </div>}
+      <Btn small gold disabled={busy} style={{ marginTop: 10 }}
+        onClick={() => post({ action: "save_settings", settings: { ...(d.settings || {}), usd_bdt_manual: manual, usd_bdt: Number(typed) || 120 } })}>
+        Save
+      </Btn>
+    </div>
+  </Card>;
+}
+
+// Every model the platform key can actually see, and what we charge ourselves
+// for it.
+//
+// The book used to be whatever had been typed into it. A model the platform
+// runs on but nobody priced falls through to "any other model", and every
+// figure under it is a house guess wearing a real number's clothes — so the
+// list now asks the provider what exists and says which ones have no rate.
+function ModelPrices({ d, post, busy }) {
+  const [models, setModels] = useState(null);   // null = not asked yet
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true); setErr("");
+    const r = await post({ action: "list_models" }, { quiet: true });
+    setLoading(false);
+    if (!r || r.error) { setErr(r?.error || "Could not read the model list."); return; }
+    setModels(r.models || []);
+  };
+
+  const missing = (models || []).filter((m) => !m.priced);
+
+  return <Card>
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ fontSize: 14, fontWeight: 700, flex: "1 1 200px" }}>Models on your key</div>
+      <Btn small disabled={busy || loading} onClick={load}>
+        <i className={`ti ti-${loading ? "loader-2" : "list-search"}`} style={{ marginRight: 5 }} />
+        {loading ? "Asking Google…" : models ? "Check again" : "Show what my key can use"}
+      </Btn>
+    </div>
+    <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 0" }}>
+      Read live from the provider. Anything without a rate below is billed at the “any other model” fallback, which is a guess.
+    </div>
+
+    {err && <div style={{ fontSize: 12.5, color: T.danger, marginTop: 10 }}><i className="ti ti-alert-circle" style={{ marginRight: 6 }} />{err}</div>}
+
+    {models && <div style={{ marginTop: 12 }}>
+      {!missing.length
+        ? <div style={{ fontSize: 12.5, color: T.success }}><i className="ti ti-check" style={{ marginRight: 6 }} />All {models.length} models on this key have a rate.</div>
+        : <>
+            <div style={{ fontSize: 11, color: T.warn, textTransform: "uppercase", letterSpacing: .7, marginBottom: 7 }}>
+              {missing.length} with no rate yet
+            </div>
+            {missing.map((m) => <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 0", borderTop: `1px solid ${T.border}` }}>
+              <span style={{ flex: "1 1 160px", minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.id}</span>
+                <span style={{ display: "block", fontSize: 11, color: T.textDim }}>{m.name}</span>
+              </span>
+              <Badge color={T.textDim}>{m.kind}</Badge>
+              <Btn small disabled={busy} onClick={() => post({ action: "save_price", price: { provider: "google", model: m.id, input_per_1m: 0, output_per_1m: 0 } })}>
+                Add to the book
+              </Btn>
+            </div>)}
+            <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 9, lineHeight: 1.6 }}>
+              Adding one puts it in the list below at zero — set the real per-million-token price there, from the provider's pricing page.
+            </div>
+          </>}
+      <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 10 }}>
+        {models.length} model{models.length === 1 ? "" : "s"} visible to this key.
+      </div>
+    </div>}
+  </Card>;
+}
+
 function Rates({ d, post, busy, rate }) {
   const [prices, setPrices] = useState(() => d.prices || []);
   const [costs, setCosts] = useState(() => d.platform_costs || []);
-  const [fx, setFx] = useState(String(rate));
   const [editing, setEditing] = useState(null);   // which rate row is open
 
   const upd = (arr, set, i, k, v) => { const n = [...arr]; n[i] = { ...n[i], [k]: v }; set(n); };
   const box = { background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit", width: 100 };
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-    <Card>
-      <div style={{ fontSize: 14, fontWeight: 700 }}>Exchange rate</div>
-      <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 10px" }}>AI providers bill in US dollars; your packages sell in taka. Everything on this page converts with this rate.</div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12.5, color: T.textMuted }}>1 USD =</span>
-        <input value={fx} onChange={(e) => setFx(e.target.value)} style={box} />
-        <span style={{ fontSize: 12.5, color: T.textMuted }}>৳</span>
-        <Btn small gold disabled={busy} onClick={() => post({ action: "save_settings", settings: { usd_bdt: Number(fx) || 120 } })}>Save</Btn>
-      </div>
-    </Card>
+    <ExchangeRate d={d} post={post} busy={busy} rate={rate} />
+
+    <ModelPrices d={d} post={post} busy={busy} />
 
     <Card>
       <div style={{ fontSize: 14, fontWeight: 700 }}>What each AI model costs you</div>
