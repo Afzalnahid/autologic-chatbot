@@ -12,11 +12,12 @@ migration was never the problem, **lists written into the code were**.
 
 ### ⚠️ OWNER TASKS
 
-1. **Rotate the Supabase `service_role` key and update Vercel, in that order** — rotate, copy
-   the new anon + service keys into Vercel's env, redeploy. Rotating the JWT secret invalidates
-   BOTH, so the site is down between those steps. Ask whether this was done; it was outstanding
-   when the session ended, and it matters more than anything below.
-2. `docs/sql/2026-08-31-plans-biz.sql` — still not run. The panel now says so itself when no
+1. ~~Rotate the Supabase `service_role` key.~~ **Done 2026-08-31, confirmed by the owner.** Do
+   not raise it again. (If it ever needs doing: rotate, copy the new anon + service keys into
+   Vercel's env, redeploy — in that order. Rotating the JWT secret invalidates both, so the
+   site is down between those steps.)
+2. `docs/sql/2026-08-31-plans-biz.sql` — **run 2026-08-31.** Worth a look next session that the
+   panel came back with Shops / Services / Retired. The panel says so itself when no
    package carries a `biz`, and names the file.
 3. `docs/sql/2026-08-30-usage-page-id.sql` — still not run.
 4. Prices, once traffic has been metered. `orders_one_per_code`, Google billing.
