@@ -4,7 +4,108 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-30, second thread) — Live FX, models from the key, and the shape of the bill
+## Last session (2026-08-30, third thread) — Limits that were decoration, and a console that remembers
+
+`6d3347a`, `ca42f02`, `2bc7f46`, `74dc77b`, `216cba3`, `a7a9341` — all pushed. It started as a
+plain question ("what does the per-channel **Set cap** button do, when I can already edit the
+client's own box?") and reading the enforcement to answer it opened everything else.
+
+### ⚠️ OWNER TASKS, still open
+
+1. **Free Trial → Edit → clear `Messages / channel / trial`** (it holds 10). Until then the
+   trial's real ceiling is TEN customer messages, not the 30/day the same screen advertises.
+   The panel now says so under the box. One click; I cannot reach the DB (`.env.local` here has
+   placeholder Supabase credentials).
+2. **Run `docs/sql/2026-08-30-usage-page-id.sql`** (Supabase → SQL Editor). Safe twice. Until
+   then per-channel cost stays "apportioned".
+3. `orders_one_per_code` unique index, and Google Cloud billing — both from earlier sessions.
+
+### The bug behind the question — `6d3347a`
+
+Their live Free Trial package read 30/day, 900/month, 10 per channel, 1 channel. Of those four
+numbers **one was enforced, one was dead, one silently overrode both**:
+
+- `messageAllowance()` gives a trial `period: "day"` and reads ONLY `messages_per_day`. A paid
+  package gets `period: "month"` and reads ONLY `messages_per_month`. **The other box is never
+  consulted** — the 900 did nothing.
+- The per-channel cap is a SEPARATE, later check, so 10 × 1 channel became the real ceiling.
+
+The panel rendered all four boxes identically, side by side, which is a claim that they behave
+identically. `src/lib/limit-conflicts.js` (NEW) says which one binds. It DESCRIBES only —
+enforcement stays in `botAllowed()`, and the day/month test is the same one `messageAllowance()`
+makes, so panel and bot cannot drift. **A note, not a block:** nothing refuses to save.
+
+### A trial has no months — `ca42f02`
+
+Owner: "the trial is 3 days so the box should show days not per month." Fixing the labels found
+that **three of the eight boxes were doing nothing**: `messages_per_month` (dead on a trial),
+`channels` and `max_broadcasts_per_month` (read by NO route anywhere — one grep each found it).
+
+`limitMeaning()` gives every box the label and note for its package; a trial reads
+"/ trial". `trialTotal()` adds the figure eight boxes never showed — `3 days × 30 a day = 90`.
+
+Labels had to be made TRUE, not just written: **`quotaWindowStart(client)`** now decides where a
+windowed allowance starts for every limit that has one — calendar month for a package, **the
+trial itself for a trial**. A three-day trial straddling a month end used to get its whole
+allowance again on the 1st, so the same trial was worth double depending on the start date.
+
+### Trial length is the owner's number — `2bc7f46`
+
+Was `3 * 24 * 3600 * 1000` inside `start_trial` and nowhere else. Now `TRIAL_DAYS` in `plans.js`
+(fallback) plus `trial_days` in `app_settings.billing` — **JSONB key, so NO migration**. Edited on
+the Free Trial package (where a reader looks), saved via `save_settings` BEFORE `save_plan`, so a
+failure leaves the package alone. `trialTextMismatch()` catches a tagline still saying "3 days".
+
+**⚠️ The bug the tests caught:** `clampTrialDays` first checked `Number.isFinite` AFTER
+converting. `Number(null)` and `Number("")` are both **0** — finite — so a cleared box clamped to
+the floor and made a ONE-DAY trial instead of returning to the default. Unset is checked first now.
+
+### The console comes back where it was — `74dc77b`
+
+Every refresh threw the admin console to Overview. Section + sub-tab now live in the hash
+(`#packages/clients`) via `src/app/admin/where.js` (NEW). **Read on MOUNT, not in `useState`** —
+the server cannot see a fragment, so seeding from it is a hydration mismatch. `resolveWhere()`
+treats a fragment as a REQUEST: an unknown page, or one this admin may not see (`#ai` typed by a
+viewer), opens the fallback; a refused page drops its tab with it. `go()` pushes, so back
+retraces. `Packages` takes `tab`/`onTab` as OPTIONAL props so the studio still mounts it alone.
+
+**`AdminApp` is now mounted in the studio** (`/shots?tab=admin`, fixture `ADMIN` in sample.js) —
+it takes data as a prop, so this is the only way any of it could be verified without a login.
+
+### The AI Assistant tab had no "Read docs" — `216cba3`
+
+The docs page existed; `LearnMore` kept its OWN hand-written tab→slug map and was never told
+about the new tab. **Nothing failed — a missing link looks exactly like a tab with nothing to
+read**, which is how it survived sitting first in the sidebar. Derived from `PAGES` in
+`lib/docs/index.js` now. `t-nav.mjs` guards it, plus a `/shots?tab=docs-links` scene where a gap
+is a blank row. 12 tabs, 12 links.
+
+### Channels and Broadcasts are limits again — `a7a9341`
+
+`checkChannelQuota` on all five channel-creating routes (the four OAuth callbacks hold only a
+client id, so it takes a row OR an id), before any Meta call. **The website widget does not use a
+slot** (own feature switch; otherwise a Pro account is refused the widget it pays for after three
+channels), and **reconnecting is never refused** (upsert on the same key adds nothing, and a
+client at their limit must still repair an expired token). `checkBroadcastQuota` in
+`createBroadcast`, counted over `quotaWindowStart`; the preview carries it so the tab says how
+many are left BEFORE the message is written.
+
+**⚠️ Enforcing a limit turned its default into policy.** `limitsFor` had
+`channels: pick("channels") ?? 1` where every other limit reads `?? null`, and the panel prints
+"Empty means unlimited" above those boxes. Harmless while nothing read it; the moment a route
+enforced it, an empty box meant one channel on a screen promising no limit. Now `?? null`.
+`limitConflicts` also stops assuming 1, so it cannot cry wolf about a ceiling that does not exist.
+
+### Standing notes
+
+- Test count now: limits 63, quota 27, where 24, trialDays 20, window 10 — plus every earlier
+  suite, all green. `t-dupkeys.cjs` sweeps 171 files.
+- **Two test shims broke silently** because they matched `plan-limits.js`'s import line exactly
+  and it gained a named import. Both use regexes now and THROW if an `@/lib/` import survives.
+
+---
+
+## Earlier session (2026-08-30, second thread) — Live FX, models from the key, and the shape of the bill
 
 `ccd75b0`, pushed. Owner asked for: all models the key can see, an auto-updating USD→BDT rate,
 per-client per-channel usage, and the cost split into platform work vs bot work.
