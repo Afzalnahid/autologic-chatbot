@@ -76,9 +76,18 @@ Google Calendar · Vercel (`getvoicium.com`)
   token and the `api()` helper).
 - `docs/` — architecture, database, security, error handling, phases, prompts.
 
+## Tests
+`npm test` runs everything in `tests/` — plain node scripts, one file per
+subject, no framework. Run one on its own with `node tests/t-limits.mjs`.
+Read `tests/README.md` before adding one; it explains why the suites copy a
+module before importing it, and why this machine's random `0xC0000005` crashes
+are retried.
+
 ## Working rules
 - Verify before asserting. Read the logs, query the database, call the API. Never
   give a confident diagnosis from assumption.
+- Run `npm test` before saying a change is done, and add a suite for logic worth
+  keeping right. Pure logic belongs in `src/lib/*.js` so it can be tested here.
 - Fix the system, not the symptom. If a bug appears for one tenant, check whether
   every tenant has it.
 - One task at a time. Refactors never share a commit with a feature.

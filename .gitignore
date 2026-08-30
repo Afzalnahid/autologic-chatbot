@@ -7,3 +7,9 @@ node_modules/
 
 # local build logs
 *-build.log
+
+# Temp copies the test shims write beside themselves. Several suites load a
+# module with its imports rewritten (see tests/shim.mjs); the copy is written
+# next to the importing file and addressed by URL, which is what stops a stale
+# one being imported from somewhere nothing wrote it.
+tests/tmp-*
