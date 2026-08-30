@@ -11,22 +11,42 @@ const T = {
   text: "var(--lp-ink)", muted: "var(--lp-soft)", dim: "var(--lp-soft)", border: "var(--lp-line)", green: "#0FA97C",
 };
 
+// The comparison table, keyed by TIER rather than by package id.
+//
+// It used to name trial/starter/pro/agency in every row, so the table went on
+// describing the old ladder while the cards above it were already reading live
+// packages from the database — two answers to the same question on one page.
+// Reading the tier off the id means a re-priced or renamed package cannot leave
+// the table behind, and the same rows serve both sides.
+//
+// `only` marks a row that belongs to one business type. A shop never sees the
+// calendar row; a service never sees photo matching.
+const tierOf = (id) => (id === "trial" ? "trial" : String(id).split("_")[1] || "");
+
 const COMPARE = [
-  { label: "Customer messages", trial: "30 / day", starter: "3,000 / mo", pro: "15,000 / mo", agency: "Unlimited" },
-  { label: "Channels", trial: "1", starter: "1", pro: "All 3", agency: "Unlimited" },
-  { label: "AI replies (Bangla & English)", trial: true, starter: true, pro: true, agency: true },
-  { label: "Live conversation inbox", trial: true, starter: true, pro: true, agency: true },
-  { label: "Product catalogue & orders", trial: true, starter: true, pro: true, agency: true },
-  { label: "Analytics dashboard", trial: false, starter: true, pro: true, agency: true },
-  { label: "Photo product matching (Vision AI)", trial: true, starter: false, pro: true, agency: true },
-  { label: "Knowledge Base (document upload)", trial: true, starter: false, pro: true, agency: true },
-  { label: "Voice message understanding", trial: true, starter: false, pro: true, agency: true },
-  { label: "Google Calendar booking", trial: true, starter: false, pro: false, agency: true },
-  { label: "Priority support", trial: false, starter: false, pro: false, agency: true },
+  { label: "Customer messages", trial: "30 / day", starter: "3,000 / mo", growth: "15,000 / mo", scale: "50,000 / mo" },
+  { label: "Channels", trial: "1", starter: "1", growth: "All 3", scale: "All 3" },
+  { label: "AI replies (Bangla & English)", trial: true, starter: true, growth: true, scale: true },
+  { label: "Live conversation inbox", trial: true, starter: true, growth: true, scale: true },
+  { label: "Analytics dashboard", trial: false, starter: true, growth: true, scale: true },
+  { label: "Website chat widget", trial: true, starter: true, growth: true, scale: true },
+  { label: "Broadcasts & follow-ups", trial: true, starter: true, growth: true, scale: true },
+  { label: "Voice message understanding", trial: true, starter: false, growth: true, scale: true },
+  { label: "Comment automation", trial: false, starter: false, growth: true, scale: true },
+  { label: "Use your own AI key", trial: false, starter: false, growth: false, scale: true },
+  { label: "Priority support", trial: false, starter: false, growth: false, scale: true },
+
+  { only: "ecommerce", label: "Product catalogue & orders", trial: true, starter: true, growth: true, scale: true },
+  { only: "ecommerce", label: "Products", trial: "20", starter: "300", growth: "3,000", scale: "Unlimited" },
+  { only: "ecommerce", label: "Photo product matching (Vision AI)", trial: true, starter: false, growth: true, scale: true },
+
+  { only: "agency", label: "Knowledge Base (document upload)", trial: true, starter: true, growth: true, scale: true },
+  { only: "agency", label: "Documents", trial: "2", starter: "10", growth: "40", scale: "Unlimited" },
+  { only: "agency", label: "Google Calendar booking", trial: true, starter: false, growth: true, scale: true },
 ];
 
 const FAQ = [
-  { q: "How does the free trial work?", a: "You get 3 days of full access with 30 customer messages per day. No payment details needed to start — just sign up and connect a channel." },
+  { q: "How does the free trial work?", a: "You get full access for a few days with 30 customer messages per day. No payment details needed to start — just sign up and connect a channel." },
   { q: "How do I pay?", a: "Send the amount by bKash, Nagad or Rocket to the number shown in your dashboard, then submit the transaction ID. We verify it and your plan activates, usually within a few hours." },
   { q: "What counts as a message?", a: "Only messages your customers send. The bot's own replies are never counted against your limit." },
   { q: "Can I change plan later?", a: "Yes. Upgrade any time from your dashboard — the new plan starts as soon as your payment is verified." },
@@ -43,7 +63,7 @@ function Check({ on }) {
 // The code catalogue, shaped like the /api/plans response, used for the first
 // paint and as a fallback if the API is unreachable.
 const FALLBACK_PLANS = PLAN_ORDER.map((id) => ({
-  id, name: PLANS[id].name, tagline: PLANS[id].tagline,
+  id, biz: PLANS[id].biz || "both", name: PLANS[id].name, tagline: PLANS[id].tagline,
   monthly: PLANS[id].monthly, yearly: PLANS[id].yearly,
   highlight: !!PLANS[id].highlight, features: PLANS[id].features || [],
 }));
@@ -51,6 +71,11 @@ const FALLBACK_PLANS = PLAN_ORDER.map((id) => ({
 export default function PricingClient() {
   const [cycle, setCycle] = useState("monthly");
   const [plans, setPlans] = useState(FALLBACK_PLANS);
+  // Shops first because most of them are. A package with no business type —
+  // the trial, and any row written before the biz column — belongs to both
+  // sides and appears whichever is chosen.
+  const [biz, setBiz] = useState("ecommerce");
+  const shown = plans.filter((p) => !p.biz || p.biz === "both" || p.biz === biz);
   const wrap = { maxWidth: 1120, margin: "0 auto", padding: "0 20px" };
   const yearly = cycle === "yearly";
 
@@ -88,7 +113,7 @@ export default function PricingClient() {
       <section style={{ ...wrap, textAlign: "center", padding: "56px 20px 32px" }}>
         <h1 style={{ fontSize: 36, fontWeight: 800, margin: "0 0 14px", letterSpacing: -0.5 }}>Simple, honest pricing</h1>
         <p style={{ fontSize: 16, color: T.muted, maxWidth: 560, margin: "0 auto 28px", lineHeight: 1.7 }}>
-          Start free for 3 days. Upgrade when your customers start rolling in. No hidden fees, cancel any time.
+          Start free. Upgrade when your customers start rolling in. No hidden fees, cancel any time.
         </p>
 
         <div style={{ display: "inline-flex", background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 4, gap: 4 }}>
@@ -102,10 +127,25 @@ export default function PricingClient() {
         {yearly && <div style={{ fontSize: 12.5, color: T.green, marginTop: 10 }}>2 months free on every paid plan</div>}
       </section>
 
+      {/* Which business you are. A shop and a service buy different things —
+          photo matching against a catalogue on one side, documents and calendar
+          booking on the other — so showing one ladder to both meant every
+          package advertised something half its readers would never use. */}
+      <section style={{ ...wrap, padding: "0 20px 22px", textAlign: "center" }}>
+        <div style={{ display: "inline-flex", background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 4, gap: 4 }}>
+          {[["ecommerce", "I sell products"], ["agency", "I offer services"]].map(([id, label]) => (
+            <button key={id} onClick={() => setBiz(id)} style={{
+              padding: "8px 18px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 600,
+              background: biz === id ? T.gold : "transparent", color: biz === id ? "#fff" : T.muted,
+            }}>{label}</button>
+          ))}
+        </div>
+      </section>
+
       {/* Plan cards */}
       <section style={{ ...wrap, padding: "0 20px 56px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, alignItems: "stretch" }}>
-          {plans.map((p) => {
+          {shown.map((p) => {
             const id = p.id;
             const price = yearly ? p.yearly : p.monthly;
             const free = price === 0;
@@ -125,7 +165,7 @@ export default function PricingClient() {
                   {!free && <span style={{ fontSize: 13, color: T.muted }}>/{yearly ? "year" : "month"}</span>}
                 </div>
                 <div style={{ fontSize: 11.5, color: yearly && saving ? T.green : T.dim, minHeight: 18 }}>
-                  {free ? "3 days, no card needed" : yearly && saving ? `${saving} months free` : `or ${formatMoney(p.yearly)}/year`}
+                  {free ? "No card needed" : yearly && saving ? `${saving} months free` : `or ${formatMoney(p.yearly)}/year`}
                 </div>
 
                 <a href={free ? "/dashboard?auth=signup" : `/dashboard?upgrade=${id}&cycle=${cycle}`} style={{
@@ -157,20 +197,21 @@ export default function PricingClient() {
             <thead>
               <tr>
                 <th style={{ textAlign: "left", padding: "14px 18px", color: T.muted, fontWeight: 500, fontSize: 12 }}>Feature</th>
-                {PLAN_ORDER.map((id) => (
-                  <th key={id} style={{ padding: "14px 12px", fontWeight: 700, fontSize: 13, color: PLANS[id].highlight ? T.gold : T.text }}>{PLANS[id].name}</th>
+                {shown.map((p) => (
+                  <th key={p.id} style={{ padding: "14px 12px", fontWeight: 700, fontSize: 13, color: p.highlight ? T.gold : T.text }}>{p.name}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {COMPARE.map((row, i) => (
+              {COMPARE.filter((r) => !r.only || r.only === biz).map((row, i) => (
                 <tr key={i} style={{ borderTop: `1px solid ${T.border}` }}>
                   <td style={{ padding: "12px 18px", color: T.text }}>{row.label}</td>
-                  {PLAN_ORDER.map((id) => (
-                    <td key={id} style={{ padding: "12px", textAlign: "center", color: T.muted }}>
-                      {typeof row[id] === "boolean" ? <Check on={row[id]} /> : row[id]}
-                    </td>
-                  ))}
+                  {shown.map((p) => {
+                    const v = row[tierOf(p.id)];
+                    return <td key={p.id} style={{ padding: "12px", textAlign: "center", color: T.muted }}>
+                      {typeof v === "boolean" ? <Check on={v} /> : (v ?? "—")}
+                    </td>;
+                  })}
                 </tr>
               ))}
             </tbody>
