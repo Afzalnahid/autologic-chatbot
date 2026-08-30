@@ -1149,3 +1149,45 @@ reason to open `followup.js` while fixing `broadcast.js`.
 - A partial failure is the one that bites. Follow-ups made four reads at once; a total
   outage sent nothing (safe), so only ONE of the four failing could cause harm — which
   is exactly the case no test covers and no one imagines.
+
+## The migration was never the problem (2026-08-31)
+
+"The admin panel still shows the previous packages." The obvious answer was that the
+SQL had not been run, and it was true — the panel reads the plans table directly, with
+no fallback.
+
+But the plan dropdown in the client drawer was `["trial","starter","pro","agency"]`
+written into the file. **Running the SQL would not have changed it.** Sweeping for the
+same shape found four more, two of them money: `/api/admin` counted "paid" from those
+three ids in two places, so every client on a newer package was invisible to MRR and
+the paid-client total.
+
+Every one of these was written when there were exactly three paid packages and every
+one of them was correct that day.
+
+**Rules:**
+- When the data model gains a value, grep for the OLD values as literals. `"starter"`,
+  `"pro"`, `"agency"` in quotes found five bugs in a minute; reading files found one.
+- A list of ids in application code is a copy of the database. It is right until the
+  database changes, and then it is wrong in silence — no error, just a screen offering
+  the wrong things.
+- Ask what "paid" or "active" MEANS rather than listing what currently satisfies it.
+  `plan !== "trial" && plan !== "none"` cannot fall behind a catalogue; a list can.
+- Fix the reported symptom, then look for the same shape everywhere before answering.
+  The owner asked about a dropdown; four of the five fixes were somewhere else.
+
+## PowerShell .Replace() fails silently on CRLF files (2026-08-31)
+
+Twice in one session I edited a file with a multi-line PowerShell `.Replace()`, saw no
+error, and moved on — and nothing had changed. The search string had `\n`; the files
+have `\r\n`. The replace found no match and dutifully wrote the file back unchanged.
+
+Both times the mistake only surfaced later: once as an empty dropdown in the browser,
+once as a grep that found nothing where the edit was supposed to be.
+
+**Rules:**
+- Use the Edit tool for anything spanning a line break. It fails loudly when the text
+  does not match, which is the entire point.
+- A "successful" edit that produces no diff is a failed edit. If a replace is used,
+  grep for the new text afterwards — do not trust the exit code.
+- Single-line replaces are fine, and single-line is worth preferring for that reason.

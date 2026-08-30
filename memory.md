@@ -4,7 +4,87 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-31, second thread) — A scripted audit, and the tests come into the repo
+## Last session (2026-08-31, third thread) — The panel catches up with the seven packages
+
+`c43cfc7`, `e82bf90`, `430d4b6`, `cbec3b9` — pushed. It started with "the admin panel still
+shows the previous packages" and ended somewhere else entirely, which is the pattern: the
+migration was never the problem, **lists written into the code were**.
+
+### ⚠️ OWNER TASKS
+
+1. **Rotate the Supabase `service_role` key and update Vercel, in that order** — rotate, copy
+   the new anon + service keys into Vercel's env, redeploy. Rotating the JWT secret invalidates
+   BOTH, so the site is down between those steps. Ask whether this was done; it was outstanding
+   when the session ended, and it matters more than anything below.
+2. `docs/sql/2026-08-31-plans-biz.sql` — still not run. The panel now says so itself when no
+   package carries a `biz`, and names the file.
+3. `docs/sql/2026-08-30-usage-page-id.sql` — still not run.
+4. Prices, once traffic has been metered. `orders_one_per_code`, Google billing.
+
+### Why the panel showed the old packages — `c43cfc7`
+
+**The Packages panel reads the `plans` table DIRECTLY, with no fallback to the code catalogue
+that `loadPlans()` has.** So it was right, and useless: the migration had not run. It now
+detects that itself — *no package carries a `biz`* is the migration's own evidence — and names
+the file. Retired packages moved to their own group at the bottom; inactive beats business type,
+so a retired shop package does not sit among the ones a shop can buy.
+
+### The SQL was going to ship cards with no bullets — `e82bf90`
+
+Caught by reading the file before telling the owner to run it. It seeded `feature_list` as
+`'[]'`, and **`/api/plans` draws the pricing cards from `feature_list`** — seven packages with a
+price and not one reason to buy any of them. The code catalogue's bullets only apply while the
+table is empty. All seven carry the real ones now; a re-run fills them only when empty, so
+edits made in the panel survive (that needs `insert into public.plans as p`).
+
+`tests/t-sql.cjs` makes it permanent: values counted against the column list, on-conflict SET
+names checked, and it fails if any package is left without bullets.
+
+### Five more hard-coded plan lists — `430d4b6`
+
+The plan dropdown in the client drawer was `["trial","starter","pro","agency"]` **written into
+admin-client.js** — the SQL would not have changed it, and a package created in the panel could
+never be assigned from it. The server was already right. Sweeping for the same shape found four
+more, and two of them were money:
+
+- `/api/admin` counted "paid" from those three ids **in two places** — every client on a newer
+  package counted as UNPAID: no days left, missing from MRR and the paid total.
+- `/api/me` refused a trial restart only for `"pro"`; any other paid package could restart a
+  trial and lose its expiry.
+- `email.js` titled plans from the retired three, so a client got *"your shop_growth plan has
+  expired"*.
+- `ui.js` `PLAN_LIST`, Billing's first paint, was the retired three.
+
+All now ask **"not trial and not none"** = paid. `src/lib/plan-options.js` (19 tests) holds the
+dropdown rules. **The one that is easy to get wrong: the CURRENT plan is always offered** — a
+select whose value is not among its options renders blank, which reads as "no plan".
+
+### A subscription you can read — `cbec3b9`
+
+Manage was four buttons and a delete box, describing nothing. New Subscription card: package,
+price, started, renews with days left, paid to date, last payment with method and txn id,
+pending payments called out (**submitted is not verified — only approved counts**). Then usage
+against the package's own limits, ambering at 70% and reddening at 90%, which is how "should
+this client move up?" becomes readable. Unlimited shows ∞ and no bar; a shop's document meter
+and a service's product meter are LEFT OUT rather than shown as `0 / 0`, which reads as a limit
+they have hit. The extend buttons print the date they will produce.
+
+**⚠️ And the numbers under it were wrong.** `client-detail` read EVERY message a client had ever
+sent, on every drawer open — unbounded, so capped by `db-max-rows` with no error, so the total
+and the 14-day chart were wrong for **exactly the busiest clients**. Rows now cover the 30 days
+they are used for; the lifetime total is a COUNT; the subscription's usage is its own exact
+count over the period the plan is metered on.
+
+### Standing notes
+
+- **PowerShell `.Replace()` with a multi-line string fails SILENTLY on these CRLF files.** It bit
+  twice this session — an edit to sample.js and one to the admin route both "succeeded" and
+  changed nothing. Use the Edit tool for anything spanning a line break.
+- 31 suites, `npm test`. Two new: `t-planopts`, `t-sql`.
+
+---
+
+## Earlier session (2026-08-31, second thread) — A scripted audit, and the tests come into the repo
 
 `6bbd9ad`, `bc3ccaa` — pushed. Owner: "analyse the full system for bugs and fix them", then
 "move the tests into the repo and wire npm test".
