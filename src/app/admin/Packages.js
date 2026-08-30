@@ -813,17 +813,28 @@ function ClientChannels({ c, rate }) {
   if (!chans.length) return null;
   const botCost = Number(c.by_area?.bot?.cost || 0) + Number(c.by_area?.bot?.ownKeyCost || 0);
   const counted = chans.reduce((n, ch) => n + Number(ch.messages || 0), 0);
+  // Once the page_id migration has run and calls carry their channel, the cost
+  // is READ. Before that — and for the history written before it — there is
+  // nothing to read and the bot's spend is split by message share instead.
+  // Half a threshold either way would be a figure that is part one and part the
+  // other with no way to tell, so it is one or the other and it is labelled.
+  const measured = Number(c.channel_measured || 0) >= 0.9;
 
   return <div style={{ marginBottom: 12, background: T.card, borderRadius: 13, padding: "11px 13px" }}>
     <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 2 }}>
       <span style={{ fontSize: 13, fontWeight: 700, flex: "1 1 140px" }}>Their channels</span>
+      <Badge color={measured ? T.success : T.textDim}>{measured ? "measured" : "apportioned"}</Badge>
       <span style={{ fontSize: 11, color: T.textDim }}>{num(counted)} of their {num(c.messages || 0)} messages named a channel</span>
     </div>
     <div style={{ fontSize: 11.5, color: T.textDim, margin: "0 0 6px", lineHeight: 1.55 }}>
-      Cost is the bot's spend split by each channel's share of their messages — a fair split, not a separate reading.
+      {measured
+        ? "Each channel's own spend, recorded against it."
+        : <>The bot's spend split by each channel's share of their messages — a fair split, not a separate reading. It becomes a real reading once <code style={{ fontFamily: "monospace" }}>docs/sql/2026-08-30-usage-page-id.sql</code> has been run.</>}
     </div>
     {chans.map((ch, i) => {
       const share = counted > 0 ? Number(ch.messages || 0) / counted : 0;
+      const own = ch.usage ? Number(ch.usage.cost || 0) + Number(ch.usage.ownKeyCost || 0) : null;
+      const cost = measured && own !== null ? own : botCost * share;
       const cap = Number(ch.msg_limit_monthly || 0);
       const near = cap > 0 && Number(ch.messages || 0) >= cap * 0.8;
       return <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 0", borderTop: i ? `1px solid ${T.border}` : `1px solid ${T.border}` }}>
@@ -836,7 +847,9 @@ function ClientChannels({ c, rate }) {
           {near && <i className="ti ti-alert-triangle" style={{ marginRight: 4 }} />}{num(ch.messages || 0)} / {num(cap)}
         </span>}
         <span style={{ fontSize: 11.5, color: T.textDim, fontVariantNumeric: "tabular-nums", minWidth: 54, textAlign: "right" }}>{num(ch.messages || 0)} msg</span>
-        <span style={{ fontSize: 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 64, textAlign: "right" }}>≈ {bdtFine(botCost * share * rate)}</span>
+        {/* The tilde is the whole difference between a reading and a share, so
+            it appears on one and not the other. */}
+        <span style={{ fontSize: 12.5, fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: 64, textAlign: "right" }}>{measured ? "" : "≈ "}{bdtFine(cost * rate)}</span>
       </div>;
     })}
   </div>;

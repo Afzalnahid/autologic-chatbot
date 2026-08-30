@@ -251,8 +251,18 @@ timestamps. New signups land as `pending` until a super admin grants a role.
 
 ### `usage_daily` — every AI call, counted
 One row per client per Dhaka-day per (`kind`, `feature`, `provider`, `model`,
-`own_key`). Primary key is exactly those seven columns; `calls`, `tokens_in` and
-`tokens_out` accumulate into it.
+`own_key`, `page_id`). Primary key is exactly those eight columns; `calls`,
+`tokens_in` and `tokens_out` accumulate into it.
+
+`page_id` — which channel the call belonged to (`channels.page_id`), `''` when it
+had none: indexing a product, the owner pressing a button in the dashboard. It is
+what makes the admin panel's per-channel cost a reading rather than the client's
+bot cost split by message share. Added by
+**`docs/sql/2026-08-30-usage-page-id.sql`**, which the owner runs by hand; rows
+written before it keep `''` for ever, and the panel labels a channel's cost
+`measured` or `apportioned` accordingly. `recordUsage()` sends the value and
+falls back to the old ten-argument call if the function does not take it yet, so
+the SQL and the deploy do not have to be sequenced.
 
 `kind` — WHAT sort of call it was: `chat`, `vision`, `voice`, `embed`, `scrape`.
 
@@ -282,11 +292,15 @@ never delayed or broken by bookkeeping.
 record_ai_usage(p_client_id uuid, p_day date, p_kind text, p_provider text,
                 p_model text, p_own_key boolean, p_calls int,
                 p_tokens_in bigint, p_tokens_out bigint,
-                p_feature text default 'other')
+                p_feature text default 'other',
+                p_page_id text default '')
 ```
 
-`p_feature` is defaulted so a deployment still in flight with the old nine-argument
-call keeps recording instead of erroring.
+`p_feature` and `p_page_id` are defaulted so a deployment still in flight with the
+older call keeps recording instead of erroring. Postgres cannot add a parameter to
+a function in place — that makes an overload, and the shorter call then matches
+two functions and fails as "not unique" — so the migration drops the old one
+first.
 
 `checkScrapeQuota` in `plan-limits.js` reads this table (`kind = 'scrape'`) rather
 than keeping its own counter — one source of truth, nothing to drift.

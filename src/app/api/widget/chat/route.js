@@ -109,7 +109,7 @@ export const POST = withErrors(async (request) => {
 
   let items;
   try {
-    const r = await composeReply({ clientId, client, bType, senderId, combined: text, platform: PLATFORM });
+    const r = await composeReply({ clientId, client, bType, senderId, combined: text, platform: PLATFORM, pageId: channel.page_id || "" });
     items = r.items;
   } catch (e) {
     console.error("[widget] composeReply:", e.message);

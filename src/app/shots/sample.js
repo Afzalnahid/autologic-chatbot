@@ -408,9 +408,17 @@ const ADMIN_PACKAGES = {
       client_id: "c1", business_name: "Nokshi Threads", owner_email: "owner@nokshithreads.com",
       plan: "pro", business_type: "ecommerce", suspended: false, limit_overrides: null, model_chain: null,
       messages: 4820, revenue_bdt: 3500, ...C1,
+      // This one has had the page_id migration run: every call named its
+      // channel, so the panel reads each channel's own spend instead of
+      // splitting the client's by message share. Instagram costs more per
+      // message here than Messenger — that is the whole reason the column
+      // exists, and the shot should show it rather than two tidy shares.
+      channel_measured: 1,
       channels: [
-        { id: "ch1", client_id: "c1", platform: "facebook", page_id: "p1", name: "Nokshi Threads", status: "connected", msg_limit_monthly: null, messages: 3140 },
-        { id: "ch2", client_id: "c1", platform: "instagram", page_id: "p2", name: "@nokshithreads", status: "connected", msg_limit_monthly: null, messages: 1680 },
+        { id: "ch1", client_id: "c1", platform: "facebook", page_id: "p1", name: "Nokshi Threads", status: "connected", msg_limit_monthly: null, messages: 3140,
+          usage: { calls: 8940, tokens: 2_140_000, cost: 1.94, ownKeyCost: 0 } },
+        { id: "ch2", client_id: "c1", platform: "instagram", page_id: "p2", name: "@nokshithreads", status: "connected", msg_limit_monthly: null, messages: 1680,
+          usage: { calls: 6120, tokens: 1_880_000, cost: 1.71, ownKeyCost: 0 } },
       ],
     },
     {

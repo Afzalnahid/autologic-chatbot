@@ -40,10 +40,18 @@ const memo = new Map();
 // "product", "knowledge") and the kind of call fills in the rest — a photo
 // under "bot" records as bot.vision. Pass a full id ("bot.tag") when a caller
 // needs its own line in the cost report.
-export async function getClientAI(clientId, feature = "other") {
+// `pageId` is which channel the work belongs to, and it is only ever set on the
+// bot's own path — a customer wrote to a particular Page, number or widget.
+// Everything else (indexing a product, the owner pressing a button) genuinely
+// has no channel and passes nothing, which the meter records as "".
+//
+// It is NOT part of the memo key on purpose: the memo caches a client's KEY and
+// model chain, which do not vary by channel, and keying on it would multiply
+// the cache and the decryption work by the number of channels for no gain.
+export async function getClientAI(clientId, feature = "other", pageId = "") {
   const id = String(clientId || "");
   const hit = memo.get(id);
-  if (hit && Date.now() - hit.at < 60_000) return build(id, hit.cfg, hit.platformChain, hit.platformApiKey, feature);
+  if (hit && Date.now() - hit.at < 60_000) return build(id, hit.cfg, hit.platformChain, hit.platformApiKey, feature, pageId);
   let cfg = null;
   let platformChain = null;
   // The platform's own key, as set in the admin panel; null means "use the
@@ -76,10 +84,10 @@ export async function getClientAI(clientId, feature = "other") {
     console.error("[ai] config load:", String(e.message || "").slice(0, 160));
   }
   memo.set(id, { cfg, platformChain, platformApiKey, at: Date.now() });
-  return build(id, cfg, platformChain, platformApiKey, feature);
+  return build(id, cfg, platformChain, platformApiKey, feature, pageId);
 }
 
-function build(clientId, cfg, platformChain, platformApiKey, feature) {
+function build(clientId, cfg, platformChain, platformApiKey, feature, pageId = "") {
   // Token meter. Every AI call reports through this so the admin panel can
   // answer "what does this client cost me?" — see src/lib/usage.js. Cost follows
   // the KEY the call actually ran on: ownKey usage is the client's money and is
@@ -98,6 +106,8 @@ function build(clientId, cfg, platformChain, platformApiKey, feature) {
         ownKey,
         tokensIn: t.tokensIn,
         tokensOut: t.tokensOut,
+        // "" for anything that is not a customer message on a channel.
+        pageId,
       });
     },
   });

@@ -343,11 +343,11 @@ async function businessFacts(clientId, st) {
   return "[BUSINESS FACTS - live from the owner's Settings and Profile; if anything in the profile above disagrees with these, THESE are correct]\n" + rows.join("\n") + faq + notes + offerBlock + bargainBlock;
 }
 
-async function searchProducts(clientId, query, k = 3) {
+async function searchProducts(clientId, query, k = 3, pageId = "") {
   try {
     // Embeds the search query on the client's own key when they are a Gemini
     // BYOK client (same model, same vector space), else the platform key.
-    const emb = await (await getClientAI(clientId, "bot")).embed(query);
+    const emb = await (await getClientAI(clientId, "bot", pageId)).embed(query);
     const { data, error } = await sb().rpc("match_documents", {
       query_embedding: emb, match_count: k, filter: { client_id: String(clientId) },
     });
@@ -681,11 +681,11 @@ async function enforceLanguage(items, lang, clientId) {
 // The reply engine. Given the customer's combined text it produces the response
 // items and any booking note — no sending, no buffer writes. Every channel uses
 // this one function so a new channel cannot drift from the others.
-export async function composeReply({ clientId, client, bType, senderId, combined, platform }) {
+export async function composeReply({ clientId, client, bType, senderId, combined, platform, pageId = "" }) {
   const isAgency = bType === "agency";
   // Which key answers for this client — the platform's, or their own (BYOK).
   // The widget calls composeReply directly, so this must resolve here too.
-  const aiFor = await getClientAI(clientId, "bot");
+  const aiFor = await getClientAI(clientId, "bot", pageId);
 
   let systemPrompt, history, context, forcedLang = null;
   try {
@@ -706,7 +706,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
       [systemPrompt, history, products, forcedLang] = await Promise.all([
         getSystemPrompt(clientId, bType),
         getMemory(senderId, clientId),
-        searchProducts(clientId, combined, combined.includes("--- ITEM") ? 4 : 3),
+        searchProducts(clientId, combined, combined.includes("--- ITEM") ? 4 : 3, pageId),
         getLanguageMode(clientId),
       ]);
       context = products.length
@@ -822,7 +822,7 @@ export async function processConversation(channel, senderId, myRowId) {
   if (!rows.length) return;
 
   const combined = rows.map(r => r.message_content).join("\n");
-  const { items, bookingNote } = await composeReply({ clientId, client, bType, senderId, combined, platform: channel.platform });
+  const { items, bookingNote } = await composeReply({ clientId, client, bType, senderId, combined, platform: channel.platform, pageId: channel.page_id || "" });
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
   else await sendResponses(channel.access_token, senderId, items, channel.platform, channel.page_id);
@@ -966,7 +966,11 @@ export async function handleIncoming(event) {
   let attachments = null;
   let voiceUnclear = false;
   // Which key answers for this client — the platform's, or their own (BYOK).
-  const ai = await getClientAI(clientId, "bot");
+  // The channel travels with it, so a photograph or a voice note read here is
+  // billed to the channel it arrived on rather than to the client in general.
+  // Those are the expensive calls, and they are exactly the ones that differ
+  // between channels — which is what makes a per-channel figure worth reading.
+  const ai = await getClientAI(clientId, "bot", channel.page_id || "");
 
   // Voice notes — Facebook/Instagram hand us a CDN url, WhatsApp a media id
   // that needs the channel token. Both end in the same transcription.

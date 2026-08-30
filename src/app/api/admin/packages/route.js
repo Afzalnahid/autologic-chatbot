@@ -173,8 +173,17 @@ export async function GET(request) {
       unpriced: s.unpriced,
       revenue_bdt: revenueBdt,
       channels: channels.filter((ch) => ch.client_id === c.id).map((ch) => ({
-        ...ch, messages: msgByChannel.get(`${c.id}|${ch.page_id}`) || 0,
+        ...ch,
+        messages: msgByChannel.get(`${c.id}|${ch.page_id}`) || 0,
+        // What this channel actually spent, once usage carries a page_id. Absent
+        // on every row written before that migration, which is why the panel is
+        // also told how much of the spend named a channel at all.
+        usage: s.byChannel?.[ch.page_id] || null,
       })),
+      // 0 before the page_id migration, 1 once every call names its channel.
+      // The panel reads a channel's cost when this is high and falls back to
+      // apportioning when it is not — and says which it did.
+      channel_measured: s.channelMeasured || 0,
     };
   });
 

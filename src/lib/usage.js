@@ -24,12 +24,27 @@ export function dhakaDay(d = new Date()) {
 import { AREAS, FEATURES, featureId, areaOf, featureLabel } from "@/lib/usage-features.js";
 export { AREAS, FEATURES, featureId, areaOf, featureLabel };
 
+// Whether the database has the channel column yet.
+//
+// `page_id` arrived on usage_daily in a migration the owner runs by hand (see
+// docs/sql/2026-08-30-usage-page-id.sql), and the code has to keep recording
+// on both sides of that. So the first call sends it; if the function does not
+// take it, that is remembered for the life of the process and every later call
+// goes without. It heals itself the next time the process starts after the
+// migration — no flag to set, no deploy to sequence.
+//
+// Without this the two have to be released in lockstep, and getting the order
+// wrong stops usage being counted at all: silently, because recording is
+// fire-and-forget by design.
+let channelColumn = true;
+const NO_COLUMN = /page_id|could not find the function|schema cache|does not exist/i;
+
 // Fire-and-forget. Never throws, never awaited by a reply path.
-export function recordUsage({ clientId, kind, feature, provider, model, ownKey = false, tokensIn = 0, tokensOut = 0, calls = 1 }) {
+export function recordUsage({ clientId, kind, feature, provider, model, ownKey = false, tokensIn = 0, tokensOut = 0, calls = 1, pageId = "" }) {
   if (!clientId || !kind) return;
   const tin = Math.max(0, Math.round(Number(tokensIn) || 0));
   const tout = Math.max(0, Math.round(Number(tokensOut) || 0));
-  supabase.rpc("record_ai_usage", {
+  const args = {
     p_client_id: clientId,
     p_day: dhakaDay(),
     p_kind: String(kind),
@@ -40,10 +55,25 @@ export function recordUsage({ clientId, kind, feature, provider, model, ownKey =
     p_calls: calls,
     p_tokens_in: tin,
     p_tokens_out: tout,
-  }).then(
-    ({ error }) => { if (error) console.error("[usage] record failed:", error.message); },
+  };
+  // "" is the honest value for a call that had no channel — an embedding for a
+  // product, the owner pressing a button — and it groups where NULL vanishes.
+  const withChannel = { ...args, p_page_id: String(pageId || "") };
+
+  const send = (payload, retry) => supabase.rpc("record_ai_usage", payload).then(
+    ({ error }) => {
+      if (!error) return;
+      if (retry && NO_COLUMN.test(error.message || "")) {
+        channelColumn = false;
+        console.warn("[usage] usage_daily has no page_id yet — recording without it. Run docs/sql/2026-08-30-usage-page-id.sql.");
+        return send(args, false);
+      }
+      console.error("[usage] record failed:", error.message);
+    },
     (e) => console.error("[usage] record threw:", String(e?.message || e).slice(0, 160))
   );
+
+  send(channelColumn ? withChannel : args, channelColumn);
 }
 
 // Pulls a token count out of Gemini's response (usageMetadata). Optional — a
@@ -98,13 +128,19 @@ export function isPriced(prices, provider, model) {
 // Sums usage rows into a report. Platform cost deliberately EXCLUDES own_key
 // rows: those tokens are billed to the client by their own provider.
 //
-// Three buckets come out of one pass:
+// Four buckets come out of one pass:
 //   byKind    — chat / vision / voice / embed / scrape (what sort of call)
 //   byFeature — bot.tag, product.embed, … (who asked for it)
 //   byArea    — bot / catalogue / platform (the three-part split)
+//   byChannel — which channel the message arrived on, "" for calls that had none
+//
+// byChannel is empty on every row written before the page_id migration, and on
+// every call that genuinely has no channel. `measured` says how much of the
+// spend actually named one, so a reader is never shown an apportioned figure
+// dressed up as a reading.
 export function summarise(rows, prices) {
   let calls = 0, tokensIn = 0, tokensOut = 0, platformCost = 0, clientKeyCost = 0;
-  const byKind = {}, byFeature = {}, byArea = {}, byModel = {};
+  const byKind = {}, byFeature = {}, byArea = {}, byModel = {}, byChannel = {};
   const bucket = (map, key) => {
     if (!map[key]) map[key] = { calls: 0, tokensIn: 0, tokensOut: 0, tokens: 0, cost: 0, ownKeyCost: 0 };
     return map[key];
@@ -117,7 +153,7 @@ export function summarise(rows, prices) {
     if (r.own_key) clientKeyCost += c; else platformCost += c;
 
     const feature = r.feature || "legacy";
-    for (const b of [bucket(byKind, r.kind || "other"), bucket(byFeature, feature), bucket(byArea, areaOf(feature))]) {
+    for (const b of [bucket(byKind, r.kind || "other"), bucket(byFeature, feature), bucket(byArea, areaOf(feature)), bucket(byChannel, r.page_id || "")]) {
       b.calls += n; b.tokensIn += tin; b.tokensOut += tout; b.tokens += tin + tout;
       if (r.own_key) b.ownKeyCost += c; else b.cost += c;
     }
@@ -131,9 +167,17 @@ export function summarise(rows, prices) {
     const rate = rateFor(prices, r.provider, r.model);
     m.input_per_1m = rate.in; m.output_per_1m = rate.out;
   }
+  // How much of the spend named a channel. Everything under "" either predates
+  // the page_id migration or never had one, and a panel that cannot tell the
+  // difference will present a guess as a measurement.
+  const named = Object.entries(byChannel).reduce((n, [k, v]) => k ? n + v.cost + v.ownKeyCost : n, 0);
+  const allCost = platformCost + clientKeyCost;
+
   return {
     calls, tokensIn, tokensOut, tokens: tokensIn + tokensOut,
-    platformCost, clientKeyCost, byKind, byFeature, byArea, byModel,
+    platformCost, clientKeyCost, byKind, byFeature, byArea, byModel, byChannel,
+    // 0 before the migration, 1 once every call carries its channel.
+    channelMeasured: allCost > 0 ? named / allCost : 0,
     // Models being charged at the fallback rate. Every dollar under one of
     // these is an estimate, so the panel can say how much of the total is.
     unpriced: Object.values(byModel).filter((m) => !m.priced)
