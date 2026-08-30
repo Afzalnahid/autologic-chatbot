@@ -28,6 +28,14 @@ import { SAMPLE, PROPS, ADMIN } from "./sample.js";
 // mounts here without a super-admin login. The callbacks do nothing on
 // purpose: this is for looking at and for checking that moving around the
 // console works, not for changing anything.
+// The client drawer is where the plan dropdown lives, and it only renders when
+// `detail` is set — openDetail does nothing here, so a scene that wants the
+// drawer has to be handed one already open.
+const DETAIL = {
+  client: { ...ADMIN.clients[0], trial_start: null, trial_end: null, phone: "01711000111", address: "Dhanmondi, Dhaka", website: "nokshithreads.com" },
+  channels: [], products: [], orders: [], bookings: [], files: [], payments: [], ai_key: null,
+};
+
 const noopAdmin = {
   data: ADMIN, refreshing: false, busy: null, err: null, detail: null, detailLoading: false, superKey: "",
   onRefresh: () => {}, clearErr: () => {}, act: () => {}, reviewPayment: () => {}, del: () => {},
@@ -71,6 +79,9 @@ const TABS = {
   // The whole console, so its navigation can be checked: which section a
   // refresh comes back to, and what the back button does.
   admin: () => <AdminApp {...noopAdmin} />,
+  // The same console with a client open, because the plan dropdown lives in
+  // that drawer and had been offering four ids written into the file.
+  "admin-client": () => <AdminApp {...noopAdmin} detail={DETAIL} />,
   // Every tab's link to its own page in the manual, in one place. The AI
   // Assistant tab shipped with a documentation page and no link to it, and
   // nothing about the dashboard showed that: a missing link looks exactly like

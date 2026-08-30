@@ -6,6 +6,12 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
 import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentApproved, notifyPaymentRejected } from "@/lib/email.js";
 import { PLANS } from "@/lib/plans.js";
+
+// Paid means "not the free trial and not nothing". Both places below used to
+// test a list of three ids written here, so a client on any package created
+// since — including the six that replaced those three — counted as unpaid:
+// no days left on their plan, and missing from the MRR and paid-client totals.
+const isPaidPlan = (p) => !!p && p !== "trial" && p !== "none";
 import { loadPlans } from "@/lib/plan-limits.js";
 import { startOfDayDhaka } from "@/lib/time.js";
 
@@ -104,14 +110,14 @@ export async function GET(request) {
     channels: chByClient.get(c.id) || [],
     last_active: lastActive.has(c.id) ? new Date(lastActive.get(c.id)).toISOString() : null,
     trial_days_left: c.plan === "trial" ? daysLeft(c.trial_end) : null,
-    plan_days_left: ["starter", "pro", "agency"].includes(c.plan) ? daysLeft(c.plan_expires_at) : null,
+    plan_days_left: isPaidPlan(c.plan) ? daysLeft(c.plan_expires_at) : null,
     pending_payment: payRows.some((p) => p.client_id === c.id && p.status === "pending"),
   }));
 
   // Recurring revenue estimate from active paid plans (monthly price; the
   // catalogue is the single source of truth). Revenue = approved payments.
   const monthlyOf = (plan) => Number(PLANS[plan]?.monthly || 0);
-  const paid = rows.filter((c) => ["starter", "pro", "agency"].includes(c.plan) && !c.suspended && (c.plan_days_left === null || c.plan_days_left > 0));
+  const paid = rows.filter((c) => isPaidPlan(c.plan) && !c.suspended && (c.plan_days_left === null || c.plan_days_left > 0));
   const approved = payRows.filter((p) => p.status === "approved");
   const sum = (arr) => arr.reduce((n, p) => n + Number(p.amount || 0), 0);
   const revenue_30d = sum(approved.filter((p) => new Date(p.reviewed_at || p.created_at).getTime() > d30));
@@ -189,8 +195,20 @@ export async function GET(request) {
     admins = data || [];
   }
 
+  // The package catalogue, so the console can offer what actually exists.
+  // Every plan list in the panel used to be written out by hand — trial,
+  // starter, pro, agency — which meant a package created in the panel could
+  // never be assigned to a client from it, and the seven that replaced those
+  // four would not have appeared at all.
+  //
+  // Retired packages are included: a client already on one must still read as
+  // its own name, and the dropdown has to be able to show what they are on.
+  const catalogue = Object.values(await loadPlans())
+    .sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0))
+    .map((p) => ({ id: p.id, name: p.name, biz: p.biz || "both", active: p.active !== false, monthly: Number(p.monthly) || 0 }));
+
   return NextResponse.json(
-    { role, email, overview, clients: rows, admins, payments, attention, activity, server_time: new Date().toISOString() },
+    { role, email, overview, clients: rows, admins, payments, attention, activity, plans: catalogue, server_time: new Date().toISOString() },
     { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" } }
   );
 }

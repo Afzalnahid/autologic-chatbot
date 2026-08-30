@@ -563,6 +563,12 @@ const ADMIN_CLIENTS = [
 export const ADMIN = {
   email: "snowfix07@gmail.com",
   role: "super",
+  // The catalogue /api/admin sends, so the plan dropdown in the client drawer
+  // can be checked. It carries the retired package on purpose: a retired one
+  // must be offered ONLY to a client already on it.
+  plans: ADMIN_PACKAGES.plans.map((x) => ({
+    id: x.id, name: x.name, biz: x.biz, active: x.active !== false, monthly: x.monthly,
+  })),
   clients: ADMIN_CLIENTS,
   admins: [
     { email: "snowfix07@gmail.com", role: "super", added_at: new Date(Date.now() - 200 * 86400000).toISOString() },

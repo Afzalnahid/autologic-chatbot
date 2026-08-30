@@ -141,7 +141,26 @@ export async function notifyKeyFailing(clientEmail, { business, provider, model,
   });
 }
 
-const PLAN_LABEL = { trial: "Free Trial", starter: "Starter", pro: "Pro", agency: "Agency" };
+// A readable name for a plan id, for the sentences these emails put in front of
+// a customer. Every use is `PLAN_LABEL[plan] || plan`, so a package missing from
+// here reaches them as its raw id — "your shop_growth plan has expired". This
+// list held the three ids that were retired on 2026-08-31 and none of the seven
+// that replaced them.
+//
+// Titled from the id rather than extended by hand, so a package the owner
+// creates in the panel is never the one that reads like a database row. The
+// named entries stay for the two whose title case is not what we call them.
+const PLAN_LABEL = {
+  trial: "Free Trial",
+  shop_starter: "Shop Starter", shop_growth: "Shop Growth", shop_scale: "Shop Scale",
+  svc_starter: "Service Starter", svc_growth: "Service Growth", svc_scale: "Service Scale",
+  starter: "Starter", pro: "Pro", agency: "Agency",
+};
+
+const planLabel = (id) => PLAN_LABEL[id]
+  || String(id || "").replace(/^svc_/, "service_").split(/[_-]/).filter(Boolean)
+       .map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")
+  || "plan";
 
 // The bot has stopped answering customers for a billing reason.
 export async function notifyBotBlocked(clientEmail, { business, reason, used, limit, plan }) {
@@ -152,7 +171,7 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
     },
     plan_expired: {
       title: "Your plan has expired",
-      body: `Your ${PLAN_LABEL[plan] || plan} plan has expired, so your bot has stopped replying to customers.`,
+      body: `Your ${planLabel(plan)} plan has expired, so your bot has stopped replying to customers.`,
     },
     quota_daily: {
       title: "Daily message limit reached",
@@ -164,7 +183,7 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
     },
     quota_monthly: {
       title: "Monthly message limit reached",
-      body: `You have used all ${limit ? limit.toLocaleString("en-IN") : ""} messages included in your ${PLAN_LABEL[plan] || plan} plan this month${used ? ` (${used.toLocaleString("en-IN")} received)` : ""}.`,
+      body: `You have used all ${limit ? limit.toLocaleString("en-IN") : ""} messages included in your ${planLabel(plan)} plan this month${used ? ` (${used.toLocaleString("en-IN")} received)` : ""}.`,
     },
     no_plan: {
       title: "No active plan",
@@ -197,7 +216,7 @@ export async function notifyExpiringSoon(clientEmail, { business, plan, daysLeft
   const when = expiresAt ? formatDhakaDate(new Date(expiresAt)) : null;
   const isTrial = plan === "trial";
   const thing = isTrial ? "trial" : "plan";
-  const label = isTrial ? "Trial" : PLAN_LABEL[plan] || plan;
+  const label = isTrial ? "Trial" : planLabel(plan);
   const inWords = final || daysLeft <= 0
     ? "ends today"
     : daysLeft === 1 ? "ends tomorrow" : `ends in ${daysLeft} days`;

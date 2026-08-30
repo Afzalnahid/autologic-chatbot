@@ -4,6 +4,7 @@ import { createAdminClient as createSb } from "@/utils/supabase/client";
 import Packages from "./Packages.js";
 import AIAdmin from "./AIAdmin.js";
 import { useWhere } from "./where.js";
+import { planOptions } from "@/lib/plan-options.js";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
 
 // The super-admin console. Same design system as the customer dashboard —
@@ -28,6 +29,9 @@ const KIND = {
   suspended: { icon: "ti-player-pause", color: T.danger }, nochannel: { icon: "ti-plug-x", color: T.textDim }, quiet: { icon: "ti-zzz", color: T.textDim },
   signup: { icon: "ti-user-plus", color: T.success }, order: { icon: "ti-shopping-bag", color: T.gold }, booking: { icon: "ti-calendar-event", color: T.purple }, channel: { icon: "ti-plug-connected", color: T.info },
 };
+// Paid means "not the free trial and not nothing" — every package the owner
+// creates counts, which a list of ids written here never could.
+const isPaidPlan = (p) => !!p && p !== "trial" && p !== "none";
 const planColor = (p) => (PLAN_META[p] || PLAN_META.none).color;
 const planName = (p) => (PLAN_META[p] || PLAN_META.none).name;
 const pct = (cur, prev) => (prev ? Math.round(((cur - prev) / prev) * 100) : (cur ? null : 0));
@@ -271,7 +275,7 @@ export function AdminApp(props) {
     </div>
 
     {detail && <ClientDrawer detail={detail} loading={detailLoading} onClose={closeDetail} canEdit={canEdit} canDelete={canDelete} busy={busy} act={act} del={del} isMobile={isMobile} row={clients.find((c) => c.id === detail.id)}
-      isSuper={isSuper} superKey={superKey} setSuperKey={setSuperKey} allowAiKey={allowAiKey} revokeAiKey={revokeAiKey} />}
+      isSuper={isSuper} superKey={superKey} setSuperKey={setSuperKey} allowAiKey={allowAiKey} revokeAiKey={revokeAiKey} plans={data.plans || []} />}
   </div>;
 }
 
@@ -280,7 +284,7 @@ function Overview({ o, clients, attention, activity, openDetail, go, isMobile })
   const s = (k) => (o.series?.[k] || []).map((d) => ({ v: d.value }));
   const lbl = (k) => { const arr = o.series?.[k] || []; return arr.length ? [shortDate(arr[0].day), "today"] : []; };
   const top = [...clients].sort((a, b) => b.messages_7d - a.messages_7d).slice(0, 6);
-  const planItems = ["trial", "starter", "pro", "agency", "none"].map((p) => ({ name: planName(p), count: o.plan_mix?.[p] || 0 })).filter((x) => x.count);
+  const planItems = [...new Set([...(o.plan_mix ? Object.keys(o.plan_mix) : []), "trial", "none"])].map((p) => ({ name: planName(p), count: o.plan_mix?.[p] || 0 })).filter((x) => x.count);
   const platItems = Object.entries(o.platform_mix || {}).map(([k, v]) => ({ name: (PLAT[k] || PLAT.unknown).label, count: v })).sort((a, b) => b.count - a.count);
   const msgPlat = Object.entries(o.message_platform_30d || {}).map(([k, v]) => ({ name: (PLAT[k] || PLAT.unknown).label, count: v })).sort((a, b) => b.count - a.count);
   const two = { display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 };
@@ -373,11 +377,11 @@ function Clients({ clients, openDetail, isMobile }) {
   const [q, setQ] = useState(""); const [plan, setPlan] = useState("all"); const [type, setType] = useState("all"); const [sort, setSort] = useState("active");
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
-    let l = clients.filter((c) => (plan === "all" || (plan === "paid" ? ["starter", "pro", "agency"].includes(c.plan) : plan === "issues" ? (c.suspended || c.pending_payment || (c.trial_days_left !== null && c.trial_days_left <= 2) || (c.plan_days_left !== null && c.plan_days_left <= 7)) : c.plan === plan)) && (type === "all" || (c.business_type || "ecommerce") === type) && (!s || [c.business_name, c.owner_email, c.phone].join(" ").toLowerCase().includes(s)));
+    let l = clients.filter((c) => (plan === "all" || (plan === "paid" ? isPaidPlan(c.plan) : plan === "issues" ? (c.suspended || c.pending_payment || (c.trial_days_left !== null && c.trial_days_left <= 2) || (c.plan_days_left !== null && c.plan_days_left <= 7)) : c.plan === plan)) && (type === "all" || (c.business_type || "ecommerce") === type) && (!s || [c.business_name, c.owner_email, c.phone].join(" ").toLowerCase().includes(s)));
     const by = { active: (a, b) => b.messages_7d - a.messages_7d, newest: (a, b) => new Date(b.created_at) - new Date(a.created_at), name: (a, b) => (a.business_name || "").localeCompare(b.business_name || ""), messages: (a, b) => b.messages - a.messages, recent: (a, b) => new Date(b.last_active || 0) - new Date(a.last_active || 0) };
     return [...l].sort(by[sort] || by.active);
   }, [clients, q, plan, type, sort]);
-  const counts = { all: clients.length, trial: clients.filter((c) => c.plan === "trial").length, paid: clients.filter((c) => ["starter", "pro", "agency"].includes(c.plan)).length, issues: clients.filter((c) => c.suspended || c.pending_payment || (c.trial_days_left !== null && c.trial_days_left <= 2) || (c.plan_days_left !== null && c.plan_days_left <= 7)).length };
+  const counts = { all: clients.length, trial: clients.filter((c) => c.plan === "trial").length, paid: clients.filter((c) => isPaidPlan(c.plan)).length, issues: clients.filter((c) => c.suspended || c.pending_payment || (c.trial_days_left !== null && c.trial_days_left <= 2) || (c.plan_days_left !== null && c.plan_days_left <= 7)).length };
   return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
     <Card style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       <div style={{ position: "relative", flex: "1 1 200px", minWidth: 0 }}>
@@ -394,12 +398,18 @@ function Clients({ clients, openDetail, isMobile }) {
 }
 
 // ── Client drawer ────────────────────────────────────────────────────────────
-function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act, del, isMobile, row, isSuper, superKey, setSuperKey, allowAiKey, revokeAiKey }) {
+function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act, del, isMobile, row, isSuper, superKey, setSuperKey, allowAiKey, revokeAiKey, plans = [] }) {
   const [tab, setTab] = useState("overview");
   const [confirmDel, setConfirmDel] = useState("");
   useEffect(() => { const k = (e) => { if (e.key === "Escape") onClose(); }; document.addEventListener("keydown", k); document.body.style.overflow = "hidden"; return () => { document.removeEventListener("keydown", k); document.body.style.overflow = ""; }; }, []);
   const c = detail.client, r = row || {};
   const isAgency = c?.business_type === "agency";
+  // The rules live in src/lib/plan-options.js so they can be tested; this only
+  // dresses them for the Select.
+  const planChoices = (current, biz) => planOptions(plans, current, biz).map((p) => ({
+    value: p.id, label: p.name || planName(p.id),
+    icon: p.id === "trial" ? "ti-hourglass" : "ti-crown",
+  }));
   const tabs = [{ value: "overview", label: "Overview", icon: "ti-id" }, { value: "channels", label: "Channels", icon: "ti-plug", badge: detail.channels?.length || undefined }, isAgency ? { value: "knowledge", label: "Knowledge", icon: "ti-database", badge: detail.files?.length || undefined } : { value: "catalogue", label: "Catalogue", icon: "ti-package", badge: detail.products?.length || undefined }, isAgency ? { value: "bookings", label: "Bookings", icon: "ti-calendar-event", badge: detail.bookings?.length || undefined } : { value: "orders", label: "Orders", icon: "ti-shopping-bag", badge: detail.orders?.length || undefined }, { value: "payments", label: "Payments", icon: "ti-cash", badge: detail.payments?.length || undefined },
     ...(isSuper ? [{ value: "ai", label: "AI key", icon: "ti-key" }] : [])];
   const Row = ({ k, v }) => <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: `1px solid ${T.border}`, fontSize: 13 }}><span style={{ color: T.textMuted }}>{k}</span><span style={{ textAlign: "right", wordBreak: "break-word", fontWeight: 500 }}>{v || "—"}</span></div>;
@@ -432,7 +442,15 @@ function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act,
             {canEdit && <Card><SectionTitle icon="ti-adjustments">Manage</SectionTitle>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, alignItems: "end" }}>
                 <div><label style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Plan</label>
-                  <Select wide value={c.plan} onChange={(v) => v !== c.plan && act(c.id, "plan", v)} options={["trial", "starter", "pro", "agency"].map((p) => ({ value: p, label: planName(p), icon: p === "trial" ? "ti-hourglass" : "ti-crown" }))} /></div>
+                  {/* Built from the live catalogue, not a list written here.
+                      A retired package is offered ONLY to a client already on
+                      one — they have to be able to see what they are on, but
+                      nobody should be moved onto something withdrawn. Packages
+                      for the other business type are left out for the same
+                      reason the billing tab leaves them out: a shop has no
+                      calendar to book into. */}
+                  <Select wide value={c.plan} onChange={(v) => v !== c.plan && act(c.id, "plan", v)}
+                    options={planChoices(c.plan, c.business_type)} /></div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {c.plan === "trial" ? <><Btn small onClick={() => act(c.id, "extend_trial", 7)} disabled={busy === c.id + "extend_trial"}>+7d trial</Btn><Btn small onClick={() => act(c.id, "extend_trial", 30)} disabled={busy === c.id + "extend_trial"}>+30d trial</Btn></>
                     : <><Btn small onClick={() => act(c.id, "extend_plan", 30)} disabled={busy === c.id + "extend_plan"}>+30 days</Btn><Btn small onClick={() => act(c.id, "extend_plan", 365)} disabled={busy === c.id + "extend_plan"}>+1 year</Btn></>}

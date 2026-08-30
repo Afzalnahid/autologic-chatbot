@@ -67,7 +67,13 @@ export const POST = withErrors(async (request) => {
 
   if (body.action === "start_trial") {
     if (!client) return NextResponse.json({ error: "no client" }, { status: 400 });
-    if (client.plan === "pro") return NextResponse.json({ ok: true });
+    // Somebody already on a paid package must not be dropped back onto a trial
+    // by pressing "start free trial" again. This tested one id — "pro" — so
+    // every OTHER paid package could restart a trial and lose its expiry date.
+    // Anything that is not the trial and not "no plan" is a live package.
+    if (client.plan && client.plan !== "trial" && client.plan !== "none") {
+      return NextResponse.json({ ok: true });
+    }
     const now = new Date();
     const days = await trialDays();
     const end = new Date(now.getTime() + days * 24 * 3600 * 1000);
