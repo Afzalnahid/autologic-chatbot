@@ -63,6 +63,7 @@ export const UI = {
     "bot-training": "Bot Training",
     "ai-engine": "AI Engine",
     "billing": "Billing",
+  "packages": "Packages",
     "profile": "Profile",
     "faq": "Common questions",
   },
@@ -1075,6 +1076,99 @@ export const DOCS = {
     ],
   },
 
+  "packages": {
+    title: "Packages",
+    lead: "Seven packages: one free trial for everybody, then three for shops and three for services. What each one includes, and how to tell which is yours.",
+    time: 5,
+    blocks: [
+      { h: "Two ladders, not one",
+        p: [
+          "A shop and a service do not buy the same thing. A shop shows customers a **catalogue**, matches a photo to a product and takes an order. A service answers from **documents you upload** and books time in your **calendar**.",
+          "So the packages come in two sets. You see only the set for your own business — the one you chose when you signed up. Everything below that is not marked as one or the other is in both.",
+        ] },
+
+      { table: { head: ["", "Shops", "Services"], rows: [
+        ["Answers from", "Your product catalogue", "Documents you upload"],
+        ["Takes", "Orders", "Bookings"],
+        ["Photo from a customer", "Matched to a product", "—"],
+        ["Google Calendar", "—", "Books the meeting and sends the link"],
+      ] } },
+
+      { h: "The free trial",
+        p: [
+          "The same for everybody, because when you start you may not have chosen yet. It gives you **30 customer messages a day** on **one channel**, with everything switched on so you can see what the bot does with your own customers.",
+          "It costs nothing and needs no card. When it ends the bot stops replying, but nothing is deleted — your products, documents and conversations wait for you.",
+        ] },
+
+      { h: "The three tiers",
+        p: ["Both sides climb the same three rungs, so a shop and a service on the same tier are the same size of business."] },
+
+      { table: { head: ["", "Starter", "Growth", "Scale"], rows: [
+        ["Customer messages", "3,000 / month", "15,000 / month", "50,000 / month"],
+        ["Channels", "1", "All 3", "All 3"],
+        ["Voice messages", "—", "Yes", "Yes"],
+        ["Comment automation", "—", "Yes", "Yes"],
+        ["Your own AI key", "—", "—", "Yes"],
+        ["Priority support", "—", "—", "Yes"],
+      ] } },
+
+      { biz: "ecommerce", table: { head: ["For shops", "Starter", "Growth", "Scale"], rows: [
+        ["Products", "300", "3,000", "Unlimited"],
+        ["Photo product matching", "—", "Yes", "Yes"],
+        ["Website imports / month", "20", "200", "Unlimited"],
+      ] } },
+
+      { biz: "agency", table: { head: ["For services", "Starter", "Growth", "Scale"], rows: [
+        ["Knowledge Base documents", "10", "40", "Unlimited"],
+        ["Google Calendar booking", "—", "Yes", "Yes"],
+        ["Website imports / month", "20", "200", "Unlimited"],
+      ] } },
+
+      { note: "Only messages your **customers** send count against the limit. The bot's own replies are free, and always have been.", kind: "tip" },
+
+      { h: "What the features mean",
+        p: ["The words on a package, in plain language."] },
+
+      { table: { head: ["", "What it does"], rows: [
+        ["Customer messages", "How many messages your customers may send you in a month. When they run out the bot stops replying until the month turns or you move up."],
+        ["Channels", "How many Facebook Pages, Instagram accounts or WhatsApp numbers you may connect. The website chat widget is separate and does not use one."],
+        ["Voice message understanding", "The bot listens to a voice note and answers it, instead of asking the customer to type."],
+        ["Comment automation", "Replies to comments on your posts, and can carry the conversation into the inbox."],
+        ["Broadcasts & follow-ups", "Sending one message to many people, and nudging somebody who went quiet. Both only ever reach people who wrote to you in the last 24 hours — that is Meta's rule, not ours."],
+        ["Website chat widget", "The same bot, on your own website, in one line of code."],
+        ["Your own AI key", "Run on your own Google or OpenAI key and pay the AI bill yourself. Useful at high volume."],
+      ] } },
+
+      { biz: "ecommerce", table: { head: ["For shops", "What it does"], rows: [
+        ["Products", "How many products your catalogue may hold. The bot answers from these."],
+        ["Photo product matching", "A customer sends a picture instead of a name, and the bot finds that product in your catalogue and quotes its real price."],
+        ["Website imports", "Reading your existing shop or a WooCommerce/Shopify store to fill the catalogue without typing."],
+      ] } },
+
+      { biz: "agency", table: { head: ["For services", "What it does"], rows: [
+        ["Knowledge Base documents", "Files you upload — price lists, policies, service descriptions — that the bot answers from."],
+        ["Google Calendar booking", "The bot checks when you are free, books the meeting, makes the Meet link and sends it."],
+        ["Website imports", "Reading pages from your own site into the Knowledge Base without typing them."],
+      ] } },
+
+      { h: "Moving between packages",
+        steps: [
+          "Open **Billing** in your dashboard. You will see only the packages for your business.",
+          "Pick one and send the amount by bKash, Nagad or Rocket to the number shown.",
+          "Enter the transaction ID. We check it, usually within a few hours, and the package starts.",
+        ] },
+
+      { note: "Paying yearly costs ten months instead of twelve. Moving up takes effect as soon as the payment is verified — you do not lose what is left of the month you paid for.", kind: "tip" },
+
+      { faq: [
+        { q: "Which set of packages do I see?", a: "The one for the business type on your account — shop or service. It was set when you signed up and it decides your whole dashboard, not just the packages: a shop gets Inventory and Orders, a service gets Knowledge and Bookings." },
+        { q: "Can I change my business type?", a: "Ask support. It changes which tabs you have and which packages you can buy, so it is not a switch you should flip by accident." },
+        { q: "What happens if I go over the message limit?", a: "The bot stops replying to new customers until the month turns or you move up a package. Nothing is deleted, and your inbox keeps working — you can still answer by hand." },
+        { q: "Does the website widget use one of my channels?", a: "No. It has its own switch and does not take a channel slot. A package with one channel can still have the widget." },
+        { q: "Why is there no unlimited package?", a: "Because every message costs us real money in AI, and a package that promises unlimited either has a hidden limit or loses money on its heaviest customer. The numbers on these packages are the ones we can actually honour." },
+      ] },
+    ],
+  },
   "profile": {
     title: "Profile",
     lead: "Your business details, your logo, your business type, your package at a glance, and the Google Calendar connection.",

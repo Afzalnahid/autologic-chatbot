@@ -36,6 +36,10 @@ export const PAGES = [
   { slug: "bot-training",    group: "teach",    icon: "ti-wand",              tab: "settings",      biz: "both" },
   { slug: "ai-engine",       group: "teach",    icon: "ti-cpu",               tab: "ai",            biz: "both" },
   { slug: "billing",         group: "account",  icon: "ti-credit-card",       tab: "billing",       biz: "both" },
+  // tab: null on purpose. It explains the packages rather than a tab, and
+  // naming "billing" here would take the Read docs link off the Billing tab —
+  // LearnMore resolves a tab to the FIRST page that claims it.
+  { slug: "packages",        group: "account",  icon: "ti-box",               tab: null,            biz: "both" },
   { slug: "profile",         group: "account",  icon: "ti-user",              tab: "profile",       biz: "both" },
   { slug: "faq",             group: "help",     icon: "ti-help-circle",       tab: null,            biz: "both" },
 ];
