@@ -34,6 +34,8 @@ export default function Billing({initialPlan,initialCycle}) {
   useEffect(()=>{
     api("/api/plans").then(r=>r.json()).then(d=>{
       if(Array.isArray(d?.plans)&&d.plans.length) setPlans(d.plans.filter(p=>Number(p.monthly)>0));
+      // The plan list arrives before the account does, so the business type is
+      // applied where the list is READ rather than here — see `buyable` below.
       if(d?.meta) setPlanMeta({...PLAN_META,...d.meta});
     }).catch(()=>{});
   },[]);
@@ -67,7 +69,15 @@ export default function Billing({initialPlan,initialCycle}) {
   const daysLeft=expiry?Math.ceil((new Date(expiry)-new Date())/86400000):null;
   // Live catalogue, not the static fallback — an admin-created package must be
   // pickable and priced on this screen too.
-  const selPlan=plans.find(p=>p.id===sel);
+  // Only the packages this business may buy. A package with no type — the
+  // trial, and any row written before the biz column — belongs to both sides,
+  // because showing one to everybody beats hiding it from the people it was
+  // written for. The account may not have loaded yet, and until it does every
+  // package is shown rather than none.
+  const buyable=d?.business_type
+    ?plans.filter(p=>!p.biz||p.biz==="both"||p.biz===d.business_type)
+    :plans;
+  const selPlan=buyable.find(p=>p.id===sel);
   const amount=selPlan?(cycle==="yearly"?selPlan.yearly:selPlan.monthly):0;
 
   return <div style={{maxWidth:900}}>
@@ -84,7 +94,7 @@ export default function Billing({initialPlan,initialCycle}) {
             {d.active?`Valid until ${shortDate(expiry)}${daysLeft!==null?` · ${daysLeft} day${daysLeft===1?"":"s"} left`:""}`:`Expired on ${shortDate(expiry)}`}
           </div>}
         </div>
-        {step!=="pay"&&<Btn gold onClick={()=>{setSel(plans.find(p=>p.highlight)?.id||plans[0]?.id||"pro");setStep("pay");}}>
+        {step!=="pay"&&<Btn gold onClick={()=>{setSel(buyable.find(p=>p.highlight)?.id||buyable[0]?.id||null);setStep("pay");}}>
           <i className="ti ti-arrow-up-circle" style={{marginRight:6}}/>{d.plan==="none"||!d.active?"Choose a plan":"Upgrade"}
         </Btn>}
       </div>
@@ -128,7 +138,7 @@ export default function Billing({initialPlan,initialCycle}) {
 
       {/* plan picker */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:16}}>
-        {plans.map(p=><div key={p.id} onClick={()=>setSel(p.id)} style={{
+        {buyable.map(p=><div key={p.id} onClick={()=>setSel(p.id)} style={{
           cursor:"pointer",padding:"14px 14px",borderRadius:11,background:T.bgAlt,
           border:`1px solid ${sel===p.id?T.gold:T.border}`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -190,7 +200,7 @@ export default function Billing({initialPlan,initialCycle}) {
 
     {/* Plan cards */}
     {step==="plans"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:14,marginBottom:16}}>
-      {plans.map(p=><Card key={p.id} style={{border:p.highlight?`1px solid color-mix(in srgb, ${T.gold} 33%, transparent)`:undefined,display:"flex",flexDirection:"column"}}>
+      {buyable.map(p=><Card key={p.id} style={{border:p.highlight?`1px solid color-mix(in srgb, ${T.gold} 33%, transparent)`:undefined,display:"flex",flexDirection:"column"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{fontSize:16,fontWeight:600}}>{p.name}</span>
           {d.plan===p.id?<Badge color={T.success}>Current</Badge>:p.highlight?<Badge>Popular</Badge>:null}

@@ -65,6 +65,10 @@ export const GET = withErrors(async (request) => {
 
   return NextResponse.json({
     plan: client.plan,
+    // Which packages this account may buy. A shop has no calendar to book into
+    // and a service has no catalogue to match a photo against, so offering
+    // either the other's ladder sells something the dashboard will not show.
+    business_type: client.business_type || "ecommerce",
     plan_name: limits.planName || "No plan",
     active: planActive(client),
     trial_end: client.trial_end,

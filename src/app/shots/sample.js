@@ -256,7 +256,10 @@ const AI_KEY = {
 
 // ----------------------------------------------------------------- billing
 const BILLING = {
-  plan: "growth", plan_name: "Growth", active: true,
+  plan: "shop_growth", plan_name: "Shop Growth", active: true,
+  // A shop, so the upgrade list must show the three Shop packages and none of
+  // the Service ones. This is the whole point of the fixture carrying a type.
+  business_type: "ecommerce",
   trial_end: null, plan_expires_at: new Date(Date.now() + 19 * 86400000).toISOString(),
   suspended: false,
   usage: { today: 62, month: 1834, daily_limit: null, monthly_limit: 5000, pct: 37 },
@@ -523,7 +526,16 @@ export const SAMPLE = {
   ] },
   "/api/ai-key": AI_KEY,
   "/api/billing": BILLING,
-  "/api/plans": { plans: [] },
+  // The same seven the admin panel edits, shaped as /api/plans returns them.
+  // It used to be empty, which meant the Billing tab quietly fell back to the
+  // static list in ui.js — so the screen under test was never the one shipped.
+  "/api/plans": {
+    plans: ADMIN_PACKAGES.plans.map((p) => ({
+      id: p.id, biz: p.biz, name: p.name, tagline: p.tagline,
+      monthly: p.monthly, yearly: p.yearly, highlight: !!p.highlight, features: [],
+    })),
+    meta: Object.fromEntries(ADMIN_PACKAGES.plans.map((p) => [p.id, { name: p.name }])),
+  },
   "/api/profile": PROFILE,
   "/api/admin/packages": ADMIN_PACKAGES,
 };
