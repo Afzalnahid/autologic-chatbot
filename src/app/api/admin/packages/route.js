@@ -299,6 +299,9 @@ export async function POST(request) {
     const row = {
       id: String(p.id).trim().toLowerCase().replace(/[^a-z0-9_-]/g, ""),
       name: String(p.name || p.id).slice(0, 60),
+      // Which business type may buy this. Anything unrecognised becomes "both",
+      // so a bad value shows the package to everyone rather than to nobody.
+      biz: ["ecommerce", "agency"].includes(p.biz) ? p.biz : "both",
       tagline: p.tagline ? String(p.tagline).slice(0, 120) : null,
       sort: Number(p.sort) || 0,
       active: p.active !== false,

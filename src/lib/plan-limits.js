@@ -21,6 +21,11 @@ function fromConstant() {
   for (const [id, p] of Object.entries(PLANS)) {
     out[id] = {
       id, name: p.name, tagline: p.tagline, monthly: p.monthly, yearly: p.yearly,
+      // Which business the package is for; "both" is the trial. A row read from
+      // the database before the biz migration has no value, and everything that
+      // reads this treats a missing one as "both" — showing a package to
+      // everybody is a smaller mistake than hiding it from the people it is for.
+      biz: p.biz || "both",
       messages_per_day: p.messagesPerDay ?? null,
       messages_per_month: p.messagesPerMonth ?? null,
       messages_per_channel: null,

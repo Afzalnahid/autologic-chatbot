@@ -30,11 +30,31 @@ export const clampTrialDays = (v) => {
   return Math.min(MAX_TRIAL_DAYS, Math.max(MIN_TRIAL_DAYS, n));
 };
 
+// The two kinds of business this platform serves. A package belongs to one of
+// them, or to "both" — which is what the free trial is, because somebody
+// trying the product has not chosen yet.
+//
+// The word "agency" used to name BOTH the top tier and one of these, so
+// "the agency package for an agency" meant two different things depending on
+// who was reading. The tiers are Starter / Growth / Scale on each side now,
+// and "agency" only ever means the business type.
+export const BIZ = { ecommerce: "Shop", agency: "Services" };
+
+// Features that only make sense on one side, so a package never advertises
+// something the dashboard will not show. A shop matches photos against a
+// catalogue and takes orders; a service answers from documents and books time.
+export const BIZ_FEATURES = {
+  ecommerce: ["vision"],
+  agency: ["calendar", "kb"],
+};
+
 export const PLANS = {
+  // ── Free, and the same whichever business you are ─────────────────────────
   trial: {
     id: "trial",
+    biz: "both",
     name: "Free Trial",
-    tagline: "Try everything for 3 days",
+    tagline: "Try everything for a few days",
     monthly: 0,
     yearly: 0,
     messagesPerDay: 30,
@@ -42,17 +62,20 @@ export const PLANS = {
     channels: 1,
     highlight: false,
     features: [
-      "3 days full access",
+      "Full access, no card needed",
       "30 customer messages per day",
       "1 channel (Facebook, Instagram or WhatsApp)",
       "AI replies in Bangla & English",
       "Live conversation inbox",
     ],
   },
-  starter: {
-    id: "starter",
-    name: "Starter",
-    tagline: "For small shops getting started",
+
+  // ── Shops ────────────────────────────────────────────────────────────────
+  shop_starter: {
+    id: "shop_starter",
+    biz: "ecommerce",
+    name: "Shop Starter",
+    tagline: "One channel, your catalogue answering for itself",
     monthly: 1500,
     yearly: 15000,
     messagesPerDay: null,
@@ -62,16 +85,17 @@ export const PLANS = {
     features: [
       "3,000 customer messages / month",
       "1 channel of your choice",
-      "AI replies in Bangla & English",
       "Product catalogue & order collection",
+      "AI replies in Bangla & English",
       "Live conversation inbox",
       "Analytics dashboard",
     ],
   },
-  pro: {
-    id: "pro",
-    name: "Pro",
-    tagline: "For growing businesses",
+  shop_growth: {
+    id: "shop_growth",
+    biz: "ecommerce",
+    name: "Shop Growth",
+    tagline: "Every channel, and customers who send photos instead of names",
     monthly: 3500,
     yearly: 35000,
     messagesPerDay: null,
@@ -82,34 +106,119 @@ export const PLANS = {
       "15,000 customer messages / month",
       "All 3 channels — Facebook, Instagram, WhatsApp",
       "Photo product matching (Vision AI)",
-      "Knowledge Base with document upload",
       "Voice message understanding",
-      "Everything in Starter",
+      "Broadcasts and follow-up messages",
+      "Everything in Shop Starter",
     ],
   },
-  agency: {
-    id: "agency",
-    name: "Agency",
-    tagline: "For service providers & agencies",
+  shop_scale: {
+    id: "shop_scale",
+    biz: "ecommerce",
+    name: "Shop Scale",
+    tagline: "For a catalogue and a crowd that keep growing",
     monthly: 6000,
     yearly: 60000,
     messagesPerDay: null,
-    messagesPerMonth: null,
-    channels: 99,
+    messagesPerMonth: 50000,
+    channels: 3,
     highlight: false,
     features: [
-      "Unlimited customer messages",
-      "Google Calendar meeting booking",
-      "Automatic Google Meet links",
-      "Knowledge Base for your services",
+      "50,000 customer messages / month",
+      "Unlimited products",
+      "Comment automation on your posts",
+      "Use your own AI key",
       "Priority support",
-      "Everything in Pro",
+      "Everything in Shop Growth",
+    ],
+  },
+
+  // ── Services ─────────────────────────────────────────────────────────────
+  svc_starter: {
+    id: "svc_starter",
+    biz: "agency",
+    name: "Service Starter",
+    tagline: "One channel, answering from your own documents",
+    monthly: 1500,
+    yearly: 15000,
+    messagesPerDay: null,
+    messagesPerMonth: 3000,
+    channels: 1,
+    highlight: false,
+    features: [
+      "3,000 customer messages / month",
+      "1 channel of your choice",
+      "Knowledge Base — upload your documents",
+      "AI replies in Bangla & English",
+      "Live conversation inbox",
+      "Analytics dashboard",
+    ],
+  },
+  svc_growth: {
+    id: "svc_growth",
+    biz: "agency",
+    name: "Service Growth",
+    tagline: "Every channel, and meetings booked while you sleep",
+    monthly: 3500,
+    yearly: 35000,
+    messagesPerDay: null,
+    messagesPerMonth: 15000,
+    channels: 3,
+    highlight: true,
+    features: [
+      "15,000 customer messages / month",
+      "All 3 channels — Facebook, Instagram, WhatsApp",
+      "Google Calendar booking with Meet links",
+      "Voice message understanding",
+      "Broadcasts and follow-up messages",
+      "Everything in Service Starter",
+    ],
+  },
+  svc_scale: {
+    id: "svc_scale",
+    biz: "agency",
+    name: "Service Scale",
+    tagline: "For a practice that answers all day",
+    monthly: 6000,
+    yearly: 60000,
+    messagesPerDay: null,
+    messagesPerMonth: 50000,
+    channels: 3,
+    highlight: false,
+    features: [
+      "50,000 customer messages / month",
+      "Unlimited Knowledge Base documents",
+      "Comment automation on your posts",
+      "Use your own AI key",
+      "Priority support",
+      "Everything in Service Growth",
     ],
   },
 };
 
-export const PAID_PLANS = ["starter", "pro", "agency"];
-export const PLAN_ORDER = ["trial", "starter", "pro", "agency"];
+// Every package a business of this type may buy, cheapest first. The trial is
+// left out: it is not something anyone chooses from a price list.
+export const plansFor = (biz) =>
+  PLAN_ORDER
+    .filter((id) => id !== "trial" && (PLANS[id].biz === "both" || PLANS[id].biz === biz))
+    .map((id) => PLANS[id]);
+
+// Three tiers on each side, cheapest first, and the trial ahead of both.
+export const PLAN_ORDER = [
+  "trial",
+  "shop_starter", "shop_growth", "shop_scale",
+  "svc_starter", "svc_growth", "svc_scale",
+];
+
+// Anything that is not the trial and is not "no plan". Kept as a list because
+// messageAllowance() uses it as one of two ways to recognise a live package —
+// the other being a package the owner created in the panel, which will never
+// appear here. The old ids stay so an account still on one keeps working until
+// it is moved.
+export const PAID_PLANS = [
+  "shop_starter", "shop_growth", "shop_scale",
+  "svc_starter", "svc_growth", "svc_scale",
+  "starter", "pro", "agency",
+];
 
 export function planOf(id) {
   return PLANS[id] || null;

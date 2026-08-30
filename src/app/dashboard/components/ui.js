@@ -113,11 +113,23 @@ export function OnboardFrame({icon,title,sub,step,of,width=460,scroll,children})
 }
 
 // Plan catalogue and formatting used by several tabs.
+// Colour by TIER, not by business type: a shop and a service on the same rung
+// are the same size of customer, and colouring the two sides differently would
+// say something about them that is not true. /api/plans sends real names, which
+// override these — this is the first paint and the fallback.
 export const PLAN_META={
   trial:{name:"Free Trial",color:T.info},
-  starter:{name:"Starter",color:T.success},
-  pro:{name:"Pro",color:T.gold},
-  agency:{name:"Agency",color:T.purple},
+  shop_starter:{name:"Shop Starter",color:T.success},
+  shop_growth:{name:"Shop Growth",color:T.gold},
+  shop_scale:{name:"Shop Scale",color:T.purple},
+  svc_starter:{name:"Service Starter",color:T.success},
+  svc_growth:{name:"Service Growth",color:T.gold},
+  svc_scale:{name:"Service Scale",color:T.purple},
+  // Retired 2026-08-31. Kept so an account still carrying one of these reads as
+  // its own name rather than as "No plan".
+  starter:{name:"Starter (retired)",color:T.textDim},
+  pro:{name:"Pro (retired)",color:T.textDim},
+  agency:{name:"Agency (retired)",color:T.textDim},
   none:{name:"No plan",color:T.textDim},
 };
 export const PLAN_LIST=[

@@ -14,6 +14,11 @@ export async function GET() {
     .sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0))
     .map((p) => ({
       id: p.id,
+      // Which business may buy this. A row written before the biz migration has
+      // none, and everything downstream reads a missing value as "both" — a
+      // package shown to everybody is a smaller mistake than one hidden from
+      // the people it was written for.
+      biz: p.biz || "both",
       name: p.name,
       tagline: p.tagline || "",
       monthly: Number(p.monthly) || 0,
