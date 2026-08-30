@@ -5,9 +5,69 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
-import { startOfDayDhaka } from "@/lib/time.js";
+import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
+
+// Everything the Manage card needs to describe a subscription rather than just
+// offer buttons that change one.
+//
+// The money comes from APPROVED payment requests only — a submitted-but-
+// unverified one is not revenue, and counting it would overstate what this
+// client has actually paid.
+//
+// The usage figures are measured against the package's own limits, so the
+// question the panel exists to answer — "should this client move up?" — can be
+// read off the screen instead of guessed at.
+async function subscriptionOf(client, payments, used) {
+  if (!client) return null;
+  const { limitsFor } = await import("@/lib/plan-limits.js");
+  const limits = await limitsFor(client);
+  const isTrial = client.plan === "trial";
+
+  const paid = (payments || []).filter((p) => p.status === "approved");
+  const last = paid[0] || null;   // payQ is newest first
+  const totalPaid = paid.reduce((n, p) => n + (Number(p.amount) || 0), 0);
+
+  const expiresAt = isTrial ? client.trial_end : client.plan_expires_at;
+  const daysLeft = expiresAt
+    ? Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000)
+    : null;
+
+  // Messages against the allowance, counted over the period the plan is
+  // actually metered on — a trial by the day, a package by the month. An
+  // exact count rather than a row read, so it cannot be capped.
+  const since = isTrial ? startOfDayDhaka() : startOfMonthDhaka();
+  const { count: usedMsgs } = await supabase.from("message_buffer")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", client.id).eq("role", "customer")
+    .gte("created_at", since.toISOString());
+
+  return {
+    plan: client.plan,
+    plan_name: limits.planName,
+    monthly: limits.monthly, yearly: limits.yearly,
+    is_trial: isTrial,
+    suspended: !!client.suspended,
+    started_at: isTrial ? client.trial_start : (paid.length ? paid[paid.length - 1].created_at : null),
+    expires_at: expiresAt || null,
+    days_left: daysLeft,
+    // null limit means unlimited, and the panel must show that rather than 0.
+    usage: {
+      period: isTrial ? "day" : "month",
+      messages: { used: usedMsgs || 0, limit: isTrial ? limits.messagesPerDay : limits.messagesPerMonth },
+      channels: { used: used.channels, limit: limits.channels },
+      products: { used: used.products, limit: limits.maxProducts },
+      documents: { used: used.files, limit: limits.maxKbFiles },
+    },
+    payments: {
+      count: paid.length,
+      total: totalPaid,
+      last: last ? { amount: Number(last.amount) || 0, method: last.method, txn_id: last.txn_id, cycle: last.billing_cycle, at: last.created_at } : null,
+      pending: (payments || []).filter((p) => p.status === "pending").length,
+    },
+  };
+}
 
 async function callerEmail(request) {
   const authHeader = request.headers.get("authorization") || "";
@@ -37,10 +97,19 @@ export const GET = withErrors(async (request) => {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
 
-  const [clientQ, channelsQ, msgsQ, ordersQ, bookingsQ, productsQ, filesQ, payQ, contactsQ, settingsQ, aiQ] = await Promise.all([
+  const [clientQ, channelsQ, msgsQ, msgTotalQ, ordersQ, bookingsQ, productsQ, filesQ, payQ, contactsQ, settingsQ, aiQ] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
     supabase.from("channels").select("platform,page_id,name,status,connected_at").eq("client_id", id),
-    supabase.from("message_buffer").select("role,created_at,platform").eq("client_id", id),
+    // Only the window the figures below actually cover. This used to ask for
+    // EVERY message this client has ever had, on every drawer open — which
+    // grows without bound and, past db-max-rows, comes back short with no
+    // error, so "total" and the 14-day chart were both quietly wrong for
+    // exactly the busiest clients. The lifetime total is a COUNT now (no row
+    // cap), and these rows only have to answer for the last 30 days.
+    supabase.from("message_buffer").select("role,created_at,platform")
+      .eq("client_id", id).gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())
+      .order("created_at", { ascending: false }).limit(20000),
+    supabase.from("message_buffer").select("id", { count: "exact", head: true }).eq("client_id", id),
     supabase.from("orders").select("order_code,customer_name,total_price,status,created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(50),
     supabase.from("bookings").select("customer_name,service_want,meeting_date,meeting_time,status,created_at").eq("client_id", id).order("created_at", { ascending: false }).limit(50),
     supabase.from("products").select("metadata").eq("client_id", id).limit(200),
@@ -71,7 +140,11 @@ export const GET = withErrors(async (request) => {
   const series = [];
   for (let i = 13; i >= 0; i--) { const s0 = dayStart.getTime() - i * 86400000, e0 = s0 + 86400000; series.push({ day: new Date(s0).toISOString().slice(0, 10), value: msgs.filter((m) => { const t = new Date(m.created_at).getTime(); return t >= s0 && t < e0; }).length }); }
   const messages = {
-    total: msgs.length,
+    // The lifetime figure comes from a count, not from the rows above — those
+    // only reach back 30 days now. `total_window` says what the rest of this
+    // object is measured over, so nothing here can be read as all-time.
+    total: msgTotalQ.count ?? msgs.length,
+    total_window_days: 30,
     by_platform: byPlatform, series,
     last_at: msgs.length ? msgs.reduce((a, m) => (new Date(m.created_at) > new Date(a) ? m.created_at : a), msgs[0].created_at) : null,
     today: msgs.filter((m) => new Date(m.created_at) >= dayStart).length,
@@ -97,6 +170,16 @@ export const GET = withErrors(async (request) => {
     products,
     files: filesQ.data || [],
     payments: payQ.data || [],
+    // What this account's subscription actually IS — the questions the Manage
+    // card could not answer: what they are on, what it costs, when it started,
+    // when it ends, what they have paid, and how much of the package they are
+    // using. Without this the panel offered buttons to change a subscription
+    // nobody could see.
+    subscription: await subscriptionOf(client, payQ.data || [], {
+      channels: (channelsQ.data || []).filter((ch) => ch.platform !== "website").length,
+      products: products.length,
+      files: (filesQ.data || []).length,
+    }),
     contacts: contactsQ.count || 0,
     // Only the bot's public face — never the business prompt itself.
     settings: settingsQ.data?.settings ? { botName: settingsQ.data.settings.botName || null, greeting: settingsQ.data.settings.greeting || null, hasPrompt: !!settingsQ.data.settings.businessPrompt } : null,

@@ -397,6 +397,77 @@ function Clients({ clients, openDetail, isMobile }) {
   </div>;
 }
 
+// ── Subscription ─────────────────────────────────────────────────────────────
+//
+// The facts about what a client is paying for, so the buttons underneath are
+// changing something the reader can see.
+//
+// An unlimited allowance shows "∞" and no bar, because a bar with no ceiling
+// is a bar that always reads as empty. A figure that could not be measured
+// shows "—" and never 0: on this screen 0 means "they have room", and telling
+// an admin that about a client at their limit is how the wrong decision gets
+// made confidently.
+function Meter({ label, used, limit }) {
+  const has = limit !== null && limit !== undefined;
+  const u = Number(used) || 0;
+  const pct = has && Number(limit) > 0 ? Math.min(100, Math.round((u / Number(limit)) * 100)) : null;
+  const tone = pct === null ? T.textDim : pct >= 90 ? T.danger : pct >= 70 ? T.warn : T.success;
+  return <div>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 5 }}>
+      <span style={{ color: T.textMuted }}>{label}</span>
+      <span><b>{u.toLocaleString("en-IN")}</b><span style={{ color: T.textDim }}> / {has ? Number(limit).toLocaleString("en-IN") : "∞"}</span></span>
+    </div>
+    <div style={{ height: 5, background: T.inset, borderRadius: 3, overflow: "hidden" }}>
+      <div style={{ height: "100%", width: pct === null ? 0 : `${pct}%`, background: tone, borderRadius: 3 }} />
+    </div>
+  </div>;
+}
+
+function Subscription({ s, isMobile }) {
+  if (!s) return null;
+  const money = (n) => taka(Math.round(Number(n) || 0));
+  const late = s.days_left !== null && s.days_left <= 0;
+  const soon = s.days_left !== null && s.days_left > 0 && s.days_left <= 7;
+  const state = s.suspended ? ["Suspended", T.danger] : late ? ["Expired", T.danger] : s.is_trial ? ["Trial", T.gold] : ["Active", T.success];
+  const Row = ({ k, v, c }) => <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "5px 0", fontSize: 12.5 }}>
+    <span style={{ color: T.textMuted }}>{k}</span><span style={{ color: c || T.text, fontWeight: 600, textAlign: "right" }}>{v}</span>
+  </div>;
+  return <Card style={{ marginBottom: 14 }}>
+    <SectionTitle icon="ti-receipt" right={<Badge color={state[1]}>{state[0]}</Badge>}>Subscription</SectionTitle>
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 4 : 22 }}>
+      <div>
+        <Row k="Package" v={s.plan_name || s.plan} />
+        <Row k="Price" v={s.monthly ? `${money(s.monthly)} / month` : "Free"} />
+        <Row k="Started" v={s.started_at ? shortDate(s.started_at) : "—"} />
+        <Row k={late ? "Expired" : "Renews"}
+          v={s.expires_at ? `${shortDate(s.expires_at)}${s.days_left !== null ? ` · ${s.days_left}d` : ""}` : "no end date"}
+          c={late ? T.danger : soon ? T.warn : undefined} />
+      </div>
+      <div>
+        <Row k="Paid to date" v={s.payments.count ? `${money(s.payments.total)} · ${s.payments.count} payment${s.payments.count === 1 ? "" : "s"}` : "nothing yet"} />
+        <Row k="Last payment" v={s.payments.last ? `${money(s.payments.last.amount)} · ${s.payments.last.method || "—"} · ${shortDate(s.payments.last.at)}` : "—"} />
+        <Row k="Transaction" v={s.payments.last?.txn_id || "—"} />
+        {s.payments.pending > 0 && <Row k="Awaiting review" v={`${s.payments.pending} payment${s.payments.pending === 1 ? "" : "s"}`} c={T.warn} />}
+      </div>
+    </div>
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
+      <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 9 }}>
+        Using this {s.usage.period}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "10px 22px" }}>
+        <Meter label="Customer messages" used={s.usage.messages.used} limit={s.usage.messages.limit} />
+        <Meter label="Channels" used={s.usage.channels.used} limit={s.usage.channels.limit} />
+        {/* A shop has no knowledge base and a service has no catalogue, so the
+            one that does not apply is left out rather than shown as 0 / 0 —
+            which reads as a limit they have hit. Both appear if both are
+            allowed, which is what a package with neither zeroed means. */}
+        {s.usage.products.limit !== 0 && <Meter label="Products" used={s.usage.products.used} limit={s.usage.products.limit} />}
+        {s.usage.documents.limit !== 0 && <Meter label="Knowledge documents" used={s.usage.documents.used} limit={s.usage.documents.limit} />}
+      </div>
+    </div>
+  </Card>;
+}
+
 // ── Client drawer ────────────────────────────────────────────────────────────
 function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act, del, isMobile, row, isSuper, superKey, setSuperKey, allowAiKey, revokeAiKey, plans = [] }) {
   const [tab, setTab] = useState("overview");
@@ -404,6 +475,19 @@ function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act,
   useEffect(() => { const k = (e) => { if (e.key === "Escape") onClose(); }; document.addEventListener("keydown", k); document.body.style.overflow = "hidden"; return () => { document.removeEventListener("keydown", k); document.body.style.overflow = ""; }; }, []);
   const c = detail.client, r = row || {};
   const isAgency = c?.business_type === "agency";
+  // "+30 days" from WHAT — today, or the date they already have? The server
+  // extends from whichever is later, so the answer is not obvious from the
+  // button. Said in the same words the server uses.
+  const sub = detail.subscription;
+  const extendHint = (() => {
+    const from = sub?.expires_at && new Date(sub.expires_at) > new Date() ? new Date(sub.expires_at) : new Date();
+    const add = (d) => shortDate(new Date(from.getTime() + d * 86400000));
+    if (!sub) return null;
+    return sub.is_trial
+      ? `Extending runs the trial to ${add(7)} or ${add(30)}.`
+      : `Extending runs the plan to ${add(30)} or ${add(365)}.`;
+  })();
+
   // The rules live in src/lib/plan-options.js so they can be tested; this only
   // dresses them for the Select.
   const planChoices = (current, biz) => planOptions(plans, current, biz).map((p) => ({
@@ -439,6 +523,13 @@ function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act,
               <Row k="Owner email" v={c.owner_email} /><Row k="Phone" v={c.phone} /><Row k="Address" v={c.address} /><Row k="Website" v={c.website} /><Row k="Bot name" v={detail.settings?.botName} /><Row k="Bot trained" v={detail.settings?.hasPrompt ? "Yes — business profile saved" : "No — bot uses defaults"} />
               {c.gcal_connected && <Row k="Calendar" v={c.gcal_email} />}<Row k="Trial" v={c.trial_end ? `${shortDate(c.trial_start)} → ${shortDate(c.trial_end)}` : "—"} /><Row k="Plan expires" v={c.plan_expires_at ? shortDate(c.plan_expires_at) : "—"} /><Row k="Client ID" v={<span style={{ fontFamily: "monospace", fontSize: 11.5 }}>{c.id}</span>} />
             </Card>
+            {/* What this subscription IS, before anything that changes it.
+                The card used to be four buttons and a delete box: you could
+                move a client between packages without being able to see what
+                they were on, what they had paid, when it ran out, or whether
+                they were anywhere near the limits you were about to change. */}
+            <Subscription s={detail.subscription} isMobile={isMobile} />
+
             {canEdit && <Card><SectionTitle icon="ti-adjustments">Manage</SectionTitle>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, alignItems: "end" }}>
                 <div><label style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Plan</label>
@@ -451,7 +542,11 @@ function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act,
                       calendar to book into. */}
                   <Select wide value={c.plan} onChange={(v) => v !== c.plan && act(c.id, "plan", v)}
                     options={planChoices(c.plan, c.business_type)} /></div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  {/* What the button will DO, not just its name. Extending is
+                      irreversible from here — there is no "−30 days" — so the
+                      resulting date is worth reading before pressing it. */}
+                  {extendHint && <div style={{ width: "100%", fontSize: 11, color: T.textDim, marginBottom: -2 }}>{extendHint}</div>}
                   {c.plan === "trial" ? <><Btn small onClick={() => act(c.id, "extend_trial", 7)} disabled={busy === c.id + "extend_trial"}>+7d trial</Btn><Btn small onClick={() => act(c.id, "extend_trial", 30)} disabled={busy === c.id + "extend_trial"}>+30d trial</Btn></>
                     : <><Btn small onClick={() => act(c.id, "extend_plan", 30)} disabled={busy === c.id + "extend_plan"}>+30 days</Btn><Btn small onClick={() => act(c.id, "extend_plan", 365)} disabled={busy === c.id + "extend_plan"}>+1 year</Btn></>}
                   <Btn small onClick={() => act(c.id, "suspend", !c.suspended)} disabled={busy === c.id + "suspend"} style={{ color: c.suspended ? T.success : T.warn, background: `color-mix(in srgb, ${c.suspended ? T.success : T.warn} 10%, transparent)` }}><i className={`ti ${c.suspended ? "ti-player-play" : "ti-player-pause"}`} style={{ marginRight: 5 }} />{c.suspended ? "Resume" : "Suspend"}</Btn>

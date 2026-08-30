@@ -32,8 +32,37 @@ import { SAMPLE, PROPS, ADMIN } from "./sample.js";
 // `detail` is set — openDetail does nothing here, so a scene that wants the
 // drawer has to be handed one already open.
 const DETAIL = {
-  client: { ...ADMIN.clients[0], trial_start: null, trial_end: null, phone: "01711000111", address: "Dhanmondi, Dhaka", website: "nokshithreads.com" },
-  channels: [], products: [], orders: [], bookings: [], files: [], payments: [], ai_key: null,
+  // plan matches the subscription below on purpose: the dropdown and the card
+  // describe the same account, and a fixture where they disagree teaches the
+  // next reader that they can.
+  client: { ...ADMIN.clients[0], plan: "shop_growth", trial_start: null, trial_end: null, phone: "01711000111", address: "Dhanmondi, Dhaka", website: "nokshithreads.com" },
+  channels: [], products: [], orders: [], bookings: [], files: [], ai_key: null,
+  payments: [
+    { id: "p1", plan: "shop_growth", billing_cycle: "monthly", amount: 3500, method: "bKash", txn_id: "7A1B2C3D", status: "approved", created_at: new Date(Date.now() - 12 * 86400000).toISOString() },
+    { id: "p2", plan: "shop_growth", billing_cycle: "monthly", amount: 3500, method: "bKash", txn_id: "5K9L2M7N", status: "approved", created_at: new Date(Date.now() - 43 * 86400000).toISOString() },
+    { id: "p3", plan: "shop_starter", billing_cycle: "monthly", amount: 1500, method: "Nagad", txn_id: "2Q4R6S8T", status: "approved", created_at: new Date(Date.now() - 74 * 86400000).toISOString() },
+  ],
+  // What /api/admin/client-detail works out. Deliberately a client CLOSE to two
+  // of their limits: a subscription card that only ever shows healthy bars
+  // proves nothing about the one thing it is for.
+  subscription: {
+    plan: "shop_growth", plan_name: "Shop Growth", monthly: 3500, yearly: 35000,
+    is_trial: false, suspended: false,
+    started_at: new Date(Date.now() - 74 * 86400000).toISOString(),
+    expires_at: new Date(Date.now() + 18 * 86400000).toISOString(),
+    days_left: 18,
+    usage: {
+      period: "month",
+      messages: { used: 13820, limit: 15000 },
+      channels: { used: 3, limit: 3 },
+      products: { used: 1240, limit: 3000 },
+      documents: { used: 0, limit: 0 },
+    },
+    payments: {
+      count: 3, total: 8500, pending: 0,
+      last: { amount: 3500, method: "bKash", txn_id: "7A1B2C3D", cycle: "monthly", at: new Date(Date.now() - 12 * 86400000).toISOString() },
+    },
+  },
 };
 
 const noopAdmin = {
