@@ -205,6 +205,37 @@ used to be the ONLY trigger, which meant an owner whose bot was quietly working
 — and who therefore had no reason to log in — got no warning at all before it
 stopped. It is now a safety net for a missed cron run, not the mechanism.
 
+## Message limits — which box actually applies
+
+The admin panel shows five message boxes side by side, and they do not all
+apply at once. Two rules decide which number a customer really meets, both
+enforced in `botAllowed()` (`src/lib/bot.js`):
+
+**A plan is metered either by the day or by the month, never both.**
+`messageAllowance()` gives a trial `period: "day"` and reads only
+`messages_per_day`; every paid package gets `period: "month"` and reads only
+`messages_per_month`. The other box is dead — a number typed into it changes
+nothing.
+
+**The per-channel cap is a separate, later check, and it is monthly.** So a
+small figure there quietly becomes the real ceiling
+(`messages_per_channel × channels`) however large the headline says. It counts
+only customer messages carrying that channel's `page_id`, so one busy Page
+cannot eat another's allowance, and hitting it stops that channel alone — the
+client's other channels keep working and they are emailed once a day at most.
+
+The precedence for the cap is `channels.msg_limit_monthly` (the **Set cap**
+button, one channel) → the client's `limit_overrides` (their every channel) →
+the package → unlimited.
+
+None of this was visible where the numbers are typed, and a Free Trial package
+was found in production selling "30 a day" while a per-channel cap of 10 ended
+the trial at ten messages for the month. `src/lib/limit-conflicts.js` now turns
+these rules into sentences shown under both limit grids. It only describes —
+enforcement stays in `botAllowed()`, and the day/month test is the same one
+`messageAllowance()` makes, so the panel and the bot cannot drift apart. It is
+a note, not a block: the owner may mean it, so nothing refuses to save.
+
 ## Broadcast rules
 
 A broadcast may only reach someone whose last inbound message is within Meta's

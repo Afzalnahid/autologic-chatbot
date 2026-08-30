@@ -969,3 +969,32 @@ logged, and the tests I had all read the object I built rather than the object t
   paths — find the one that changed.
 - A test that builds the input and reads the output of the same function will not catch this.
   What catches it is asserting on the RESPONSE the route actually returns.
+
+## Five limit boxes, and only two of them do anything (2026-08-30)
+
+The owner asked what the per-channel "Set cap" button was for, since the client's own
+"Messages / channel / month" box could already be edited. Reading the enforcement to answer
+turned up something neither of us had gone looking for: their Free Trial package read
+30 / day, 900 / month, 10 per channel, 1 channel — and `botAllowed()` applies the tightest of
+those. The trial ended after TEN customer messages a month. Worse, the 900 was never consulted
+at all: `messageAllowance()` gives a trial `period: "day"` and reads only `messages_per_day`.
+
+So of the four numbers on that package, one was enforced, one was dead, and one silently
+overrode both. The panel showed all four identically, side by side, with no hint that they
+were not peers.
+
+**Rules:**
+- A panel that renders a list of fields uniformly is claiming they behave uniformly. If they
+  do not, the panel is lying — and it lies most convincingly to the person who typed the
+  number, because nothing they can see contradicts them.
+- When several limits guard one thing, say which one BINDS, next to the boxes. "Tightest
+  wins" is obvious in the code and invisible on the screen.
+- A field that is never read for the current mode is worse than a missing field. The owner
+  typed 900 and reasonably believed it meant something.
+- Derive the warning from the same test the enforcement makes (here, `plan === "trial"`), and
+  say so in a comment. A second copy of the rule drifts, and then the panel is lying again.
+- Warn, do not block. The owner may mean an odd combination; refusing to save turns a note
+  into an obstacle.
+- The question "what is this button for?" is worth answering from the code every time. This
+  one was a plain question with no bug reported, and reading the enforcement to answer it
+  found a live trial that ended 89 times too early.

@@ -4,6 +4,7 @@ import { T, Card, Btn, Badge, Inp, Select, Switch, useIsMobile, fmtNum } from ".
 // Aliased: this file already has its own FEATURES (the package capability
 // switches), which is a different list entirely.
 import { AREAS, FEATURES as USAGE_FEATURES, featureLabel } from "@/lib/usage-features.js";
+import { limitConflicts } from "@/lib/limit-conflicts.js";
 import { readJson, offlineError } from "@/lib/api-error.js";
 
 // Packages & Costs — the business side of the admin console.
@@ -90,6 +91,23 @@ const LIMITS = [
   ["max_scrapes_per_month", "Website scrapes / month"],
   ["max_broadcasts_per_month", "Broadcasts / month"],
 ];
+
+// Five message boxes, and not all five are live at once — see limit-conflicts.js.
+// Said under the boxes rather than left to be discovered by a client whose bot
+// stopped early. It is a note, not a block: the owner may well mean it, so
+// nothing here refuses to save.
+function LimitWarnings({ limits, planId }) {
+  const notes = limitConflicts(limits, planId);
+  if (!notes.length) return null;
+  return <div style={{ marginTop: 9, display: "grid", gap: 6 }}>
+    {notes.map((n, i) => <div key={i} style={{ display: "flex", gap: 7, alignItems: "flex-start",
+      background: `color-mix(in srgb, ${T.warn} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${T.warn} 30%, transparent)`,
+      borderRadius: 9, padding: "7px 9px", fontSize: 11.5, lineHeight: 1.55, color: T.textMuted }}>
+      <i className="ti ti-alert-triangle" style={{ fontSize: 14, color: T.warn, flexShrink: 0, marginTop: 1 }} />
+      <span>{n}</span>
+    </div>)}
+  </div>;
+}
 
 export default function Packages({ token, isSuper }) {
   const [d, setD] = useState(null);
@@ -1085,6 +1103,7 @@ function ClientPanel({ c, rate, post, busy, d }) {
         </div>;
       })}
     </div>
+    <LimitWarnings limits={ov} planId={c.plan} />
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>
       AI models for this client <span style={{ color: T.textDim }}>(main,fallback — empty follows the package)</span>
       <input value={chain} onChange={(e) => setChain(e.target.value)} placeholder={chainFromPlan || "gemini-2.5-flash,gemini-3-flash-preview"}
@@ -1171,6 +1190,7 @@ function PlanForm({ plan, onSave, onCancel, busy }) {
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
       {LIMITS.map(([k, label]) => num(k, label))}
     </div>
+    <LimitWarnings limits={p} planId={p.id} />
 
     <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 8px" }}>What is included</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 7 }}>
