@@ -22,7 +22,9 @@ import LearnMore from "./dashboard/components/LearnMore.js";
 import { useT, LangToggle } from "./dashboard/components/i18n.js";
 import { runBack } from "./dashboard/components/back.js";
 
-const PAGES = ["assistant","analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
+// Exported so the screenshot studio can list exactly these tabs rather than
+// keeping a copy that falls behind.
+export const PAGES = ["assistant","analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
 // Grouped and ordered the way the day runs: the assistant first, because
 // talking to it is now the shortest way to almost everything — then see how it
 // is going, handle people, reach out, the shop, and the plumbing.

@@ -18,6 +18,10 @@ import Billing from "../dashboard/components/Billing.js";
 import Profile from "../dashboard/components/Profile.js";
 import Packages from "../admin/Packages.js";
 import { AdminApp } from "../admin/admin-client.js";
+import LearnMore from "../dashboard/components/LearnMore.js";
+// The dashboard's own tab keys, so the docs-links scene below lists exactly
+// what the sidebar lists rather than a copy that can fall behind it.
+import { PAGES as DASH_PAGES } from "../dashboard-client.js";
 import { SAMPLE, PROPS, ADMIN } from "./sample.js";
 
 // The console takes its data as a prop and its actions as callbacks, so it
@@ -67,6 +71,16 @@ const TABS = {
   // The whole console, so its navigation can be checked: which section a
   // refresh comes back to, and what the back button does.
   admin: () => <AdminApp {...noopAdmin} />,
+  // Every tab's link to its own page in the manual, in one place. The AI
+  // Assistant tab shipped with a documentation page and no link to it, and
+  // nothing about the dashboard showed that: a missing link looks exactly like
+  // a tab that has nothing to read. Here a gap is a blank row.
+  "docs-links": () => <div style={{ display: "grid", gap: 2, maxWidth: 420 }}>
+    {DASH_PAGES.map((p) => <div key={p} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "6px 10px", borderRadius: 10, background: "var(--card, #ffffff10)" }}>
+      <code style={{ fontSize: 12 }}>{p}</code>
+      <LearnMore page={p} plain />
+    </div>)}
+  </div>,
 };
 
 export const TAB_IDS = Object.keys(TABS);

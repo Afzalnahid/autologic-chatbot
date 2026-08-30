@@ -1,6 +1,7 @@
 "use client";
 import { T } from "./ui.js";
 import { useLang, useT } from "./i18n.js";
+import { PAGES } from "@/lib/docs/index.js";
 
 // The link from a dashboard tab to that tab's page in the manual.
 //
@@ -12,16 +13,24 @@ import { useLang, useT } from "./i18n.js";
 // ui.js — putting a translated component back into ui.js would close the
 // import loop.
 
-// Dashboard page key → documentation slug. Three of them differ on purpose:
-// "settings" is the page key that Bot Training kept when it was renamed,
-// "conversations" is the key the Inbox tab kept when IT was renamed, and
-// "ai" is shorter than the docs page it explains.
-const SLUG = {
-  analytics: "analytics", conversations: "inbox", comments: "comments",
-  broadcast: "broadcast", inventory: "inventory", orders: "orders",
-  channels: "channels", billing: "billing", profile: "profile",
-  settings: "bot-training", ai: "ai-engine",
-};
+// Dashboard page key → documentation slug, DERIVED from the manual's own list
+// of pages rather than written out again here.
+//
+// It used to be a hand-written map, and it did what a second copy of anything
+// does. The AI Assistant tab was added and its documentation page written, and
+// this map was never told — so the one tab the manual leads with was the only
+// tab in the dashboard with no "Read docs" link at all. Nothing failed; the
+// link simply was not there.
+//
+// Several keys differ from their slug on purpose — "settings" is the key Bot
+// Training kept when it was renamed, "conversations" is the key Inbox kept —
+// and PAGES already records every one of them.
+//
+// Two pages name the same tab (channels, and website-widget). The first wins,
+// and PAGES is in reading order, so the link opens the page that introduces
+// the tab rather than the one about a corner of it.
+const SLUG = {};
+for (const p of PAGES) if (p.tab && !SLUG[p.tab]) SLUG[p.tab] = p.slug;
 
 export const docsSlugFor = (page) => SLUG[page] || "";
 
