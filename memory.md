@@ -47,6 +47,32 @@ divides.
 answer. The one caller that used it as a boolean checks `!r?.error` instead (every object is
 truthy).
 
+### Follow-up — `8941d70`: per-channel cost is measured now
+
+**⚠️ OWNER MUST RUN: `docs/sql/2026-08-30-usage-page-id.sql`** (Supabase → SQL Editor). Safe to
+run twice. Until then everything keeps working and the panel says "apportioned".
+
+`usage_daily` gains `page_id text not null default ''` and it joins the PRIMARY KEY (eight
+columns now) — without that the upsert folds two channels into one row. `''` not NULL because
+Postgres will not take NULL in a key and NULL vanishes from every GROUP BY.
+
+**The function is DROPPED and recreated, not `CREATE OR REPLACE`** — Postgres cannot add a
+parameter in place, it makes an OVERLOAD and the shorter call then fails as "not unique".
+
+**The code does not need to be sequenced with the SQL.** `recordUsage` sends `p_page_id`; if the
+function does not take it the error matches `NO_COLUMN` and it retries without, then **remembers
+for the process lifetime** (`channelColumn = false`). One failed attempt, not one per call.
+Without this, releasing them out of order stops usage being recorded at all — silently, since
+recording is fire-and-forget.
+
+`getClientAI(clientId, feature, pageId)` threads it. The bot's path passes it: `composeReply`,
+`searchProducts`, and the vision/voice path in `processConversation`. **pageId is NOT in the AI
+memo key** — that cache holds the key and model chain, which do not vary by channel.
+
+`summarise()` gains `byChannel` + `channelMeasured` (0 before the migration, 1 after). The panel
+badges each client `measured` / `apportioned` and keeps the `≈` only on the apportioned ones.
+21 tests, including both sides of the migration.
+
 ---
 
 ## Earlier session (2026-08-30) — Sequence, back button, docs, admin views, and a read audit
