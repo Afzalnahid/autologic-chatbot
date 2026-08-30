@@ -403,7 +403,12 @@ const ADMIN_PACKAGES = {
     { id: "supabase", label: "Supabase database", monthly_usd: 25 },
     { id: "resend", label: "Resend email", monthly_usd: 0 },
   ],
-  settings: { usd_bdt: 120, usd_bdt_manual: false, usd_bdt_auto: 122.4, usd_bdt_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString() },
+  // trial_days is deliberately NOT 3 here: every trial label is written in this
+  // number, so a fixture that matched the built-in fallback could not tell a
+  // value that was read from one that was assumed. The trial package's tagline
+  // still says "3 days" for the same reason — that is the stale-copy warning
+  // having something real to catch.
+  settings: { usd_bdt: 120, usd_bdt_manual: false, usd_bdt_auto: 122.4, usd_bdt_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString(), trial_days: 5 },
   // What the server decided the rate is, and where it came from — the panel
   // reads this rather than the raw setting, so the shot shows a market rate
   // with its age beside it.

@@ -237,10 +237,32 @@ trial**. A three-day trial that straddled a month end used to have its whole
 allowance reset on the 1st, so the same trial was worth twice as much depending
 on the day it began.
 
-`TRIAL_DAYS` in `src/lib/plans.js` is how long a trial runs. It was written as
-`3 * 24 * 3600 * 1000` inside the `start_trial` handler and nowhere else, which
-is why nothing could say what "per month" meant on a three-day plan. Changing it
-still needs a deploy — it is not a package field.
+### How long a trial runs
+
+The owner sets it in the panel, on the Free Trial package itself — **Packages →
+Free Trial → Edit → "How long the trial runs (days)"**. `trialDays()`
+(`src/lib/plan-limits.js`) reads it and `start_trial` in `/api/me` uses it.
+
+It is stored as `trial_days` in the `billing` row of `app_settings`, beside the
+exchange rate, **not** as a column on the `plans` table. There is exactly one
+trial package, and a key in a JSONB column that already exists needs no
+migration run before the box does anything. The panel therefore saves it with
+`save_settings` before `save_plan` — two stores, so two writes, the length first
+so a failure leaves the package alone.
+
+`clampTrialDays()` in `src/lib/plans.js` bounds it to 1–90 and is applied in the
+panel *and* the route. Unset is checked before the arithmetic, because
+`Number(null)` and `Number("")` are both `0`, which would clamp a cleared box to
+a one-day trial instead of returning it to the `TRIAL_DAYS` default. Every
+failure to read — missing row, unreadable table, a value typed as "soon" —
+falls back to `TRIAL_DAYS`: a trial that cannot work out its own length must
+still start. Changing the length only affects trials started afterwards; anyone
+already on one keeps the `trial_end` they were given.
+
+The length flows into every trial label, so the wording follows it rather than
+repeating it. `trialTextMismatch()` also checks the owner's own prose — the
+tagline and the pricing bullets — for a "N day" that no longer matches, because
+changing the box does not change what a customer reads on the pricing page.
 
 ### Limits that are defined but enforced by nothing
 

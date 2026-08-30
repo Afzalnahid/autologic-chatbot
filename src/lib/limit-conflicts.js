@@ -117,6 +117,27 @@ export function limitMeaning(key, planId, trialDays = TRIAL_DAYS) {
   }
 }
 
+// The trial's length is also written in prose the owner typed: the tagline that
+// sits on the public pricing page, and the bullets under it. Changing the
+// number in the box does not change those, and nobody re-reads their own
+// marketing copy — so a trial can quietly advertise three days and run five.
+//
+// Only a plain "N day" / "N days" is looked for. Anything cleverer would start
+// guessing at sentences, and a false alarm on the owner's own words is worse
+// than staying quiet.
+// → a sentence, or null when the prose agrees or says nothing about days.
+export function trialTextMismatch(text, days) {
+  const want = num(days);
+  if (want === null || !text) return null;
+  for (const m of String(text).matchAll(/(\d+)[\s-]*days?\b/gi)) {
+    const said = Number(m[1]);
+    if (Number.isFinite(said) && said !== want) {
+      return `This still says “${m[0]}”, but the trial runs ${fmt(want)} day${want === 1 ? "" : "s"}. Customers read this on the pricing page.`;
+    }
+  }
+  return null;
+}
+
 // "3 days × 30 a day = 90 messages for the whole trial" — the figure an owner
 // is actually deciding when they price a trial, and the one number the eight
 // boxes never showed. Null for anything that is not a day-metered plan, or

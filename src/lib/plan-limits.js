@@ -10,7 +10,7 @@
 // NULL / undefined on any limit means UNLIMITED, everywhere. A missing plan is
 // never treated as "unlimited" though — an unknown plan id falls back to trial.
 import { supabase } from "@/lib/supabase.js";
-import { PLANS, PAID_PLANS } from "@/lib/plans.js";
+import { PLANS, PAID_PLANS, TRIAL_DAYS, clampTrialDays } from "@/lib/plans.js";
 
 const TTL = 60_000;
 let _cache = null;
@@ -163,6 +163,29 @@ export async function checkProductQuota(client, adding = 1) {
     };
   }
   return { ok: true, used, limit: max, limits };
+}
+
+// How long a free trial runs, as the owner has set it.
+//
+// The trial is something they sell, so changing its length should not need a
+// deploy. It is stored beside the exchange rate in app_settings rather than as
+// a column on the plans table: there is exactly one trial package, and a key in
+// a JSONB column that already exists needs no migration run before the box in
+// the panel does anything.
+//
+// Every failure falls back to TRIAL_DAYS — a missing row, an unreadable table,
+// a value somebody typed as "soon". A trial that cannot work out its own length
+// must still start.
+export async function trialDays() {
+  try {
+    const { data, error } = await supabase.from("app_settings")
+      .select("settings").eq("id", "billing").maybeSingle();
+    if (error) return TRIAL_DAYS;
+    const set = data?.settings?.trial_days;
+    return set === null || set === undefined ? TRIAL_DAYS : clampTrialDays(set);
+  } catch {
+    return TRIAL_DAYS;
+  }
 }
 
 // Where a "per month" allowance starts counting for this client.

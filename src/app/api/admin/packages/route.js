@@ -8,6 +8,7 @@ import { invalidatePlans, loadPlans } from "@/lib/plan-limits.js";
 import { getPlatformAI } from "@/lib/platform-ai.js";
 import { fetchUsdBdt, rateFrom, isStale } from "@/lib/fx.js";
 import { listBillableModels } from "@/lib/model-catalog.js";
+import { clampTrialDays } from "@/lib/plans.js";
 
 // The economics side of the admin panel: packages (what we sell), the model
 // price book (what the AI costs us), fixed platform costs, and the real usage
@@ -362,7 +363,12 @@ export async function POST(request) {
   }
 
   if (action === "save_settings") {
-    const next = { ...(await billingSettings()), ...(body.settings || {}) };
+    const incoming = { ...(body.settings || {}) };
+    // The trial length is bounded here as well as in the panel, because the
+    // panel is not the only thing that can reach this route, and a trial that
+    // lasts a year is not a typo anybody would spot from the outside.
+    if (incoming.trial_days !== undefined) incoming.trial_days = clampTrialDays(incoming.trial_days);
+    const next = { ...(await billingSettings()), ...incoming };
     const { error } = await supabase.from("app_settings")
       .upsert({ id: BILLING_SETTINGS, settings: next, updated_at: new Date().toISOString() }, { onConflict: "id" });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

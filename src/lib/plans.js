@@ -3,12 +3,32 @@
 
 export const CURRENCY = "\u09F3"; // ৳
 
-// How long the free trial runs. It was written as `3 * 24 * 3600 * 1000` inside
-// the start_trial handler and nowhere else, so the admin panel had no way to
-// say what a "per month" box means on a plan that lasts three days. One
-// constant now, read by the handler that starts a trial and by the panel that
-// describes one. Changing it still needs a deploy — it is not a package field.
+// How long the free trial runs, when nobody has said otherwise. It was written
+// as `3 * 24 * 3600 * 1000` inside the start_trial handler and nowhere else, so
+// the admin panel had no way to say what a "per month" box means on a plan that
+// lasts three days. The owner now sets it in the panel — see trialDays() in
+// plan-limits.js — and this is the fallback for a value nobody has stored yet.
 export const TRIAL_DAYS = 3;
+
+// One day is the shortest trial that means anything. Ninety stops a slipped
+// key turning a free trial into a free quarter for everyone who signs up
+// before somebody notices.
+export const MIN_TRIAL_DAYS = 1;
+export const MAX_TRIAL_DAYS = 90;
+
+// Anything at all → a usable number of days. A value nobody has set, or one
+// that is not a number, falls back rather than throwing: a trial that cannot
+// work out its own length must still start.
+//
+// Unset is checked BEFORE the arithmetic, because Number(null) and Number("")
+// are both 0, and 0 clamps to the shortest trial there is. A cleared box would
+// have quietly become a one-day trial instead of returning to the default.
+export const clampTrialDays = (v) => {
+  if (v === null || v === undefined || String(v).trim() === "") return TRIAL_DAYS;
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n)) return TRIAL_DAYS;
+  return Math.min(MAX_TRIAL_DAYS, Math.max(MIN_TRIAL_DAYS, n));
+};
 
 export const PLANS = {
   trial: {

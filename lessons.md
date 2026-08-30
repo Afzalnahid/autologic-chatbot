@@ -1029,3 +1029,31 @@ begun on the 2nd. Nobody would ever see that; it is not visible from either side
 - A magic number written once, inside a handler, is a fact the rest of the system cannot see.
   The hardcoded three days in `start_trial` is why nothing else could say what a trial's
   limits meant.
+
+## Number(null) is 0, and 0 was a legal answer (2026-08-30)
+
+Making the trial length editable, I wrote the obvious clamp:
+
+    const n = Math.round(Number(v));
+    if (!Number.isFinite(n)) return TRIAL_DAYS;
+    return Math.min(MAX, Math.max(MIN, n));
+
+`Number(null)` is `0`. `Number("")` is `0`. Both are perfectly finite, so both
+sailed past the guard and clamped to the floor — and the floor was 1. Clearing the
+box in the panel would have set the trial to ONE DAY instead of returning it to the
+default of three. Nothing would have thrown, and the box would have shown a
+plausible number.
+
+A test caught it before it shipped, and only because I had written "an empty box
+falls back" as a case rather than testing the happy path.
+
+**Rules:**
+- `Number.isFinite` does not mean "somebody typed a number". `null`, `""` and `false`
+  all convert to 0 silently. Check for unset BEFORE converting, not after.
+- The danger is when the floor is a legal value. If 0 clamped to 0 the bug would be
+  visible; clamping to 1 produced a working, wrong trial.
+- Write the empty, null and cleared cases as named tests. The happy path was right
+  from the first line; every bug was in the absence of a value.
+- A clamp used in two places (panel and route) must be ONE function. Two clamps mean
+  two chances to get `Number(null)` wrong, and the route's version is the one nobody
+  is looking at.

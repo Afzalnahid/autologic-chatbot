@@ -5,7 +5,7 @@ import { requireClient, trialActive } from "@/lib/auth.js";
 import { warnIfExpiringSoon } from "@/lib/expiry.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka } from "@/lib/time.js";
-import { TRIAL_DAYS } from "@/lib/plans.js";
+import { trialDays } from "@/lib/plan-limits.js";
 
 export const GET = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
@@ -69,7 +69,8 @@ export const POST = withErrors(async (request) => {
     if (!client) return NextResponse.json({ error: "no client" }, { status: 400 });
     if (client.plan === "pro") return NextResponse.json({ ok: true });
     const now = new Date();
-    const end = new Date(now.getTime() + TRIAL_DAYS * 24 * 3600 * 1000);
+    const days = await trialDays();
+    const end = new Date(now.getTime() + days * 24 * 3600 * 1000);
     await supabase.from("clients").update({ plan: "trial", trial_start: now.toISOString(), trial_end: end.toISOString(), trial_notified: false }).eq("id", client.id);
     return NextResponse.json({ ok: true, trial_end: end.toISOString() });
   }

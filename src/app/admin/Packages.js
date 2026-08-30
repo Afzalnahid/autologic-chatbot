@@ -4,7 +4,8 @@ import { T, Card, Btn, Badge, Inp, Select, Switch, useIsMobile, fmtNum } from ".
 // Aliased: this file already has its own FEATURES (the package capability
 // switches), which is a different list entirely.
 import { AREAS, FEATURES as USAGE_FEATURES, featureLabel } from "@/lib/usage-features.js";
-import { limitConflicts, limitMeaning, trialTotal } from "@/lib/limit-conflicts.js";
+import { limitConflicts, limitMeaning, trialTotal, trialTextMismatch } from "@/lib/limit-conflicts.js";
+import { clampTrialDays, MIN_TRIAL_DAYS, MAX_TRIAL_DAYS } from "@/lib/plans.js";
 import { readJson, offlineError } from "@/lib/api-error.js";
 
 // Packages & Costs — the business side of the admin console.
@@ -96,9 +97,9 @@ const LIMITS = [
 // Said under the boxes rather than left to be discovered by a client whose bot
 // stopped early. It is a note, not a block: the owner may well mean it, so
 // nothing here refuses to save.
-function LimitWarnings({ limits, planId }) {
-  const notes = limitConflicts(limits, planId);
-  const total = trialTotal(limits, planId);
+function LimitWarnings({ limits, planId, days }) {
+  const notes = limitConflicts(limits, planId, days);
+  const total = trialTotal(limits, planId, days);
   if (!notes.length && !total) return null;
   const box = (color) => ({ display: "flex", gap: 7, alignItems: "flex-start",
     background: `color-mix(in srgb, ${color} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
@@ -1052,6 +1053,9 @@ function ClientPanel({ c, rate, post, busy, d }) {
   const customCount = LIMITS.filter(([k]) => isCustom(k)).length;
   const planLabel = plan?.name || c.plan;
   const chainFromPlan = plan?.model_chain || d?.platform_model_chain || null;
+  // A trial client's boxes are described in trial days, so they need the length
+  // the owner has set — not the built-in fallback.
+  const tDays = clampTrialDays(d?.settings?.trial_days);
 
   return <div style={{ borderTop: `1px solid ${T.border}`, padding: "14px 15px", background: T.bgAlt }}>
     <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 10, lineHeight: 1.6 }}>
@@ -1087,7 +1091,7 @@ function ClientPanel({ c, rate, post, busy, d }) {
         const planText = pv === null || pv === undefined ? "unlimited" : Number(pv).toLocaleString("en-IN");
         // A trial does not have months, and two of these boxes are read by
         // nothing. The label says which, per package.
-        const mean = limitMeaning(k, c.plan);
+        const mean = limitMeaning(k, c.plan, tDays);
         const label = mean.label || fallbackLabel;
         return <div key={k}>
           <label style={{ display: "block", fontSize: 11, color: T.textMuted }}>
@@ -1116,7 +1120,7 @@ function ClientPanel({ c, rate, post, busy, d }) {
         </div>;
       })}
     </div>
-    <LimitWarnings limits={ov} planId={c.plan} />
+    <LimitWarnings limits={ov} planId={c.plan} days={tDays} />
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>
       AI models for this client <span style={{ color: T.textDim }}>(main,fallback — empty follows the package)</span>
       <input value={chain} onChange={(e) => setChain(e.target.value)} placeholder={chainFromPlan || "gemini-2.5-flash,gemini-3-flash-preview"}
@@ -1144,8 +1148,21 @@ function PlanEditor({ d, post, busy, isSuper }) {
 
     {/* `post` returns the reply now, not a boolean, so "did it work?" is the
         absence of an error rather than a truthy object. */}
-    {editing && <PlanForm plan={editing} onCancel={() => setEditing(null)} busy={busy}
-      onSave={async (p) => { const r = await post({ action: "save_plan", plan: p }); if (!r?.error) setEditing(null); }} />}
+    {editing && <PlanForm plan={editing} onCancel={() => setEditing(null)} busy={busy} trialDays={d.settings?.trial_days}
+      onSave={async (p, days) => {
+        // Two stores, so two writes: the trial's length lives in app_settings
+        // and the rest of the package in the plans table. The length goes
+        // first — if it fails the owner is told and the package is left alone,
+        // rather than saved next to a length that did not take.
+        if (days !== null && days !== clampTrialDays(d.settings?.trial_days)) {
+          // Quiet only so it does not print "Saved." and reload the screen out
+          // from under the package write that follows. A failure still speaks.
+          const s = await post({ action: "save_settings", settings: { trial_days: days } }, { quiet: true });
+          if (s?.error) { setMsg({ ok: false, text: s.error }); return; }
+        }
+        const r = await post({ action: "save_plan", plan: p });
+        if (!r?.error) setEditing(null);
+      }} />}
 
     {(d.plans || []).map((p) => <Card key={p.id}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -1169,14 +1186,22 @@ function PlanEditor({ d, post, busy, isSuper }) {
   </div>;
 }
 
-function PlanForm({ plan, onSave, onCancel, busy }) {
+function PlanForm({ plan, onSave, onCancel, busy, trialDays }) {
   const [p, setP] = useState(() => ({ ...plan, features: { ...(plan.features || {}) } }));
+  // How long the trial runs is not a column on this package — see trialDays()
+  // in plan-limits.js for why — so it is held apart and saved apart. It is
+  // edited here because this is where a reader looks for it.
+  const [days, setDays] = useState(() => String(clampTrialDays(trialDays)));
+  const isTrial = String(p.id || "").trim().toLowerCase() === "trial";
+  // Every label on a trial is written in its length, so the boxes follow the
+  // box above them as it is typed rather than after a save and a reload.
+  const shownDays = isTrial ? clampTrialDays(days) : clampTrialDays(trialDays);
   const set = (k, v) => setP((x) => ({ ...x, [k]: v }));
   const setF = (k, v) => setP((x) => ({ ...x, features: { ...x.features, [k]: v } }));
   const num = (k, label, hint) => {
     // Limit boxes carry the period this package actually uses, and say when
     // nothing reads them; the price and id boxes pass through unchanged.
-    const mean = limitMeaning(k, p.id);
+    const mean = limitMeaning(k, p.id, shownDays);
     return <label key={k} style={{ fontSize: 11, color: T.textMuted }}>
       {mean.label || label}
       <input type="number" min="0" placeholder={hint || "Unlimited"} value={p[k] ?? ""} onChange={(e) => set(k, e.target.value)}
@@ -1204,12 +1229,30 @@ function PlanForm({ plan, onSave, onCancel, busy }) {
         style={{ width: "100%", marginTop: 4, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit" }} />
     </label>
 
+    {/* Only the trial has a length, and every limit below is described in it,
+        so it is asked for first. */}
+    {isTrial && <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>
+      How long the trial runs (days)
+      <input type="number" min={MIN_TRIAL_DAYS} max={MAX_TRIAL_DAYS} value={days}
+        onChange={(e) => setDays(e.target.value)} onBlur={() => setDays(String(clampTrialDays(days)))}
+        style={{ display: "block", width: "100%", maxWidth: 220, marginTop: 4, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit" }} />
+      <span style={{ display: "block", fontSize: 10.5, color: T.textDim, marginTop: 3 }}>
+        Applies to trials started from now on — {MIN_TRIAL_DAYS} to {MAX_TRIAL_DAYS} days. Anyone already on a trial keeps the end date they were given.
+      </span>
+      {/* The number is also written in the owner's own words, twice, and
+          changing the box does not change those. */}
+      {[["Tagline", p.tagline], ["Pricing-page bullets", (p.feature_list || []).join(" ")]]
+        .map(([where, text]) => [where, trialTextMismatch(text, shownDays)])
+        .filter(([, note]) => note)
+        .map(([where, note]) => <span key={where} style={{ display: "block", fontSize: 10.5, color: T.warn, marginTop: 3 }}>{where}: {note}</span>)}
+    </label>}
+
     <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 4px" }}>Limits</div>
     <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 8 }}>Empty means unlimited.</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
       {LIMITS.map(([k, label]) => num(k, label))}
     </div>
-    <LimitWarnings limits={p} planId={p.id} />
+    <LimitWarnings limits={p} planId={p.id} days={shownDays} />
 
     <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 8px" }}>What is included</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 7 }}>
@@ -1235,7 +1278,7 @@ function PlanForm({ plan, onSave, onCancel, busy }) {
     </div>
 
     <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-      <Btn gold disabled={busy} onClick={() => onSave(p)}>{busy ? "Saving…" : "Save package"}</Btn>
+      <Btn gold disabled={busy} onClick={() => onSave(p, isTrial ? clampTrialDays(days) : null)}>{busy ? "Saving…" : "Save package"}</Btn>
       <Btn onClick={onCancel} disabled={busy}>Cancel</Btn>
     </div>
   </Card>;
