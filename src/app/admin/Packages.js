@@ -15,6 +15,12 @@ const BIZ_GROUPS = [
   ["ecommerce", "Shops", "Catalogue, orders, photo matching"],
   ["agency", "Services", "Documents, bookings, calendar"],
 ];
+
+// Retired packages keep their row so an account still pointing at one reads as
+// its own name rather than "no plan". They are shown, because a hidden thing
+// that still exists is worse than a visible one — but last, and apart, so they
+// cannot be mistaken for something on sale.
+const RETIRED = ["retired", "Retired", "Not on sale. Kept so an account still on one keeps working"];
 import { readJson, offlineError } from "@/lib/api-error.js";
 
 // Packages & Costs — the business side of the admin console.
@@ -1180,8 +1186,26 @@ function PlanEditor({ d, post, busy, isSuper, rate }) {
         if (!r?.error) setEditing(null);
       }} />}
 
-    {BIZ_GROUPS.map(([bizId, heading, hint]) => {
-      const rows = (d.plans || []).filter((p) => (p.biz || "both") === bizId);
+    {/* This panel reads the plans table DIRECTLY — no fallback to the code
+        catalogue, unlike loadPlans(). So until the migration runs it shows the
+        packages that are actually there, which is right, but leaves the owner
+        looking at the old ladder wondering where the new one went. Say it. */}
+    {(d.plans || []).length > 0 && !(d.plans || []).some((p) => p.biz) &&
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: `color-mix(in srgb, ${T.warn} 10%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${T.warn} 30%, transparent)`, borderRadius: 10, padding: "9px 11px", fontSize: 12, lineHeight: 1.6, color: T.textMuted }}>
+        <i className="ti ti-database-import" style={{ fontSize: 15, color: T.warn, flexShrink: 0, marginTop: 1 }} />
+        <span>These are the packages before the split by business type — no package here has one yet.
+          The seven new ones live in <b style={{ color: T.text }}>docs/sql/2026-08-31-plans-biz.sql</b>; run it in
+          Supabase → SQL Editor and this list becomes Shops and Services. Safe to run twice.</span>
+      </div>}
+
+    {[...BIZ_GROUPS, RETIRED].map(([bizId, heading, hint]) => {
+      // Retired takes precedence over business type: an inactive shop package
+      // belongs at the bottom with the other retired ones, not among the
+      // packages a shop can buy.
+      const rows = (d.plans || []).filter((p) => (bizId === "retired"
+        ? p.active === false
+        : p.active !== false && (p.biz || "both") === bizId));
       if (!rows.length) return null;
       return <div key={bizId} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap", marginTop: 6 }}>

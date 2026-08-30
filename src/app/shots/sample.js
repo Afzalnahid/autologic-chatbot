@@ -399,6 +399,11 @@ const ADMIN_PACKAGES = {
     { id: "svc_starter", biz: "agency", name: "Service Starter", tagline: "One channel, answering from your own documents", sort: 4, active: true, public: true, monthly: 1500, yearly: 15000, messages_per_month: 3000, channels: 1, max_products: 0, max_kb_files: 10, max_scrapes_per_month: 20, max_broadcasts_per_month: 4, features: { kb: true, widget: true, broadcast: true, followup: true }, feature_list: [] },
     { id: "svc_growth", biz: "agency", name: "Service Growth", tagline: "Every channel, and meetings booked while you sleep", sort: 5, active: true, public: true, monthly: 3500, yearly: 35000, messages_per_month: 15000, channels: 3, max_products: 0, max_kb_files: 40, max_scrapes_per_month: 200, max_broadcasts_per_month: 20, highlight: true, features: { voice: true, kb: true, calendar: true, comments: true, widget: true, broadcast: true, followup: true }, feature_list: [] },
     { id: "svc_scale", biz: "agency", name: "Service Scale", tagline: "For a practice that answers all day", sort: 6, active: true, public: true, monthly: 6000, yearly: 60000, messages_per_month: 50000, channels: 3, max_products: 0, max_kb_files: null, max_scrapes_per_month: null, max_broadcasts_per_month: null, features: { voice: true, kb: true, calendar: true, comments: true, widget: true, broadcast: true, followup: true, byok: true }, feature_list: [] },
+
+    // One of the three the split replaced. Kept inactive in the fixture as well
+    // as in the database, so the panel's "Retired" group has something in it —
+    // an empty group renders as nothing and proves nothing.
+    { id: "pro", biz: "both", name: "Pro", tagline: "For growing businesses", sort: 90, active: false, public: false, monthly: 3500, yearly: 35000, messages_per_month: 15000, channels: 3, max_products: 3000, max_kb_files: 40, max_scrapes_per_month: 200, max_broadcasts_per_month: 20, features: {}, feature_list: [] },
   ],
   prices: [
     { provider: "google", model: "__default__", input_per_1m: 0.3, output_per_1m: 2.5 },
