@@ -67,7 +67,13 @@ export async function limitsFor(client) {
     messagesPerDay: pick("messages_per_day") ?? null,
     messagesPerMonth: pick("messages_per_month") ?? null,
     messagesPerChannel: pick("messages_per_channel") ?? null,
-    channels: pick("channels") ?? 1,
+    // null, like every other limit here, and NOT 1. The panel says "Empty means
+    // unlimited" over these boxes, and while nothing read this figure the two
+    // could disagree without consequence. Now that checkChannelQuota enforces
+    // it, an empty box defaulting to 1 would refuse a second channel to a
+    // package whose own screen promised no limit. Empty stays what it has
+    // effectively been until today: no limit.
+    channels: pick("channels") ?? null,
     maxProducts: pick("max_products") ?? null,
     maxKbFiles: pick("max_kb_files") ?? null,
     maxScrapesPerMonth: pick("max_scrapes_per_month") ?? null,
@@ -219,6 +225,98 @@ export async function checkScrapeQuota(client) {
       message: trial
         ? `Your ${limits.planName} includes ${Number(max).toLocaleString("en-IN")} website imports and you have used ${used.toLocaleString("en-IN")}. Choose a package for more.`
         : `Your ${limits.planName} package includes ${Number(max).toLocaleString("en-IN")} website imports per month and you have used ${used.toLocaleString("en-IN")}. It resets next month, or upgrade for more.`,
+    };
+  }
+  return { ok: true, used, limit: max, limits };
+}
+
+// The website widget is a channel row like any other, but it is not one of the
+// channels the "Channels allowed" figure is about.
+export const WIDGET_PLATFORM = "website";
+
+// A client row from either a row or an id. Returns null when it cannot be
+// read, and every caller treats null as "refuse", never as "allow".
+const asClient = async (c) => {
+  if (!c) return null;
+  if (typeof c === "object") return c;
+  const { data } = await supabase.from("clients").select("*").eq("id", c).maybeSingle();
+  return data || null;
+};
+
+// How many messaging channels this account may connect.
+//
+// The figure was saved in the admin panel and read by nothing, so a trial
+// limited to one channel could connect five. It counts Facebook Pages,
+// Instagram accounts and WhatsApp numbers — what the packages describe.
+//
+// The website widget is deliberately outside it. The widget has its own switch
+// in the package ("Website chat widget"), and letting it eat a messaging slot
+// would charge a client twice for something already turned on: a Pro account
+// with three channels allowed would get its Facebook, Instagram and WhatsApp
+// and then be refused a widget it is paying for.
+//
+// Reconnecting a channel this account already has is never blocked. The row is
+// upserted on (client_id, platform, page_id), so it adds nothing to the count —
+// and a client at their limit must still be able to repair a channel whose
+// token expired.
+// Takes the client row OR just an id: the OAuth callbacks that finish a
+// connect (fb/select, ig/select, wa/select, wa/finish) hold only the id they
+// signed into the state parameter, and making each of them fetch the row would
+// be four copies of the same three lines.
+export async function checkChannelQuota(clientOrId, platform, pageId) {
+  const client = await asClient(clientOrId);
+  // The row could not be read, so the allowance is unknown. A quota that fails
+  // open is a quota that does not exist on the day the database hiccups.
+  if (!client) return { ok: false, message: COUNT_FAILED };
+
+  const limits = await limitsFor(client);
+  const max = limits.channels;
+  if (max === null || max === undefined) return { ok: true, limits };
+  if (String(platform) === WIDGET_PLATFORM) return { ok: true, limits };
+
+  const { data, error } = await supabase.from("channels")
+    .select("platform,page_id").eq("client_id", client.id).limit(500);
+  if (error) return { ok: false, limits, message: COUNT_FAILED };
+
+  const rows = (data || []).filter((c) => c.platform !== WIDGET_PLATFORM);
+  const already = rows.some((c) => c.platform === platform && String(c.page_id) === String(pageId));
+  const used = rows.length;
+  if (already) return { ok: true, used, limit: max, limits };
+  if (used >= Number(max)) {
+    const n = Number(max);
+    return {
+      ok: false, used, limit: max, limits,
+      message: `Your ${limits.planName} includes ${n.toLocaleString("en-IN")} channel${n === 1 ? "" : "s"} and you already have ${used.toLocaleString("en-IN")} connected. Disconnect one first, or upgrade for more.`,
+    };
+  }
+  return { ok: true, used, limit: max, limits };
+}
+
+// Broadcasts in the current window.
+//
+// Also saved and read by nothing until now. Counted from the broadcasts table,
+// which only gains a row once an audience has been resolved and found — so a
+// message with nobody to send it to never costs one.
+//
+// The window is quotaWindowStart, the same as every other windowed limit: a
+// calendar month for a package sold by the month, the trial for a trial.
+export async function checkBroadcastQuota(client) {
+  const limits = await limitsFor(client);
+  const max = limits.maxBroadcastsPerMonth;
+  if (max === null || max === undefined) return { ok: true, limits };
+  const trial = client?.plan === "trial";
+  const { count, error } = await supabase.from("broadcasts")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", client.id).gte("created_at", quotaWindowStart(client));
+  if (error) return { ok: false, limits, message: COUNT_FAILED };
+  const used = count || 0;
+  if (used >= Number(max)) {
+    const n = Number(max);
+    return {
+      ok: false, used, limit: max, limits,
+      message: trial
+        ? `Your ${limits.planName} includes ${n.toLocaleString("en-IN")} broadcast${n === 1 ? "" : "s"} and you have sent ${used.toLocaleString("en-IN")}. Choose a package to send more.`
+        : `Your ${limits.planName} package includes ${n.toLocaleString("en-IN")} broadcast${n === 1 ? "" : "s"} per month and you have sent ${used.toLocaleString("en-IN")}. It resets next month, or upgrade for more.`,
     };
   }
   return { ok: true, used, limit: max, limits };

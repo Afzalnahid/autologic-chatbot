@@ -10,6 +10,7 @@ import { planActive } from "@/lib/plans.js";
 import { resolveAudience, sendableChannels, remainingQuota, cannotSendReason, WINDOW_HOURS } from "@/lib/broadcast.js";
 import { createBroadcast, processBroadcast, MAX_MESSAGE } from "@/lib/broadcast-send.js";
 import { tagsFor } from "@/lib/tags.js";
+import { checkBroadcastQuota } from "@/lib/plan-limits.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
 
@@ -80,10 +81,17 @@ export const POST = withErrors(async (request) => {
     body.segment || {}
   );
   const quota = await remainingQuota(client);
+  // How many broadcasts are left this period, which is a different question
+  // from how many messages are left. Sent with the preview so the owner learns
+  // it before writing the message, not by having Send refused afterwards.
+  const bq = await checkBroadcastQuota(client);
 
   return NextResponse.json({
     counts: audience.counts,
     quota,
+    broadcast_limit: bq.limit ?? null,
+    broadcasts_used: bq.used ?? 0,
+    broadcasts_blocked: bq.ok ? null : bq.message,
     over_quota: !quota.unlimited && audience.counts.eligible > quota.remaining,
     // A dead plan is a different problem from a full one, and saying "0 left
     // this month" for an expired plan sends the owner looking in the wrong place.

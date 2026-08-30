@@ -4,6 +4,7 @@ import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { connectedPage } from "@/lib/connect-page.js";
 import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
+import { checkChannelQuota } from "@/lib/plan-limits.js";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -44,6 +45,9 @@ export async function POST(request) {
     if (await ownedByAnotherClient("whatsapp", phoneId, clientId)) {
       return NextResponse.json({ error: ALREADY_CONNECTED.whatsapp }, { status: 409 });
     }
+
+    const cq = await checkChannelQuota(clientId, "whatsapp", phoneId);
+    if (!cq.ok) return NextResponse.json({ error: cq.message }, { status: 403 });
 
     // 1. Exchange the code for a business integration token. Embedded Signup
     // codes are redeemed without a redirect_uri.

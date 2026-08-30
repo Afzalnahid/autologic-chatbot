@@ -4,6 +4,7 @@ import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
 import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
+import { checkChannelQuota } from "@/lib/plan-limits.js";
 
 export async function POST(request) {
   try {
@@ -19,6 +20,12 @@ export async function POST(request) {
     if (await ownedByAnotherClient("facebook", pageId, clientId)) {
       return connectFailedPage({ platform: "facebook", status: 409, reason: ALREADY_CONNECTED.facebook });
     }
+
+    // The package's channel allowance, checked before any Meta call so a
+    // refusal costs nothing and the owner is told why rather than watching a
+    // connect appear to work and then not be there.
+    const cq = await checkChannelQuota(clientId, "facebook", pageId);
+    if (!cq.ok) return connectFailedPage({ platform: "facebook", status: 403, reason: cq.message });
 
     // Subscribe to messages + comments (feed). Log the result so we can
     // diagnose missing permissions during App Review.

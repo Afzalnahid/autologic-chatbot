@@ -4,6 +4,7 @@ import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
 import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
+import { checkChannelQuota } from "@/lib/plan-limits.js";
 
 export async function POST(request) {
   try {
@@ -19,6 +20,9 @@ export async function POST(request) {
     if (await ownedByAnotherClient("instagram", igId, clientId)) {
       return connectFailedPage({ platform: "instagram", status: 409, reason: ALREADY_CONNECTED.instagram });
     }
+
+    const cq = await checkChannelQuota(clientId, "instagram", igId);
+    if (!cq.ok) return connectFailedPage({ platform: "instagram", status: 403, reason: cq.message });
 
     // Subscribe to messages AND comments for full automation coverage.
     const sub = await fetch(

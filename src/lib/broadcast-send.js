@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase.js";
 import { sendBroadcastText, waSendText } from "@/lib/messenger.js";
 import { bufferInsert } from "@/lib/bot.js";
 import { resolveAudience, sendableChannels, remainingQuota, cannotSendReason, BROADCAST_CHANNELS } from "@/lib/broadcast.js";
+import { checkBroadcastQuota } from "@/lib/plan-limits.js";
 
 // How many people one request sends to. Kept small so a serverless invocation
 // always finishes well inside its time limit; the dashboard calls back for the
@@ -19,6 +20,13 @@ export async function createBroadcast(client, { channel, message, segment }) {
   // act on.
   const quota = await remainingQuota(client);
   if (quota.blocked) return { error: cannotSendReason(quota.blocked) };
+
+  // How many broadcasts the package allows, which is a different question from
+  // how many messages are left: a client can be well inside their message
+  // allowance and still have used their broadcasts for the month. Checked here
+  // because this is the only place a broadcast is created.
+  const bq = await checkBroadcastQuota(client);
+  if (!bq.ok) return { error: bq.message };
 
   const text = String(message || "").trim();
   if (text.length < 2) return { error: "Write the message you want to send." };

@@ -1057,3 +1057,37 @@ falls back" as a case rather than testing the happy path.
 - A clamp used in two places (panel and route) must be ONE function. Two clamps mean
   two chances to get `Number(null)` wrong, and the route's version is the one nobody
   is looking at.
+
+## Enforcing a limit turns its default into a decision (2026-08-30)
+
+"Channels allowed" and "Broadcasts / month" had been saved in the panel and read by
+nothing. Wiring them up was meant to be mechanical. It was not, because
+`limitsFor()` had:
+
+    channels: pick("channels") ?? 1,
+
+while every other limit read `?? null`, and the panel prints "Empty means unlimited"
+directly above these boxes. For as long as nothing read the figure, those two could
+disagree at no cost. The moment a route enforced it, an empty box meant ONE CHANNEL
+on a screen that promised no limit — a refusal the owner could not have predicted
+from anything in front of them.
+
+A test caught it, and only because I had written the unlimited case as its own
+assertion rather than testing the numbers I expected to see.
+
+**Rules:**
+- Before enforcing a stored setting, read its DEFAULT and ask what that default now
+  claims. An unread field's default is dead code; an enforced field's default is
+  policy.
+- When one entry in a list of similar fields is written differently from the rest,
+  that difference is load-bearing or it is a mistake. `?? 1` among seven `?? null`
+  was worth stopping on.
+- The screen's own words are a specification. "Empty means unlimited" is a promise
+  the code has to keep, and it is checkable.
+- Enforcing a limit means deciding what it counts, not just that it counts. The
+  website widget is a channel row but not a channel for this purpose, and
+  reconnecting an existing channel must never be refused — a client at their limit
+  still has to be able to repair a token that expired.
+- The stale note is part of the change. The panel said "Not enforced yet — nothing
+  reads this" under both boxes; leaving that behind would have told the owner to
+  ignore a limit that now bites. A test asserts no such note survives.

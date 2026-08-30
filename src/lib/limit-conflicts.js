@@ -45,7 +45,10 @@ export function limitConflicts(limits = {}, planId = "", trialDays = TRIAL_DAYS)
   const day = num(limits.messages_per_day);
   const month = num(limits.messages_per_month);
   const perCh = num(limits.messages_per_channel);
-  const channels = num(limits.channels) ?? 1;
+  // Empty means unlimited here too, so there is no number to multiply by and
+  // no ceiling to work out — the warning below stays quiet rather than
+  // guessing at one channel and crying wolf.
+  const channels = num(limits.channels);
   const id = String(planId || "").trim().toLowerCase();
   const byDay = id === "trial";
   const days = num(trialDays) ?? 0;
@@ -54,7 +57,7 @@ export function limitConflicts(limits = {}, planId = "", trialDays = TRIAL_DAYS)
   // The cap that quietly becomes the ceiling. Both sides are measured over the
   // same window — the trial for a trial, a month for a package — so the
   // comparison is like for like.
-  if (perCh !== null && id) {
+  if (perCh !== null && channels !== null && id) {
     const ceiling = perCh * channels;
     const headline = byDay ? (day === null ? null : day * days) : month;
     const chText = `${fmt(channels)} channel${channels === 1 ? "" : "s"}`;
@@ -75,12 +78,13 @@ export function limitConflicts(limits = {}, planId = "", trialDays = TRIAL_DAYS)
 // month". A month is not a unit that exists on a three-day plan, and reading
 // those labels there is how a limit gets typed wrong.
 //
-// Two boxes are also read by nothing at all: no route checks how many channels
-// a client may connect, and max_broadcasts_per_month is defined in limitsFor()
-// and never consulted. Saying so is better than a number that looks enforced.
+// Two of these boxes were read by nothing at all until 2026-08-30 — no route
+// checked how many channels a client could connect, and max_broadcasts_per_month
+// was defined in limitsFor() and never consulted — and this said so. Both are
+// enforced now (checkChannelQuota, checkBroadcastQuota), so what is left to say
+// about them is what they count, not whether they count.
 //
 // → { label, note } for the key, note null when the label is the whole truth.
-const NOT_ENFORCED = "Not enforced yet — nothing reads this.";
 
 export function limitMeaning(key, planId, trialDays = TRIAL_DAYS) {
   const byDay = String(planId || "").trim().toLowerCase() === "trial";
@@ -106,11 +110,16 @@ export function limitMeaning(key, planId, trialDays = TRIAL_DAYS) {
         ? { label: "Website scrapes / trial", note: `Counted over the ${days}, not the calendar month.` }
         : { label: "Website scrapes / month", note: null };
 
+    // Enforced since 2026-08-30. It counts Facebook Pages, Instagram accounts
+    // and WhatsApp numbers; the website widget has its own switch under "What
+    // is included" and does not use one of these.
     case "channels":
-      return { label: "Channels allowed", note: NOT_ENFORCED };
+      return { label: "Channels allowed", note: "Facebook, Instagram and WhatsApp. The website widget is separate." };
 
     case "max_broadcasts_per_month":
-      return { label: byDay ? "Broadcasts / trial" : "Broadcasts / month", note: NOT_ENFORCED };
+      return byDay
+        ? { label: "Broadcasts / trial", note: `Counted over the ${days}.` }
+        : { label: "Broadcasts / month", note: null };
 
     default:
       return { label: null, note: null };   // the caller keeps its own label

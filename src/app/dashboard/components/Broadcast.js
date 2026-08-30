@@ -153,6 +153,11 @@ export default function Broadcast(){
           <div><div style={{fontSize:24,fontWeight:600,color:T.success}}>{prev.counts.eligible}</div><div style={{fontSize:12,color:T.textMuted}}>will receive it</div></div>
           <div><div style={{fontSize:24,fontWeight:600,color:T.textDim}}>{prev.counts.skipped}</div><div style={{fontSize:12,color:T.textMuted}}>cannot be messaged</div></div>
         </div>
+        {/* How many BROADCASTS are left is not the same question as how many
+            messages are left: a client can be well inside their message
+            allowance and out of broadcasts for the month. Said here, before
+            Send, rather than by refusing it afterwards. */}
+        {prev.broadcasts_blocked&&<div style={{fontSize:12.5,color:T.danger,marginBottom:10,lineHeight:1.6}}>{prev.broadcasts_blocked}</div>}
         {prev.blocked_reason
           ?<div style={{fontSize:12.5,color:T.danger,marginBottom:10,lineHeight:1.6}}>{prev.blocked_reason}</div>
           :prev.over_quota&&<div style={{fontSize:12.5,color:T.danger,marginBottom:10,lineHeight:1.6}}>This is more than your plan allows right now — {prev.quota.remaining} messages left this {prev.quota.period}.</div>}
@@ -173,6 +178,7 @@ export default function Broadcast(){
     </Card>
 
     {!blocked&&!quota.unlimited&&!!quota.limit&&<div style={{fontSize:12,color:T.textDim}}>{quota.remaining} of {quota.limit} messages left this {quota.period}.</div>}
+    {!blocked&&!!prev?.broadcast_limit&&<div style={{fontSize:12,color:T.textDim}}>{Math.max(0,prev.broadcast_limit-(prev.broadcasts_used||0))} of {prev.broadcast_limit} broadcasts left.</div>}
 
     <Card>
       <div style={{fontSize:14,fontWeight:500,marginBottom:12}}>Past broadcasts</div>

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
 import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
+import { checkChannelQuota } from "@/lib/plan-limits.js";
 
 export async function GET(request) {
   try {
@@ -56,6 +57,10 @@ export async function POST(request) {
     if (await ownedByAnotherClient(platform, page_id, client.id)) {
       return NextResponse.json({ error: ALREADY_CONNECTED[platform] || "This account is already connected to another Autologic account." }, { status: 409 });
     }
+    // How many channels the package allows. Reconnecting one already on this
+    // account is not a new channel and is never refused.
+    const cq = await checkChannelQuota(client, platform, page_id);
+    if (!cq.ok) return NextResponse.json({ error: cq.message }, { status: 403 });
     const { error } = await supabase.from("channels").upsert(
       { client_id: client.id, platform, page_id, access_token, name: name || null, status: "connected", connected_at: new Date().toISOString() },
       { onConflict: "client_id,platform,page_id" }

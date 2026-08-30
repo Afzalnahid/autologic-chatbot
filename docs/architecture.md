@@ -264,12 +264,37 @@ repeating it. `trialTextMismatch()` also checks the owner's own prose — the
 tagline and the pricing bullets — for a "N day" that no longer matches, because
 changing the box does not change what a customer reads on the pricing page.
 
-### Limits that are defined but enforced by nothing
+### Channels allowed, and broadcasts
 
-`channels` and `max_broadcasts_per_month` are set in the panel, saved, and
-returned by `limitsFor()` — and no route reads either. Connecting a channel
-checks no allowance, and nothing counts broadcasts against a package. The panel
-says so under each box rather than showing a number that looks enforced.
+Both were set in the panel, saved, returned by `limitsFor()` — and read by
+nothing, until 2026-08-30. A trial limited to one channel could connect five.
+
+`checkChannelQuota(clientOrId, platform, pageId)` is called by every route that
+creates a channel: `/api/channels` and the four OAuth callbacks (`fb/select`,
+`ig/select`, `wa/select`, `wa/finish`). Those callbacks hold only the client id
+they signed into the state parameter, which is why it takes a row *or* an id.
+It is checked before any Meta call, so a refusal costs nothing.
+
+Two decisions inside it:
+
+- **The website widget does not use a channel slot.** The allowance is about
+  Facebook Pages, Instagram accounts and WhatsApp numbers — what the packages
+  describe. The widget has its own switch under "What is included", and letting
+  it consume a slot would charge a client twice for something already on.
+- **Reconnecting is never refused.** The row is upserted on
+  `(client_id, platform, page_id)` so it adds nothing to the count, and a client
+  at their limit must still be able to repair a channel whose token expired.
+
+`checkBroadcastQuota(client)` is called from `createBroadcast()`, the only place
+a broadcast is created, and counted over `quotaWindowStart` like every other
+windowed limit. The preview carries `broadcast_limit` / `broadcasts_used` so the
+Broadcast tab says how many are left *before* the message is written.
+
+**`limitsFor()` now returns `channels: null` when the box is empty**, not `1`.
+The panel says "Empty means unlimited" over these boxes and every other limit
+reads `?? null`. While nothing enforced this figure the two could disagree
+harmlessly; enforcing it made an empty box mean "one channel" on a screen
+promising no limit.
 
 ### Saying it where the number is typed
 

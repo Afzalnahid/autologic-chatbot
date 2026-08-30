@@ -4,6 +4,7 @@ import { verifyState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
 import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
+import { checkChannelQuota } from "@/lib/plan-limits.js";
 
 const fail = (reason, status = 400) => connectFailedPage({ platform: "whatsapp", reason, status });
 
@@ -52,6 +53,9 @@ export async function POST(request) {
     if (await ownedByAnotherClient("whatsapp", phoneId, clientId)) {
       return fail(ALREADY_CONNECTED.whatsapp, 409);
     }
+
+    const cq = await checkChannelQuota(clientId, "whatsapp", phoneId);
+    if (!cq.ok) return fail(cq.message, 403);
 
     // Subscribe the app to this WhatsApp number's webhooks
     const sub = await fetch(
