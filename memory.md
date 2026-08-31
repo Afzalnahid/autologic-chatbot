@@ -19,12 +19,13 @@ migration was never the problem, **lists written into the code were**.
 2. `docs/sql/2026-08-31-plans-biz.sql` — **run 2026-08-31.** Worth a look next session that the
    panel came back with Shops / Services / Retired. The panel says so itself when no
    package carries a `biz`, and names the file.
-3. ~~`docs/sql/2026-08-30-usage-page-id.sql`.~~ **Run 2026-09-01, confirmed by the owner.** The
-   code that sends `page_id` was already live (`ai.js` → `recordUsage`, self-healing in
-   `usage.js`), so nothing to deploy — per-channel cost is MEASURED from now on for new rows.
-   One nuance: warm Vercel instances that hit the missing column before the migration keep
-   recording without `page_id` until the process recycles; `usage.js` heals on the next start.
-   A redeploy makes it immediate, otherwise it fixes itself as instances cycle. Owner was told.
+3. ~~`docs/sql/2026-08-30-usage-page-id.sql`.~~ **Run 2026-09-01, confirmed by the owner, and
+   `e7d079b` is live in Production (Vercel, Ready).** The code that sends `page_id` was already
+   live (`ai.js` → `recordUsage`, self-healing in `usage.js`), so there was nothing to write —
+   the memory.md push itself triggered the auto-deploy that reset every instance's
+   `channelColumn` flag. **Per-channel cost is MEASURED from now on** for new rows; rows written
+   before today keep `page_id = ''` and the panel goes on apportioning those, saying which is
+   which. Nothing left to do here.
 4. Prices, once traffic has been metered. `orders_one_per_code`, Google billing.
 
 ### Why the panel showed the old packages — `c43cfc7`
