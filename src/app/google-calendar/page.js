@@ -42,7 +42,7 @@ export default function GoogleCalendar() {
           <li>Press <strong>Continue</strong> to grant the two permissions described above.</li>
           <li>The window closes on its own and the bot begins offering your real free times.</li>
         </ol>
-        <p>To disconnect at any time, remove Autologic from <strong>myaccount.google.com → Security → Third-party access</strong>. Existing bookings stay in your dashboard; only the automatic Meet links stop.</p>
+        <p>To disconnect at any time, press <strong>Disconnect</strong> at the top of the Bookings tab (or remove Autologic from <strong>myaccount.google.com → Security → Third-party access</strong>). Existing bookings stay in your dashboard; only the automatic Meet links stop.</p>
       </Section>
 
       <Section title="Your control">

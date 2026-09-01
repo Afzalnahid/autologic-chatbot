@@ -777,8 +777,9 @@ export const DOCS = {
 
       { h: "Connect Google Calendar first",
         p: [
-          "Bookings only work once your calendar is connected. If it is not, the tab says so and shows you the button.",
+          "Bookings only work once your calendar is connected — and this is where you connect it. If it is not connected, the tab says so and shows you the button.",
           "It takes about a minute, there is nothing to install, and you log in with your own Google account. Autologic only uses it to check when you are free and to create the meetings — nothing else in your calendar is read or touched.",
+          "Once connected, the top of the tab shows which Google account is linked, with a **Disconnect** button right there. Disconnecting removes our access at once; bookings already made stay listed, but the bot stops taking new ones.",
         ],
         biz: "agency" },
 
@@ -1171,7 +1172,7 @@ export const DOCS = {
   },
   "profile": {
     title: "Profile",
-    lead: "Your business details, your logo, your business type, your package at a glance, and the Google Calendar connection.",
+    lead: "Your business details, your logo, your business type, and your package at a glance.",
     time: 4,
     blocks: [
       { h: "Business information",
@@ -1184,7 +1185,7 @@ export const DOCS = {
             ["Website", "Shared when a customer wants to browse"],
           ] } },
 
-      { shot: "profile", cap: "Your business details on the left, your package and the calendar connection on the right." },
+      { shot: "profile", cap: "Your business details on the left, your package on the right." },
 
       { h: "Business logo",
         p: ["Upload your logo here. It appears in the dashboard and on your website chat widget, so a visitor sees your brand rather than a generic robot."] },
@@ -1210,13 +1211,7 @@ export const DOCS = {
       { h: "Your package",
         p: ["The same figures as the Billing tab, repeated here so you can see them without leaving your profile: messages today, messages this month, and what your plan includes. The button takes you to **Billing** to change it."] },
 
-      { h: "Google Calendar",
-        p: [
-          "Connect it and the bot can check when you are free, create meetings, and send Google Meet links to customers on its own.",
-          "You log in with your own Google account. Autologic uses that access **only** to check availability and create the events — nothing else in your calendar is read, shared or used for anything.",
-        ] },
-
-      { note: "**Disconnect** removes our access immediately and deletes the stored tokens. Bookings already made stay listed in your Bookings tab, but the bot stops taking new ones.",
+      { note: "**Google Calendar now connects in the Bookings tab**, next to the meetings it powers — connect, see the connected account, and disconnect all in one place. (Agency accounts only.)",
         kind: "tip" },
 
       { h: "If something goes wrong",
