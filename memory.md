@@ -13,24 +13,26 @@ explainer/demo videos) — those live in the session scratchpad, not the repo.
 
 ### ⚠️ OWNER TASKS (open)
 
-1. **Google OAuth verification is IN PROGRESS** — getting Calendar (`calendar.events` +
-   `calendar.freebusy`, both sensitive) approved so ANY Google user can connect, not just
-   the ≤100 test users. State at the end of this session:
+1. **Google OAuth verification is SUBMITTED and UNDER REVIEW** (2026-09-02) — getting
+   Calendar (`calendar.events` + `calendar.freebusy`, both sensitive) approved so ANY
+   Google user can connect, not just the ≤100 test users. Nothing to do now but wait;
+   verdict comes by email to nahidafzal97@gmail.com (typically a few days to 2–4 weeks).
+   **⚠️ Do NOT change publish status, user type, scopes, or branding while under review —
+   it resets/delays the review.** What was submitted:
    - Search Console: **getvoicium.com verified** (Domain / DNS). ✅
-   - Data Access scopes registered: calendar.events, calendar.freebusy, **userinfo.email,
-     openid** — the consent screen requests all four; the last two are non-sensitive and
-     were added so the video matches. ✅
-   - Demo video uploaded **Unlisted** (`https://youtu.be/rnYPV8kgV8Y`), link saved in Data
-     Access. ✅
-   - **Branding re-verification REQUESTED** (owner clicked Proceed). Waiting on Google's
-     re-crawl to turn Branding green — not instant. Data Access stays "not verified" and
-     "Prepare for verification" stays greyed until then; that is GATING, not an error.
-   - Next: Branding green → owner clicks **"Prepare for verification" → Submit** → Google
-     review (days–weeks, verdict by email).
-   - Residual risk: the demo video was filmed on the OLD build and still shows "Autologic"
-     in the dashboard and the test business name (re-recording wasn't possible). Its
-     consent screen already says getvoicium.com, so it is probably fine; if a reviewer
-     objects it is re-submittable.
+   - Branding: **verified** ("being shown to users"), app name getvoicium, crimson logo. ✅
+   - Data Access scopes: calendar.events, calendar.freebusy, userinfo.email, openid (the
+     last two non-sensitive, added so the video's four-scope consent matches). ✅
+   - Demo video: **Unlisted** `https://youtu.be/rnYPV8kgV8Y`, link in Data Access. ✅
+   - Questionnaire: personal / internal / dev-only / Gmail-SMTP-plugin = all **No**; both
+     acknowledgements checked. No restricted scopes, so **no CASA** needed.
+   - Additional info explained the Autologic→getvoicium rename (so the video's old
+     "Autologic" UI doesn't confuse the reviewer) and gave a getvoicium test login.
+   - If Google emails a follow-up (scope justification, video re-shoot, etc.), it is
+     re-submittable — the residual risk is the demo video still shows the old "Autologic"
+     dashboard, but its consent screen already reads getvoicium.com.
+   - Owner should CHANGE the getvoicium test-account password after approval (it was shared
+     in the Additional-info box for the reviewer).
 2. Prices, once traffic has been metered. `orders_one_per_code`, Google billing.
 
 ### Rebrand: Autologic → getvoicium — `edd339e`
