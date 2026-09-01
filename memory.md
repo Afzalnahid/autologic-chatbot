@@ -1,10 +1,77 @@
-# Autologic — Working Memory
+# getvoicium — Working Memory  (the product was named Autologic until 2026-09-01)
 
 Update the top two sections after every session.
 
 ---
 
-## Last session (2026-08-31, third thread) — The panel catches up with the seven packages
+## Last session (2026-09-01) — Rebrand to getvoicium, Calendar moves to Bookings, Google OAuth verification
+
+Pushed: `5235988` (Calendar card → Bookings), `91b5222` (docs follow it), `e8cb0dd`
+(calendar event description), `edd339e` (**rebrand Autologic → getvoicium**). A lot of
+non-repo deliverables the owner asked for too (LinkedIn profile + CV, a product PDF, and
+explainer/demo videos) — those live in the session scratchpad, not the repo.
+
+### ⚠️ OWNER TASKS (open)
+
+1. **Google OAuth verification is IN PROGRESS** — getting Calendar (`calendar.events` +
+   `calendar.freebusy`, both sensitive) approved so ANY Google user can connect, not just
+   the ≤100 test users. State at the end of this session:
+   - Search Console: **getvoicium.com verified** (Domain / DNS). ✅
+   - Data Access scopes registered: calendar.events, calendar.freebusy, **userinfo.email,
+     openid** — the consent screen requests all four; the last two are non-sensitive and
+     were added so the video matches. ✅
+   - Demo video uploaded **Unlisted** (`https://youtu.be/rnYPV8kgV8Y`), link saved in Data
+     Access. ✅
+   - **Branding re-verification REQUESTED** (owner clicked Proceed). Waiting on Google's
+     re-crawl to turn Branding green — not instant. Data Access stays "not verified" and
+     "Prepare for verification" stays greyed until then; that is GATING, not an error.
+   - Next: Branding green → owner clicks **"Prepare for verification" → Submit** → Google
+     review (days–weeks, verdict by email).
+   - Residual risk: the demo video was filmed on the OLD build and still shows "Autologic"
+     in the dashboard and the test business name (re-recording wasn't possible). Its
+     consent screen already says getvoicium.com, so it is probably fine; if a reviewer
+     objects it is re-submittable.
+2. Prices, once traffic has been metered. `orders_one_per_code`, Google billing.
+
+### Rebrand: Autologic → getvoicium — `edd339e`
+
+The public name lagged the domain: the site said "Autologic" while everything external
+(getvoicium.com, the videos, the docs, the OAuth consent screen) said getvoicium, and
+Google verification compares the consent name against the home page. A byte-level replace
+of the display string **"Autologic" → "getvoicium"** across **40 files** (landing,
+dashboard, docs en/bn, privacy, terms, emails, SSLCommerz product name, channel messages,
+`seo.js` BRAND, `company.js` name). **Two lowercase strings were deliberately NOT touched
+— they would break things:** the scrypt salt `"autologic-client-ai-v1"` in `crypt.js`
+(changing it makes every stored BYOK key undecryptable) and the `"autologic_visited"`
+localStorage key (changing it re-triggers onboarding for everyone). Verified the live
+landing page and privacy policy now read getvoicium. The dashboard sidebar "Autologic
+System" the deploy did NOT change is a tenant's `business_name` in the database — the owner
+renames it in Profile, it is not a build string.
+
+### Google Calendar now lives in Bookings, not Profile — `5235988`, `91b5222`
+
+The connect card sat in Profile (an account screen) where a service owner setting up
+meetings would never look. Bookings already had connect + status + how-to and only lacked
+an in-app **Disconnect** — added that, removed the duplicate card (and its dead state)
+from Profile. Docs (en + bn) and the public `/google-calendar` page now point at Bookings;
+preview-dash already had Calendar under Bookings.
+
+### A calendar event that reads professionally — `e8cb0dd`
+
+The event the bot writes said "Booked via chatbot" and left the customer's name out. Now
+"Booked automatically by your AI assistant" with Customer / Service / Phone (`bot.js:515`).
+One string; summary and Meet link unchanged. (The line-12 comment in bot.js about
+descriptions being "embedded and compared" is about the VISION prompt, not this — safe.)
+
+### Standing notes
+
+- 31 suites, `npm test`, green throughout the session.
+- The machine's random `0xC0000005` crashes were heavy this session — every ffmpeg,
+  frame-render and git step needed a retry loop to get through.
+
+---
+
+## Earlier session (2026-08-31, third thread) — The panel catches up with the seven packages
 
 `c43cfc7`, `e82bf90`, `430d4b6`, `cbec3b9` — pushed. It started with "the admin panel still
 shows the previous packages" and ended somewhere else entirely, which is the pattern: the
