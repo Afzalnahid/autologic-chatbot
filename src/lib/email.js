@@ -30,12 +30,28 @@ async function send({ to, subject, html }) {
 
 function wrap(title, body) {
   return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0d1529;border-radius:12px;padding:28px;color:#e8e8ec">
-    <div style="font-size:20px;font-weight:700;margin-bottom:4px">getvoicium <span style="color:#f0c040">Admin</span></div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:4px">getvoicium <span style="color:#D92632">Admin</span></div>
     <div style="height:1px;background:#1a2744;margin:16px 0"></div>
     <div style="font-size:17px;font-weight:600;margin-bottom:12px">${title}</div>
     <div style="font-size:14px;line-height:1.7;color:#c9d3e6">${body}</div>
     <div style="height:1px;background:#1a2744;margin:20px 0"></div>
     <div style="font-size:12px;color:#8b9cbd">This is an automated message from the getvoicium admin system.</div>
+  </div>`;
+}
+
+// The customer-facing wrapper. Same polished dark card, but branded "getvoicium"
+// (never "Admin") with a footer that speaks to a business owner, not an operator —
+// a real reply-to and support address, and why they're getting the email. Client
+// notifications (payment, trial/plan expiry, key/bot problems) use this; the
+// internal admin ones above keep wrap().
+function clientWrap(title, body) {
+  return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0d1529;border-radius:12px;padding:28px;color:#e8e8ec">
+    <div style="font-size:22px;font-weight:800;margin-bottom:4px;color:#ffffff">get<span style="color:#D92632">voicium</span></div>
+    <div style="height:1px;background:#1a2744;margin:16px 0"></div>
+    <div style="font-size:17px;font-weight:600;margin-bottom:12px">${title}</div>
+    <div style="font-size:14px;line-height:1.7;color:#c9d3e6">${body}</div>
+    <div style="height:1px;background:#1a2744;margin:22px 0"></div>
+    <div style="font-size:12px;color:#8b9cbd;line-height:1.7">You're receiving this because you use getvoicium at <a href="https://www.getvoicium.com" style="color:#D92632;text-decoration:none">getvoicium.com</a>.<br/>Questions? Just reply to this email, or write to <a href="mailto:support@getvoicium.com" style="color:#D92632;text-decoration:none">support@getvoicium.com</a>.</div>
   </div>`;
 }
 
@@ -46,8 +62,8 @@ export async function notifyNewAdminSignup(newEmail) {
     subject: "New admin access request — getvoicium",
     html: wrap(
       "New admin access request",
-      `<strong style="color:#f0c040">${newEmail}</strong> has signed up and is awaiting approval.
-       <br/><br/>Open the <a href="https://www.getvoicium.com/admin" style="color:#f0c040">Admin panel</a>,
+      `<strong style="color:#D92632">${newEmail}</strong> has signed up and is awaiting approval.
+       <br/><br/>Open the <a href="https://www.getvoicium.com/admin" style="color:#D92632">Admin panel</a>,
        enter your secret key, and assign them a role (Viewer, Editor, or Full Access) to approve — or leave them pending to deny.`
     ),
   });
@@ -64,7 +80,7 @@ export async function notifyAdminApproved(adminEmail, role) {
       `Your admin access has been approved with the role
        <strong style="color:#22c55e">${labels[role] || role}</strong>.
        <br/><br/>You can now sign in at the
-       <a href="https://www.getvoicium.com/admin" style="color:#f0c040">Admin panel</a>
+       <a href="https://www.getvoicium.com/admin" style="color:#D92632">Admin panel</a>
        using the email and password you registered with.`
     ),
   });
@@ -77,14 +93,14 @@ export async function notifyPaymentRequest({ business, email, plan, cycle, amoun
     subject: `Payment submitted: ${business} — ${plan}`,
     html: wrap(
       "New payment awaiting verification",
-      `<strong style="color:#f0c040">${business}</strong> (${email}) submitted a payment.
+      `<strong style="color:#D92632">${business}</strong> (${email}) submitted a payment.
        <br/><br/>
        Plan: <strong>${plan}</strong> (${cycle})<br/>
        Amount: <strong>৳${Number(amount).toLocaleString("en-IN")}</strong><br/>
        Method: <strong>${method}</strong><br/>
        Transaction ID: <strong>${txnId}</strong>
        <br/><br/>Verify the transaction, then approve it in the
-       <a href="https://www.getvoicium.com/admin" style="color:#f0c040">Admin panel</a>.`
+       <a href="https://www.getvoicium.com/admin" style="color:#D92632">Admin panel</a>.`
     ),
   });
 }
@@ -95,11 +111,11 @@ export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
   return send({
     to: clientEmail,
     subject: `Your ${planName} plan is active — getvoicium`,
-    html: wrap(
+    html: clientWrap(
       "\u{1F389} Payment confirmed",
       `Your payment has been verified and your <strong style="color:#22c55e">${planName}</strong> plan is now active.
        ${until ? `<br/><br/>Valid until <strong>${until}</strong>.` : ""}
-       <br/><br/>Open your <a href="https://www.getvoicium.com/dashboard" style="color:#f0c040">dashboard</a> to keep going.`
+       <br/><br/>Open your <a href="https://www.getvoicium.com/dashboard" style="color:#D92632">dashboard</a> to keep going.`
     ),
   });
 }
@@ -109,7 +125,7 @@ export async function notifyPaymentRejected(clientEmail, reason) {
   return send({
     to: clientEmail,
     subject: "We could not verify your payment — getvoicium",
-    html: wrap(
+    html: clientWrap(
       "Payment not verified",
       `We could not verify your recent payment.${reason ? `<br/><br/>Reason: <strong>${reason}</strong>` : ""}
        <br/><br/>Please check the transaction ID and submit it again from your dashboard,
@@ -127,15 +143,15 @@ export async function notifyKeyFailing(clientEmail, { business, provider, model,
   return send({
     to: clientEmail,
     subject: `Action needed: your AI key stopped working — ${business}`,
-    html: wrap(
+    html: clientWrap(
       "Your AI key stopped working",
       `Your bot runs on your own <strong>${prov}</strong> key${model ? ` (<strong>${model}</strong>)` : ""}, and it just failed —
-       so your bot has <strong style="color:#f0c040">paused replying to customers</strong>.
+       so your bot has <strong style="color:#D92632">paused replying to customers</strong>.
        <br/><br/>Most often this means the key ran out of quota or credit, or its billing needs attention.
        ${safeErr ? `<br/><br/>What the provider returned:<br/><span style="font-size:12px;color:#8b9cbd">${safeErr}</span>` : ""}
        <br/><br/>Top up or fix billing with your provider, or paste a new key — your bot resumes automatically once the key works again.
        <br/><br/>
-       <a href="https://www.getvoicium.com/dashboard#ai" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Open AI Engine</a>
+       <a href="https://www.getvoicium.com/dashboard#ai" style="display:inline-block;background:#D92632;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Open AI Engine</a>
        <br/><br/><span style="font-size:12px;color:#8b9cbd">You'll get this once per outage, not for every message.</span>`
     ),
   });
@@ -194,14 +210,14 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
   return send({
     to: clientEmail,
     subject: `Action needed: ${detail.title} — ${business}`,
-    html: wrap(
+    html: clientWrap(
       detail.title,
       `${detail.body}
        <br/><br/>
-       <strong style="color:#f0c040">Customers messaging you right now are not getting answers.</strong>
+       <strong style="color:#D92632">Customers messaging you right now are not getting answers.</strong>
        We are replying to them with a short holding message so they are not left waiting, but that is not a substitute for your bot.
        <br/><br/>
-       <a href="https://www.getvoicium.com/dashboard#billing" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
+       <a href="https://www.getvoicium.com/dashboard#billing" style="display:inline-block;background:#D92632;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
        <br/><br/>
        <span style="font-size:12px;color:#8b9cbd">You will get this reminder at most once a day.</span>`
     ),
@@ -226,17 +242,17 @@ export async function notifyExpiringSoon(clientEmail, { business, plan, daysLeft
     subject: final || daysLeft <= 0
       ? `Last day — your ${thing} ends today, ${business}`
       : `Your ${thing} ${inWords} — ${business}`,
-    html: wrap(
+    html: clientWrap(
       `${label} ${inWords}`,
       `${final || daysLeft <= 0
-        ? `Today is the last day of your ${isTrial ? "free trial" : `${label} plan`}${when ? ` (${when})` : ""}. <strong style="color:#f0c040">After today your bot stops replying to customers.</strong>`
+        ? `Today is the last day of your ${isTrial ? "free trial" : `${label} plan`}${when ? ` (${when})` : ""}. <strong style="color:#D92632">After today your bot stops replying to customers.</strong>`
         : `Your ${isTrial ? "free trial" : `${label} plan`} ends${when ? ` on <strong>${when}</strong>` : " soon"}. When it does, your bot will stop replying to customers.`}
        <br/><br/>
        ${isTrial
          ? "Pick a plan to keep everything running — your products, knowledge base and conversations all stay exactly as they are."
          : "Renew to keep your bot answering without a break."}
        <br/><br/>
-       <a href="https://www.getvoicium.com/dashboard#billing" style="display:inline-block;background:#f0c040;color:#0a0a0a;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">${isTrial ? "Choose a plan" : "Renew now"}</a>`
+       <a href="https://www.getvoicium.com/dashboard#billing" style="display:inline-block;background:#D92632;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">${isTrial ? "Choose a plan" : "Renew now"}</a>`
     ),
   });
 }
