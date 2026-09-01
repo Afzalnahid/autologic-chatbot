@@ -4,12 +4,36 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-01) — Rebrand to getvoicium, Calendar moves to Bookings, Google OAuth verification
+## Last session (2026-09-01→02) — Rebrand to getvoicium, Calendar→Bookings, Google OAuth verification, Resend email on the real domain
 
 Pushed: `5235988` (Calendar card → Bookings), `91b5222` (docs follow it), `e8cb0dd`
-(calendar event description), `edd339e` (**rebrand Autologic → getvoicium**). A lot of
-non-repo deliverables the owner asked for too (LinkedIn profile + CV, a product PDF, and
-explainer/demo videos) — those live in the session scratchpad, not the repo.
+(calendar event description), `edd339e` (**rebrand Autologic → getvoicium**), `bdfcb79`
+(**client emails professionalised**). A lot of non-repo deliverables the owner asked for
+too (LinkedIn profile + CV, a product PDF, explainer/demo videos) — those live in the
+session scratchpad, not the repo.
+
+### Resend email now sends from the real domain (config, not code)
+
+`support@getvoicium.com` is live. getvoicium.com is **verified in Resend** (DNS added at
+**Hostinger** — that's where the zone lives; nameservers ns1/ns2.dns-parking.com are
+Hostinger's, so Vercel's DNS panel for it is inert). Three records: DKIM TXT
+`resend._domainkey`, and CNAMEs `rsend`→rsend-apne1.forge.rmta.net and
+`send`→send.forge.rmta.net. **No MX** — Google Workspace already handles the domain's
+inbound mail (MX SMTP.GOOGLE.COM, SPF, DMARC p=reject); Resend passes DMARC via DKIM
+alignment. Vercel env **`RESEND_FROM` = `getvoicium <support@getvoicium.com>`** set +
+redeployed; a test email arrived from it. Everything routes through the one `send()`
+helper in `email.js`, so RESEND_FROM is the single lever for every email.
+(Replies to support@ aren't received yet — sending only; add a Workspace alias/forward
+if the owner wants inbound.)
+
+### Client emails read like customer notifications now — `bdfcb79`
+
+All eight emails used one `wrap()` templated "getvoicium **Admin**" / "automated message
+from the admin system" — wrong for a client. Added `clientWrap()` (branded "getvoicium",
+footer explains why they got it + support@getvoicium.com to reply to) and routed the five
+client emails through it (payment approved/rejected, key failing, bot blocked, expiring
+soon); the three admin emails keep `wrap()`. Also retired the leftover gold `#f0c040` →
+crimson `#D92632` (brand invariant) with white button text.
 
 ### ⚠️ OWNER TASKS (open)
 
