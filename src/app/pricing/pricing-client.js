@@ -45,6 +45,18 @@ const COMPARE = [
   { only: "agency", label: "Google Calendar booking", trial: true, starter: false, growth: true, scale: true },
 ];
 
+// A plain-language reach line per tier, so "3,000 messages" means something to a
+// buyer. Rough on purpose (hence "≈" / "~"): assumes about 5 customer messages per
+// conversation, and that one human agent handles on the order of 5,000 customer
+// messages a month. Keyed by tier like the comparison table, so an admin re-pricing
+// a package does not strand the copy.
+const REACH = {
+  trial:   "≈ ~180 customer chats to try it out",
+  starter: "≈ ~600 customers a month — like adding ~1 agent",
+  growth:  "≈ ~3,000 customers a month — like ~3 agents",
+  scale:   "≈ ~10,000 customers a month — like ~8+ agents",
+};
+
 const FAQ = [
   { q: "How does the free trial work?", a: "You get full access for a few days with 30 customer messages per day. No payment details needed to start — just sign up and connect a channel." },
   { q: "How do I pay?", a: "Send the amount by bKash, Nagad or Rocket to the number shown in your dashboard, then submit the transaction ID. We verify it and your plan activates, usually within a few hours." },
@@ -117,11 +129,12 @@ export default function PricingClient() {
         </p>
 
         <div style={{ display: "inline-flex", background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 4, gap: 4 }}>
-          {[["monthly", "Monthly"], ["yearly", "Yearly"]].map(([id, label]) => (
+          {[["monthly", "Monthly", null], ["yearly", "Yearly", "Save 17%"]].map(([id, label, badge]) => (
             <button key={id} onClick={() => setCycle(id)} style={{
               padding: "8px 20px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 13.5, fontWeight: 600,
               background: cycle === id ? T.gold : "transparent", color: cycle === id ? "#fff" : T.muted,
-            }}>{label}</button>
+              display: "inline-flex", alignItems: "center", gap: 7,
+            }}>{label}{badge && <span style={{ background: T.green, color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>{badge}</span>}</button>
           ))}
         </div>
         {yearly && <div style={{ fontSize: 12.5, color: T.green, marginTop: 10 }}>2 months free on every paid plan</div>}
@@ -167,6 +180,11 @@ export default function PricingClient() {
                 <div style={{ fontSize: 11.5, color: yearly && saving ? T.green : T.dim, minHeight: 18 }}>
                   {free ? "No card needed" : yearly && saving ? `${saving} months free` : `or ${formatMoney(p.yearly)}/year`}
                 </div>
+                {REACH[tierOf(id)] && (
+                  <div style={{ fontSize: 11.5, color: T.muted, marginTop: 10, padding: "8px 10px", background: T.goldBg, borderRadius: 8, lineHeight: 1.5 }}>
+                    {REACH[tierOf(id)]}
+                  </div>
+                )}
 
                 <a href={free ? "/dashboard?auth=signup" : `/dashboard?upgrade=${id}&cycle=${cycle}`} style={{
                   display: "block", textAlign: "center", marginTop: 18, padding: "11px 0", borderRadius: 9,
