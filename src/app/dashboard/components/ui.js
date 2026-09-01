@@ -97,7 +97,7 @@ export function OnboardFrame({icon,title,sub,step,of,width=460,scroll,children})
       boxShadow:T.nmOut,padding:"clamp(22px, 4vw, 34px) clamp(18px, 4vw, 32px)",...(scroll?{maxHeight:"94dvh",overflowY:"auto"}:{})}}>
       <div style={{display:"inline-flex",alignItems:"center",gap:8,fontSize:13,fontWeight:700,color:T.text,marginBottom:18}}>
         <span style={{width:26,height:26,borderRadius:8,background:T.accGrad,boxShadow:T.accGlow,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:14}}><i className="ti ti-bolt"/></span>
-        Autologic
+        getvoicium
       </div>
       <div style={{textAlign:"center",marginBottom:22}}>
         <div style={{width:56,height:56,borderRadius:18,background:T.card,boxShadow:T.nmSm,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>

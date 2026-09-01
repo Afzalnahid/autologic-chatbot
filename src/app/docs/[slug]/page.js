@@ -25,7 +25,7 @@ export function generateMetadata({ params, searchParams }) {
   const written = isWritten(doc);
   return {
     ...pageMeta({
-      title: `${name} — Autologic ${UI.brand}`,
+      title: `${name} — getvoicium ${UI.brand}`,
       description: written ? doc.lead : UI.tagline,
       path: `/docs/${params.slug}`,
       lang,

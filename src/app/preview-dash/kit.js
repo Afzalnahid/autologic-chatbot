@@ -50,7 +50,7 @@ export const NAV = [
 // Sample data. Shaped like the real thing so the layout is tested against
 // realistic lengths — Bangla names, long product titles, four-digit prices.
 export const SAMPLE = {
-  business: "Autologic Systems",
+  business: "getvoicium Systems",
   plan: "Pro", planDays: 19,
   kpis: [
     { label: "Conversations", value: "1,284", delta: +12.4, spark: [8,12,9,14,11,17,15,19,16,22] },
@@ -64,7 +64,7 @@ export const SAMPLE = {
     human: [18, 14, 21, 12, 16, 11, 9],
   },
   channels: [
-    { id: "messenger", icon: "ti-brand-messenger", name: "Facebook Messenger", handle: "Autologic Systems", state: "live", share: 42 },
+    { id: "messenger", icon: "ti-brand-messenger", name: "Facebook Messenger", handle: "getvoicium Systems", state: "live", share: 42 },
     { id: "instagram", icon: "ti-brand-instagram", name: "Instagram Direct", handle: "@autologic.bd", state: "live", share: 26 },
     { id: "whatsapp", icon: "ti-brand-whatsapp", name: "WhatsApp Business", handle: "+880 1690 000732", state: "live", share: 24 },
     { id: "website", icon: "ti-world", name: "Website widget", handle: "autologic.com.bd", state: "paused", share: 8 },

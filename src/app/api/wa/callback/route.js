@@ -69,7 +69,7 @@ function page(bodyHtml, title = "Connect WhatsApp") {
 
 function errorCard(title, text) {
   return page(`<main class="card">
-    <div class="brand"><i class="ti ti-bolt"></i>Autologic</div>
+    <div class="brand"><i class="ti ti-bolt"></i>getvoicium</div>
     <div class="hero"><div class="tile">⚠️</div><h3>${esc(title)}</h3><p class="lead">${esc(text)}</p></div>
   </main>`);
 }
@@ -170,7 +170,7 @@ export async function GET(request) {
     //     step happens.
     if (!phoneNumbers.length) {
       return page(`<main class="card">
-        <div class="brand"><i class="ti ti-bolt"></i>Autologic</div>
+        <div class="brand"><i class="ti ti-bolt"></i>getvoicium</div>
         <div class="hero">
           <div class="tile">💬</div>
           <h3>No WhatsApp Business number found</h3>
@@ -209,7 +209,7 @@ export async function GET(request) {
     const encoded = encodeURIComponent(JSON.stringify(phoneNumbers));
 
     return page(`<main class="card">
-      <div class="brand"><i class="ti ti-bolt"></i>Autologic</div>
+      <div class="brand"><i class="ti ti-bolt"></i>getvoicium</div>
       <h3>Select a WhatsApp number to connect</h3>
       <div class="sub">${phoneNumbers.length} number${phoneNumbers.length === 1 ? "" : "s"} available${phoneNumbers.length > 5 ? " — scroll to see them all" : ""}.</div>
       ${phoneNumbers.length > 5 ? `<input class="search" id="q" placeholder="Search your numbers" autocomplete="off">` : ""}

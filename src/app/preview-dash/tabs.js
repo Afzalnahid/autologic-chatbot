@@ -476,7 +476,7 @@ function Settings() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="two">
       <Card title="How the bot speaks" pad={20}>
-        <Field label="Bot name"><Input value="Autologic Assistant" /></Field>
+        <Field label="Bot name"><Input value="getvoicium Assistant" /></Field>
         <Field label="Tone"><Input value="Friendly and helpful" /></Field>
         <Field label="Customer languages"
           hint="Follow the customer's language · Bangla only · English only">
@@ -546,7 +546,7 @@ function Profile() {
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 700 }}>A</div>
           <Btn kind="ghost" icon="ti-photo">Change logo</Btn>
         </div>
-        <Field label="Business name"><Input value="Autologic Systems" /></Field>
+        <Field label="Business name"><Input value="getvoicium Systems" /></Field>
         <Field label="Business type" hint="This decides whether the bot sells products or books meetings.">
           <Input value="Agency — services and bookings" />
         </Field>

@@ -100,7 +100,7 @@ export default function PricingClient() {
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px" }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: T.text }}>
             <div style={{ width: 32, height: 32, borderRadius: 9, background: T.goldBg, border: `1px solid color-mix(in srgb, ${T.gold} 27%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤖</div>
-            <span style={{ fontSize: 18, fontWeight: 700 }}>Autologic</span>
+            <span style={{ fontSize: 18, fontWeight: 700 }}>getvoicium</span>
           </a>
           <div style={{ display: "flex", gap: 9 }}>
             <a href="/dashboard?auth=signin" style={{ padding: "8px 16px", color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, fontWeight: 600, fontSize: 13.5, textDecoration: "none" }}>Log in</a>

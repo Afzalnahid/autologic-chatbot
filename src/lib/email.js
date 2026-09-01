@@ -4,7 +4,7 @@
 import { formatDhakaDate } from "@/lib/time.js";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM = process.env.RESEND_FROM || "Autologic <onboarding@resend.dev>";
+const FROM = process.env.RESEND_FROM || "getvoicium <onboarding@resend.dev>";
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
 async function send({ to, subject, html }) {
@@ -30,12 +30,12 @@ async function send({ to, subject, html }) {
 
 function wrap(title, body) {
   return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0d1529;border-radius:12px;padding:28px;color:#e8e8ec">
-    <div style="font-size:20px;font-weight:700;margin-bottom:4px">Autologic <span style="color:#f0c040">Admin</span></div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:4px">getvoicium <span style="color:#f0c040">Admin</span></div>
     <div style="height:1px;background:#1a2744;margin:16px 0"></div>
     <div style="font-size:17px;font-weight:600;margin-bottom:12px">${title}</div>
     <div style="font-size:14px;line-height:1.7;color:#c9d3e6">${body}</div>
     <div style="height:1px;background:#1a2744;margin:20px 0"></div>
-    <div style="font-size:12px;color:#8b9cbd">This is an automated message from the Autologic admin system.</div>
+    <div style="font-size:12px;color:#8b9cbd">This is an automated message from the getvoicium admin system.</div>
   </div>`;
 }
 
@@ -43,7 +43,7 @@ function wrap(title, body) {
 export async function notifyNewAdminSignup(newEmail) {
   return send({
     to: SUPER_ADMIN,
-    subject: "New admin access request — Autologic",
+    subject: "New admin access request — getvoicium",
     html: wrap(
       "New admin access request",
       `<strong style="color:#f0c040">${newEmail}</strong> has signed up and is awaiting approval.
@@ -58,9 +58,9 @@ export async function notifyAdminApproved(adminEmail, role) {
   const labels = { full: "Full Access", editor: "Editor", viewer: "Viewer" };
   return send({
     to: adminEmail,
-    subject: "You've been approved as an admin — Autologic",
+    subject: "You've been approved as an admin — getvoicium",
     html: wrap(
-      "🎉 Welcome to the Autologic admin team",
+      "🎉 Welcome to the getvoicium admin team",
       `Your admin access has been approved with the role
        <strong style="color:#22c55e">${labels[role] || role}</strong>.
        <br/><br/>You can now sign in at the
@@ -94,7 +94,7 @@ export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
   const until = expiresAt ? formatDhakaDate(new Date(expiresAt)) : null;
   return send({
     to: clientEmail,
-    subject: `Your ${planName} plan is active — Autologic`,
+    subject: `Your ${planName} plan is active — getvoicium`,
     html: wrap(
       "\u{1F389} Payment confirmed",
       `Your payment has been verified and your <strong style="color:#22c55e">${planName}</strong> plan is now active.
@@ -108,7 +108,7 @@ export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
 export async function notifyPaymentRejected(clientEmail, reason) {
   return send({
     to: clientEmail,
-    subject: "We could not verify your payment — Autologic",
+    subject: "We could not verify your payment — getvoicium",
     html: wrap(
       "Payment not verified",
       `We could not verify your recent payment.${reason ? `<br/><br/>Reason: <strong>${reason}</strong>` : ""}

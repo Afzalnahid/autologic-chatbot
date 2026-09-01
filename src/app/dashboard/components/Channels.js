@@ -13,9 +13,9 @@ import WebsiteWidget from "./WebsiteWidget.js";
 // What the owner sees right after a channel connects: the brand's own colour,
 // the name that was connected, and one plain sentence about what happens now.
 const JUST = {
-  facebook:  { label:"Facebook Page connected",     icon:"ti-brand-facebook",  color:"#1877F2", what:"Autologic now answers every Messenger message this Page receives." },
-  instagram: { label:"Instagram account connected", icon:"ti-brand-instagram", color:"#E1306C", what:"Autologic now answers every DM this account receives." },
-  whatsapp:  { label:"WhatsApp number connected",   icon:"ti-brand-whatsapp",  color:"#25D366", what:"Autologic now answers every WhatsApp message on this number." },
+  facebook:  { label:"Facebook Page connected",     icon:"ti-brand-facebook",  color:"#1877F2", what:"getvoicium now answers every Messenger message this Page receives." },
+  instagram: { label:"Instagram account connected", icon:"ti-brand-instagram", color:"#E1306C", what:"getvoicium now answers every DM this account receives." },
+  whatsapp:  { label:"WhatsApp number connected",   icon:"ti-brand-whatsapp",  color:"#25D366", what:"getvoicium now answers every WhatsApp message on this number." },
   gcal:      { label:"Google Calendar connected",   icon:"ti-brand-google",    color:"#4285F4", what:"Bookings land in this calendar with a Google Meet link, automatically." },
 };
 
@@ -124,7 +124,7 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
     </Card>}
 
     {/* Summary + the one action. Every Page, account and number can power
-        exactly one Autologic account — said here once, plainly. */}
+        exactly one getvoicium account — said here once, plainly. */}
     <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
       <div style={{flex:"1 1 260px",minWidth:0}}>
         <div style={{fontSize:14.5,fontWeight:700}}>
@@ -133,7 +133,7 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
             : "Connect your first channel"}
         </div>
         <div style={{fontSize:12,color:T.textMuted,marginTop:2,lineHeight:1.5}}>
-          Connect as many Pages, accounts and numbers as you need — each one can belong to only one Autologic account.
+          Connect as many Pages, accounts and numbers as you need — each one can belong to only one getvoicium account.
         </div>
       </div>
       <Btn gold onClick={onConnect} style={{flexShrink:0}}><i className="ti ti-plus" style={{marginRight:6}}/>Connect new channel</Btn>

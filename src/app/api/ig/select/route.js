@@ -16,7 +16,7 @@ export async function POST(request) {
     const [igId, encName, pageToken] = String(form.get("acct") || "").split("|");
     if (!clientId || !igId || !pageToken) return new NextResponse("Invalid selection", { status: 400 });
 
-    // One Instagram account powers exactly one Autologic account.
+    // One Instagram account powers exactly one getvoicium account.
     if (await ownedByAnotherClient("instagram", igId, clientId)) {
       return connectFailedPage({ platform: "instagram", status: 409, reason: ALREADY_CONNECTED.instagram });
     }
@@ -50,7 +50,7 @@ export async function POST(request) {
 
     const commentsOk = subscribedFields.includes("comments");
     const rows = [
-      { ok: true, title: "Direct-message replies are live", sub: "Autologic answers every DM this account receives, 24/7." },
+      { ok: true, title: "Direct-message replies are live", sub: "getvoicium answers every DM this account receives, 24/7." },
       commentsOk
         ? { ok: true, title: "Comment automation is on", sub: "Comments on your posts get a reply and a private message." }
         : { ok: false, title: "Comment automation is waiting for Meta", sub: "DMs work now; comment replies switch on once Meta approves the app." },

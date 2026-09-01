@@ -31,11 +31,11 @@ export async function GET(request) {
     if (pages.error) return fail("We could not read your Facebook Pages: " + pages.error.message);
     const list = pages.data || [];
     // No Page on this Facebook account. This is not an error the owner can fix
-    // here — Autologic connects to a Facebook Page, and there simply isn't one
+    // here — getvoicium connects to a Facebook Page, and there simply isn't one
     // yet. Say so plainly and glide back to the dashboard on its own.
     if (!list.length) {
       return fail(
-        "This Facebook account doesn't manage any Page yet. Autologic connects to a Facebook Page — create one on Facebook (it's free and takes a minute), then come back and connect again.",
+        "This Facebook account doesn't manage any Page yet. getvoicium connects to a Facebook Page — create one on Facebook (it's free and takes a minute), then come back and connect again.",
         400,
         { title: "No Facebook Page found", eyebrow: "Nothing to connect", seconds: 9 }
       );
@@ -90,7 +90,7 @@ button:hover{transform:translateY(-1px);filter:brightness(1.05)}
 .empty{padding:20px;text-align:center;color:var(--dim);font-size:13px;display:none}
 </style></head><body>
   <main class="card">
-  <div class="brand"><i class="ti ti-bolt"></i>Autologic</div>
+  <div class="brand"><i class="ti ti-bolt"></i>getvoicium</div>
   <h3>Select a Page to connect</h3>
   <div class="sub">${list.length} Page${list.length === 1 ? "" : "s"} available${list.length > 5 ? " — scroll to see them all" : ""}.</div>
   ${list.length > 5 ? `<input class="search" id="q" placeholder="Search your Pages" autocomplete="off">` : ""}

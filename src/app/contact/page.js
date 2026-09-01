@@ -3,8 +3,8 @@ import { COMPANY } from "@/lib/company.js";
 import SiteShell, { InfoCard } from "../site-shell.js";
 
 export const metadata = pageMeta({
-  title: "Contact — Autologic",
-  description: "Reach the Autologic team for support, sales or general questions about the chatbot platform. We usually reply within 24 hours.",
+  title: "Contact — getvoicium",
+  description: "Reach the getvoicium team for support, sales or general questions about the chatbot platform. We usually reply within 24 hours.",
   path: "/contact",
 });
 
@@ -15,7 +15,7 @@ export default function Contact() {
     <SiteShell
       eyebrow="Contact"
       title="Get in touch"
-      lead="Have a question about Autologic, need help setting up, or want to talk about your business? We're here to help."
+      lead="Have a question about getvoicium, need help setting up, or want to talk about your business? We're here to help."
     >
       <div style={{ marginTop: 34 }}>
         <InfoCard
@@ -53,7 +53,7 @@ export default function Contact() {
           label="Company"
           note={
             <>
-              Autologic is a product of {COMPANY.legalName}, our registered business.{" "}
+              getvoicium is a product of {COMPANY.legalName}, our registered business.{" "}
               <a href={COMPANY.parentUrl} target="_blank" rel="noreferrer" style={link}>
                 {COMPANY.parentHost}
               </a>
@@ -69,7 +69,7 @@ export default function Contact() {
           note={
             <>
               Manage your channels, knowledge base and bookings anytime from your{" "}
-              <a href="/dashboard" style={link}>Autologic dashboard</a>.
+              <a href="/dashboard" style={link}>getvoicium dashboard</a>.
             </>
           }
         >

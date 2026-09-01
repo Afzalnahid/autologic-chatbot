@@ -136,7 +136,7 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 </style></head><body>
 <main class="card">
-  <div class="brand"><i class="ti ti-bolt"></i>Autologic</div>
+  <div class="brand"><i class="ti ti-bolt"></i>getvoicium</div>
   <div class="tile"><i class="ti ti-brand-whatsapp"></i></div>
   <h3>Connect WhatsApp Business</h3>
   <p class="lead">Set it up in Meta's own secure window. Already have a WhatsApp Business number?

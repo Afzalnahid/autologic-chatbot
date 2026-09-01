@@ -16,7 +16,7 @@
 
 export const COMPANY = {
   // The product, and the name on the site.
-  name: "Autologic",
+  name: "getvoicium",
 
   // The company that owns it, as registered, with its own site.
   legalName: "Autolinium",

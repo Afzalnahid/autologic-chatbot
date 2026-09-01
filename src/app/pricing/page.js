@@ -3,7 +3,7 @@ import { pageMeta } from "@/lib/seo.js";
 
 // Not marked bilingual: this page has no Bangla copy, unlike the home page.
 export const metadata = pageMeta({
-  title: "Pricing — Autologic AI Chatbot for Facebook, Instagram & WhatsApp",
+  title: "Pricing — getvoicium AI Chatbot for Facebook, Instagram & WhatsApp",
   description: "Simple BDT pricing for Bangladeshi businesses. Start with a free 3-day trial, then from ৳1,500/month. Pay with bKash, Nagad or Rocket.",
   path: "/pricing",
 });

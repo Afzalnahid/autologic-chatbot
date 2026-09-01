@@ -25,7 +25,7 @@ export const CASE_STUDIES = [
     ],
     story:
       "TODO_STORY — one paragraph, in the owner's words where possible: what the " +
-      "shop was doing before Autologic (who answered messages, and when), what " +
+      "shop was doing before getvoicium (who answered messages, and when), what " +
       "changed after the bot went live, and the single result that mattered most " +
       "to them. Keep every number identical to the metrics above.",
   },
