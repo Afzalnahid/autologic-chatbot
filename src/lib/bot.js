@@ -512,7 +512,7 @@ async function maybeCreateBooking(items, client, senderId, platform) {
         if (avail.free) {
           const ev = await createEvent(accessToken, {
             summary: `${b.service_want || "Consultation"} with ${b.customer_name || "Client"}`,
-            description: `Booked via chatbot.\nService: ${b.service_want || ""}\nPhone: ${b.phone || ""}`,
+            description: `Booked automatically by your AI assistant.\nCustomer: ${b.customer_name || ""}\nService: ${b.service_want || ""}\nPhone: ${b.phone || ""}`,
             startISO: b.start,
             endISO: b.end,
             attendeeEmail: b.email || "",
