@@ -374,6 +374,10 @@ export default function Bookings({calConnected,clientId}) {
     const h=async e=>{if(e.data==="gcal-connected"){window.removeEventListener("message",h);const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);setCalOk(d?!!d.connected:true);setCalEmail(d?.email||"");}};
     window.addEventListener("message",h);
   };
+  const disconnectCal=async()=>{
+    await api("/api/gcal/status",{method:"DELETE"}).catch(()=>{});
+    setCalOk(false); setCalEmail("");
+  };
 
   // `day` is now a range: {a, b?} of YYYY-MM-DD keys (string compare is date order).
   const byDay = day?.a ? bookings.filter(b=>{
@@ -409,9 +413,10 @@ export default function Bookings({calConnected,clientId}) {
         never seen an OAuth screen. Step 3 is the one that stops people: Google
         shows a warning for apps it has not finished reviewing, and without
         being told what to do there, most people close the window. */}
-    {calOk&&calEmail&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,fontSize:12.5,color:T.textMuted}}>
+    {calOk&&calEmail&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,fontSize:12.5,color:T.textMuted,flexWrap:"wrap"}}>
       <i className="ti ti-circle-check" style={{color:T.success,fontSize:15}}/>
       Calendar connected · <span style={{color:T.text}}>{calEmail}</span>
+      <Btn small onClick={disconnectCal} style={{marginLeft:"auto"}}><i className="ti ti-plug-x" style={{marginRight:5}}/>Disconnect</Btn>
     </div>}
     {!calOk&&<Accordion icon="ti-help-circle" title="How to connect your calendar"
       subtitle="Takes about a minute — nothing to install">

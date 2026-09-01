@@ -28,7 +28,6 @@ export default function Profile() {
   const [loadErr,setLoadErr]=useState(false);
   const [logoBusy,setLogoBusy]=useState(false);
   const logoRef=useRef(null);
-  const [cal,setCal]=useState({connected:false,email:""});
 
   // The package this account runs on: name, expiry and live limits from
   // /api/billing (the same numbers the bot enforces), and the feature list
@@ -44,30 +43,6 @@ export default function Profile() {
       if(Array.isArray(f)&&f.length) setFeatures(f);
     }
   })();},[]);
-
-  const loadCal=async()=>{
-    const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);
-    if(d) setCal(d);
-  };
-  useEffect(()=>{loadCal();},[]);
-  useEffect(()=>{
-    const onMsg=(e)=>{ if(e.data==="gcal-connected") loadCal(); };
-    window.addEventListener("message",onMsg);
-    return ()=>window.removeEventListener("message",onMsg);
-  },[]);
-  const connectCal=()=>{
-    const w=window.open("/api/gcal/login?client_id="+(p?.client_id||p?.id||""),"gcal","width=520,height=640");
-    if(!w) window.location.href="/api/gcal/login?client_id="+(p?.client_id||p?.id||"");
-    const iv=setInterval(async()=>{
-      const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);
-      if(d){ setCal(d); if(d.connected) clearInterval(iv); }
-    },4000);
-    setTimeout(()=>clearInterval(iv),60000);
-  };
-  const disconnectCal=async()=>{
-    await api("/api/gcal/status",{method:"DELETE"}).catch(()=>{});
-    loadCal();
-  };
 
   const uploadLogo=async(file)=>{
     if(!file) return;
@@ -197,16 +172,5 @@ export default function Profile() {
         </Btn>
       </>}
     </Card>
-    {p.business_type==="agency"&&<Card>
-      <div style={{fontSize:14,fontWeight:600,marginBottom:6}}><i className="ti ti-calendar-event" style={{marginRight:6,color:T.gold}}/>Google Calendar</div>
-      <div style={{fontSize:12,color:T.textMuted,marginBottom:16}}>Connect your Google Calendar so the bot can check your availability, create meetings, and send Google Meet links to customers automatically.</div>
-      {cal.connected?<>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-          <Badge color={T.success}>Connected</Badge>
-          <span style={{fontSize:13,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis"}}>{cal.email}</span>
-        </div>
-        <Btn onClick={disconnectCal} style={{width:"100%"}}><i className="ti ti-plug-x" style={{marginRight:6}}/>Disconnect</Btn>
-      </>:<Btn gold onClick={connectCal} style={{width:"100%"}}><i className="ti ti-brand-google" style={{marginRight:6}}/>Connect Google Calendar</Btn>}
-    </Card>}
   </div>;
 }
