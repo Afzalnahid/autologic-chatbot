@@ -19,7 +19,7 @@ export default function Privacy() {
       eyebrow="Legal"
       title="Privacy Policy"
       lead={`getvoicium ("we", "our", "us") operates an AI-powered chatbot platform at getvoicium.com. This Privacy Policy explains how we collect, use, store, and protect data.`}
-      updated="July 18, 2026"
+      updated="September 3, 2026"
     >
       <Section title="1. Information We Collect">
         <p><strong>From clients (business owners):</strong> Email and business name at registration. Facebook, Instagram, and WhatsApp access tokens and account IDs when channels are connected. Google Calendar OAuth tokens (access token and refresh token) when a client connects their Google Calendar — used exclusively to check availability and create meeting events on that client's own calendar. Business logo, product catalogue, and knowledge base documents uploaded by the client.</p>
@@ -35,6 +35,7 @@ export default function Privacy() {
           <li>Send the Google Meet link to the customer via the connected messaging channel.</li>
         </ul>
         <p>We do <strong>not</strong> read, store, share, or use Google Calendar data for any purpose beyond the above. We do not use it for advertising, profiling, or any secondary purpose. When a client disconnects Google Calendar, all stored OAuth tokens are immediately deleted.</p>
+        <p><strong>No Google user data is sent to any AI/ML model.</strong> Our AI features are powered by the Google Gemini API and operate only on the end-user chat messages sent through the connected channels. Google Workspace data obtained from the Google Calendar API — including calendar events and availability — is <strong>never</strong> transmitted to Gemini or to any other artificial intelligence or machine learning service, and is never used to develop, train, or improve any AI/ML model, whether our own or a third party's. Availability lookups are reduced to a simple free/busy result before any reply is generated, and events are written to the calendar one-directionally; at no point does calendar content enter an AI prompt.</p>
       </Section>
 
       <Section title="3. How We Use Data">
@@ -46,7 +47,7 @@ export default function Privacy() {
       </Section>
 
       <Section title="5. Data Sharing">
-        <p>Customer messages are processed by Google Gemini API to generate AI replies. Meta Graph API (Facebook, Instagram, WhatsApp) is used to send and receive messages. Google Calendar API is used to create events and check availability. Supabase is used for database and file storage. No other third parties receive personal data.</p>
+        <p>Customer messages are processed by the Google Gemini API to generate AI replies, subject to Google's own terms for that API. Meta Graph API (Facebook, Instagram, WhatsApp) is used to send and receive messages. Google Calendar API is used to create events and check availability — its data is never sent to any AI/ML service (see Section 2). Supabase is used for database and file storage. No other third parties receive personal data.</p>
       </Section>
 
       <Section title="6. Data Retention and Deletion">
