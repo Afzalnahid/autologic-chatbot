@@ -8,6 +8,7 @@ import { planActive } from "@/lib/plans.js";
 import { loadPlans, limitsFor } from "@/lib/plan-limits.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
 import { withErrors } from "@/lib/route-errors.js";
+import { sslEnabled } from "@/lib/sslcommerz.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
@@ -96,6 +97,7 @@ export const GET = withErrors(async (request) => {
          : limit ? (month === null ? null : Math.min(100, Math.round((month / limit) * 100))) : null,
     },
     methods: paymentMethods(),
+    online: sslEnabled(),
     pending_request: pending,
     requests,
   }, NO_CACHE);

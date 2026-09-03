@@ -28,7 +28,10 @@ export function baseUrl(request) {
   const h = request?.headers;
   const host = h?.get("x-forwarded-host") || h?.get("host");
   const proto = h?.get("x-forwarded-proto") || "https";
-  return host ? `${proto}://${host}` : "";
+  if (host) return `${proto}://${host}`;
+  // Last resort: a route handler always has an absolute request.url, so the
+  // redirect can never be handed a relative URL (which throws "Invalid URL").
+  try { return new URL(request?.url).origin; } catch { return ""; }
 }
 
 // Our own transaction id. It is what SSLCommerz echoes back and what we store

@@ -15,6 +15,7 @@ export default function Billing({initialPlan,initialCycle}) {
   const [senderNo,setSenderNo]=useState("");
   const [txn,setTxn]=useState("");
   const [busy,setBusy]=useState(false);
+  const [onlineBusy,setOnlineBusy]=useState(false);
   const [err,setErr]=useState("");
   const [copied,setCopied]=useState("");
 
@@ -39,6 +40,23 @@ export default function Billing({initialPlan,initialCycle}) {
       if(d?.meta) setPlanMeta({...PLAN_META,...d.meta});
     }).catch(()=>{});
   },[]);
+
+  // Start a hosted SSLCommerz checkout and hand the browser to the gateway. On
+  // success the gateway redirects back to /api/billing/callback, which verifies
+  // and activates the plan — nothing to submit here.
+  const payOnline=async()=>{
+    if(onlineBusy) return;
+    if(!sel){setErr("Choose a plan first");return;}
+    setOnlineBusy(true);setErr("");
+    try{
+      const r=await api("/api/billing/checkout",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({plan:sel,cycle})});
+      const j=await r.json();
+      if(j.error){setErr(j.error);setOnlineBusy(false);}
+      else if(j.url){window.location.href=j.url;}
+      else{setErr("Could not start the payment. Please try again.");setOnlineBusy(false);}
+    }catch{setErr("Could not start the payment. Please try again.");setOnlineBusy(false);}
+  };
 
   const submit=async()=>{
     if(busy) return;
@@ -158,6 +176,16 @@ export default function Billing({initialPlan,initialCycle}) {
           <button key={id} onClick={()=>setCycle(id)} style={{padding:"7px 14px",borderRadius:7,border:"none",cursor:"pointer",fontSize:12.5,fontWeight:600,
             background:cycle===id?T.gold:"transparent",color:cycle===id?"#fff":T.textMuted}}>{l}</button>)}
       </div>
+
+      {/* Online checkout — shown only when the gateway is configured. */}
+      {d.online&&<>
+        <Btn gold onClick={payOnline} disabled={onlineBusy||!sel} style={{width:"100%",marginBottom:12}}>
+          <i className="ti ti-credit-card" style={{marginRight:6}}/>{onlineBusy?"Starting secure checkout…":`Pay online (card / mobile banking) · ${taka(amount)}`}
+        </Btn>
+        {d.methods.length>0&&<div style={{display:"flex",alignItems:"center",gap:10,margin:"2px 0 16px",color:T.textDim,fontSize:11.5}}>
+          <div style={{flex:1,height:1,background:T.border}}/>or pay manually with bKash / Nagad<div style={{flex:1,height:1,background:T.border}}/>
+        </div>}
+      </>}
 
       {/* how to pay */}
       {d.methods.length===0
