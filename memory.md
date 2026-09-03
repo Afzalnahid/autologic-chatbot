@@ -6,10 +6,19 @@ Update the top two sections after every session.
 
 ## Last session (2026-09-03) — Google Limited-Use reply, and manual mobile payment is LIVE
 
-Pushed: `6704721` (privacy: no Google user data reaches any AI model). One config-only
-change on Vercel (payment numbers) — no code. The SSLCommerz gateway built earlier this
-thread is still UNCOMMITTED (a `next build` "TypeError: Invalid URL" is unresolved) — do
-not commit it until that build passes; manual payment covers launch without it.
+Pushed: `6704721` (privacy: no Google user data reaches any AI model), `84d3935`
+(SSLCommerz online payment gateway). One config-only change on Vercel (payment numbers) —
+no code.
+
+**The "SSLCommerz build error" was a MISDIAGNOSIS.** `next build` DOES compile the gateway
+fine ("Compiled successfully", all 37 pages). The "TypeError: Invalid URL" comes from
+`/apple-icon` (next/og `@vercel/og` `fileURLToPath`) prerender — a **Windows-local-only**
+failure that does NOT happen on Vercel (the live site builds fine). apple-icon.js is
+untouched and pre-existing; it is unrelated to billing. So a clean local `next build` is
+not achievable on this machine — verify by "Compiled successfully" + `npm test` + the
+Vercel deploy instead. (Do NOT "fix" apple-icon to chase a local green build; it works in
+prod.) The gateway is committed but DORMANT — `sslEnabled()` is false until the owner sets
+the env vars, which needs a bank/merchant account they do not have yet.
 
 ### Google OAuth verification came back asking about AI/ML Limited Use — answered
 
