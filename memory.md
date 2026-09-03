@@ -4,7 +4,71 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-01→02) — Rebrand to getvoicium, Calendar→Bookings, Google OAuth verification, Resend email on the real domain
+## Last session (2026-09-03) — Google Limited-Use reply, and manual mobile payment is LIVE
+
+Pushed: `6704721` (privacy: no Google user data reaches any AI model). One config-only
+change on Vercel (payment numbers) — no code. The SSLCommerz gateway built earlier this
+thread is still UNCOMMITTED (a `next build` "TypeError: Invalid URL" is unresolved) — do
+not commit it until that build passes; manual payment covers launch without it.
+
+### Google OAuth verification came back asking about AI/ML Limited Use — answered
+
+Google's "Third Party Data Safety" team replied (to nahidafzal97@gmail.com) with the new
+AI/ML questionnaire: they want confirmation that no Workspace (Calendar) user data is sent
+to any AI that trains on it, plus a list of AI providers/tiers and any aggregators.
+
+**We are fully clean, and the winning argument is architectural: Calendar data never
+reaches the AI at all.** Verified in code — the only Calendar reads are `checkAvailability`
+(freeBusy, reduced to a `free` boolean at `bot.js:510`) and `createEvent` (write-only,
+`gcal.js:110`). The AI (Gemini) only ever sees the end-customer's chat messages, which are
+not Google user data. The ONLY AI provider actually wired in is **Google Gemini** —
+`ai.js:66` honours only `provider === "google"` keys; OpenAI is mentioned in the docs/FAQ
+but is not in any live path. No aggregators/gateways. Platform Gemini key is **free tier**
+(owner confirmed), so we did NOT claim "Google doesn't train" — the compliance rests on the
+data never leaving for AI, which is tier-independent.
+
+- `6704721` — privacy `/privacy` Section 2 now states plainly "No Google user data is sent
+  to any AI/ML model" and that Calendar data is never used to train/improve any model;
+  Section 5's inaccurate "Gemini API does not train" line was removed; "Last updated" →
+  September 3, 2026. Verified live on getvoicium.com/privacy.
+- The reply email to Google was drafted (free-tier version) and given to the owner to send
+  verbatim. **⚠️ OWNER: send that reply, then keep waiting; do NOT touch OAuth
+  scope/branding/publish status while under review.**
+
+### Manual mobile payment (bKash / Nagad / Rocket) is now LIVE — config only
+
+`/api/billing` `paymentMethods()` reads `PAYMENT_BKASH/NAGAD/ROCKET` env and shows only the
+ones with a number (`route.js:17`). They were empty, so Billing showed "Payment numbers are
+not configured yet". Owner set all three in Vercel and redeployed. Verified by screenshot:
+Billing → pick a plan → "Send exactly ৳X to any of these numbers (Send Money)" with all
+three cards + copy buttons; warning gone. **All three point to the same number
+`01690000732` — this is CORRECT, the owner confirmed all three MFS accounts are open on
+it.** The customer sends money, enters a txn id, admin approves → plan activates. No bank
+account needed — this is the launch payment path. (The online "Pay online" button stays
+hidden because `sslEnabled()` is false; that's the still-uncommitted SSLCommerz work.)
+
+### Standing notes
+
+- Owner has NO bank account → SSLCommerz (which settles to a bank) is deferred; manual
+  MFS is the launch method. Revisit SSLCommerz only when a bank/settlement account exists.
+- The dashboard sidebar still reads "Autologic System" — that is the tenant's own
+  `business_name` in the DB, not a build string; owner renames it in Profile (unchanged on
+  purpose since the rebrand).
+- Found-in-passing (NOT fixed, not this task): the Billing pay UI still uses `T.gold` /
+  yellow in a couple of spots — check against the crimson brand invariant next time.
+- HOSTING/DOMAIN decision (2026-09-03): owner asked about moving to a VPS + a new .com.
+  Researched it — the app is Next.js + all-external SaaS (Supabase DB/storage/auth in AWS
+  Sydney, Gemini, Meta, Resend), so a VPS would only run the app; app-only fits a 2vCPU/4GB
+  box (Contabo Singapore ~$7 or DO Bangalore ~$12, ideally with Coolify for git-push
+  deploys). **Owner DECIDED: stay on Vercel, just change the domain later — no VPS.** And
+  the domain change must wait until AFTER Google OAuth verification approves (changing the
+  domain/branding now resets the review — Search Console, branding and privacy URL are all
+  tied to getvoicium.com). Available .com names found in passing (RDAP-verified): kothabot,
+  voiciqo, replyqo, dokanbot, shebabot, tryvoicium — not bought, decision deferred.
+
+---
+
+## Earlier session (2026-09-01→02) — Rebrand to getvoicium, Calendar→Bookings, Google OAuth verification, Resend email on the real domain
 
 Pushed: `5235988` (Calendar card → Bookings), `91b5222` (docs follow it), `e8cb0dd`
 (calendar event description), `edd339e` (**rebrand Autologic → getvoicium**), `bdfcb79`
