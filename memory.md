@@ -56,6 +56,18 @@ it.** The customer sends money, enters a txn id, admin approves → plan activat
 account needed — this is the launch payment path. (The online "Pay online" button stays
 hidden because `sslEnabled()` is false; that's the still-uncommitted SSLCommerz work.)
 
+### orders_one_per_code — DONE (long-open owner task, closed 2026-09-03)
+
+`9896ba2` — `docs/sql/2026-09-03-orders-one-per-code.sql`. Two partial UNIQUE indexes on
+`orders` that mirror bot.js's dedup branches: `(client_id, order_code, sender_id)` where
+sender is present, and `(client_id, order_code)` where sender is null (widget), both
+skipping blank codes. Closes the race where a redelivered Meta webhook or a repeated
+"confirm" passes the SELECT-guard twice and inserts twice. The app already tolerates the
+constraint — the losing insert's error is returned by supabase-js and ignored, so the reply
+still sends. **Owner RAN it 2026-09-03**: STEP 1 duplicate-check returned no rows (clean
+table), STEP 3 created both indexes ("Success"). The commented STEP 2 dedup was not needed.
+This item is now off the open-tasks list for good.
+
 ### Standing notes
 
 - Owner has NO bank account → SSLCommerz (which settles to a bank) is deferred; manual
