@@ -68,6 +68,23 @@ still sends. **Owner RAN it 2026-09-03**: STEP 1 duplicate-check returned no row
 table), STEP 3 created both indexes ("Success"). The commented STEP 2 dedup was not needed.
 This item is now off the open-tasks list for good.
 
+### Pricing reviewed and deliberately LEFT AS-IS (2026-09-03)
+
+Owner asked to finalise prices. Ran the numbers (no live traffic yet, so `package-cost.js`
+has nothing measured — estimated instead from published Gemini pricing). Default reply model
+is **gemini-2.5-flash** ($0.30/1M in, **$2.50/1M out** — output is the cost driver);
+embeddings gemini-embedding-001 ($0.15/1M, negligible). Rough per-message estimate ~3000 in
++ 400 out ≈ $0.002 on 2.5-flash, ≈ $0.0005 on 2.5-flash-lite. At ~৳120/USD and FULL
+allowance the current prices (Starter 3k/৳1500, Growth 15k/৳3500, Scale 50k/৳6000) are:
+comfortable on Starter, **thin/negative on Growth and Scale IF run on 2.5-flash on the
+platform key**. Two levers make them all safely profitable — switch default model to
+**gemini-2.5-flash-lite** (~6× cheaper output, one admin-panel dropdown, no deploy), and
+Scale already carries **"use your own AI key"** so its 50k tier need never hit the platform
+key. **Owner's decision: keep everything as-is** (prices AND model). Safe because the app is
+on Gemini's FREE tier today (৳0 cost), the model is switchable anytime from the panel with no
+code change, and the panel will show real measured margins once traffic exists. Revisit with
+measured data before scaling paid traffic.
+
 ### Standing notes
 
 - Owner has NO bank account → SSLCommerz (which settles to a bank) is deferred; manual
