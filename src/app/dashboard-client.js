@@ -521,6 +521,33 @@ function ConnectCalendar({clientId,onDone}) {
   </OnboardFrame>;
 }
 
+// The bot stops answering the moment a plan lapses, and the only screen that
+// said so was Billing — one you have to go looking for. This says it on every
+// tab, because "my bot went quiet" is the one thing an owner must not learn
+// from a customer's complaint. `me.active` is planActive() on the server, the
+// same test the bot itself makes, so the banner cannot disagree with reality.
+function BotOffBanner({me,onFix}) {
+  if(!me||me.active!==false) return null;
+  const plan=String(me.client?.plan||"").trim().toLowerCase();
+  const why=plan==="trial"?"Your free trial has ended."
+    :(!plan||plan==="none")?"You do not have an active plan yet."
+    :"Your plan has expired.";
+  return <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",
+    background:T.dangerBg,border:`1px solid ${T.danger}`,borderRadius:12,
+    padding:"13px 15px",marginBottom:14}}>
+    <i className="ti ti-alert-circle" style={{fontSize:20,color:T.danger,flexShrink:0}}/>
+    <div style={{flex:1,minWidth:180}}>
+      <div style={{fontSize:13.5,fontWeight:700,color:T.text}}>Your bot is switched off</div>
+      <div style={{fontSize:12.5,color:T.textMuted,marginTop:2}}>
+        {why} Customers messaging you are not getting answers.
+      </div>
+    </div>
+    <Btn gold onClick={onFix} style={{flexShrink:0}}>
+      <i className="ti ti-arrow-up-circle" style={{marginRight:6}}/>Renew or upgrade
+    </Btn>
+  </div>;
+}
+
 export default function Dashboard() {
   const isMobile=useIsMobile();
   // The popstate handler below is wired up once, on mount (see its effect's
@@ -878,6 +905,9 @@ export default function Dashboard() {
       }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <div key={page} className="ui-page">
+            {/* Not on Billing: that tab already says "Expired" and offers the
+                same button, and two calls to action stacked read as a bug. */}
+            {page!=="billing"&&<BotOffBanner me={me} onFix={()=>setPage("billing")}/>}
             {/* The guide for this tab. Quiet inline text rather than a filled
                 bar or a button in the header — the same way Meta's own console
                 offers "Read docs" at the end of a description. Same place and
