@@ -34,12 +34,32 @@ sell, delivery, stock, size). NOT *"আপনাদের ছাড়কৃত 
   "wrong language", so a correct Banglish reply carrying a shop's Bengali brand name would
   have been sent back to the model and rewritten. It now measures the SHARE of Bengali
   letters (`bengaliShare`, cut at 0.25) — a name passes, Bengali prose still fails.
-- **The plan-blocked holding message was the one reply ignoring every language rule** —
-  hard-coded bilingual, both languages split by a slash (exactly what the rest of the
-  system forbids). It now picks one language from the customer's own message;
-  `handleUnavailable` takes the incoming text to do it.
+- Two hard-coded customer messages still ignore the language rules entirely and were NOT
+  touched (they fire while the plan is ACTIVE, so they are a separate job): the "we cannot
+  process video" reply and the "voice was unclear" reply in `handleIncoming`. Both are
+  fixed Bangla/bilingual strings regardless of what the customer wrote.
 - `tests/t-lang.mjs` — 26 tests, loaded through the `loadPure` shim (first suite to touch
   `bot.js`). Temp file must be named `tmp-*`; `.gitignore` only covers that prefix.
+
+### A lapsed subscription is now SILENT to the customer
+
+Owner's rule: **a customer must never see a reply once the subscription runs out.** It has
+to look like the business simply has not answered yet — never like a robot announcing that
+a bill is unpaid. Two paths sent one, and both are gone:
+
+- `handleUnavailable` (Messenger / Instagram / WhatsApp) no longer replies at all. It only
+  emails the owner, at most once a day, exactly as before.
+- The website widget could not just fall silent: **an empty `items` array is what
+  `public/widget.js` prints its "we couldn't get a reply" error for**, which is still a
+  message. So `/api/widget/chat` returns `{ items: [], bot: false, off: true }` and the
+  widget returns early on `off`. Both halves are needed — changing only the server would
+  have swapped one visible message for another.
+- The customer's own message is still buffered before the check, so nothing is lost: it is
+  waiting in the inbox the moment the plan is renewed.
+- **`notifyBotBlocked` used to tell the owner "we are replying to them with a short holding
+  message"** — that became a lie the moment the reply was removed, so the email now says
+  the bot stays silent and their messages are saved. An email that describes behaviour has
+  to be edited WITH the behaviour.
 
 ### The dashboard now says when the bot is off
 
