@@ -4,7 +4,76 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-03) — Google Limited-Use reply, and manual mobile payment is LIVE
+## Last session (2026-09-06) — The bot drops প্রমিত Bangla, and the dashboard admits when it is off
+
+32 suites green. Both changes came from one screenshot the owner sent of his own
+Messenger test.
+
+### Bangla is written the way people chat, not the way books are written
+
+**⚠️ READ THIS BEFORE TOUCHING THE LANGUAGE RULES.** The owner said "Banglish" and I first
+built the wrong thing: I made the bot answer in Bangla words spelled in ENGLISH letters.
+That is not what he meant. He corrected it: **the reply stays in Bangla script.** What has
+to change is the REGISTER — the bot was writing প্রমিত (formal, literary) Bangla, which
+nobody types on Messenger, so a shop's reply read like a government notice.
+
+What he wants sounds like: *"আপনাদের অফার প্রাইস কত?"*, *"আপনারা কি এই অফারটা সেল করেন?"* —
+everyday spoken Bangla that keeps the English words customers themselves use (offer, price,
+sell, delivery, stock, size). NOT *"আপনাদের ছাড়কৃত মূল্য কত?"*.
+
+- **`BANGLA_STYLE` in `bot.js` is that rule, written once.** It carries the worked examples,
+  which are the part that actually moves the model, and is reused by `languageLock` (both
+  the Bangla and the Banglish branch), the public-comment prompt and the rewrite prompt so
+  the three cannot drift apart. `FIXED_BASE` rule 5 points at it.
+- Script handling is UNCHANGED and must stay that way: Bangla in → Bangla script out,
+  Banglish in → Banglish out, English in → English out.
+- **Names are the owner's other rule:** product, package and option names go out exactly as
+  the business stored them — never translated, never transliterated. Stated in every
+  `languageLock` branch and in the rewrite prompt.
+- **The trap this hit:** `enforceLanguage` called ANY Bengali character in a Banglish reply
+  "wrong language", so a correct Banglish reply carrying a shop's Bengali brand name would
+  have been sent back to the model and rewritten. It now measures the SHARE of Bengali
+  letters (`bengaliShare`, cut at 0.25) — a name passes, Bengali prose still fails.
+- **The plan-blocked holding message was the one reply ignoring every language rule** —
+  hard-coded bilingual, both languages split by a slash (exactly what the rest of the
+  system forbids). It now picks one language from the customer's own message;
+  `handleUnavailable` takes the incoming text to do it.
+- `tests/t-lang.mjs` — 26 tests, loaded through the `loadPure` shim (first suite to touch
+  `bot.js`). Temp file must be named `tmp-*`; `.gitignore` only covers that prefix.
+
+### The dashboard now says when the bot is off
+
+The bot stops answering the moment a plan lapses, and the only screen that said so was
+Billing — one the owner has to go looking for. A banner now sits at the top of EVERY tab
+while the plan is not live: the reason (trial ended / no plan / expired), the plain fact
+that customers are not getting answers, and the one button that fixes it. Hidden on
+Billing, which already shows the same state and button.
+
+It reads **`me.active`**, which is `planActive()` on the server (`trialActive` in auth.js
+is just a rename of it) — the same test the bot itself makes, so banner and bot cannot
+disagree. No API change was needed; `/api/me` already returned it.
+
+**The owner email already existed and was already right** — `notifyBotBlocked` says the
+plan expired, that customers are not getting answers, and carries an "Upgrade now" button,
+at most once a day. Nothing to add there; the gap was only the dashboard.
+
+### Standing notes
+
+- **Bash heredocs here mangle backslashes** — `\\u0980` in a `<<'EOF'` heredoc reached
+  Python as a literal U+0980. Write patch scripts with the Write tool, or build escapes
+  from `chr(92)`. Cost three failed attempts this session.
+- `src/lib/bot.js` and most of `src/` are **CRLF**. A patch script must normalise to LF,
+  edit, and convert back, or every multi-line anchor silently misses.
+- JSX cannot be checked with `node --check`. Use Next's bundled Babel:
+  `require("./node_modules/next/dist/compiled/babel/parser.js")` with `plugins:["jsx"]`.
+- Minor, NOT fixed (found in passing): `/api/me` does not return `gcal_connected`, but
+  `dashboard-client.js` passes `me.client.gcal_connected` to `Bookings` as `calConnected`.
+  Harmless — Bookings fetches `/api/gcal/status` itself on mount — so it is at most a
+  one-frame flash of the wrong state.
+
+---
+
+## Earlier session (2026-09-03) — Google Limited-Use reply, and manual mobile payment is LIVE
 
 Pushed: `6704721` (privacy: no Google user data reaches any AI model), `84d3935`
 (SSLCommerz online payment gateway). One config-only change on Vercel (payment numbers) —

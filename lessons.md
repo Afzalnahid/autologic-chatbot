@@ -1191,3 +1191,41 @@ once as a grep that found nothing where the edit was supposed to be.
 - A "successful" edit that produces no diff is a failed edit. If a replace is used,
   grep for the new text afterwards — do not trust the exit code.
 - Single-line replaces are fine, and single-line is worth preferring for that reason.
+
+## Bash heredocs here mangle backslashes (2026-09-06)
+
+Writing a patch script with `python - <<'PYEOF'` (quoted, so nothing should expand),
+`"[\u0980-\u09FF]"` reached Python as the literal character U+0980 instead of the
+six-character regex source. Every anchor containing a backslash then matched nothing.
+Three attempts went by before the assertion message — which printed the string's repr —
+made it obvious.
+
+The CRLF trap sat underneath it: `src/` is CRLF, so LF anchors miss even when the
+escaping is right.
+
+**Rules:**
+- Write patch scripts with the Write tool, not a heredoc. If a heredoc is unavoidable,
+  build backslashes from `chr(92)` so nothing depends on the shell.
+- In a patch script, normalise to LF, edit, then convert back — do not hand-write `\r\n`.
+- Assert every anchor matches exactly once, and print `repr()` of the anchor on failure.
+  That message is what turned three blind retries into one obvious cause.
+- Prefer anchors with no backslashes at all: match a whole LINE by a plain marker.
+
+## Restating the request is not the same as showing the output (2026-09-06)
+
+The owner asked for replies in "Banglish". I restated it as a numbered list, he did not
+object, and I built the wrong thing: Bangla words spelled in English letters. He meant the
+opposite — keep Bangla script, drop the প্রমিত (formal) register and write the way people
+actually chat, English loanwords and all. A full implementation, its tests and a memory
+entry all had to be redone.
+
+The restatement was accurate to MY reading. That is exactly why it did not catch anything:
+he was agreeing with a sentence, not with a reply his customers would receive.
+
+**Rules:**
+- When a change alters what a CUSTOMER sees, show one before/after line of the real
+  output and get a yes on that, not on a description of it.
+- A word the owner uses for his own product ("Banglish", "offer", "package") is his
+  definition, not the dictionary's. Ask for one example of it.
+- Do not push while a wording decision is still fresh. Nothing had been pushed here, so
+  the fix was three local commits instead of a bad reply to a real customer.
