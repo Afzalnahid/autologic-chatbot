@@ -106,7 +106,7 @@ export async function botAllowed(channel, senderId) {
 
 // The bot cannot answer for a billing reason. Reply once so the customer is not
 // left hanging, and email the owner at most once a day so they can act.
-async function handleUnavailable(channel, senderId, block, platform) {
+async function handleUnavailable(channel, senderId, block, platform, incoming = "") {
   const client = block.client;
   if (!client) return;
 
@@ -118,7 +118,13 @@ async function handleUnavailable(channel, senderId, block, platform) {
       .eq("sender_id", senderId).eq("client_id", client.id).maybeSingle();
     const last = ct?.last_unavailable_at ? new Date(ct.last_unavailable_at) : null;
     if (!last || now - last > 12 * 3600 * 1000) {
-      const msg = "ধন্যবাদ মেসেজ করার জন্য! আমরা একটু পরেই আপনাকে জানাচ্ছি। / Thanks for your message! Our team will get back to you shortly.";
+      // One language, never both split by a slash — the same rule every AI reply
+      // follows. This was the one message in the system that ignored it.
+      const msg = {
+        English: "Thanks for your message! Our team will get back to you shortly.",
+        Banglish: "Message korar jonno dhonnobad! Amra ektu porei apnake janacchi.",
+        Bangla: "মেসেজের জন্য ধন্যবাদ! আমরা একটু পরেই আপনাকে জানাচ্ছি।",
+      }[detectLanguage(incoming)];
       const isWa = platform === "whatsapp";
       if (isWa) await waSendText(channel.access_token, channel.page_id, senderId, msg);
       else {
@@ -199,7 +205,7 @@ OUTPUT FORMAT:
 4. Keep every message short, natural, warm and confident. Never robotic, never repetitive.
 
 LANGUAGE & GREETING:
-5. Detect and match the customer's exact language and script every time: pure Bangla, pure English, or Banglish (Bangla in English letters). Reply in the same style they used.
+5. Detect and match the customer's exact language and script every time: pure Bangla, pure English, or Banglish (Bangla in English letters). Reply in the same style they used. Bangla always means everyday spoken Bangla, never formal or literary (প্রমিত) Bangla — the LANGUAGE block at the end says exactly how.
 6. Greet ONLY on the very first message of a new conversation. In an ongoing conversation, never greet again - answer directly.
 7. Address the customer politely and respectfully at all times, even if they are rude.
 
@@ -627,14 +633,43 @@ export function detectLanguage(text) {
   return "English";
 }
 
+// HOW Bangla is written, as opposed to WHICH language is used (owner's rule,
+// 2026-09-06). The script was never the problem — the register was. The bot was
+// answering in প্রমিত (formal, literary) Bangla, which nobody types on Messenger,
+// so a real shop's reply read like a government notice.
+//
+// Kept as one string used by every Bangla instruction in this file, because the
+// examples are the part that actually works on the model and they must not drift
+// between the reply prompt, the comment prompt and the rewrite prompt.
+export const BANGLA_STYLE =
+  "Write Bangla the way people actually chat in Bangladesh: everyday spoken Bangla, " +
+  "never formal or literary (প্রমিত) Bangla. Keep the English words customers themselves " +
+  "mix in — offer, price, sell, delivery, stock, size, order, confirm — instead of " +
+  "translating them. Say দাম or প্রাইস, not মূল্য; আর, not এবং; আছে, not রয়েছে. " +
+  "For example write \"আপনাদের অফার প্রাইস কত?\" or \"আপনারা কি এই অফারটা সেল করেন?\", " +
+  "never \"আপনাদের ছাড়কৃত মূল্য কত?\". Sound like a shopkeeper texting, not a notice.";
+
+// How much of the letters are Bengali script. "Wrong language" has to mean
+// Bengali PROSE, not one name: a Banglish reply may carry a product or package
+// name the business stored in Bengali, and that name is meant to go out exactly
+// as they wrote it. Returns 0 for text with no letters at all.
+export function bengaliShare(text) {
+  const t = String(text || "");
+  const bengali = (t.match(/[\u0980-\u09FF]/g) || []).length;
+  const latin = (t.match(/[A-Za-z]/g) || []).length;
+  const total = bengali + latin;
+  return total ? bengali / total : 0;
+}
+
 export function languageLock(lang) {
   const how = {
-    Bangla: "The customer wrote in Bangla. Write your entire reply in Bangla script only.",
-    Banglish: "The customer wrote Banglish (Bangla words in English letters). Write your entire reply the same way — Bangla words spelled in English letters, no Bengali script.",
+    Bangla: "The customer wrote in Bangla. Write your entire reply in Bangla script only. " + BANGLA_STYLE,
+    Banglish: "The customer wrote Banglish (Bangla words in English letters). Write your entire reply the same way — Bangla words spelled in English letters, no Bengali script. " + BANGLA_STYLE,
     English: "The customer wrote in English. Write your entire reply in English only. Do not use Bengali script anywhere — not in the greeting, not in prices, not in the closing line.",
   }[lang];
   return "\n\n[LANGUAGE — THIS OVERRIDES EVERY OTHER INSTRUCTION] " + how +
-    " Never send a bilingual reply with both languages separated by a slash. This applies even when the business profile, greeting, knowledge base or product data is written in another language: translate that content into the customer's language before answering.";
+    " Never send a bilingual reply with both languages separated by a slash. This applies even when the business profile, greeting, knowledge base or product data is written in another language: translate that content into the customer's language before answering." +
+    " Product, package and option NAMES are the one exception — send them exactly as they are given to you, never translated and never transliterated.";
 }
 
 // Asking the model nicely does not hold: with a Bangla conversation history it
@@ -648,9 +683,11 @@ async function enforceLanguage(items, lang, clientId) {
   const langAI = clientId ? await getClientAI(clientId, "bot.language").catch(() => null) : null;
   const rewrite = langAI ? langAI.chat : chatWithGemini;
   const hasBengali = (t) => /[\u0980-\u09FF]/.test(String(t || ""));
-  const wrong = items.some(it =>
-    it.text && (lang === "Bangla" ? !hasBengali(it.text) : hasBengali(it.text))
-  );
+  const misfit = (t) =>
+    lang === "Bangla" ? !hasBengali(t)
+      : lang === "Banglish" ? bengaliShare(t) > 0.25
+        : hasBengali(t);
+  const wrong = items.some(it => it.text && misfit(it.text));
   if (!wrong) return items;
 
   console.log("[language] reply came back in the wrong language, rewriting to", lang);
@@ -659,6 +696,8 @@ async function enforceLanguage(items, lang, clientId) {
     (lang === "Banglish" ? " (Bangla words written in English letters, no Bengali script)." : ".") +
     " Keep the meaning, the prices, the numbers, the line breaks and the tone exactly the same." +
     " Leave any URL, any {{PLACEHOLDER}} and any product code exactly as it is." +
+    " Leave product, package and option NAMES exactly as they are — never transliterate or translate a name, even one written in Bengali script." +
+    (lang === "English" ? "" : " " + BANGLA_STYLE) +
     " Reply with the rewritten message only — no preamble, no quotes, no explanation.";
 
   const out = [];
@@ -671,7 +710,7 @@ async function enforceLanguage(items, lang, clientId) {
       try {
         const fixed = await rewrite(system, [{ role: "user", content: it.text }]);
         const clean = String(fixed || "").trim();
-        const stillWrong = lang === "Bangla" ? !hasBengali(clean) : hasBengali(clean);
+        const stillWrong = misfit(clean);
         if (clean && !stillWrong) done = clean;
       } catch (e) {
         console.error("[language] rewrite attempt", attempt + 1, "failed:", e.message);
@@ -1049,7 +1088,7 @@ export async function handleIncoming(event) {
   if (!block.allowed) {
     // A deliberate pause stays silent; a billing stop tells both sides.
     if (!block.silent) {
-      await handleUnavailable(channel, event.senderId, block, event.platform || channel.platform);
+      await handleUnavailable(channel, event.senderId, block, event.platform || channel.platform, content);
     }
     return;
   }
@@ -1189,6 +1228,7 @@ export async function handleComment(event) {
     "(max 2 sentences). " +
     "LANGUAGE RULE (critical): reply in the EXACT same language and script the commenter used. " +
     "If they wrote in Bangla, reply only in Bangla. If they wrote in English, reply only in English. " +
+    BANGLA_STYLE + " " +
     "If they wrote Banglish (Bangla in English letters), reply in Banglish. Never mix two languages in one reply, and never default to English. " +
     "Do NOT output JSON, lists, links or prices unless the customer asked. " +
     "A short comment like \"how much?\" refers to the item in the post above — answer about that, never about a different product. " +
