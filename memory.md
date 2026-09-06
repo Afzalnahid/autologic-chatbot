@@ -4,7 +4,39 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-06) — The bot drops প্রমিত Bangla, and the dashboard admits when it is off
+## Last session (2026-09-07) — "First content should be with role 'user'"
+
+Owner's screenshot: adding a product with photos in the AI Assistant died on
+`[GoogleGenerativeAI Error]: First content should be with role 'user', got model`.
+
+**The SDK validates the history before any request leaves the machine**
+(`validateChatHistory` in `@google/generative-ai`): the first turn MUST be the user's. It
+does not check alternation — only that first turn, plus non-empty `parts`.
+
+And a real transcript legitimately starts with the assistant: `startInterview()` opens with
+`say({phase:"interview", key:"asst.photoFirst"})` — "attach the photo first" — so adding a
+photo sent a list whose first entry was the assistant's. The chat path escaped this only by
+accident: its filter is `m.phase === "chat" && m.content`, and key-only assistant lines have
+no `.content`. The interview path has no such filter.
+
+**Fixed in ONE place: `geminiTurns()` in `gemini.js`**, which every route passes through —
+it maps roles, drops empty turns, and drops the LEADING model turns. Dropped rather than
+padded with an invented user line: the line is the panel's own furniture, and putting words
+in the owner's mouth to keep it would be worse than losing it. `chatWithGemini` now sends
+`turns.slice(0,-1)` as history and the last turn as the prompt.
+
+**⚠️ This was also live in the customer-facing bot.** `getMemory()` takes the last 10
+`chat_memory` rows (descending, reversed) and maps `type === "ai"` → assistant. Rows are
+written in human/ai pairs, but a window can still open on an `ai` row — and
+`.filter(m => m.content)` can drop a leading empty human row and expose one. A real
+customer reply would have thrown the same error. `tests/t-gemini.mjs`, 18 tests.
+
+Only `chatWithGemini` uses `startChat`; vision, voice and embeddings call
+`generateContent` directly and have no history rule, so there is nothing else of this shape.
+
+---
+
+## Earlier session (2026-09-06) — The bot drops প্রমিত Bangla, and the dashboard admits when it is off
 
 32 suites green. Both changes came from one screenshot the owner sent of his own
 Messenger test.
