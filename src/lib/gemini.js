@@ -46,16 +46,43 @@ function report(opts, kind, model, response) {
   try { opts?.onUsage?.(kind, model, response); } catch { /* bookkeeping never breaks a reply */ }
 }
 
+// Turn our {role, content} list into the shape Gemini's SDK will accept.
+//
+// The SDK REFUSES a history that does not begin with the user — it throws
+// "First content should be with role 'user', got model" before any request is
+// made — and a real transcript legitimately begins with the assistant: the
+// product interview opens by asking for a photograph, so the panel's own first
+// line is the assistant's, and adding a photo then sent that list straight here.
+//
+// The leading model turns are DROPPED rather than padded with an invented user
+// turn: the line in question is the panel's own furniture ("attach the photo
+// first"), and putting words in the owner's mouth to keep it would be worse than
+// losing it. Done here, in the one place every route passes through, so no
+// caller has to remember the rule.
+export function geminiTurns(messages = []) {
+  const mapped = (Array.isArray(messages) ? messages : [])
+    // A turn with no text is not a turn, and an empty `parts` entry is one more
+    // thing the SDK rejects.
+    .filter((m) => m && m.content !== undefined && m.content !== null && String(m.content) !== "")
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: String(m.content) }],
+    }));
+  const from = mapped.findIndex((t) => t.role === "user");
+  // Nothing from the user at all: send the last thing said, with no history,
+  // rather than throwing away the only content there is.
+  return from === -1 ? mapped.slice(-1) : mapped.slice(from);
+}
+
 export async function chatWithGemini(systemPrompt, messages, model, opts = {}) {
   const run = async (id) => {
     const m = getGenAI(opts.apiKey).getGenerativeModel({ model: id, systemInstruction: systemPrompt });
-    const history = messages.slice(0, -1).map(msg => ({
-      role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msg.content }],
-    }));
+    const turns = geminiTurns(messages);
+    if (!turns.length) throw new Error("chatWithGemini: nothing to send");
+    const history = turns.slice(0, -1);
     const chat = m.startChat({ history });
-    const lastMsg = messages[messages.length - 1];
-    const result = await chat.sendMessage(lastMsg.content);
+    const lastMsg = turns[turns.length - 1];
+    const result = await chat.sendMessage(lastMsg.parts[0].text);
     report(opts, "chat", id, result.response);
     return result.response.text();
   };
