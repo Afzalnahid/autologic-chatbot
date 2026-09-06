@@ -104,43 +104,18 @@ export async function botAllowed(channel, senderId) {
   return { allowed: true, client };
 }
 
-// The bot cannot answer for a billing reason. Reply once so the customer is not
-// left hanging, and email the owner at most once a day so they can act.
-async function handleUnavailable(channel, senderId, block, platform, incoming = "") {
+// The bot cannot answer for a billing reason. The CUSTOMER is told nothing —
+// the owner's rule (2026-09-06): a lapsed subscription must look like the
+// business simply has not replied yet, not like a broken robot announcing that
+// its bill is unpaid. So this only emails the owner, at most once a day.
+//
+// The customer's message is still saved (handleIncoming buffers it before this
+// runs), so nothing is lost — it is waiting in the inbox the moment they renew.
+async function handleUnavailable(channel, senderId, block, platform) {
   const client = block.client;
   if (!client) return;
 
   const now = new Date();
-
-  // --- customer side: one polite reply per 12 hours, per person ---
-  try {
-    const { data: ct } = await sb().from("contacts").select("last_unavailable_at")
-      .eq("sender_id", senderId).eq("client_id", client.id).maybeSingle();
-    const last = ct?.last_unavailable_at ? new Date(ct.last_unavailable_at) : null;
-    if (!last || now - last > 12 * 3600 * 1000) {
-      // One language, never both split by a slash — the same rule every AI reply
-      // follows. This was the one message in the system that ignored it.
-      const msg = {
-        English: "Thanks for your message! Our team will get back to you shortly.",
-        Banglish: "Message korar jonno dhonnobad! Amra ektu porei apnake janacchi.",
-        Bangla: "মেসেজের জন্য ধন্যবাদ! আমরা একটু পরেই আপনাকে জানাচ্ছি।",
-      }[detectLanguage(incoming)];
-      const isWa = platform === "whatsapp";
-      if (isWa) await waSendText(channel.access_token, channel.page_id, senderId, msg);
-      else {
-        const { sendTextMessage } = await import("@/lib/messenger.js");
-        await sendTextMessage(channel.access_token, senderId, msg, channel.platform, channel.page_id);
-      }
-      await bufferInsert({
-        sender_id: senderId, client_id: client.id, role: "bot", status: "Replied",
-        message_content: msg, platform: platform || "facebook", page_id: channel.page_id || null,
-      });
-      await sb().from("contacts").upsert(
-        { sender_id: senderId, client_id: client.id, last_unavailable_at: now.toISOString() },
-        { onConflict: "client_id,sender_id" }
-      );
-    }
-  } catch (e) { console.error("unavailable reply:", e.message); }
 
   // --- owner side: at most one email per day ---
   try {
@@ -1088,7 +1063,7 @@ export async function handleIncoming(event) {
   if (!block.allowed) {
     // A deliberate pause stays silent; a billing stop tells both sides.
     if (!block.silent) {
-      await handleUnavailable(channel, event.senderId, block, event.platform || channel.platform, content);
+      await handleUnavailable(channel, event.senderId, block, event.platform || channel.platform);
     }
     return;
   }

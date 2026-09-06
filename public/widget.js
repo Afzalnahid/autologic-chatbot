@@ -226,6 +226,11 @@
       })
       .then(function (j) {
         typing(false);
+        // The business's plan has lapsed. Say NOTHING: their message is saved
+        // and waiting in the inbox, and a customer must never be shown that a
+        // subscription ran out. Checked before the empty-items branch below,
+        // because that branch's "couldn't get a reply" IS a message.
+        if (j && j.off) return;
         var items = j && j.items;
         if (!items || !items.length) {
           bubble(

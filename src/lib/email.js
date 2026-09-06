@@ -215,7 +215,8 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
       `${detail.body}
        <br/><br/>
        <strong style="color:#D92632">Customers messaging you right now are not getting answers.</strong>
-       We are replying to them with a short holding message so they are not left waiting, but that is not a substitute for your bot.
+       They are not told why — your bot simply stays silent, so nothing tells a customer that a subscription has lapsed.
+       Every message they send is still saved, and it will be waiting in your inbox the moment you renew.
        <br/><br/>
        <a href="https://www.getvoicium.com/dashboard#billing" style="display:inline-block;background:#D92632;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
        <br/><br/>

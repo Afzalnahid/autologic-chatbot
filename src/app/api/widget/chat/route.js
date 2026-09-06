@@ -93,15 +93,15 @@ export const POST = withErrors(async (request) => {
 
   const block = await botAllowed(channel, senderId);
   if (!block.allowed) {
-    // On the website the visitor is watching an empty panel, so silence is not an
-    // option the way it is on Messenger. Say something true and stop.
-    const note = "ধন্যবাদ! আপনার মেসেজটি পৌঁছেছে — আমাদের টিম শিগগিরই উত্তর দেবে। / Thanks! Your message has reached us and our team will reply shortly.";
-    await bufferInsert({
-      sender_id: senderId, client_id: clientId, role: "bot", status: "Replied",
-      message_content: note, platform: PLATFORM, page_id: channel.page_id || null,
-    });
+    // The visitor is told NOTHING — the owner's rule (2026-09-06): a lapsed
+    // subscription must not announce itself to a customer. `off` says so
+    // explicitly, because an empty `items` array is what the widget shows its
+    // "we couldn't get a reply" error for, and that is still a message.
+    //
+    // Their message is already saved above, so it is waiting in the inbox the
+    // moment the plan is renewed.
     console.log("[widget] bot not allowed:", block.reason, { clientId });
-    return NextResponse.json({ items: [{ type: "text_msg", text: note }], bot: false }, { headers: head });
+    return NextResponse.json({ items: [], bot: false, off: true }, { headers: head });
   }
 
   const client = block.client || (await getClient(clientId));
