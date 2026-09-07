@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import { T, Card, Btn, Badge, Inp, Select, Segmented, KStat, useIsMobile, taka, shortDate, fmtNum } from "./ui.js";
-import { api, apiJson } from "./session.js";
+import { apiJson } from "./session.js";
 import { useBackClose } from "./back.js";
 
 // The Orders tab: every order the bot recorded, with what the owner needs to
@@ -63,7 +63,11 @@ export default function Orders({ orders, refresh }) {
   };
   const remove = async (o) => {
     if (!confirm(`Delete order #${o.order_code}? This cannot be undone.`)) return;
-    await api("/api/orders", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: o.id }) }).catch(() => {});
+    // Check that the server actually deleted it. The old code swallowed every
+    // error and said "deleted" regardless, so a failed delete looked done until
+    // the list refreshed and the order came back.
+    const res = await apiJson("/api/orders", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: o.id }) }).catch(() => null);
+    if (!res || res.error) { setToast(res?.error ? `Could not delete: ${res.error}` : "Could not delete the order — please try again."); return; }
     setOpen(null); setToast("Order deleted"); refresh();
   };
 
