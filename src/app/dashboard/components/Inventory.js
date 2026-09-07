@@ -64,7 +64,7 @@ function Thumb({ p, size = 44, radius = 12 }) {
   </div>;
 }
 
-export default function Inventory({ products, refresh, intent }) {
+export default function Inventory({ products, refresh, intent, onIntentDone }) {
   const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
@@ -119,6 +119,11 @@ export default function Inventory({ products, refresh, intent }) {
     if (!intent?.at) return;
     if (intent.importer) { setPrefill(intent.prefill || null); setImporter(intent.importer); }
     if (intent.add) setEditor({ mode: "add" });
+    // Consume it. The intent is a ONE-SHOT request from the assistant; the page
+    // remounts on every tab switch (key={page} in the shell), so an intent left
+    // set would re-open its importer each time the owner came back to Inventory —
+    // which is how a stale "photos" intent popped the batch sheet open on its own.
+    onIntentDone?.();
   }, [intent?.at]);
 
   const list = useMemo(() => {
