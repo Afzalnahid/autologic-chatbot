@@ -4,7 +4,24 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, later) — One reply per burst (proper debounce)
+## Last session (2026-09-08, later) — One reply per burst, and the same order saved 4×
+
+### The same order saved four times
+
+Owner placed one test order and saw it saved 4× in the dashboard (dupes already deleted, so
+only 1 row remained to inspect). **Root cause is the double-reply bug below:** the bot
+composed a reply several times for one conversation, and each pass the model invented a
+FRESH `order_code`. The existing dedup and the `orders_one_per_code` unique index both key on
+`order_code`, so different codes slipped past both → four rows.
+
+- The debounce fix (below) removes the multiple composes, which is the primary fix.
+- Defence in depth: `isDuplicateOrder(recent, prodNames, totalStr)` (pure, `bot.js`) — a
+  second guard in `maybeSaveOrder`, checked before insert for a known sender: same customer +
+  same `product_names` + same `total` within the last **5 minutes** = the same order under a
+  different code, skip it. Matches all three to keep a genuine re-order from being blocked.
+  `tests/t-order-dup.mjs`, 10 tests.
+
+### One reply per burst (proper debounce)
 
 Owner: when the bot is typing and the customer sends another message, it replies twice; a
 burst within a few seconds should be understood together and answered once.

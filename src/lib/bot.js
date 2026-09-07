@@ -389,6 +389,19 @@ function parseReply(raw) {
 
 const num = (v) => { const n = Number(String(v ?? "").replace(/[^\d.]/g, "")); return Number.isFinite(n) ? n : 0; };
 
+// A second guard against a duplicate order, for the case the order_code check
+// cannot see: the model invented a FRESH order_code on a second pass (the
+// double-reply bug did exactly this, saving the same order four times). The same
+// customer, the same items and the same total within a few minutes is one order
+// arriving twice, not two orders. Pure, so the rule is tested rather than trusted.
+export function isDuplicateOrder(recentOrders, prodNames, totalStr) {
+  const pn = String(prodNames || "").trim();
+  const tt = String(totalStr || "").trim();
+  if (!pn && !tt) return false; // nothing to compare on — let it save
+  return (recentOrders || []).some((o) =>
+    String(o.product_names || "").trim() === pn && String(o.total_price || "").trim() === tt);
+}
+
 async function maybeSaveOrder(items, clientId, senderId, platform) {
   for (const it of items) {
     if (it.type !== "order" || !it.order_code) continue;
@@ -431,6 +444,23 @@ async function maybeSaveOrder(items, clientId, senderId, platform) {
     const subtotal = it.subtotal !== undefined ? num(it.subtotal) : lines.reduce((n, l) => n + l.qty * l.unit_price, 0);
     const delivery = num(it.delivery_charge), discount = num(it.discount);
     const total = num(it.total_price) || Math.max(0, subtotal + delivery - discount);
+    const prodNames = it.product_names || lines.map(l => l.name).join(", ");
+    const totalStr = String(total || it.total_price || "");
+
+    // Same customer, same items, same total in the last few minutes → the same
+    // order arriving twice under a different code. Skip it. Only for a known
+    // sender: a website order with no sender_id has no "this person" to match on.
+    if (senderId) {
+      const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recent } = await sb().from("orders")
+        .select("product_names,total_price")
+        .eq("client_id", clientId).eq("sender_id", senderId).gte("created_at", since).limit(20);
+      if (isDuplicateOrder(recent, prodNames, totalStr)) {
+        console.log(`[order] same items + total for this customer within 5 min — duplicate, not saving again`);
+        continue;
+      }
+    }
+
     await sb().from("orders").insert({
       client_id: clientId,
       sender_id: senderId || null,
@@ -447,9 +477,9 @@ async function maybeSaveOrder(items, clientId, senderId, platform) {
       notes: it.notes || null,
       platform: platform || null,
       product_ids: it.product_ids || lines.map(l => l.code).filter(Boolean).join(","),
-      product_names: it.product_names || lines.map(l => l.name).join(", "),
+      product_names: prodNames,
       quantity: it.quantity || String(lines.reduce((n, l) => n + l.qty, 0) || ""),
-      total_price: String(total || it.total_price || ""),
+      total_price: totalStr,
       image_urls: it.image_urls || lines.map(l => l.image_url).filter(Boolean).join(","),
       status: "Pending",
     });
