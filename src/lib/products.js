@@ -113,6 +113,67 @@ export async function uploadProductImage(clientId, file) {
   return supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
 }
 
+// ── Storage cleanup ──────────────────────────────────────────────────────────
+// Deleting a product deletes its ROW; the image FILES it pointed at used to be
+// left behind in the bucket for ever — orphans that fill the storage quota and
+// stay reachable by their public URL after the owner meant to delete them. These
+// three helpers remove them, and they are deliberately CAUTIOUS about what they
+// will touch: only this client's own product photos, never an imported external
+// URL and never a chat image.
+
+const IMAGE_BUCKET = "product-images";
+
+// Every image URL a product row points at — the primary, the gallery, and each
+// variant's own photo. Deduped, blanks dropped.
+export function productImageUrls(metadata = {}) {
+  const urls = [
+    metadata.image_url,
+    ...(Array.isArray(metadata.images) ? metadata.images : []),
+    ...(Array.isArray(metadata.variants) ? metadata.variants : []).map((v) => v?.image_url),
+  ];
+  return [...new Set(urls.map((u) => String(u || "").trim()).filter(Boolean))];
+}
+
+// The storage path inside product-images for a URL WE uploaded for THIS client's
+// product — or null for anything we must not delete:
+//   • an external URL (a WooCommerce/Shopify import points at their server), which
+//     has no /object/public/product-images/ segment at all;
+//   • a file under another client's folder (the path must start `<clientId>/`);
+//   • a chat image, which lives at `<clientId>/chat/…` and belongs to a
+//     conversation, not a product.
+// A product photo sits DIRECTLY under the client folder (`<clientId>/<file>`), so
+// anything with a further slash is refused — the safe default is to touch less.
+export function ownProductImagePath(url, clientId) {
+  const marker = `/object/public/${IMAGE_BUCKET}/`;
+  const s = String(url || "");
+  const at = s.indexOf(marker);
+  if (at === -1) return null;
+  let path = s.slice(at + marker.length).split("?")[0];
+  try { path = decodeURIComponent(path); } catch { /* keep the raw path */ }
+  const prefix = `${clientId}/`;
+  if (!clientId || !path.startsWith(prefix)) return null;
+  const rest = path.slice(prefix.length);
+  if (!rest || rest.includes("/")) return null; // chat/ images and anything nested
+  return path;
+}
+
+// Remove product image FILES from storage. Best-effort and never throws — a
+// failed cleanup must not fail (or undo) the delete that asked for it. Only ever
+// touches this client's own product photos (see ownProductImagePath), so passing
+// it a gallery that mixes in external or chat URLs is safe.
+export async function removeProductImages(clientId, urls) {
+  const paths = [...new Set((urls || []).map((u) => ownProductImagePath(u, clientId)).filter(Boolean))];
+  if (!paths.length) return { removed: 0, paths: [] };
+  try {
+    const { error } = await supabase.storage.from(IMAGE_BUCKET).remove(paths);
+    if (error) { console.error("[storage] product image cleanup failed:", error.message); return { removed: 0, paths, error: error.message }; }
+    return { removed: paths.length, paths };
+  } catch (e) {
+    console.error("[storage] product image cleanup threw:", e?.message || e);
+    return { removed: 0, paths, error: String(e?.message || e) };
+  }
+}
+
 // Reads every product field out of a multipart form (add and edit share it).
 // Returns { fields, files } — files are the new image uploads, in order.
 export function readProductForm(form) {

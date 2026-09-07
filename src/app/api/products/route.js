@@ -5,7 +5,7 @@ import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
-import { readProductForm, uploadProductImage, describeImages, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants } from "@/lib/products.js";
+import { readProductForm, uploadProductImage, describeImages, embedProduct, resolveGallery, resolveVariantImages, claimedByVariants, productImageUrls, removeProductImages } from "@/lib/products.js";
 import { findDuplicate, duplicateMessage, nameKey, codeKey, primaryPhotoKey } from "@/lib/duplicates.js";
 
 export const GET = withErrors(async (request) => {
@@ -123,6 +123,12 @@ export const PATCH = withErrors(async (request) => {
 
   const { error } = await supabase.from("products").update(patch).eq("id", id).eq("client_id", client.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // A photo removed from the gallery (or a replaced variant photo) is now
+  // referenced by nothing — delete the file too. Only the URLs that WERE on the
+  // product and are no longer, and only after the save succeeds, best-effort.
+  const kept = new Set(productImageUrls(next));
+  const dropped = productImageUrls(prev).filter((u) => !kept.has(u));
+  if (dropped.length) removeProductImages(client.id, dropped).catch(() => {});
   return NextResponse.json({ ok: true, id, product: { id, ...next }, reembedded: reembed, analyzeError });
 }, "products");
 
@@ -134,7 +140,13 @@ export const DELETE = withErrors(async (request) => {
   const body = await request.json().catch(() => ({}));
   const ids = Array.isArray(body.ids) ? body.ids.map(String).filter(Boolean) : (body.id ? [String(body.id)] : []);
   if (!ids.length) return NextResponse.json({ error: "id required" }, { status: 400 });
+  // Read the rows first so we still know which files to clean once they are gone.
+  const { data: rows } = await supabase.from("products").select("metadata").in("id", ids.slice(0, 500)).eq("client_id", client.id);
   const { error } = await supabase.from("products").delete().in("id", ids.slice(0, 500)).eq("client_id", client.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Then delete the image files — best-effort, AFTER the row is gone, so the
+  // storage bucket can never hold up (or fail) the delete the owner asked for.
+  const urls = (rows || []).flatMap((r) => productImageUrls(r.metadata || {}));
+  removeProductImages(client.id, urls).catch(() => {});
   return NextResponse.json({ status: "deleted", count: ids.length });
 }, "products");
