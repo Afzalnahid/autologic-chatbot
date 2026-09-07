@@ -4,7 +4,33 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-07, later) — Deleting a product now deletes its image files
+## Last session (2026-09-08) — Real customer names in the inbox (Conversations API, not the profile API)
+
+Inbox showed "User 5184" instead of names. Diagnosed against LIVE Meta with the page token:
+the direct **User Profile API** (`GET /{PSID}?fields=first_name,last_name,name`) answers
+**error 100 / subcode 33** for our app — it needs `pages_read_engagement`, which Meta
+**rejected** in review (the app is otherwise live and approved). But the **Conversations
+API** returns the same names and runs on the `pages_messaging` we DO have:
+`GET /{pageId}/conversations?platform=messenger|instagram&user_id={PSID}&fields=participants`
+→ the participant whose id === the PSID is the customer (the other is the page).
+
+- `bot.js`: `fetchNameViaConversations()` is now the primary name source for both Facebook
+  and Instagram (the old direct call is kept only as a fallback, in case the permission is
+  ever granted). `participantName(convJson, senderId)` is the pure picker — it must return
+  the CUSTOMER, never the page's own participant entry, or every chat would show the shop's
+  name. `tests/t-name.mjs`, 10 tests.
+- **Backfilled the existing nameless contacts:** `scripts/backfill-contact-names.mjs` (DRY
+  RUN default, `--write` to save). Ran it: 8 nameless contacts, **7 resolved and saved**
+  (1 unresolvable — website/WhatsApp or a deleted thread). Broker's BD's four now read
+  Nahid Afzal / Itz Gtk / Mahmudul Hasan Soyad / Møhąmmàđ Rīmõñ. WhatsApp names already come
+  from its webhook; comments already carry `senderName`.
+- **The rejected permission is the story:** if the owner ever wants the direct profile API
+  (e.g. profile pictures), `pages_read_engagement` has to be re-submitted and approved.
+  Names do NOT need it — the Conversations route covers them.
+
+---
+
+## Earlier session (2026-09-07, later) — Deleting a product now deletes its image files
 
 Owner asked: when I delete a product/order, is it really gone from Supabase? The ROWS were
 (products/orders `.delete()` scoped by client_id). **The image FILES were not** — deleting

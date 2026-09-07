@@ -902,6 +902,35 @@ function startTyping(channel, senderId, platform, msgId) {
   };
 }
 
+// The name that belongs to a sender, out of a Conversations API response — the
+// participant whose id is the sender's, never the page's own entry. Pure, so the
+// "don't show the page's name as the customer" rule can be tested without a
+// network call.
+export function participantName(convJson, senderId) {
+  const parts = convJson?.data?.[0]?.participants?.data || [];
+  const them = parts.find((p) => String(p?.id) === String(senderId));
+  return String(them?.name || "").trim();
+}
+
+// A customer's real name for the inbox. The direct User Profile API
+// (GET /{PSID}?fields=name) is gated behind pages_read_engagement / app review
+// and answers 100/33 for our app — but the Conversations API is covered by the
+// pages_messaging we already have, and the one thread this person shares with the
+// page carries their name. `platform` is "messenger" (Facebook) or "instagram".
+async function fetchNameViaConversations(pageId, senderId, token, platform) {
+  if (!pageId || !senderId || !token) return "";
+  try {
+    const json = await fetch(
+      `https://graph.facebook.com/v24.0/${pageId}/conversations?platform=${platform}` +
+      `&user_id=${encodeURIComponent(senderId)}&fields=participants&access_token=${token}`
+    ).then((r) => r.json());
+    return participantName(json, senderId);
+  } catch (e) {
+    console.error("[name] conversations lookup:", e.message);
+    return "";
+  }
+}
+
 export async function handleIncoming(event) {
   const channel = await getChannelByPage(event.pageId);
   if (!channel) return;
@@ -931,15 +960,25 @@ export async function handleIncoming(event) {
     } catch (e) { console.error("wa contact name:", e.message); }
   }
 
-  // Facebook: fetch the person's real name once, the first time we see them.
-  if (event.platform === "facebook") {
+  // Facebook & Instagram: fetch the person's real name once, the first time we
+  // see them. The Conversations API is the source that works under our approved
+  // permissions (see fetchNameViaConversations); the old direct User Profile
+  // call is kept only as a fallback in case that ever changes for a page.
+  if (event.platform === "facebook" || event.platform === "instagram") {
     try {
       const { data: existing } = await sb().from("contacts").select("name").eq("client_id", clientId).eq("sender_id", event.senderId).limit(1);
       if (!existing || !existing[0] || !existing[0].name) {
-        const prof = await fetch(
-          `https://graph.facebook.com/v24.0/${event.senderId}?fields=first_name,last_name,name&access_token=${channel.access_token}`
-        ).then(r => r.json()).catch(() => ({}));
-        const realName = prof.name || [prof.first_name, prof.last_name].filter(Boolean).join(" ").trim();
+        const convPlatform = event.platform === "instagram" ? "instagram" : "messenger";
+        let realName = await fetchNameViaConversations(channel.page_id, event.senderId, channel.access_token, convPlatform);
+        if (!realName) {
+          // Fallback: the direct profile endpoint. It answers 100/33 for us today,
+          // but costs one call and would work again if the permission is granted.
+          const base = event.platform === "instagram"
+            ? `https://graph.instagram.com/v21.0/${event.senderId}?fields=name,username`
+            : `https://graph.facebook.com/v24.0/${event.senderId}?fields=first_name,last_name,name`;
+          const prof = await fetch(`${base}&access_token=${channel.access_token}`).then(r => r.json()).catch(() => ({}));
+          realName = (prof.name || [prof.first_name, prof.last_name].filter(Boolean).join(" ").trim() || (prof.username ? "@" + prof.username : "")).trim();
+        }
         if (realName) {
           await sb().from("contacts").upsert(
             { sender_id: event.senderId, client_id: clientId, name: realName },
@@ -947,26 +986,7 @@ export async function handleIncoming(event) {
           );
         }
       }
-    } catch (e) { console.error("fb contact name:", e.message); }
-  }
-
-  // Instagram: prefer the real name, fall back to @username.
-  if (event.platform === "instagram") {
-    try {
-      const { data: existing } = await sb().from("contacts").select("name").eq("client_id", clientId).eq("sender_id", event.senderId).limit(1);
-      if (!existing || !existing[0] || !existing[0].name) {
-        const prof = await fetch(
-          `https://graph.instagram.com/v21.0/${event.senderId}?fields=name,username&access_token=${channel.access_token}`
-        ).then(r => r.json()).catch(() => ({}));
-        const displayName = prof.name || (prof.username ? "@" + prof.username : "");
-        if (displayName) {
-          await sb().from("contacts").upsert(
-            { sender_id: event.senderId, client_id: clientId, name: displayName },
-            { onConflict: "client_id,sender_id" }
-          );
-        }
-      }
-    } catch (e) { console.error("ig contact name:", e.message); }
+    } catch (e) { console.error("contact name:", e.message); }
   }
 
   if (event.video) {
