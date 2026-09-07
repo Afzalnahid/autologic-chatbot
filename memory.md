@@ -4,7 +4,18 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, evening) — Web Push notifications (phone/browser)
+## Last session (2026-09-08, evening) — Notification bell dropdown + Web Push
+
+### The bell now opens an in-app notification center
+
+The header bell used to just open the inbox with an "active convos" count. It is now a
+`NotificationsBell` dropdown built from data the shell already holds (no fetch): conversations
+waiting for a reply (`status==="active"`) + recent orders, newest first. "Unread" = newer than
+the last time it was opened (localStorage `gv-notif-seen`); opening marks all read. Clicking an
+item navigates to its tab. The sidebar Inbox badge still uses `activeCount`. This is the IN-APP
+list; the phone push below is the separate "reach me when the app is shut".
+
+### Web Push notifications (phone/browser)
 
 Owner wanted Facebook-style notifications — chose real **push** (reaches the phone even when
 the dashboard is closed), for new order / new booking / handover / new message. Built the

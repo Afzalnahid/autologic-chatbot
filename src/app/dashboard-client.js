@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { T, words, useIsMobile, Btn, Card, Inp, Motion, Theme, useTheme, ThemeToggle, Select, Segmented, OnboardFrame, SAMPLE_ECOM, SAMPLE_AGENCY } from "./dashboard/components/ui.js";
 import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 import Broadcast from "./dashboard/components/Broadcast.js";
+import NotificationsBell from "./dashboard/components/NotificationsBell.js";
 import WebsiteWidget from "./dashboard/components/WebsiteWidget.js";
 import Billing from "./dashboard/components/Billing.js";
 import Analytics from "./dashboard/components/Analytics.js";
@@ -879,12 +880,7 @@ export default function Dashboard() {
             title="Sync" aria-label="Sync">
             <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>
           </button>}
-          <button onClick={()=>setPage("conversations")} className="pbtn" title="Open inbox"
-            aria-label={`Notifications${activeCount?`, ${activeCount} active`:""}`}
-            style={isMobile?{width:36,height:36,borderRadius:11}:undefined}>
-            <i className="ti ti-bell"/>
-            {activeCount>0&&<span className="pbadge">{activeCount>9?"9+":activeCount}</span>}
-          </button>
+          <NotificationsBell convos={convos} orders={orders} isMobile={isMobile} onNavigate={setPage}/>
           {!isMobile&&<LangToggle/>}
           {!isMobile&&<ThemeToggle mode={mode} toggle={toggleTheme}/>}
           {/* The avatar is where people expect their account to be, so it
