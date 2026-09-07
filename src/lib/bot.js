@@ -818,14 +818,52 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   return { items, bookingNote };
 }
 
+// How long a customer must be quiet before the bot answers, and the longest it
+// will ever hold a reply back if they keep typing. A burst of quick messages —
+// "bhai" … "ei ta ache?" … "price koto?" a second or two apart — should become
+// ONE reply, not three talking over each other. Change QUIET here to tune it.
+export const DEBOUNCE_QUIET_MS = 5000;
+export const DEBOUNCE_MAX_MS = 20000;
+
+// The debounce decision, kept pure so it can be tested without timers or the DB.
+// Given the pending rows (oldest→newest), the row THIS handler was started for,
+// and the clock, it says whether to stop (nothing pending), bail (a newer message
+// arrived, so ITS handler will answer for the whole burst), go (the customer has
+// gone quiet — answer now), or wait a little and look again.
+export function debounceDecision(rows, myRowId, nowMs, startMs, quietMs = DEBOUNCE_QUIET_MS, maxMs = DEBOUNCE_MAX_MS) {
+  if (!rows || !rows.length) return { action: "stop" };
+  const latest = rows[rows.length - 1];
+  if (myRowId && String(latest.id) !== String(myRowId)) return { action: "bail" };
+  const since = nowMs - new Date(latest.created_at).getTime();
+  if (since >= quietMs || (nowMs - startMs) >= maxMs) return { action: "go" };
+  return { action: "wait", waitMs: Math.max(50, Math.min(1200, quietMs - since)) };
+}
+
 export async function processConversation(channel, senderId, myRowId) {
   const clientId = channel.client_id;
   const client = await getClient(clientId);
   const bType = client?.business_type || "ecommerce";
-  if (channel.platform !== "whatsapp") await new Promise(r => setTimeout(r, 3000));
+
+  // Wait until the customer has been quiet for DEBOUNCE_QUIET_MS, re-checking who
+  // the latest message belongs to each round. Only the latest message's handler
+  // survives — an earlier one bails the moment a newer message lands — so N quick
+  // messages produce one combined reply instead of N. WhatsApp is left immediate
+  // (it delivers a message id we already dedupe on).
+  if (channel.platform !== "whatsapp") {
+    const start = Date.now();
+    for (;;) {
+      const pending = await pendingFor(senderId, clientId);
+      const d = debounceDecision(pending, myRowId, Date.now(), start);
+      if (d.action === "stop" || d.action === "bail") return;
+      if (d.action === "go") break;
+      await new Promise(r => setTimeout(r, d.waitMs));
+    }
+  }
 
   let rows = await pendingFor(senderId, clientId);
   if (!rows.length) return;
+  // WhatsApp skipped the loop above; the newest guard still stops an older
+  // handler from answering a burst the newest one will.
   const newest = rows[rows.length - 1];
   if (myRowId && newest.id !== myRowId) return;
 
@@ -860,13 +898,11 @@ export async function processConversation(channel, senderId, myRowId) {
   const aiText = items.filter(i => i.text).map(i => i.text).join("\n");
   await saveMemory(senderId, clientId, combined, aiText + (bookingNote ? "\n" + bookingNote : ""));
 
-  // If genuinely NEW customer messages arrived while we were composing, handle them
-  // once more. The status filter above already marked the current batch Replied, so
-  // only messages received after this point qualify — this prevents re-answering the
-  // same batch (which showed up as duplicate replies).
-  const orphans = await pendingFor(senderId, clientId);
-  const freshOrphans = orphans.filter(o => !ids.includes(o.id));
-  if (freshOrphans.length) await processConversation(channel, senderId, null);
+  // A message that arrives while we are composing is NOT re-processed here — that
+  // was a source of double replies, because that message already has its own
+  // handler (handleIncoming fires processConversation for every message), and its
+  // handler debounces and answers it. Re-processing it from here as well meant two
+  // replies racing for the same message. Its own quiet-period handler covers it.
 }
 
 // Meta's typing bubble expires on its own (Messenger ~20s, WhatsApp ~25s), so a

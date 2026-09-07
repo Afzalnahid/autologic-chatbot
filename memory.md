@@ -4,7 +4,32 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08) — Real customer names in the inbox (Conversations API, not the profile API)
+## Last session (2026-09-08, later) — One reply per burst (proper debounce)
+
+Owner: when the bot is typing and the customer sends another message, it replies twice; a
+burst within a few seconds should be understood together and answered once.
+
+Two double-reply sources in `processConversation`, both fixed:
+1. The old debounce was a FIXED 3s wait then a single newest-check. If a second message
+   arrived AFTER those 3s (while the first was composing), the first handler had already
+   passed the guard and committed — so both replied.
+2. The **orphan self-reprocess** at the end (`freshOrphans → processConversation(…, null)`)
+   re-answered messages that arrived during compose — but those messages ALREADY have their
+   own handler (handleIncoming fires one per message), so it raced its own handler and
+   double-replied. **Removed it.**
+
+Now: a **quiet-period debounce**. `debounceDecision(rows, myRowId, now, start)` is pure
+(→ stop / bail / go / wait) and `processConversation` loops on it, re-reading pending each
+round, until the customer has been quiet for `DEBOUNCE_QUIET_MS` (**5000**, one-line
+tunable) or `DEBOUNCE_MAX_MS` (20000) is hit. Only the LATEST message's handler survives —
+an older one bails the instant a newer message lands — so N quick messages → ONE combined
+reply. **WhatsApp is left immediate** (it carries a message id we already dedupe on); the
+change is Messenger/Instagram only. Trade-off the owner accepted: a single message now waits
+~5s before the reply. `tests/t-debounce.mjs`, 17 tests.
+
+---
+
+## Earlier session (2026-09-08) — Real customer names in the inbox (Conversations API, not the profile API)
 
 Inbox showed "User 5184" instead of names. Diagnosed against LIVE Meta with the page token:
 the direct **User Profile API** (`GET /{PSID}?fields=first_name,last_name,name`) answers
