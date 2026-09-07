@@ -671,7 +671,7 @@ function BookingDrawer({ b, isMobile, onClose, update, cancel }) {
         <button onClick={onClose} className="pbtn" aria-label="Close" style={{width:36,height:36,borderRadius:11,flexShrink:0}}><i className="ti ti-x" style={{fontSize:17}}/></button>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:isMobile?"14px 12px 24px":"18px 22px 30px",display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{flex:1,minHeight:0,overflowY:"auto",padding:isMobile?"14px 12px 24px":"18px 22px 30px",display:"flex",flexDirection:"column",gap:12}}>
         <Card>
           <H icon="ti-calendar-event" right={rel&&<span style={{fontSize:11.5,color:g==="past"?T.warn:T.textDim}}>{rel}</span>}>The meeting</H>
           <Row icon="ti-clock" label="When">

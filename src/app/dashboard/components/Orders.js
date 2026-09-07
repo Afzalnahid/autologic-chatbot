@@ -185,7 +185,7 @@ function OrderDrawer({ o, onClose, update, remove, busy, isMobile }) {
         </div>
         <button onClick={onClose} className="pbtn" aria-label="Close" style={{ width: 36, height: 36, borderRadius: 11 }}><i className="ti ti-x" style={{ fontSize: 17 }} /></button>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "14px 12px 24px" : "18px 22px 30px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: isMobile ? "14px 12px 24px" : "18px 22px 30px", display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Progress */}
         {o.status !== "Cancelled" && o.status !== "Returned" && <Card style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
