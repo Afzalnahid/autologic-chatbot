@@ -4,7 +4,36 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-07) — "First content should be with role 'user'"
+## Last session (2026-09-07, later) — Deleting a product now deletes its image files
+
+Owner asked: when I delete a product/order, is it really gone from Supabase? The ROWS were
+(products/orders `.delete()` scoped by client_id). **The image FILES were not** — deleting
+a product left every photo orphaned in the `product-images` bucket for ever, filling the
+quota and staying reachable by public URL (a gap against the privacy policy's deletion
+promise). Only knowledge-files were ever removed from storage.
+
+- **Two buckets-worth of care, one bucket:** `product-images` holds BOTH product photos
+  (`<clientId>/<file>`) AND chat images the owner/bot sent (`<clientId>/chat/<file>`, from
+  `send-media`). They are separated by path, which is what makes cleanup safe.
+- **`ownProductImagePath(url, clientId)` in `products.js` is the guard** — returns a path to
+  delete ONLY for a file in our bucket, under THIS client's folder, directly under it (not
+  `chat/`, not nested), and never for an external import URL (WooCommerce/Shopify live on
+  their server). `productImageUrls(metadata)` gathers primary + gallery + variant photos.
+  `removeProductImages` is best-effort and never throws.
+- Wired into `products/route.js`: DELETE reads the rows first, deletes them, then removes
+  the files after the row is gone (a slow bucket can't hold up the delete). PATCH removes
+  only the URLs that were on the product and are no longer (a photo dropped from the
+  gallery, a replaced variant photo). `tests/t-storage.mjs`, 13 tests on the guard.
+- **Old orphans:** `scripts/clean-orphan-product-images.mjs` — DRY RUN by default (lists
+  what it would remove and the space freed), `--delete` to actually remove. Uses the same
+  reference logic, skips chat/ and external URLs. Owner runs it with SUPABASE_URL +
+  SUPABASE_SERVICE_KEY (already in Vercel). NOT run yet — owner's task.
+- Files never shared between products (every upload is a unique `<ts>-<rand>` path, and
+  imports use external URLs), so deleting on one product's edit can't strip another's.
+
+---
+
+## Earlier session (2026-09-07) — "First content should be with role 'user'"
 
 Owner's screenshot: adding a product with photos in the AI Assistant died on
 `[GoogleGenerativeAI Error]: First content should be with role 'user', got model`.
