@@ -4,7 +4,20 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, later) — One reply per burst, and the same order saved 4×
+## Last session (2026-09-08, later) — One reply per burst, order saved 4×, and delete confirmation
+
+### Deleting an order — already worked, now honest about failure
+
+Owner asked to ensure deleting an order really removes it from the DB. It already did — the
+`/api/orders` DELETE does a hard `.delete().eq("id").eq("client_id")` on the service-role
+client (bypasses RLS). **Verified end-to-end against production**: inserted a throwaway order,
+deleted it with the route's exact query, confirmed 0 rows left, real order count untouched.
+The one real weakness: `Orders.js` `remove()` swallowed every error with `.catch(() => {})`
+and said "Order deleted" regardless, so a FAILED delete looked done until the list refreshed
+and the order reappeared — which reads as "delete doesn't persist". `remove()` now checks the
+response (`apiJson`) and only claims success when the server confirms it; dropped the unused
+`api` import. `76bbd0d`. (Bookings "cancel" is deliberately different — it keeps the row and
+removes the calendar event; not touched.)
 
 ### The same order saved four times
 
