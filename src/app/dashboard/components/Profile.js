@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Inp, Badge, Select } from "./ui.js";
 import { api, getSb, setAuthToken, apiJson } from "./session.js";
+import PushToggle from "./PushToggle.js";
 
 // The Profile tab, moved out of dashboard-client.js unchanged.
 
@@ -91,6 +92,7 @@ export default function Profile() {
   const planColor=p.plan==="pro"?T.success:p.plan==="trial"?T.gold:T.textDim;
 
   return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,alignItems:"start"}}>
+    <PushToggle/>
     <Card>
       <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20,paddingBottom:16,borderBottom:`0.5px solid ${T.border}`}}>
         <div style={{width:64,height:64,borderRadius:14,overflow:"hidden",flexShrink:0,background:T.bgAlt,border:`0.5px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center"}}>

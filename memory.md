@@ -4,7 +4,38 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, later) — One reply per burst, order saved 4×, and delete confirmation
+## Last session (2026-09-08, evening) — Web Push notifications (phone/browser)
+
+Owner wanted Facebook-style notifications — chose real **push** (reaches the phone even when
+the dashboard is closed), for new order / new booking / handover / new message. Built the
+whole Web Push stack:
+
+- **VAPID keys** generated (web-push). In `.env.local` locally + `.env.example` documented.
+  Env: `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (public), `VAPID_PRIVATE_KEY` (SECRET), `VAPID_SUBJECT`.
+- **`web-push` dependency added** (npm install crashed once — machine — retried, fine).
+- `docs/sql/2026-09-08-push-subscriptions.sql` — `push_subscriptions` table (one row per
+  device, unique endpoint, RLS on). **Owner must run it** (service key can't DDL via JS).
+- `src/lib/push.js` — `pushEnabled()`, `saveSubscription`, `removeSubscription`,
+  `sendPush(clientId, {title,body,url,tag})`. Fan-out to all the owner's devices, prunes
+  dead subs (404/410), never throws (a push must never break the order/reply that fired it).
+- `src/app/api/push/subscribe/route.js` — POST saves a subscription, DELETE removes it.
+- `public/sw.js` — service worker: `push` → showNotification, `notificationclick` → focus/
+  open the right dashboard tab.
+- `PushToggle.js` (in Profile) — "Turn on notifications": registers the SW, asks permission,
+  subscribes, POSTs the subscription. Handles unsupported / blocked / iOS-home-screen cases.
+- **Wired into `bot.js` (fire-and-forget):** new order (maybeSaveOrder), new booking
+  (maybeCreateBooking), and a customer message that STARTS a conversation
+  (`notifyIncomingMessage` — throttled to no prior message in 20 min, so a back-and-forth
+  does not buzz every line; a paused/handover chat still pushes, covering "needs you").
+
+**⚠️ Not live until the OWNER does three things:** (1) run the SQL, (2) set the 3 VAPID env
+vars in Vercel and redeploy, (3) open Profile → Turn on notifications and grant permission
+on each device. **iOS caveat:** web push needs the site added to the Home Screen first.
+After they subscribe I can send a test push from here (DB access + web-push) to verify.
+
+---
+
+## Earlier session (2026-09-08, later) — One reply per burst, order saved 4×, and delete confirmation
 
 ### Deleting an order — already worked, now honest about failure
 

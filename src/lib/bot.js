@@ -7,6 +7,7 @@ import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
 import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { getClientAI } from "@/lib/ai.js";
+import { sendPush } from "@/lib/push.js";
 // The SAME words that described the product when it was added. A customer's
 // photo and the catalogue photo are both put through this and the two
 // descriptions are embedded and compared, so a second wording here — however
@@ -483,6 +484,14 @@ async function maybeSaveOrder(items, clientId, senderId, platform) {
       image_urls: it.image_urls || lines.map(l => l.image_url).filter(Boolean).join(","),
       status: "Pending",
     });
+    // Tell the owner's phone. Fire-and-forget: a push must never hold up or fail
+    // the order it is announcing.
+    sendPush(clientId, {
+      title: "🛒 New order",
+      body: `${it.customer_name || "A customer"}${prodNames ? " · " + prodNames : ""}${totalStr ? " · ৳" + totalStr : ""}`,
+      url: "/dashboard#orders",
+      tag: "order-" + it.order_code,
+    }).catch(() => {});
   }
   return items.filter(it => it.type !== "order");
 }
@@ -575,6 +584,13 @@ async function maybeCreateBooking(items, client, senderId, platform) {
       });
       booked = true;
       bookingNote = `[A meeting was already booked for ${b.customer_name || "the customer"} on ${b.meeting_date || ""} ${b.meeting_time || ""}. Do not book again.]`;
+      // Notify the owner's phone — fire-and-forget.
+      sendPush(client.id, {
+        title: "📅 New booking",
+        body: `${b.customer_name || "A customer"}${b.service_want ? " · " + b.service_want : ""}${b.meeting_date ? " · " + b.meeting_date + " " + (b.meeting_time || "") : ""}`,
+        url: "/dashboard#orders",
+        tag: "booking-" + (eventId || meetingDateTime || Date.now()),
+      }).catch(() => {});
     } catch (e) { console.error("booking insert:", e.message); }
 
     // Put the real Meet link into the text. If Calendar is not connected we have no
@@ -997,6 +1013,30 @@ async function fetchNameViaConversations(pageId, senderId, token, platform) {
   }
 }
 
+// Push the owner when a customer STARTS a conversation — no message from this
+// person in the last 20 minutes — so a back-and-forth does not buzz on every
+// line. This also covers "a chat needs you": a paused/handover conversation still
+// receives the message, so the owner is told. Fire-and-forget; never blocks a reply.
+async function notifyIncomingMessage(clientId, senderId, content, thisAt) {
+  try {
+    const since = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+    let q = sb().from("message_buffer").select("id", { count: "exact", head: true })
+      .eq("client_id", clientId).eq("sender_id", senderId).eq("role", "customer").gte("created_at", since);
+    if (thisAt) q = q.lt("created_at", thisAt);
+    const { count } = await q;
+    if (count && count > 0) return; // mid-conversation, already notified at the start
+    const { data: ct } = await sb().from("contacts").select("name").eq("client_id", clientId).eq("sender_id", senderId).limit(1);
+    const name = ct?.[0]?.name || "A customer";
+    const preview = String(content || "").replace(/\s+/g, " ").slice(0, 80);
+    await sendPush(clientId, {
+      title: "💬 " + name,
+      body: preview || "sent you a message",
+      url: "/dashboard#conversations",
+      tag: "msg-" + senderId,
+    });
+  } catch (e) { console.error("[push] new-message notify:", e.message); }
+}
+
 export async function handleIncoming(event) {
   const channel = await getChannelByPage(event.pageId);
   if (!channel) return;
@@ -1144,6 +1184,7 @@ export async function handleIncoming(event) {
     message_content: content, attachments, platform: event.platform || channel.platform || "facebook",
     wa_msg_id: event.msgId || null, page_id: channel.page_id || null,
   });
+  notifyIncomingMessage(clientId, event.senderId, content, row?.created_at).catch(() => {});
 
   const block = await botAllowed(channel, event.senderId);
   if (!block.allowed) {
