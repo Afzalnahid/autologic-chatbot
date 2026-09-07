@@ -24,10 +24,19 @@ promise). Only knowledge-files were ever removed from storage.
   the files after the row is gone (a slow bucket can't hold up the delete). PATCH removes
   only the URLs that were on the product and are no longer (a photo dropped from the
   gallery, a replaced variant photo). `tests/t-storage.mjs`, 13 tests on the guard.
-- **Old orphans:** `scripts/clean-orphan-product-images.mjs` — DRY RUN by default (lists
-  what it would remove and the space freed), `--delete` to actually remove. Uses the same
-  reference logic, skips chat/ and external URLs. Owner runs it with SUPABASE_URL +
-  SUPABASE_SERVICE_KEY (already in Vercel). NOT run yet — owner's task.
+- **Old orphans — CLEANED 2026-09-07.** `scripts/clean-orphan-product-images.mjs` (DRY RUN
+  by default, `--delete` to act). Ran it against production: 50 product photos in the
+  bucket, 9 referenced by the 3 live products (D508/D509/D510), **41 orphans deleted (4.1 MB
+  freed)**. Cross-checked before deleting (a scratch verify script) that all 9 referenced
+  files existed and none was mis-classified as an orphan; re-checked after → 9 kept, 0
+  orphans. First dry-run once mis-listed 54/45 — a transient Supabase `list()` hiccup; a
+  re-run was stable at 50/41, so always run the dry-run twice before a destructive `--delete`.
+- **Local Supabase access now works from this machine.** `.env.local` had placeholder
+  `SUPABASE_URL` + a dummy `SUPABASE_SERVICE_KEY`; the owner supplied the real values and
+  they are now in `.env.local` (gitignored, never committed). This is why real data/tests
+  can be verified locally now. **⚠️ The service_role key was pasted in chat, so it should be
+  ROTATED** (Supabase → Settings → API → roll the service_role key, then update Vercel and
+  `.env.local`). Never put the key in `memory.md` or any tracked file.
 - Files never shared between products (every upload is a unique `<ts>-<rand>` path, and
   imports use external URLs), so deleting on one product's edit can't strip another's.
 
