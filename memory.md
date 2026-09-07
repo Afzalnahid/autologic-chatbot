@@ -4,7 +4,32 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, evening) — Notification bell dropdown + Web Push
+## Last session (2026-09-08, night) — Add-product wizard + confirming the bot's tiered image logic
+
+### The add-product drawer is a Details → Photos → Variants → Preview wizard
+
+The editor already had Details/Photos/Variants tabs but no linear flow and no preview, so it
+did not read as a step-by-step. Added a 4th **Preview** tab and a wizard: Back/Next in the
+footer walk `STEPS = [details, photos, variants, preview]`, a "Step N of 4" counter, and the
+final button is **Add product** only on the Preview step (adding no longer saves from a
+half-filled first tab). Editing keeps a "Save changes" button on every step (editing is
+fixing, not a wizard). The tabs still let you jump. Preview renders the product the way the
+bot presents it — primary photo, price, description, and each variant with ITS photo (a
+dashed box flags a colour with no image). `Inventory.js`.
+
+### The tiered image behaviour the owner asked for is MOSTLY already in the bot
+
+Owner wants: "powerbank ache?" → overview image; pick a capacity → that model's image; pick a
+colour → that colour's image. Reading `bot.js` FIXED prompt: **rule 18c already sends a
+variant's own photo when the customer picks it** ("the red one → show the red one"), and
+capacity→image works through product search. So the colour step works once each colour
+variant has an image set (the new Preview flags the ones that don't). **The one genuine gap
+is the "overview infographic on a general question"** — the 3 models are separate products,
+so a general query has no single overview to send. NOT built yet — needs a small design
+decision (a category/collection cover image, or a designated lead product). Flagged to the
+owner.
+
+### Notification bell dropdown + Web Push
 
 ### The bell now opens an in-app notification center
 

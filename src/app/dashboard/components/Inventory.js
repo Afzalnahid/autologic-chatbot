@@ -585,7 +585,13 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   const L = ({ children }) => <label style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>{children}</label>;
   const H = ({ icon, children, sub }) => <div style={{ margin: "4px 0 12px" }}><div style={{ fontSize: 13.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><i className={`ti ${icon}`} style={{ color: T.gold, fontSize: 16 }} />{children}</div>{sub && <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 3, lineHeight: 1.5 }}>{sub}</div>}</div>;
   const chip = (on) => ({ padding: "5px 11px", borderRadius: 999, border: `1px solid ${on ? T.gold : T.border}`, background: on ? T.goldBg : T.card, color: on ? T.gold : T.textMuted, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 0 });
-  const tabs = [{ value: "details", label: "Details", icon: "ti-forms" }, { value: "photos", label: "Photos", icon: "ti-photo", badge: gallery.length || undefined }, { value: "variants", label: "Variants", icon: "ti-versions", badge: f.variants.length || undefined }];
+  const tabs = [{ value: "details", label: "Details", icon: "ti-forms" }, { value: "photos", label: "Photos", icon: "ti-photo", badge: gallery.length || undefined }, { value: "variants", label: "Variants", icon: "ti-versions", badge: f.variants.length || undefined }, { value: "preview", label: "Preview", icon: "ti-eye" }];
+  // A linear "wizard": Details → Photos → Variants → Preview → Add. The tabs
+  // above still let the owner jump; these drive the Back/Next buttons in the
+  // footer and the final Add on the Preview step.
+  const STEPS = ["details", "photos", "variants", "preview"];
+  const stepIdx = Math.max(0, STEPS.indexOf(tab));
+  const goStep = (d) => setTab(STEPS[Math.min(STEPS.length - 1, Math.max(0, stepIdx + d))]);
 
   return <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", justifyContent: "flex-end" }}>
     <div onClick={(e) => e.stopPropagation()} className="inv-drawer" role="dialog" aria-modal="true" aria-label={edit ? "Edit product" : "Add product"}
@@ -750,18 +756,56 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
                 </div>}
           </Card>
         </>}
+
+        {tab === "preview" && <Card>
+          <H icon="ti-eye" sub="This is how the bot presents the product in chat. The first photo is sent first; each variant's own photo is sent when the customer picks that option.">Preview</H>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ width: 128, height: 128, borderRadius: 14, overflow: "hidden", background: T.bgAlt, boxShadow: T.nmSm, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {gallery[0]?.u ? <img src={gallery[0].u} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <i className="ti ti-photo" style={{ fontSize: 30, color: T.textDim }} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{f.product_name || <span style={{ color: T.textDim }}>No name yet</span>}</div>
+              {f.product_code && <div style={{ fontSize: 12, color: T.textDim, fontFamily: "monospace", marginTop: 2 }}>Code: {f.product_code}</div>}
+              <div style={{ fontSize: 15, fontWeight: 700, color: T.gold, marginTop: 8 }}>
+                {f.sale_price ? <>৳{f.sale_price} <span style={{ fontSize: 12, color: T.textDim, textDecoration: "line-through", fontWeight: 400 }}>৳{f.regular_price}</span></> : (f.regular_price ? `৳${f.regular_price}` : <span style={{ color: T.danger, fontSize: 12 }}>No price yet</span>)}
+              </div>
+              <div style={{ fontSize: 11.5, marginTop: 6, color: f.stock_status === "outofstock" ? T.danger : T.success }}>{f.stock_status === "outofstock" ? "Out of stock" : "In stock"}{f.stock_qty !== "" && f.stock_qty != null ? ` · ${f.stock_qty} left` : ""}</div>
+              {f.category && <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 4 }}>{f.category}</div>}
+            </div>
+          </div>
+          {f.description && <div style={{ fontSize: 13, color: T.text, lineHeight: 1.6, marginTop: 14, whiteSpace: "pre-wrap" }}>{f.description}</div>}
+          {gallery.length > 1 && <div style={{ display: "flex", gap: 6, marginTop: 12, flexWrap: "wrap" }}>{gallery.slice(1).map((g, i) => <img key={i} src={g.u} alt="" style={{ width: 46, height: 46, borderRadius: 9, objectFit: "cover", boxShadow: T.nmSm }} />)}</div>}
+          {f.variants.length > 0 && <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 11.5, color: T.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Options the customer picks</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {f.variants.map((v) => { const shot = varImg[v.id]?.u || (/^https?:\/\//.test(v.image_url || "") ? v.image_url : ""); const out = v.stock_status === "outofstock" || v.stock_qty === 0 || v.stock_qty === "0"; return <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, background: T.bgAlt, boxShadow: T.nmIn, opacity: out ? .6 : 1 }}>
+                <div style={{ width: 38, height: 38, borderRadius: 9, overflow: "hidden", background: T.card, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: shot ? "none" : `1px dashed ${T.borderStrong}` }}>{shot ? <img src={shot} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <i className="ti ti-photo-off" style={{ fontSize: 14, color: T.textDim }} />}</div>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name || "(unnamed)"}</span>
+                <span style={{ fontSize: 12.5, color: T.gold, fontWeight: 600 }}>{v.sale_price ? `৳${v.sale_price}` : v.regular_price ? `৳${v.regular_price}` : ""}</span>
+                <span style={{ fontSize: 11, color: out ? T.danger : T.success, flexShrink: 0 }}>{out ? "Out" : "In"}</span>
+              </div>; })}
+            </div>
+            <div style={{ fontSize: 11, color: T.textDim, marginTop: 8 }}><i className="ti ti-info-circle" style={{ marginRight: 4 }} />A variant with a dashed box has no photo — add one in the Variants step so the bot can show that colour when a customer asks for it.</div>
+          </div>}
+        </Card>}
       </div>
 
       <div style={{ padding: isMobile ? "10px 12px calc(10px + env(safe-area-inset-bottom))" : "14px 22px", background: T.card, boxShadow: "0 -4px 16px rgba(0,0,0,.06)", display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
         {err && <div style={{ width: "100%", fontSize: 12.5, color: T.danger, display: "flex", gap: 6, alignItems: "flex-start" }}><i className="ti ti-alert-circle" style={{ fontSize: 15, flexShrink: 0 }} /><span>{err}</span></div>}
         {edit && <Btn danger onClick={onDelete} disabled={busy} style={{ borderRadius: 12, background: T.dangerBg, color: T.danger }}><i className="ti ti-trash" style={{ marginRight: 5 }} />Delete</Btn>}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        {/* Step counter, so it reads as a wizard: "Step 2 of 4". */}
+        <span style={{ fontSize: 11.5, color: T.textDim, fontWeight: 600 }}>Step {stepIdx + 1} of {STEPS.length}</span>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
           <Btn onClick={onClose} disabled={busy} style={{ borderRadius: 12 }}>Cancel</Btn>
           {/* Offered only after the warning has been shown, never before. */}
           {dup && <Btn onClick={() => save(true)} disabled={busy} style={{ borderRadius: 12, background: T.warnBg, color: T.warn }}>Add anyway</Btn>}
-          {/* Also blocked while photos are still being resized: pressing save
-              mid-resize would upload whichever pictures happened to be ready. */}
-          <Btn gold onClick={() => save()} disabled={busy || prepping} style={{ borderRadius: 12, padding: "9px 22px" }}>{prepping ? "Preparing photos…" : busy ? (edit ? "Saving…" : "Adding & analysing…") : (edit ? "Save changes" : "Add product")}</Btn>
+          {stepIdx > 0 && <Btn onClick={() => goStep(-1)} disabled={busy} style={{ borderRadius: 12 }}><i className="ti ti-arrow-left" style={{ marginRight: 5 }} />Back</Btn>}
+          {/* Editing an existing product can be saved from any step; adding walks
+              the wizard to the Preview step, where the final button appears. */}
+          {edit && stepIdx < STEPS.length - 1 && <Btn onClick={() => save()} disabled={busy || prepping} style={{ borderRadius: 12 }}>{busy ? "Saving…" : "Save changes"}</Btn>}
+          {stepIdx < STEPS.length - 1
+            ? <Btn gold onClick={() => goStep(1)} style={{ borderRadius: 12, padding: "9px 20px" }}>Next<i className="ti ti-arrow-right" style={{ marginLeft: 5 }} /></Btn>
+            : <Btn gold onClick={() => save()} disabled={busy || prepping} style={{ borderRadius: 12, padding: "9px 22px" }}>{prepping ? "Preparing photos…" : busy ? (edit ? "Saving…" : "Adding & analysing…") : (edit ? "Save changes" : <><i className="ti ti-check" style={{ marginRight: 5 }} />Add product</>)}</Btn>}
         </div>
       </div>
     </div>
