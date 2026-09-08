@@ -127,7 +127,9 @@ it would add import churn without changing the bundle.
 **Client-facing** (all require a Supabase JWT, scoped by `requireClient`):
 `me`, `profile`, `profile-logo`, `settings`, `products`, `add-product`,
 `import-products` (WooCommerce **and** Shopify, chosen by `platform`),
-`import-one`, `import-url`, `orders`, `conversations`,
+`import-one`, `import-url`, `orders`, `conversations` (the chat LIST — a recent
+window across the account), `conversations/messages` (the FULL history of one
+chat, loaded when it is opened, so a long thread keeps every message),
 `contacts`, `channels`, `knowledge`, `bookings`, `analytics`, `billing`,
 `generate-prompt`, `send-message`, `send-media`.
 

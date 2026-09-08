@@ -60,7 +60,21 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   const selConvo = selId!=null ? allConvos.find(x=>String(x.id)===String(selId)) : null;
   const c = selConvo || (isMobile ? null : (convos[0]||null));
   const hasSel = !!selConvo;                       // a real conversation is chosen
-  const msgCount = c?.messages?.length || 0;
+  // The FULL history of the open chat, fetched on open (the list only carries a
+  // recent window, so a long chat was missing its older messages — like opening
+  // Messenger and seeing every message, not just the last few). `thread` is that
+  // full history; new messages that arrive after it loads are appended from the
+  // live list so nothing is missed while the chat stays open.
+  const [thread,setThread]=useState(null);
+  const [threadId,setThreadId]=useState(null);     // which chat `thread` belongs to
+  const shownMsgs = (()=>{
+    const live=c?.messages||[];
+    if(threadId!==(c?.id)||!thread) return live;   // history not loaded yet → show what we have
+    const lastT=thread.length?new Date(thread[thread.length-1].time).getTime():0;
+    const extra=live.filter(m=>new Date(m.time).getTime()>lastT);
+    return extra.length?[...thread,...extra]:thread;
+  })();
+  const msgCount = shownMsgs.length;
   // Desktop always shows a conversation; make it a STABLE pick, not the moving
   // top-of-list (which changed under you whenever a new message re-sorted the
   // list). Read the real width, not the isMobile state, which starts false on
@@ -170,6 +184,19 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   // never yanks them down while they are reading older messages (the old effect
   // ran on every render because `convos` is a fresh array each time, so any
   // background refresh scrolled to the bottom).
+  // Load the whole history when a conversation opens (or when it changes). Reset
+  // first so the previous chat's history never flashes under the new one.
+  useEffect(()=>{
+    const id=c?.id;
+    if(id==null){ setThread(null); setThreadId(null); return; }
+    let cancelled=false;
+    setThread(null); setThreadId(id);
+    api(`/api/conversations/messages?sender_id=${encodeURIComponent(id)}`)
+      .then(r=>r.json())
+      .then(d=>{ if(!cancelled && Array.isArray(d?.messages)) setThread(d.messages); })
+      .catch(()=>{ /* the recent window from the list still shows */ });
+    return ()=>{ cancelled=true; };
+  },[c?.id]);
   const atBottomRef=useRef(true);
   const pinBottom=(smooth)=>{ const el=chatRef.current; if(!el) return; if(smooth) el.scrollTo({top:el.scrollHeight,behavior:"smooth"}); else el.scrollTop=el.scrollHeight; };
   const onChatScroll=()=>{ const el=chatRef.current; if(el) atBottomRef.current=(el.scrollHeight-el.scrollTop-el.clientHeight)<80; };
@@ -181,6 +208,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   // Opening (or switching to) a conversation lands on the latest message
   // instantly, no animation — keyed on the shown conversation's id.
   useEffect(()=>{ if(!hasSel && isMobile) return; atBottomRef.current=true; pinBottom(false); },[c?.id]);
+  // When the full history arrives it adds OLDER messages above; jump straight to
+  // the bottom (the latest) instead of smooth-scrolling through all of it.
+  useEffect(()=>{ if(thread && threadId===(c?.id) && atBottomRef.current) pinBottom(false); },[thread]);
   // A NEW message scrolls down smoothly, but only if they were at the bottom.
   useEffect(()=>{ if(atBottomRef.current) pinBottom(true); },[msgCount]);
   // Fill the chat list from its own top to the bottom of the visible screen.
@@ -378,7 +408,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         </div>}
       </div>
       <div ref={chatRef} onScroll={onChatScroll} style={{flex:1,overflow:"auto",overscrollBehavior:"contain",WebkitOverflowScrolling:"touch",padding:20,display:"flex",flexDirection:"column",gap:12}}>
-        {(c.messages||[]).map((m,i)=>{
+        {shownMsgs.map((m,i)=>{
           const mine=m.role!=="customer";
           return <div key={i} style={{display:"flex",justifyContent:mine?"flex-end":"flex-start"}}>
           <div style={{maxWidth:"70%"}}>

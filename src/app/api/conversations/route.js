@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase.js";
 import { pageAll } from "@/lib/page.js";
 import { requireClient } from "@/lib/auth.js";
 import { runFollowups } from "@/lib/followup.js";
+import { shapeMessage } from "@/lib/messages-view.js";
 
 export async function DELETE(request) {
   try {
@@ -33,14 +34,16 @@ export async function GET(request) {
   }
 
   try {
-    // Scoped at the database, not afterwards in JavaScript: the 500-row limit must
-    // apply to this tenant's messages, or a busy platform pushes their own
-    // conversations out of the window and their inbox looks empty.
+    // This builds the conversation LIST — one row per chat, its latest message as
+    // the preview. The FULL history of a chat is loaded on open by
+    // /api/conversations/messages, so this window only has to be wide enough that
+    // every conversation still has at least its latest message in it. Only the
+    // columns the list needs, so a wider window stays a light poll.
     const { data: all } = await supabase.from("message_buffer")
-      .select("*")
+      .select("sender_id,role,message_content,attachments,created_at,status,platform,page_id")
       .eq("client_id", client.id)
       .order("created_at", { ascending: false })
-      .limit(500);
+      .limit(2000);
     const messages = all || [];
 
     // Paged: this only supplies names, but a short read means the
@@ -62,30 +65,10 @@ export async function GET(request) {
       return "User " + (sid || "").slice(-4);
     };
 
-    // Turn a stored bot reply (a JSON array of message objects) into readable text.
-    const humanize = (raw, role) => {
-      const s = String(raw || "");
-      if (role === "bot" && (s.trim().startsWith("[") || s.trim().startsWith("{"))) {
-        try {
-          const parsed = JSON.parse(s);
-          const arr = Array.isArray(parsed) ? parsed : [parsed];
-          const parts = arr.map(o => {
-            if (o.type === "text_msg" && o.text) return o.text;
-            if (o.type === "image_msg") return "🖼️ Image";
-            return "";
-          }).filter(Boolean);
-          if (parts.length) return parts.join("\n");
-        } catch { /* not JSON, fall through */ }
-      }
-      return s;
-    };
-
     const grouped = {};
     messages.forEach(m => {
       const sid = m.sender_id;
-      const role = m.role || "customer";
-      const rawContent = m.message_content || "";
-      const shown = role !== "bot" && rawContent.startsWith("IDENTIFIED ITEMS") ? "📷 Photo" : humanize(rawContent, role);
+      const shaped = shapeMessage(m);
       if (!grouped[sid]) {
         const platform = m.platform || "facebook";
         grouped[sid] = {
@@ -93,11 +76,10 @@ export async function GET(request) {
           // are newest-first, so the first row wins; null on old threads).
           id: sid, sender: displayName(sid, platform), platform, page_id: m.page_id || null,
           status: m.status === "Pending" ? "active" : "resolved",
-          lastMsg: shown.slice(0, 60), time: m.created_at, messages: [],
+          lastMsg: shaped.text.slice(0, 60), time: m.created_at, messages: [],
         };
       }
-      const attachments = (m.attachments || "").split(",").map(s => s.trim()).filter(Boolean);
-      grouped[sid].messages.push({ role, text: shown, attachments, time: m.created_at, status: m.status });
+      grouped[sid].messages.push(shaped);
     });
     const result = Object.values(grouped);
     result.forEach(c => c.messages.sort((a, b) => new Date(a.time) - new Date(b.time)));
