@@ -4,7 +4,32 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, late night) — Human replies now reach the bot's memory
+## Last session (2026-09-08, late night) — Usage counts bot replies, not the owner's manual ones
+
+Owner's rule: a counted/billable message is a **bot reply**, never the **page owner's manual
+(agent) reply** — but agent replies must still SHOW in the conversation. This surfaced right
+after the echo work, which added `role:"agent"` rows the admin dashboard was sweeping into its
+message counts.
+
+- **Done — admin dashboard** (`/api/admin/route.js`): per-client `messages*` tallies and the
+  `total_messages*` aggregates now count `role="bot"` only (was every role). `customer_messages_7d`
+  stays as the separate labelled traffic figure. Agent replies still render in the inbox.
+- **Owner also chose (Q&A): the plan LIMIT should count bot replies, not customer messages.**
+  NOT done yet — a real trap found: one bot reply = SEVERAL `message_buffer` rows (photo + text
+  + question = 3 rows), so counting raw `role="bot"` would over-bill 2-3×. Needs a per-reply-turn
+  unit. **Asked the owner** whether the limit counts each message bubble or each reply turn
+  (recommended per-turn) before touching billing. The customer→bot switch for the limit spans
+  bot.js checkQuota (×2), billing/route.js usageThisMonth/usageToday, me/route.js,
+  admin/client-detail, admin/packages, broadcast.js — all still on `role="customer"`, untouched
+  until confirmed. Leave the recipient-finding/followup/contacts customer filters alone.
+- **Remembered (auto-memory):** [[usage-counting-rule]], and a future **separate BYOK price
+  list** for clients on their own AI key ([[byok-separate-price-list]]).
+
+39/39 suites pass.
+
+---
+
+## Earlier session (2026-09-08, late night) — Human replies now reach the bot's memory
 
 Owner: "why are the human replies to customers not captured? the bot loses the context."
 Correct, and it was THREE bugs stacked (see `lessons.md`):

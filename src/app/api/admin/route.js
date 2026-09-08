@@ -91,8 +91,16 @@ export async function GET(request) {
 
   // Per-client counters, one pass each instead of a filter per client.
   const tally = (arr, pick) => { const m = new Map(); for (const x of arr) { const k = x.client_id; if (!m.has(k)) m.set(k, 0); if (!pick || pick(x)) m.set(k, m.get(k) + 1); } return m; };
-  const mAll = tally(msgs), m7 = tally(msgs, (x) => ts(x) > d7), m30 = tally(msgs, (x) => ts(x) > d30), mToday = tally(msgs, (x) => ts(x) >= dayStart);
-  const mPrev7 = tally(msgs, (x) => { const t = ts(x); return t > d14 && t <= d7; });
+  // The "messages" a client is credited with = what the BOT replied. A reply the
+  // owner typed by hand (role "agent") is NOT the bot working and must not be
+  // counted (owner's rule 2026-09-08); customer messages are traffic, not the
+  // bot's output. Both still SHOW in the conversation view — this only changes
+  // the number. (One bot reply is several rows here: a photo + text + question,
+  // so this is "bubbles the bot sent", not reply turns — fine for an activity
+  // figure; the plan LIMIT counts turns separately.)
+  const botMsgs = msgs.filter((x) => (x.role || "customer") === "bot");
+  const mAll = tally(botMsgs), m7 = tally(botMsgs, (x) => ts(x) > d7), m30 = tally(botMsgs, (x) => ts(x) > d30), mToday = tally(botMsgs, (x) => ts(x) >= dayStart);
+  const mPrev7 = tally(botMsgs, (x) => { const t = ts(x); return t > d14 && t <= d7; });
   const oAll = tally(orders), o7 = tally(orders, (x) => ts(x) > d7), bAll = tally(bookings), b7 = tally(bookings, (x) => ts(x) > d7);
   const pAll = tally(products), fAll = tally(files), cAll = tally(contacts);
   const lastActive = new Map();
@@ -146,8 +154,11 @@ export async function GET(request) {
     trial: planMix.trial || 0, starter: planMix.starter || 0, pro: planMix.pro || 0, agency: planMix.agency || 0, none: planMix.none || 0,
     paid_clients: paid.length, suspended: rows.filter((c) => c.suspended).length,
     ecommerce: clients.filter((c) => c.business_type !== "agency").length, agencies: clients.filter((c) => c.business_type === "agency").length,
-    total_messages: msgs.length, messages_today: msgs.filter((m) => ts(m) >= dayStart).length,
-    messages_7d: after(msgs, d7).length, messages_prev7: between(msgs, d14, d7).length, messages_30d: after(msgs, d30).length,
+    // Totals mirror the per-client figure above: bot replies only, never a
+    // hand-typed (agent) reply. customer_messages_7d stays as the separate,
+    // explicitly-labelled traffic figure.
+    total_messages: botMsgs.length, messages_today: botMsgs.filter((m) => ts(m) >= dayStart).length,
+    messages_7d: after(botMsgs, d7).length, messages_prev7: between(botMsgs, d14, d7).length, messages_30d: after(botMsgs, d30).length,
     customer_messages_7d: after(msgs, d7).filter((m) => (m.role || "customer") === "customer").length,
     total_orders: orders.length, orders_7d: after(orders, d7).length, orders_prev7: between(orders, d14, d7).length,
     total_bookings: bookings.length, bookings_7d: after(bookings, d7).length, bookings_prev7: between(bookings, d14, d7).length,
