@@ -164,6 +164,8 @@ const DICT = {
     "asst.rule.url": "Here is how it goes:\n1. Paste the address of one product page.\n2. I read the page — the name, the price, the photos.\n3. You check what I found and correct anything wrong.\n4. Nothing is saved until you press Add.",
     "asst.rule.woo": "Here is how it goes:\n1. Give me your WooCommerce address and its two keys, from WooCommerce → Settings → Advanced → REST API.\n2. I bring across every product with its photos.\n3. You check the list before anything is added.\n4. Your shop stays exactly as it is — nothing is changed there.",
     "asst.rule.open": "Open it",
+    "asst.overview.open": "Opening the overview image editor — pick the category, drop the image the bot should send, and add a short intro.",
+    "asst.overview.chip": "Category overview image",
 
     // The three questions asked once for a whole rail.
     "asst.batch.kind": "What kind of thing are these? One answer for all of them. (for example: Box T-shirt)",
@@ -565,6 +567,8 @@ const DICT = {
     "asst.rule.url": "নিয়মটা এরকম:\n১. একটা প্রোডাক্ট পেজের ঠিকানা পেস্ট করুন।\n২. আমি পেজটা পড়ব — নাম, দাম, ছবি।\n৩. আমি কী পেলাম দেখে নিন, ভুল থাকলে ঠিক করে দিন।\n৪. Add না চাপা পর্যন্ত কিছুই সেভ হবে না।",
     "asst.rule.woo": "নিয়মটা এরকম:\n১. আপনার WooCommerce ঠিকানা আর দুইটা কী দিন — WooCommerce → Settings → Advanced → REST API থেকে পাবেন।\n২. আমি সব প্রোডাক্ট ছবিসহ নিয়ে আসব।\n৩. কিছু যোগ হওয়ার আগে তালিকাটা দেখে নিন।\n৪. আপনার দোকান যেমন আছে তেমনই থাকবে — সেখানে কিছু বদলাবে না।",
     "asst.rule.open": "খুলুন",
+    "asst.overview.open": "ওভারভিউ ছবির এডিটর খুলছি — ক্যাটাগরি বাছুন, বট যে ছবিটা পাঠাবে সেটা দিন, আর ছোট একটা বর্ণনা লিখুন।",
+    "asst.overview.chip": "ক্যাটাগরি ওভারভিউ ছবি",
 
     "asst.batch.kind": "এগুলো কী জিনিস? সবগুলোর জন্য একটাই উত্তর। (যেমন: বক্স টি-শার্ট)",
     "asst.batch.kindPh": "যেমন: বক্স টি-শার্ট",

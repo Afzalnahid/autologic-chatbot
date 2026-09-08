@@ -11,6 +11,7 @@ import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
 import { buildVariants, parseAxes } from "@/lib/variants.js";
 import PhotoBatchSheet from "./PhotoBatch.js";
 import { ImportSheet } from "./Inventory.js";
+import { CategoryOverviewSheet } from "./CollectionOverview.js";
 
 // Look after the catalogue by talking to it — and add to it the same way.
 //
@@ -162,6 +163,11 @@ const DESTINATIONS = [
 // navigating away would be maddening.
 const GO_WORDS = /\b(go to|open|show me|take me to|switch to)\b|দেখাও|খোলো|নিয়ে যাও|যাও/i;
 
+// The category OVERVIEW image (bot.js rule 16b) — the cover the bot sends on a
+// broad "power bank ache?". Set in an editor, not by typing, so these phrases
+// open it instead of going to the model.
+const OVERVIEW_WORDS = /overview (image|photo|picture)|category (image|photo|picture|cover)|cover (image|photo|picture)|ওভারভিউ|ক্যাটাগরি(র)? ছবি|প্রধান ছবি|কভার ছবি/i;
+
 function destinationFor(text) {
   const s = String(text || "").toLowerCase();
   if (!GO_WORDS.test(s)) return null;
@@ -212,6 +218,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const openImporter = (kind, prefill = null) => { setImportPrefill(prefill || null); setImporter(kind); };
   const closeImporter = () => { setImporter(null); setImportPrefill(null); };
   useBackClose(!!importer, closeImporter);
+  // The category OVERVIEW image (the one the bot sends on a broad "power bank
+  // ache?") can't be set by typing, so the assistant opens its editor as an
+  // overlay here — same "stay on this tab" idea as the importers.
+  const [overviewOpen, setOverviewOpen] = useState(false);
 
   // Interview state. `mode` is what the composer and the send button are for.
   const [mode, setMode] = useState("chat");
@@ -344,6 +354,15 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // anywhere: these three questions have fixed answers and asking an AI what
     // "box t-shirt" means would be a cost and a wait for nothing.
     if (wiz) return answerWiz(q);
+
+    // "Set the category overview image" opens its editor, because a picture can't
+    // be typed. Matched here so it is instant and never reaches the model.
+    if (mode === "chat" && OVERVIEW_WORDS.test(q)) {
+      typed(q);
+      say({ key: "asst.overview.open" });
+      setOverviewOpen(true);
+      return;
+    }
 
     // "Show me the orders" — take them there rather than describing it. Matched
     // here, before any request, so it is instant and free.
@@ -822,6 +841,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     onClose={closeImporter} onDone={(msg) => { closeImporter(); refresh?.(); if (msg) setMsgs((s) => [...s, { role: "assistant", content: String(msg) }]); }} />}
   {importer && importer !== "photos" && <ImportSheet kind={importer} isMobile={isMobile}
     onClose={closeImporter} onDone={(msg) => { closeImporter(); refresh?.(); if (msg) setMsgs((s) => [...s, { role: "assistant", content: String(msg) }]); }} />}
+  {overviewOpen && <CategoryOverviewSheet catNames={categories} onClose={() => { setOverviewOpen(false); refresh?.(); }} />}
   <Card style={{ padding: 0, marginBottom: fullPage ? 0 : 14, overflow: "hidden", ...(fullPage ? { display: "flex", flexDirection: "column", height: isMobile ? "calc(100dvh - 190px)" : "calc(100vh - 150px)" } : {}) }}>
     {/* On its own page there is nothing to collapse into — the header is a
         title, not a switch. */}
@@ -1089,6 +1109,11 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             background: "none", border: `1px solid ${T.border}`, color: T.textMuted }}>
           <i className={`ti ${WAY_ICON[w]}`} style={{ marginRight: 5 }} />{t(`asst.way.${w}`)}
         </button>)}
+        {businessType !== "agency" && <button type="button" onClick={() => setOverviewOpen(true)} disabled={busy} className="ui-btn ob-chip"
+          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
+            background: "none", border: `1px solid ${T.border}`, color: T.textMuted }}>
+          <i className="ti ti-photo-star" style={{ marginRight: 5 }} />{t("asst.overview.chip")}
+        </button>}
       </div>}
     </div>}
   </Card>

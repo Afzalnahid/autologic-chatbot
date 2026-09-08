@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { T, Card, Btn } from "./ui.js";
+import { T, Card, Btn, Select } from "./ui.js";
 import { api, apiJson } from "./session.js";
+import { useBackClose } from "./back.js";
 
 // Category overview. A shop can sell one thing (a power bank) as several products
 // — 10k, 20k, 30k mAh. When a customer first asks broadly ("power bank ache?",
@@ -128,4 +129,34 @@ export default function CollectionOverview({ selectedCat, catNames = [], onGotoC
         </div>
       </div>}
   </Card>;
+}
+
+// The same editor as a standalone overlay, so the AI Assistant can open it on
+// its own tab (an image cannot be set by typing, so the owner drops it here).
+// A category picker sits on top; everything below is the card above, unchanged.
+export function CategoryOverviewSheet({ catNames = [], initialCat, onClose }) {
+  const [cat, setCat] = useState(initialCat || catNames[0] || "");
+  useBackClose(true, onClose);
+  const opts = (catNames.length ? catNames : []).map((c) => ({ value: c, label: c, icon: "ti-folder" }));
+  return <div onClick={onClose} style={{ position: "fixed", inset: 0, height: "100dvh", zIndex: 82, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 0 }}>
+    <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" style={{ width: "100%", maxWidth: 560, maxHeight: "94dvh", overflowY: "auto", background: T.bg, borderRadius: "22px 22px 0 0", boxShadow: T.nmOut, border: `1px solid ${T.border}`, padding: "18px 16px calc(18px + env(safe-area-inset-bottom))" }} className="ui-page">
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 11, background: `color-mix(in srgb, ${T.info} 12%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <i className="ti ti-photo-star" style={{ fontSize: 17, color: T.info }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Overview image for a category</div>
+          <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 1 }}>The image + intro the bot sends when a customer asks broadly about it.</div>
+        </div>
+        <button onClick={onClose} aria-label="Close" className="pbtn" style={{ width: 36, height: 36, borderRadius: 11 }}><i className="ti ti-x" style={{ fontSize: 17 }} /></button>
+      </div>
+      {catNames.length > 1 && <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: T.textDim, marginBottom: 6 }}>Category</div>
+        <Select value={cat} onChange={setCat} options={opts} wide />
+      </div>}
+      {catNames.length === 0
+        ? <div style={{ fontSize: 12.5, color: T.textMuted, padding: "10px 2px", lineHeight: 1.6 }}>Add a product first — the overview is set per category, and there are no categories yet.</div>
+        : <CollectionOverview selectedCat={cat || "all"} catNames={catNames} onGotoCategory={setCat} />}
+    </div>
+  </div>;
 }
