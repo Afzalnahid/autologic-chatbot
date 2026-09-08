@@ -54,10 +54,18 @@ export async function removeSubscription(endpoint) {
 // phone does not get retried for ever. `payload` is { title, body, url, tag }.
 export async function sendPush(clientId, payload = {}) {
   try {
-    if (!clientId || !configure()) return { sent: 0 };
+    if (!clientId) return { sent: 0, reason: "no_client" };
+    // The commonest live failure is the server missing its VAPID keys (set in
+    // the host's env, e.g. Vercel): subscribing still works because that only
+    // needs the PUBLIC key in the browser, but sending needs the PRIVATE key on
+    // the server — so pushes vanish silently. Say so out loud instead.
+    if (!configure()) {
+      console.error("[push] NOT configured — VAPID_PRIVATE_KEY / NEXT_PUBLIC_VAPID_PUBLIC_KEY missing on the server. Nothing was sent.");
+      return { sent: 0, reason: "not_configured" };
+    }
     const { data: subs } = await supabase.from("push_subscriptions")
       .select("endpoint,p256dh,auth").eq("client_id", clientId);
-    if (!subs || !subs.length) return { sent: 0 };
+    if (!subs || !subs.length) return { sent: 0, reason: "no_subscriptions" };
 
     const body = JSON.stringify({
       title: String(payload.title || "getvoicium"),
@@ -79,9 +87,9 @@ export async function sendPush(clientId, payload = {}) {
         else console.error("[push] send failed:", code, e?.body || e?.message || e);
       }
     }));
-    return { sent };
+    return { sent, subscriptions: subs.length };
   } catch (e) {
     console.error("[push] sendPush:", e?.message || e);
-    return { sent: 0 };
+    return { sent: 0, reason: "error" };
   }
 }

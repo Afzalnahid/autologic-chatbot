@@ -24,6 +24,7 @@ export default function PushToggle() {
   const [state, setState] = useState("checking"); // checking|on|off|denied|unsupported|unconfigured
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [test, setTest] = useState(""); // last test-push result message
 
   useEffect(() => {
     if (!VAPID) { setState("unconfigured"); return; }
@@ -75,6 +76,20 @@ export default function PushToggle() {
     setBusy(false);
   };
 
+  // Fire the same push path a real order uses. The result tells the owner
+  // exactly where the chain stands: delivered, server-not-configured, or no
+  // device subscribed here.
+  const sendTest = async () => {
+    setBusy(true); setTest("");
+    const r = await apiJson("/api/push/test", { method: "POST" }).catch(() => null);
+    setBusy(false);
+    if (!r) { setTest("Could not reach the server — try again."); return; }
+    if (r.reason === "not_configured") { setTest("The server has no notification keys set yet — notifications can't be sent until that's fixed."); return; }
+    if (r.reason === "no_subscriptions") { setTest("This device isn't subscribed. Turn notifications off and on again."); return; }
+    if ((r.sent || 0) > 0) { setTest(`Sent to ${r.sent} device${r.sent > 1 ? "s" : ""} — check your phone/notification tray.`); return; }
+    setTest("Nothing was sent. " + (r.reason ? `(${r.reason})` : ""));
+  };
+
   const Head = ({ children }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 700, marginBottom: 6 }}>
       <i className="ti ti-bell-ringing" style={{ fontSize: 18, color: T.gold }} />{children}
@@ -108,6 +123,9 @@ export default function PushToggle() {
             <span style={{ fontSize: 12.5, fontWeight: 700, color: T.success, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <i className="ti ti-circle-check-filled" />On for this device
             </span>
+            <button onClick={sendTest} disabled={busy} className="ui-btn" style={{ background: T.bgAlt, boxShadow: T.nmIn, border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, fontSize: 12.5, fontWeight: 600, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+              {busy ? "Sending…" : "Send a test"}
+            </button>
             <button onClick={disable} disabled={busy} className="ui-btn" style={{ background: "none", border: "none", color: T.textMuted, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
               {busy ? "…" : "Turn off"}
             </button>
@@ -115,6 +133,7 @@ export default function PushToggle() {
         : <Btn gold onClick={enable} disabled={busy}>
             <i className="ti ti-bell" style={{ marginRight: 6 }} />{busy ? "Turning on…" : "Turn on notifications"}
           </Btn>}
+      {test && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 10, background: T.bgAlt, boxShadow: T.nmIn, borderRadius: 10, padding: "8px 12px" }}>{test}</div>}
       {err && <div style={{ fontSize: 12, color: T.danger, marginTop: 10 }}>{err}</div>}
     </Card>
   );
