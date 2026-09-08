@@ -106,7 +106,7 @@ const DICT = {
     // as everything else on this list: the owner picks a language once, and
     // then the whole dashboard is in it — a chat that answers in English under
     // a Bangla screen is the one place that rule was still being broken.
-    "asst.intro": "Add products with the buttons below, or just say what you want — about your {n} products, your offers, or what the bot should know. Nothing is saved until you press a button.",
+    "asst.intro": "Just tell me what you want — add a product (attach its photo with 📎), set an offer, change a price, or teach the bot something. I'll ask if I need more, and show you every change before it happens. You have {n} products.",
     "asst.chip.add": "Add a new product",
     "asst.chip.noPrice": "Which products have no price?",
     "asst.chip.offer": "Make an Eid offer — 20% off everything",
@@ -249,7 +249,6 @@ const DICT = {
     "asst.aria": "Message the assistant",
 
     // Going somewhere else without leaving the conversation.
-    "asst.jump": "Or open",
 
     // ---- the confirmation cards ----
     // What the owner reads on a proposal before pressing the button. The two
@@ -519,7 +518,7 @@ const DICT = {
     "inv.offers": "অফার",
 
     // ---- the assistant's own conversation ----
-    "asst.intro": "নিচের বোতাম দিয়ে প্রোডাক্ট যোগ করুন, অথবা যা চান বলুন — আপনার {n}টা প্রোডাক্ট, অফার, বা বট কী জানবে তা নিয়ে। বোতাম না চাপা পর্যন্ত কিছুই সেভ হবে না।",
+    "asst.intro": "শুধু বলুন কী চান — প্রোডাক্ট যোগ করুন (📎 দিয়ে ছবি দিন), অফার দিন, দাম বদলান, বা বটকে কিছু শেখান। দরকার হলে জিজ্ঞেস করব, আর কিছু হওয়ার আগে দেখিয়ে দেব। আপনার {n}টা প্রোডাক্ট আছে।",
     "asst.chip.add": "একটা নতুন প্রোডাক্ট যোগ করুন",
     "asst.chip.noPrice": "কোন প্রোডাক্টের দাম দেওয়া নেই?",
     "asst.chip.offer": "ঈদের অফার দিন — সবকিছুতে ২০% ছাড়",
@@ -639,7 +638,6 @@ const DICT = {
     "asst.reading": "{total}টার মধ্যে {n} নম্বর ছবি পড়ছি…",
     "asst.aria": "সহকারীকে বার্তা",
 
-    "asst.jump": "অথবা খুলুন",
 
     "card.deleteProduct": "{name} মুছে ফেলুন",
     "card.deleteProductWhy": "প্রোডাক্ট আর তার ছবিগুলো ক্যাটালগ থেকে চলে যাবে। বট আর এটা কাউকে দেখাবে না।",

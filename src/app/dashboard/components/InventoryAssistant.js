@@ -653,6 +653,18 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     setMsgs((s) => [...s, { role: "assistant", phase: "interview", content: r.reply }]);
   };
 
+  // The attach button, from anywhere. Attaching a photo in plain chat means "add
+  // this product" — the commonest reason to hand the assistant a picture — so it
+  // starts the guided add with that photo. Mid-interview it just adds the photo.
+  const attach = (list) => {
+    const files = [...(list || [])];
+    if (!files.length) return;
+    if (interviewing) { addPhotos(files); return; }
+    setMode("interview"); setDraft(emptyDraft()); setVisual(""); setSaved(""); setDup(null); setRefused(false); setErr(""); seenPhotos.current = new Set();
+    setPhotos([]);       // chat-mode photos is already empty; make sure of it
+    addPhotos(files);    // appends to [] and reads them, then asks the next thing
+  };
+
   const addPhotos = async (list) => {
     const picked = [...list].filter((x) => x.type?.startsWith("image/"));
     if (!picked.length || busy) return;
@@ -894,27 +906,13 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           {/* No menu of buttons — this is a conversation. A few example prompts,
               the way Claude opens, so the owner knows the sort of thing they can
               just say; clicking one only fills the box's first message. */}
+          {/* Example prompts, the way Claude opens — clicking one just sends it.
+              No "or open" row of tabs: every tab is in the sidebar already, so a
+              second copy here was exactly the clutter the owner asked to remove. */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {EXAMPLE_KEYS.map((c) => <button key={c} type="button" onClick={() => ask(t(c))} className="ui-btn ob-chip"
               style={{ padding: "8px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>{t(c)}</button>)}
           </div>
-
-          {/* The rest of the dashboard, from inside the conversation. Only on
-              the assistant's own page — in the panel inside Inventory there is
-              a sidebar two inches away and this would be clutter. */}
-          {onGo && <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: .7, marginBottom: 8 }}>{t("asst.jump")}</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {JUMPS.map((p) => <button key={p} type="button" onClick={() => onGo(p)} className="ui-btn ob-chip"
-                /* 44px, not the 36 the other chips use: these are navigation,
-                   and a mis-tap here throws the owner onto the wrong page. */
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 20, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 44,
-                  fontWeight: p === "settings" ? 600 : 500,
-                  background: p === "settings" ? T.goldBg : T.bgAlt, border: `1px solid ${p === "settings" ? T.gold : T.border}`, color: p === "settings" ? T.gold : T.textMuted }}>
-                <i className={`ti ${JUMP_ICON[p]}`} style={{ fontSize: 15 }} />{t(`nav.${p}`)}
-              </button>)}
-            </div>
-          </div>}
         </div>}
 
         {/* Nothing is dropped from the array — a hidden line renders as null so
@@ -1088,14 +1086,14 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       {err && <div style={{ fontSize: 12.5, color: T.danger, display: "flex", gap: 6, marginBottom: 8, flexShrink: 0 }}><i className="ti ti-alert-circle" style={{ fontSize: 15, flexShrink: 0 }} /><span>{err}</span></div>}
 
       <form ref={formRef} onSubmit={(e) => { e.preventDefault(); ask(input); }} style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        {interviewing && <>
-          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
-          <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || prepping || photos.length >= MAX_PHOTOS}
-            aria-label={t("asst.photo.attach")} title={photos.length >= MAX_PHOTOS ? t("asst.photo.full", { max: MAX_PHOTOS }) : t("asst.photo.attach")} className="ui-btn"
-            style={{ width: 44, height: 44, flexShrink: 0, minHeight: 0, padding: 0, borderRadius: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <i className="ti ti-camera-plus" style={{ fontSize: 18 }} />
-          </button>
-        </>}
+        {/* Always here, like Claude's attach — a photo can be dropped in at any
+            point, not only mid-add. */}
+        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { attach(e.target.files); e.target.value = ""; }} />
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || prepping || (interviewing && photos.length >= MAX_PHOTOS)}
+          aria-label={t("asst.photo.attach")} title={interviewing && photos.length >= MAX_PHOTOS ? t("asst.photo.full", { max: MAX_PHOTOS }) : t("asst.photo.attach")} className="ui-btn"
+          style={{ width: 44, height: 44, flexShrink: 0, minHeight: 0, padding: 0, borderRadius: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <i className="ti ti-paperclip" style={{ fontSize: 18 }} />
+        </button>
         <input value={input} onChange={(e) => setInput(e.target.value)} disabled={busy}
           placeholder={wizStep ? t(wizStep.phKey, axis) : t(interviewing ? "asst.ph.answer" : "asst.ph.chat")} aria-label={t("asst.aria")}
           className="ui-inp" style={{ flex: 1, minWidth: 0, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 12, padding: "11px 14px", color: T.text, fontSize: 13, outline: "none", fontFamily: "inherit", boxShadow: T.nmIn }} />
