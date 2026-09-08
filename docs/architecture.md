@@ -54,6 +54,16 @@ Gemini, order/booking side effects. `processConversation()` wraps it for the pus
 channels (batching, typing, Graph send); `/api/widget/chat` calls it directly and
 returns the items to the browser. Every channel therefore shares one engine.
 
+**Pause / hand-off.** A conversation's bot can be switched off (`contacts.bot_enabled`,
+the chat's "Live" toggle) or a whole channel (`channels.bot_enabled`). While off, an
+incoming message is still saved (`status: "Pending"`) and the owner is still notified,
+but no reply is generated. A human reply — from the dashboard box (`/api/send-message`)
+or typed in the Messenger app (an `is_echo` webhook) — marks that contact's Pending
+customer rows `Replied`, so the backlog cannot pile up. When the owner switches the bot
+back ON for a conversation (`/api/contacts` PUT), if the last message is still an
+unanswered customer message the bot answers it then (`processConversation`, gated by the
+same `botAllowed` checks).
+
 Business owner (browser)
         │
         ▼

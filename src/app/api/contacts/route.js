@@ -1,8 +1,45 @@
 export const dynamic = "force-dynamic";
+// Re-enabling the bot can trigger a reply (LLM + Graph send), so allow room.
+export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { pageAll } from "@/lib/page.js";
 import { requireClient } from "@/lib/auth.js";
+import { botAllowed, processConversation } from "@/lib/bot.js";
+
+// When the owner turns the bot back ON for one conversation, answer the last
+// customer message that came in while it was paused. Only a genuinely unanswered
+// message is left "Pending" (a human reply clears them), so this is a no-op when
+// the owner already handled everything by hand. Best-effort and never throws —
+// the toggle itself must always succeed.
+async function replyToPending(client, senderId) {
+  try {
+    const { data: last } = await supabase.from("message_buffer")
+      .select("platform,page_id,role,status")
+      .eq("client_id", client.id).eq("sender_id", senderId)
+      .order("created_at", { ascending: false }).limit(1);
+    const top = last?.[0];
+    // Nothing waiting, or the last word was the business's — nothing to answer.
+    if (!top || top.role !== "customer" || top.status !== "Pending") return;
+    // The website widget has no channel to push a proactive reply to.
+    if (top.platform === "website") return;
+
+    const { data: chans } = await supabase.from("channels").select("*")
+      .eq("client_id", client.id).eq("status", "connected");
+    const ch = (top.page_id && (chans || []).find((c) => c.page_id === top.page_id))
+      || (chans || []).find((c) => c.platform === top.platform)
+      || (chans || [])[0];
+    if (!ch) return;
+
+    // botAllowed re-checks the (now enabled) contact, the channel, quota and
+    // suspension — so a lapsed plan or a paused channel still stays silent.
+    const block = await botAllowed(ch, senderId);
+    if (!block.allowed) return;
+    await processConversation(ch, senderId, null);
+  } catch (e) {
+    console.error("[contacts] reply-to-pending on enable:", e?.message || e);
+  }
+}
 
 export async function GET(request) {
   try {
@@ -125,6 +162,10 @@ export async function PUT(request) {
       : await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "client_id,sender_id" }).select("sender_id,bot_enabled");
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
     if (!saved || !saved.length) return NextResponse.json({ error: "Nothing was saved (no matching row)." }, { status: 500 });
+    // Turning the bot back ON for one conversation: answer the message that came
+    // in while it was off. (Global re-enable is left alone — it could span many
+    // waiting chats; this is the per-conversation switch the owner just flipped.)
+    if (bot_enabled === true && !isGlobal && sender_id) await replyToPending(client, sender_id);
     return NextResponse.json({ ok: true, saved });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

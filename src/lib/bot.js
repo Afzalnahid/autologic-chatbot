@@ -1136,6 +1136,11 @@ export async function handleIncoming(event) {
       page_id: channel.page_id || null,
       wa_msg_id: event.msgId || null,
     });
+    // The owner answered by hand, so the customer's pending messages are handled
+    // — clear them, so re-enabling the bot does not re-answer them (see
+    // send-message route for the same rule).
+    await sb().from("message_buffer").update({ status: "Replied" })
+      .eq("client_id", clientId).eq("sender_id", event.senderId).eq("role", "customer").eq("status", "Pending");
     await saveAgentTurn(event.senderId, clientId, text);
     return;
   }

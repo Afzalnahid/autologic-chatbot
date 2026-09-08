@@ -43,6 +43,12 @@ export async function POST(request) {
     await supabase.from("message_buffer").insert({
       sender_id, message_content: text, status: "Replied", role: "agent", client_id: client.id, platform, page_id: ch.page_id || null,
     });
+    // The human just answered, so the customer's messages up to now are handled —
+    // mark them Replied. Otherwise they stay "Pending" for ever, and re-enabling
+    // the bot would make it re-answer questions the owner already answered by hand.
+    await supabase.from("message_buffer")
+      .update({ status: "Replied" })
+      .eq("client_id", client.id).eq("sender_id", sender_id).eq("role", "customer").eq("status", "Pending");
     // The inbox row above is what the OWNER sees. This is what the BOT sees:
     // without it the bot kept answering as though the human had never replied,
     // re-asking answered questions and re-quoting agreed prices.
