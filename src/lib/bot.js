@@ -8,6 +8,7 @@ import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.
 import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { getClientAI } from "@/lib/ai.js";
 import { sendPush } from "@/lib/push.js";
+import { countBillableMessages } from "@/lib/message-usage.js";
 // The SAME words that described the product when it was added. A customer's
 // photo and the catalogue photo are both put through this and the two
 // descriptions are embedded and compared, so a second wording here — however
@@ -71,9 +72,8 @@ export async function botAllowed(channel, senderId) {
 
   if (allow.limit !== null && allow.limit !== undefined) {
     const since = allow.period === "day" ? startOfDayDhaka() : startOfMonthDhaka();
-    const { count } = await sb().from("message_buffer")
-      .select("id", { count: "exact", head: true })
-      .eq("client_id", client.id).eq("role", "customer").gte("created_at", since.toISOString());
+    // Counts BOT REPLIES this window, not customer messages (owner's rule).
+    const count = await countBillableMessages(client.id, since.toISOString());
     if ((count || 0) > allow.limit) {
       return {
         allowed: false,
@@ -93,10 +93,7 @@ export async function botAllowed(channel, senderId) {
   // decision for every windowed limit, so scrapes and this cannot disagree.
   const chLimit = channel.msg_limit_monthly ?? limits.messagesPerChannel;
   if (chLimit !== null && chLimit !== undefined && channel.page_id) {
-    const { count } = await sb().from("message_buffer")
-      .select("id", { count: "exact", head: true })
-      .eq("client_id", client.id).eq("role", "customer")
-      .eq("page_id", channel.page_id).gte("created_at", quotaWindowStart(client));
+    const count = await countBillableMessages(client.id, quotaWindowStart(client), channel.page_id);
     if ((count || 0) > chLimit) {
       return { allowed: false, reason: "quota_channel", client, used: count, limit: chLimit };
     }
@@ -137,9 +134,33 @@ async function handleUnavailable(channel, senderId, block, platform) {
 }
 
 export async function bufferInsert(row) {
-  const { data, error } = await sb().from("message_buffer").insert(row).select("id,created_at").single();
+  let { data, error } = await sb().from("message_buffer").insert(row).select("id,created_at").single();
+  // reply_turn arrived in a migration the owner runs by hand. Until it is there,
+  // insert the row WITHOUT the flag rather than losing the message from the inbox
+  // (usage counting falls back on its own side — see message-usage.js).
+  if (error && "reply_turn" in row && /reply_turn|column|schema cache|does not exist/i.test(error.message || "")) {
+    const { reply_turn, ...rest } = row;
+    ({ data, error } = await sb().from("message_buffer").insert(rest).select("id,created_at").single());
+  }
   if (error) console.error("buffer insert:", error.message);
   return data;
+}
+
+// The message_buffer rows for one bot reply. A reply is several bubbles — a
+// photo, the text, a follow-up question — and each is its own row so the inbox
+// shows them in order. Only the FIRST bubble is the counted "reply turn"
+// (reply_turn: true); the rest continue the same reply and are never counted, so
+// usage is measured per reply, not per bubble. Pure, so the "exactly one flag
+// per reply" rule is tested rather than trusted.
+export function botReplyRows(items, base) {
+  return (Array.isArray(items) ? items : []).map((it, i) => ({
+    ...base,
+    role: "bot",
+    status: "Replied",
+    message_content: it.type === "image_msg" ? "📷 Photo" : it.text,
+    attachments: it.type === "image_msg" ? it.url : null,
+    reply_turn: i === 0,
+  }));
 }
 
 async function pendingFor(senderId, clientId) {
@@ -982,13 +1003,8 @@ export async function processConversation(channel, senderId, myRowId) {
   const ids = rows.map(r => r.id);
   for (const id of ids) await sb().from("message_buffer").update({ status: "Replied" }).eq("id", id);
 
-  for (const it of items) {
-    await bufferInsert({
-      sender_id: senderId, client_id: clientId, role: "bot", status: "Replied",
-      message_content: it.type === "image_msg" ? "📷 Photo" : it.text,
-      attachments: it.type === "image_msg" ? it.url : null,
-      platform: channel.platform || "facebook", page_id: channel.page_id || null,
-    });
+  for (const row of botReplyRows(items, { sender_id: senderId, client_id: clientId, platform: channel.platform || "facebook", page_id: channel.page_id || null })) {
+    await bufferInsert(row);
   }
 
   const aiText = items.filter(i => i.text).map(i => i.text).join("\n");
@@ -1173,7 +1189,7 @@ export async function handleIncoming(event) {
     await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎥 Video", platform: event.platform || channel.platform || "facebook", page_id: channel.page_id || null });
     if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
     else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform, channel.page_id);
-    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook", page_id: channel.page_id || null });
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, reply_turn: true, platform: event.platform || channel.platform || "facebook", page_id: channel.page_id || null });
     return;
   }
 
@@ -1244,7 +1260,7 @@ export async function handleIncoming(event) {
     await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Replied", message_content: "🎤 (voice message — unclear)", platform: event.platform || channel.platform || "facebook", wa_msg_id: event.msgId || null, page_id: channel.page_id || null });
     if (isWa) await waSendText(channel.access_token, channel.page_id, event.senderId, msg);
     else await sendTextMessage(channel.access_token, event.senderId, msg, channel.platform, channel.page_id);
-    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, platform: event.platform || channel.platform || "facebook", page_id: channel.page_id || null });
+    await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied", message_content: msg, reply_turn: true, platform: event.platform || channel.platform || "facebook", page_id: channel.page_id || null });
     return;
   }
 
@@ -1487,7 +1503,7 @@ export async function handleComment(event) {
         // The DM lands in the customer's inbox, so it belongs in the DM thread.
         await bufferInsert({
           sender_id: event.senderId, client_id: clientId, role: "bot", status: "Replied",
-          message_content: dmText, platform: channel.platform, page_id: channel.page_id || null,
+          message_content: dmText, reply_turn: true, platform: channel.platform, page_id: channel.page_id || null,
         });
       }
     }

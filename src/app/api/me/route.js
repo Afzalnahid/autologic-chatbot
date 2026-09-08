@@ -6,6 +6,7 @@ import { warnIfExpiringSoon } from "@/lib/expiry.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka } from "@/lib/time.js";
 import { trialDays } from "@/lib/plan-limits.js";
+import { countBillableMessages } from "@/lib/message-usage.js";
 
 export const GET = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
@@ -14,10 +15,9 @@ export const GET = withErrors(async (request) => {
 
   // client_id filtered at the DB (not in JS afterwards — see lessons.md #14),
   // "today" anchored to Dhaka midnight (not UTC midnight / 6am Dhaka time).
-  const today = startOfDayDhaka();
-  const { count } = await supabase.from("message_buffer").select("id", { count: "exact", head: true })
-    .eq("client_id", client.id).eq("role", "customer").gte("created_at", today.toISOString());
-  const used = count || 0;
+  // Today's usage = bot replies today (owner's rule), matching what the trial's
+  // daily limit actually enforces in botAllowed.
+  const used = await countBillableMessages(client.id, startOfDayDhaka().toISOString());
 
   // The daily cron (/api/cron/expiry) is what really sends this. Opening the
   // dashboard checks too, as a safety net for a missed run — the same function,

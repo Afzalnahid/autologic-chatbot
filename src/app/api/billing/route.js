@@ -10,6 +10,7 @@ import { notifyPaymentRequest } from "@/lib/email.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { sslEnabled } from "@/lib/sslcommerz.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
+import { countBillableMessages } from "@/lib/message-usage.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
 
@@ -23,36 +24,14 @@ function paymentMethods() {
   return list;
 }
 
+// Usage the owner sees must equal what the plan limit enforces — both count BOT
+// REPLIES (owner's rule), so both go through countBillableMessages.
 async function usageThisMonth(clientId) {
-  const start = startOfMonthDhaka();
-  const { count, error } = await supabase
-    .from("message_buffer")
-    .select("id", { count: "exact", head: true })
-    .eq("client_id", clientId)
-    .eq("role", "customer")
-    .gte("created_at", start.toISOString());
-  // null, not 0, when the count could not be read. Zero is a COMFORTABLE
-  // number: it tells an owner sitting at their limit that they have used
-  // nothing, on the very screen they would use to decide whether to upgrade,
-  // and draws them an empty progress bar to prove it.
-  if (error) return null;
-  return count || 0;
+  return countBillableMessages(clientId, startOfMonthDhaka().toISOString());
 }
 
 async function usageToday(clientId) {
-  const start = startOfDayDhaka();
-  const { count, error } = await supabase
-    .from("message_buffer")
-    .select("id", { count: "exact", head: true })
-    .eq("client_id", clientId)
-    .eq("role", "customer")
-    .gte("created_at", start.toISOString());
-  // null, not 0, when the count could not be read. Zero is a COMFORTABLE
-  // number: it tells an owner sitting at their limit that they have used
-  // nothing, on the very screen they would use to decide whether to upgrade,
-  // and draws them an empty progress bar to prove it.
-  if (error) return null;
-  return count || 0;
+  return countBillableMessages(clientId, startOfDayDhaka().toISOString());
 }
 
 export const GET = withErrors(async (request) => {

@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
+import { countBillableMessages } from "@/lib/message-usage.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -38,10 +39,8 @@ async function subscriptionOf(client, payments, used) {
   // actually metered on — a trial by the day, a package by the month. An
   // exact count rather than a row read, so it cannot be capped.
   const since = isTrial ? startOfDayDhaka() : startOfMonthDhaka();
-  const { count: usedMsgs } = await supabase.from("message_buffer")
-    .select("id", { count: "exact", head: true })
-    .eq("client_id", client.id).eq("role", "customer")
-    .gte("created_at", since.toISOString());
+  // Bot replies against the allowance — the same measure the limit enforces.
+  const usedMsgs = await countBillableMessages(client.id, since.toISOString());
 
   return {
     plan: client.plan,

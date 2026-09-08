@@ -3,7 +3,7 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
-import { composeReply, botAllowed, bufferInsert, saveMemory, getClient } from "@/lib/bot.js";
+import { composeReply, botAllowed, bufferInsert, botReplyRows, saveMemory, getClient } from "@/lib/bot.js";
 import { rateLimit } from "@/lib/rate-limit.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { originAllowed } from "@/lib/widget.js";
@@ -120,13 +120,8 @@ export const POST = withErrors(async (request) => {
     .update({ status: "Replied" })
     .eq("client_id", clientId).eq("sender_id", senderId).eq("status", "Pending");
 
-  for (const it of items) {
-    await bufferInsert({
-      sender_id: senderId, client_id: clientId, role: "bot", status: "Replied",
-      message_content: it.type === "image_msg" ? "📷 Photo" : it.text,
-      attachments: it.type === "image_msg" ? it.url : null,
-      platform: PLATFORM, page_id: channel.page_id || null,
-    });
+  for (const row of botReplyRows(items, { sender_id: senderId, client_id: clientId, platform: PLATFORM, page_id: channel.page_id || null })) {
+    await bufferInsert(row);
   }
 
   const aiText = items.filter((i) => i.text).map((i) => i.text).join("\n");

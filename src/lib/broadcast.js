@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { messageAllowance } from "@/lib/plan-limits.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
+import { countBillableMessages } from "@/lib/message-usage.js";
 
 // A website visitor has no address to send to once the tab is closed, so the
 // website channel cannot be broadcast to at all.
@@ -215,14 +216,15 @@ export async function remainingQuota(client) {
   const start = allow.period === "day" ? startOfDayDhaka() : startOfMonthDhaka();
   const since = start.toISOString();
 
-  const [msgQ, bcQ] = await Promise.all([
-    supabase.from("message_buffer").select("id", { count: "exact", head: true })
-      .eq("client_id", client.id).eq("role", "customer").gte("created_at", since),
+  const [msgUsed, bcQ] = await Promise.all([
+    // The conversational half of the allowance is bot replies (owner's rule),
+    // the same measure the message limit enforces; broadcasts sent add on top.
+    countBillableMessages(client.id, since),
     supabase.from("broadcast_recipients").select("id", { count: "exact", head: true })
       .eq("client_id", client.id).eq("status", "sent").gte("sent_at", since),
   ]);
 
   const limit = allow.limit;
-  const used = (msgQ.count || 0) + (bcQ.count || 0);
+  const used = (msgUsed || 0) + (bcQ.count || 0);
   return { limit, used, remaining: Math.max(0, limit - used), unlimited: false, period: allow.period };
 }

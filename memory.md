@@ -14,18 +14,30 @@ message counts.
 - **Done — admin dashboard** (`/api/admin/route.js`): per-client `messages*` tallies and the
   `total_messages*` aggregates now count `role="bot"` only (was every role). `customer_messages_7d`
   stays as the separate labelled traffic figure. Agent replies still render in the inbox.
-- **Owner also chose (Q&A): the plan LIMIT should count bot replies, not customer messages.**
-  NOT done yet — a real trap found: one bot reply = SEVERAL `message_buffer` rows (photo + text
-  + question = 3 rows), so counting raw `role="bot"` would over-bill 2-3×. Needs a per-reply-turn
-  unit. **Asked the owner** whether the limit counts each message bubble or each reply turn
-  (recommended per-turn) before touching billing. The customer→bot switch for the limit spans
-  bot.js checkQuota (×2), billing/route.js usageThisMonth/usageToday, me/route.js,
-  admin/client-detail, admin/packages, broadcast.js — all still on `role="customer"`, untouched
-  until confirmed. Leave the recipient-finding/followup/contacts customer filters alone.
+- **Done — the plan LIMIT now counts bot REPLY TURNS** (owner chose "per reply = 1", not per
+  bubble). The trap: one reply = several `message_buffer` rows (photo + text + question), so
+  raw `role="bot"` over-counts (live check: 37 bot rows vs 23 customer msgs for one client).
+  Fix: `botReplyRows(items, base)` (bot.js, pure, tested) flags EXACTLY the first bubble
+  `reply_turn:true`; the main path, the widget, the canned video/voice replies and the
+  comment→DM reply all go through it or set the flag. New `src/lib/message-usage.js`
+  `countBillableMessages(clientId, since, pageId?)` counts `role="bot" AND reply_turn=true`,
+  and — until the column exists — **falls back to counting customer messages** so a limit is
+  never silently unenforced (verified live: the reply_turn query errors → fallback returns the
+  customer count). Wired into: botAllowed (×2), billing usageThisMonth/usageToday, me/route,
+  admin/client-detail. `bufferInsert` strips `reply_turn` and retries if the column is missing,
+  so the inbox never loses a message pre-migration. Followups/broadcast sends are NOT flagged
+  (they never counted toward the conversational limit before either); broadcast.js's own quota
+  now uses countBillableMessages + broadcast_recipients. Left alone: admin/packages (a separate
+  cost-analysis tool on customer volume), and the recipient-finding/followup/contacts customer
+  filters. `botReplyRows` test `tests/t-reply-turn.mjs` (11). 40/40 suites.
+- **⚠️ Owner must run `docs/sql/2026-09-08-reply-turn.sql`** (adds the `reply_turn` column +
+  partial index). Until then usage counts customer messages (the old basis) via the fallback —
+  safe, just not yet per-reply. Existing rows stay false, so counting starts fresh from the
+  first reply after the migration (no backfill).
 - **Remembered (auto-memory):** [[usage-counting-rule]], and a future **separate BYOK price
   list** for clients on their own AI key ([[byok-separate-price-list]]).
 
-39/39 suites pass.
+40/40 suites pass.
 
 ---
 
