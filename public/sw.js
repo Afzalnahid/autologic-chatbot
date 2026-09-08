@@ -24,16 +24,25 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || "/dashboard";
+  // The dashboard is a single page with hash tabs (#orders, #conversations …).
+  // The tab is the hash; the app switches to it.
+  const tab = (url.split("#")[1] || "");
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     // Focus an already-open dashboard tab if there is one; otherwise open a new one.
     for (const w of wins) {
       if (w.url.includes("/dashboard") && "focus" in w) {
         await w.focus();
-        if ("navigate" in w) { try { await w.navigate(url); } catch (e) { /* cross-origin guard */ } }
+        // Two ways to reach the right tab, because a hash-only navigation does
+        // not reload the app (so the app would stay on whatever tab it was on):
+        //   1. tell the running app directly which tab to open, and
+        //   2. still change the address bar so a reload lands there too.
+        if (tab) { try { w.postMessage({ type: "gv-navigate", tab, url }); } catch (e) { /* no channel */ } }
+        if ("navigate" in w) { try { await w.navigate(url); } catch (e) { /* cross-origin/uncontrolled guard */ } }
         return;
       }
     }
+    // No dashboard open — a fresh window at the url reads the hash on load.
     if (self.clients.openWindow) await self.clients.openWindow(url);
   })());
 });

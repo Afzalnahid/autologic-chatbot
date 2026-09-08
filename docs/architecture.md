@@ -135,7 +135,19 @@ anything is saved), `photo-group` (which pictures are the same product).
 
 **Admin** (separate role check against `admin_users`): `admin`, `admin/client-detail`.
 
-**Utility**: `auth`, `push` (unused in production).
+**Utility**: `auth`.
+
+**Web push** (owner's phone/browser alerts, live in production): `push/subscribe`
+(save/remove a device subscription), `push/test` (send a test to the caller's own
+devices). `src/lib/push.js` sends via VAPID (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` +
+`VAPID_PRIVATE_KEY` + `VAPID_SUBJECT`) to every subscription in `push_subscriptions`;
+`public/sw.js` shows the notification and, on tap, opens the tab it is for. A push
+fires for a new order, a new booking and a conversation-start/handover — all
+fire-and-forget, so a failed push never breaks the thing that triggered it. The
+notification's `url` carries the target tab as a hash (`/dashboard#orders`,
+`/dashboard#conversations`); the service worker changes the hash **and** posts the
+tab to the running app, because an already-open dashboard ignores a hash-only
+change on its own.
 
 ---
 

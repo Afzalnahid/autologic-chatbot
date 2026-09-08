@@ -602,6 +602,21 @@ export default function Dashboard() {
     window.addEventListener("al-goto",g);
     return ()=>window.removeEventListener("al-goto",g);
   },[]);
+  // Tapping a phone push notification must open the tab it is FOR — a new order
+  // on Orders, a new message on Inbox. The service worker changes the hash and
+  // also messages the running app; the app already open would otherwise ignore a
+  // hash-only change (it does not reload), so it listens for both here.
+  useEffect(()=>{
+    const toTab=(tab)=>{ if(tab&&PAGES.includes(tab)&&tab!==pageRef.current) setPage(tab); };
+    const onHash=()=>toTab(window.location.hash.replace("#",""));
+    const onSwMsg=(e)=>{ if(e?.data&&e.data.type==="gv-navigate") toTab(e.data.tab); };
+    window.addEventListener("hashchange",onHash);
+    try{ navigator.serviceWorker&&navigator.serviceWorker.addEventListener("message",onSwMsg); }catch{}
+    return ()=>{
+      window.removeEventListener("hashchange",onHash);
+      try{ navigator.serviceWorker&&navigator.serviceWorker.removeEventListener("message",onSwMsg); }catch{}
+    };
+  },[]);
   useEffect(()=>{
     const onPop=(e)=>{
       // Anything OPEN ON TOP of the page claims the press first — a drawer, a
