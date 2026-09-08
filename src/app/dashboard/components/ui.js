@@ -375,16 +375,26 @@ export function Motion() {
       /* Anything busy says so in the same language. */
       @keyframes ui-spin { to { transform: rotate(360deg) } }
       .ti-loader, .ti-loader-2, .is-busy .ti-refresh { animation: ui-spin .9s linear infinite }
+      /* Entry animations fill BACKWARDS, never "both".
+         "both" keeps filling forwards after the animation ends, so the final
+         keyframe's "transform: none" stays applied as the identity matrix
+         matrix(1,0,0,1,0,0) — and an element with ANY transform becomes the
+         containing block for its "position: fixed" descendants. With "both" on
+         .ui-page (which wraps every tab) every drawer, sheet, dialog and toast
+         inside a page was sized and placed against the PAGE box instead of the
+         viewport: that is why the order drawer started below the header and had
+         its footer cut off. Their end state is the natural state anyway, so
+         "backwards" looks identical and leaves "transform: none" behind. */
       @keyframes ui-pop { 0% { transform: scale(.4); opacity: 0 } 60% { transform: scale(1.15) } 100% { transform: scale(1); opacity: 1 } }
-      .ti-check, .ti-circle-check { animation: ui-pop .32s cubic-bezier(.16,1,.3,1) both }
+      .ti-check, .ti-circle-check { animation: ui-pop .32s cubic-bezier(.16,1,.3,1) backwards }
 
       @keyframes ui-menu { from { opacity: 0; transform: translateY(-6px) scale(.98) } to { opacity: 1; transform: none } }
-      .ui-menu { animation: ui-menu .18s cubic-bezier(.16,1,.3,1) both; transform-origin: top }
+      .ui-menu { animation: ui-menu .18s cubic-bezier(.16,1,.3,1) backwards; transform-origin: top }
       @keyframes ui-opt { from { opacity: 0; transform: translateY(-3px) } to { opacity: 1; transform: none } }
-      .ui-opt { animation: ui-opt .16s ease-out both }
+      .ui-opt { animation: ui-opt .16s ease-out backwards }
 
       @keyframes ui-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
-      .ui-page { animation: ui-in .28s cubic-bezier(.16,1,.3,1) both }
+      .ui-page { animation: ui-in .28s cubic-bezier(.16,1,.3,1) backwards }
 
       .ui-row { transition: background .14s ease-out }
       .ui-nav { transition: background .15s ease-out, color .15s ease-out }

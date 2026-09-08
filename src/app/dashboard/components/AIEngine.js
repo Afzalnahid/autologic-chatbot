@@ -58,7 +58,7 @@ export default function AIEngine() {
   }, []);
 
   return (
-    <div style={{ maxWidth: 700, paddingBottom: isMobile ? 90 : 40 }}>
+    <div style={{ maxWidth: 700, margin: "0 auto", paddingBottom: isMobile ? 90 : 40 }}>
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.01em" }}>AI Engine</div>
         <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 3, lineHeight: 1.55 }}>

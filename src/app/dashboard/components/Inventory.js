@@ -600,7 +600,7 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
   const stepIdx = Math.max(0, STEPS.indexOf(tab));
   const goStep = (d) => setTab(STEPS[Math.min(STEPS.length - 1, Math.max(0, stepIdx + d))]);
 
-  return <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", justifyContent: "flex-end" }}>
+  return <div onClick={onClose} style={{ position: "fixed", inset: 0, height: "100dvh", zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", justifyContent: "flex-end" }}>
     <div onClick={(e) => e.stopPropagation()} className="inv-drawer" role="dialog" aria-modal="true" aria-label={edit ? "Edit product" : "Add product"}
       style={{ width: isMobile ? "100%" : "min(640px, 100%)", height: "100%", background: T.bg, display: "flex", flexDirection: "column", boxShadow: "-12px 0 40px rgba(0,0,0,.25)", animation: "inv-slide .28s cubic-bezier(.16,1,.3,1) both" }}>
       <div style={{ padding: isMobile ? "12px 14px" : "16px 22px", display: "flex", alignItems: "center", gap: 12, background: T.card, boxShadow: T.nmSm, flexShrink: 0, position: "relative", zIndex: 1 }}>
@@ -963,7 +963,7 @@ function ImportSheet({ kind, isMobile, onClose, onDone }) {
       : line);
     onClose();
   };
-  return <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
+  return <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, height: "100dvh", zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
     <div onClick={(e) => e.stopPropagation()} className="ui-page" role="dialog" aria-modal="true" style={{ width: "100%", maxWidth: 520, background: T.card, borderRadius: isMobile ? "22px 22px 0 0" : 22, boxShadow: T.nmOut, border: `1px solid ${T.border}`, padding: "22px 20px calc(20px + env(safe-area-inset-bottom))" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <div style={{ width: 42, height: 42, borderRadius: 13, background: T.card, boxShadow: T.nmSm, display: "flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${kind === "csv" ? "ti-table" : kind === "url" ? "ti-link" : kind === "shopify" ? "ti-brand-shopee" : "ti-brand-wordpress"}`} style={{ fontSize: 20, color: T.gold }} /></div>

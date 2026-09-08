@@ -556,7 +556,7 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
   // corner buttons need somewhere to sit that is not on top of the picture.
   const TH = isMobile ? 74 : 56;
 
-  return <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
+  return <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, height: "100dvh", zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
     <div onClick={(e) => e.stopPropagation()} className="ui-page" role="dialog" aria-modal="true" aria-label="Add many products from photos"
       style={{ width: "100%", maxWidth: 900, maxHeight: isMobile ? "94dvh" : "90vh", background: T.bg, borderRadius: isMobile ? "22px 22px 0 0" : 22, boxShadow: T.nmOut, border: `1px solid ${T.border}`, display: "flex", flexDirection: "column" }}>
 

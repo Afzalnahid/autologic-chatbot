@@ -756,7 +756,11 @@ export default function Dashboard() {
   const botLive=dashChannels.length>0;
   const initials=(me?.client?.business_name||"A").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
 
-  return <div style={{display:"flex",height:isMobile?"100dvh":"100vh",overflow:"hidden",background:T.bg}}>
+  // 100dvh on every device, not only when isMobile says so. isMobile is a JS
+  // media query that is false on the first paint, so a phone briefly got 100vh —
+  // the tall viewport that ignores the browser's own toolbars — and the shell
+  // was cut off until hydration corrected it. dvh equals vh on a desktop.
+  return <div style={{display:"flex",height:"100dvh",overflow:"hidden",background:T.bg}}>
     <Theme/><Motion/>
     {sidebarOpen&&isMobile&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:40}}/>}
 

@@ -4,7 +4,38 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, late night) — Category overview image on a broad question
+## Last session (2026-09-08, late night) — The dashboard fits every screen again
+
+Owner: the Orders drawer footer is cut off, and other pages "do not fit" — wants it right on
+Windows, Mac, iPad, iPhone, Android and tablets.
+
+**Root cause (one bug, eight components).** `ui.js` had
+`.ui-page { animation: ui-in .28s ... both }`. `both` fills forwards for ever, so the final
+`transform: none` stays applied as the identity matrix `matrix(1,0,0,1,0,0)` — and any
+transform makes that element the containing block for `position: fixed` descendants.
+`.ui-page` wraps EVERY tab, so every drawer/sheet/dialog/toast was sized against the page box,
+not the viewport. Measured in a browser: overlay at `top: 81`, running 81px below the screen —
+the cut-off footer. Changed `both` → `backwards` on `.ui-page`, `.ui-menu`, `.ui-opt`,
+`.ti-check` (identical animation, leaves `transform: none`). Verified: `top: 0`,
+height == viewport, on desktop AND at 375×812 with no horizontal overflow. See `lessons.md`.
+
+**Also:**
+- Every fixed overlay got `height: 100dvh` (Orders, Bookings, Inventory ×2, PhotoBatch,
+  DuplicateSweep, KnowledgeBase, Settings) so a phone's browser toolbars cannot hide the
+  sheet's own bottom. Drawer bodies got `env(safe-area-inset-bottom)` for the iPhone home
+  indicator (`viewportFit: "cover"` is already set in `layout.js`, so it takes effect).
+- Shell height is now `100dvh` always, not `isMobile ? dvh : vh` — `isMobile` is false on the
+  first paint, so a phone briefly got the tall viewport and was cut off until hydration.
+- Pages with a fixed `maxWidth` hugged the LEFT on a wide monitor (AI Engine, Bot Training,
+  Channels, Billing) — all now `margin: "0 auto"`.
+
+**Verified:** 38/38 suites, all 12 changed files parse, `next build` says "Compiled
+successfully". The local build then fails on `/apple-icon` (a `@vercel/og` "Invalid URL" on
+Windows) — PRE-EXISTING, untouched by this work, and Vercel's Linux builds are unaffected.
+
+---
+
+## Earlier session (2026-09-08, late night) — Category overview image on a broad question
 
 Closed the one genuine gap in the owner's tiered-image request: "powerbank ache?" (a BROAD
 question) now sends ONE overview image + intro, then narrows to a model, then a colour. The

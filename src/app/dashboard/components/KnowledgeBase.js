@@ -217,7 +217,7 @@ export default function KnowledgeBase() {
           })}
         </div>}
 
-    {confirm && <div onClick={() => setConfirm(null)} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
+    {confirm && <div onClick={() => setConfirm(null)} style={{ position: "fixed", inset: 0, height: "100dvh", zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 16 }}>
       <div onClick={(e) => e.stopPropagation()} className="ui-page" role="dialog" aria-modal="true"
         style={{ width: "100%", maxWidth: 420, background: T.card, borderRadius: isMobile ? "22px 22px 0 0" : 22, boxShadow: T.nmOut, border: `1px solid ${T.border}`, padding: "22px 20px calc(20px + env(safe-area-inset-bottom))" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>

@@ -175,7 +175,10 @@ function OrderDrawer({ o, onClose, update, remove, busy, isMobile }) {
   const copy = (t) => { try { navigator.clipboard.writeText(t); } catch {} };
   const H = ({ icon, children, right }) => <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}><span style={{ width: 28, height: 28, borderRadius: 9, background: T.goldBg, color: T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}><i className={`ti ${icon}`} /></span><span style={{ fontSize: 13.5, fontWeight: 700, flex: 1 }}>{children}</span>{right}</div>;
   const stepIdx = FLOW.indexOf(o.status);
-  return <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", justifyContent: "flex-end" }}>
+  // height:100dvh, not just inset:0 — on a phone the browser's own toolbars sit
+  // over the layout viewport, so a plain inset:0 sheet hides its own bottom
+  // behind them. dvh is the height actually on screen right now.
+  return <div onClick={onClose} style={{ position: "fixed", inset: 0, height: "100dvh", zIndex: 80, background: "rgba(17,19,24,.45)", backdropFilter: "blur(3px)", display: "flex", justifyContent: "flex-end" }}>
     <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{ width: isMobile ? "100%" : "min(560px, 100%)", height: "100%", background: T.bg, display: "flex", flexDirection: "column", boxShadow: "-12px 0 40px rgba(0,0,0,.25)", animation: "ord-slide .28s cubic-bezier(.16,1,.3,1) both" }}>
       <div style={{ padding: isMobile ? "12px 14px" : "16px 22px", display: "flex", alignItems: "center", gap: 12, background: T.card, boxShadow: T.nmSm, flexShrink: 0, position: "relative", zIndex: 1 }}>
         <span style={{ width: 42, height: 42, borderRadius: 13, background: `color-mix(in srgb, ${st.color} 12%, transparent)`, color: st.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}><i className={`ti ${st.icon}`} /></span>
@@ -185,7 +188,7 @@ function OrderDrawer({ o, onClose, update, remove, busy, isMobile }) {
         </div>
         <button onClick={onClose} className="pbtn" aria-label="Close" style={{ width: 36, height: 36, borderRadius: 11 }}><i className="ti ti-x" style={{ fontSize: 17 }} /></button>
       </div>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: isMobile ? "14px 12px 24px" : "18px 22px 30px", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: isMobile ? "14px 12px calc(24px + env(safe-area-inset-bottom))" : "18px 22px calc(30px + env(safe-area-inset-bottom))", display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Progress */}
         {o.status !== "Cancelled" && o.status !== "Returned" && <Card style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 0 }}>

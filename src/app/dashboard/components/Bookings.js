@@ -655,7 +655,9 @@ function BookingDrawer({ b, isMobile, onClose, update, cancel }) {
     return diff>0?`in ${unit}`:`${unit} ago`;
   })();
 
-  return <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:80,background:"rgba(17,19,24,.45)",backdropFilter:"blur(3px)",display:"flex",justifyContent:"flex-end"}}>
+  // See Orders.js: dvh so a phone's browser toolbars cannot hide the sheet's
+  // own bottom, which is where the actions live.
+  return <div onClick={onClose} style={{position:"fixed",inset:0,height:"100dvh",zIndex:80,background:"rgba(17,19,24,.45)",backdropFilter:"blur(3px)",display:"flex",justifyContent:"flex-end"}}>
     <div onClick={e=>e.stopPropagation()} role="dialog" aria-modal="true"
       style={{width:isMobile?"100%":"min(520px, 100%)",height:"100%",background:T.bg,display:"flex",flexDirection:"column",boxShadow:"-12px 0 40px rgba(0,0,0,.25)",animation:"bk-slide .28s cubic-bezier(.16,1,.3,1) both"}}>
 
@@ -671,7 +673,7 @@ function BookingDrawer({ b, isMobile, onClose, update, cancel }) {
         <button onClick={onClose} className="pbtn" aria-label="Close" style={{width:36,height:36,borderRadius:11,flexShrink:0}}><i className="ti ti-x" style={{fontSize:17}}/></button>
       </div>
 
-      <div style={{flex:1,minHeight:0,overflowY:"auto",padding:isMobile?"14px 12px 24px":"18px 22px 30px",display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{flex:1,minHeight:0,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:isMobile?"14px 12px calc(24px + env(safe-area-inset-bottom))":"18px 22px calc(30px + env(safe-area-inset-bottom))",display:"flex",flexDirection:"column",gap:12}}>
         <Card>
           <H icon="ti-calendar-event" right={rel&&<span style={{fontSize:11.5,color:g==="past"?T.warn:T.textDim}}>{rel}</span>}>The meeting</H>
           <Row icon="ti-clock" label="When">

@@ -110,7 +110,7 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
     </div>;
   };
 
-  return <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:700}}>
+  return <div style={{display:"flex",flexDirection:"column",gap:12,maxWidth:700,margin:"0 auto",width:"100%"}}>
     {jc&&<Card style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderColor:`color-mix(in srgb, ${T.success} 35%, transparent)`,boxShadow:`0 10px 26px color-mix(in srgb, ${T.success} 18%, transparent)`}}>
       <div style={{position:"relative",width:46,height:46,borderRadius:15,background:T.card,boxShadow:T.nmSm,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
         <i className={`ti ${jc.icon}`} style={{fontSize:24,color:jc.color}}/>

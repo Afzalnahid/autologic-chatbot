@@ -209,7 +209,7 @@ export default function Settings({settings,setSettings}) {
 
   // Bottom padding clears BOTH the floating save bar and, on a phone, the
   // bottom navigation — otherwise the last card sits underneath them.
-  return <div style={{maxWidth:700,paddingBottom:isMobile?156:96}}>
+  return <div style={{maxWidth:700,margin:"0 auto",paddingBottom:isMobile?156:96}}>
     {/* Checklist */}
     <Card style={{marginBottom:12,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
       <div style={{flex:"1 1 220px",minWidth:0}}>
@@ -484,7 +484,7 @@ export default function Settings({settings,setSettings}) {
 
     {/* Full-screen profile editor */}
     {promptFull&&<div role="dialog" aria-modal="true" onClick={()=>setPromptFull(false)}
-      style={{position:"fixed",inset:0,zIndex:80,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?0:24}}>
+      style={{position:"fixed",inset:0,height:"100dvh",zIndex:80,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?0:24}}>
       <div onClick={e=>e.stopPropagation()} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:isMobile?0:16,width:"100%",maxWidth:900,height:isMobile?"100dvh":"88vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 60px rgba(0,0,0,.4)"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:`1px solid ${T.border}`,flexShrink:0}}>
           <i className="ti ti-file-text" style={{fontSize:18,color:T.gold}}/>
@@ -502,7 +502,7 @@ export default function Settings({settings,setSettings}) {
 
     {/* Save bar */}
     {!promptFull&&<div style={{position:"fixed",left:0,right:0,bottom:isMobile?66:0,display:"flex",justifyContent:"center",pointerEvents:"none",zIndex:40,padding:"0 16px"}}>
-      <div style={{width:"100%",maxWidth:700,display:"flex",justifyContent:"flex-end",padding:"0 0 12px"}}>
+      <div style={{width:"100%",maxWidth:700,margin:"0 auto",display:"flex",justifyContent:"flex-end",padding:"0 0 12px"}}>
         {(dirty||saved)&&<div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:12,background:T.card,border:`1px solid ${saved?`color-mix(in srgb, ${T.success} 40%, transparent)`:T.border}`,borderRadius:14,boxShadow:"0 10px 30px rgba(0,0,0,.14)",padding:"10px 12px 10px 16px"}}>
           <span style={{fontSize:12.5,color:saved?T.success:T.textMuted,display:"flex",alignItems:"center",gap:6}}>
             <i className={`ti ${saved?"ti-check":"ti-pencil"}`} style={{fontSize:14}}/>{saved?t("common.saved"):t("common.unsaved")}

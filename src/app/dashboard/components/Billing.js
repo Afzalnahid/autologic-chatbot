@@ -98,7 +98,7 @@ export default function Billing({initialPlan,initialCycle}) {
   const selPlan=buyable.find(p=>p.id===sel);
   const amount=selPlan?(cycle==="yearly"?selPlan.yearly:selPlan.monthly):0;
 
-  return <div style={{maxWidth:900}}>
+  return <div style={{maxWidth:900,margin:"0 auto"}}>
     {/* Current plan */}
     <Card style={{marginBottom:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>

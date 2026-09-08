@@ -1229,3 +1229,33 @@ he was agreeing with a sentence, not with a reply his customers would receive.
   definition, not the dictionary's. Ask for one example of it.
 - Do not push while a wording decision is still fresh. Nothing had been pushed here, so
   the fix was three local commits instead of a bad reply to a real customer.
+
+## `animation-fill-mode: both` silently traps every `position: fixed` child (2026-09-08)
+
+The owner reported the order drawer's footer being cut off. I had already "fixed" it once by
+adding `minHeight: 0` to the scroll body — a plausible flexbox diagnosis that was simply the
+wrong bug, so the symptom came straight back.
+
+The real cause was in `ui.js`: `.ui-page { animation: ui-in .28s ... both }`. The keyframes
+end at `transform: none`, which reads as harmless — but `both` keeps the animation filling
+forwards for ever, and a filled `transform: none` computes to the identity matrix
+`matrix(1,0,0,1,0,0)`. Any element with a transform becomes the containing block for its
+`position: fixed` descendants. `.ui-page` wraps EVERY tab, so every drawer, sheet, dialog and
+toast in the dashboard was being sized and positioned against the page box instead of the
+viewport. Measured in a browser: the overlay sat at `top: 81` and ran 81px past the bottom of
+the screen — exactly the cut-off footer, on every tab, on every device.
+
+`backwards` gives an identical animation and leaves `transform: none` behind (verified:
+`top: 0`, height == viewport height).
+
+**Rules:**
+- Never use `animation-fill-mode: both`/`forwards` on an entry animation whose end state is
+  already the natural state. Use `backwards`. A filled identity transform is still a transform.
+- If a `position: fixed` element is not where the viewport is, stop reading the element and go
+  looking up the ancestor chain for `transform`, `filter`, `backdrop-filter`, `perspective`,
+  `contain` or `will-change` — including values that come from an animation.
+- Measure it. `getBoundingClientRect()` against `window.innerHeight` turned a guess into a
+  fact in one call, and proved the fix in the next. Two "obvious" flexbox theories had
+  already been wrong.
+- One overlay bug reported on one tab is a shell bug until proven otherwise — the same
+  wrapper was breaking eight components at once.
