@@ -47,23 +47,32 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     if(s<60) return "now"; if(s<3600) return Math.floor(s/60)+"m"; if(s<86400) return Math.floor(s/3600)+"h";
     if(s<604800) return Math.floor(s/86400)+"d"; return new Date(t).toLocaleDateString("en-GB",{day:"numeric",month:"short"}); };
   const isMobile=useIsMobile();
-  // The open conversation is tracked by its STABLE id, not its position in the
-  // list. The list re-sorts every refresh (newest chat first), so an index would
-  // silently point at a different conversation a few seconds later — which is why
-  // scrolling one chat could jump you into another. `sel` is derived from the id.
+  // The open conversation is tracked by its STABLE id, never its position in the
+  // list — the list re-sorts every refresh (newest chat first), so an index would
+  // point at a different conversation seconds later, which is why one chat used to
+  // "jump" into another.
   const [selId,setSelId]=useState(null);
-  const sel = selId==null ? -1 : convos.findIndex(x=>String(x.id)===String(selId));
-  // The conversation actually shown in the chat pane: the selected one, or (on
-  // desktop, where the pane is always visible) the top of the list as a preview.
-  const c = convos[sel<0?0:sel] || convos[0] || null;
+  // The shown conversation, found by its stable id in the FULL list — so a
+  // re-sort (newest chat jumps to the top every refresh) or a filter can never
+  // swap the open chat for a different one, which was the "it took me to another
+  // conversation" bug. On desktop, where the pane is always on screen, the newest
+  // is previewed until one is chosen.
+  const selConvo = selId!=null ? allConvos.find(x=>String(x.id)===String(selId)) : null;
+  const c = selConvo || (isMobile ? null : (convos[0]||null));
+  const hasSel = !!selConvo;                       // a real conversation is chosen
   const msgCount = c?.messages?.length || 0;
+  // Desktop always shows a conversation; make it a STABLE pick, not the moving
+  // top-of-list (which changed under you whenever a new message re-sorted the
+  // list). Read the real width, not the isMobile state, which starts false on
+  // mount and would briefly auto-open a chat on a phone.
+  useEffect(()=>{
+    if(selId!=null || !convos.length) return;
+    if(typeof window!=="undefined" && window.innerWidth>=768) setSelId(convos[0].id);
+  },[selId,convos.length]);
   // The open conversation answers the back press before the tab does, so one
   // press closes the chat and the next goes to the previous page.
-  useBackClose(sel>=0,()=>setSelId(null));
-  useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&sel>=0);},[sel,isMobile]);
-  // A filter (or a delete) can drop the open conversation from the list; when the
-  // id is no longer there, close back to the list rather than leaving it dangling.
-  useEffect(()=>{ if(selId!=null && sel<0 && convos.length) setSelId(null); },[sel,selId,convos.length]);
+  useBackClose(hasSel,()=>setSelId(null));
+  useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&hasSel);},[hasSel,isMobile]);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
   // null = not loaded yet. Starting at `true` painted a green "Bot ON" for the
@@ -162,23 +171,29 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   // ran on every render because `convos` is a fresh array each time, so any
   // background refresh scrolled to the bottom).
   const atBottomRef=useRef(true);
+  const pinBottom=(smooth)=>{ const el=chatRef.current; if(!el) return; if(smooth) el.scrollTo({top:el.scrollHeight,behavior:"smooth"}); else el.scrollTop=el.scrollHeight; };
   const onChatScroll=()=>{ const el=chatRef.current; if(el) atBottomRef.current=(el.scrollHeight-el.scrollTop-el.clientHeight)<80; };
+  // A product image in the thread has no reserved height, so it loads AFTER the
+  // first paint and grows the thread — which is what actually made the view jump
+  // "up and down": we scrolled to a bottom that then moved. Re-pin to the bottom
+  // as content grows, but ONLY while the reader is already at the bottom.
+  const onImgLoad=()=>{ if(atBottomRef.current) pinBottom(false); };
   // Opening (or switching to) a conversation lands on the latest message
   // instantly, no animation — keyed on the shown conversation's id.
-  useEffect(()=>{ const el=chatRef.current; if(el){ el.scrollTop=el.scrollHeight; atBottomRef.current=true; } },[c?.id]);
+  useEffect(()=>{ if(!hasSel && isMobile) return; atBottomRef.current=true; pinBottom(false); },[c?.id]);
   // A NEW message scrolls down smoothly, but only if they were at the bottom.
-  useEffect(()=>{ const el=chatRef.current; if(el&&atBottomRef.current) el.scrollTo({top:el.scrollHeight,behavior:"smooth"}); },[msgCount]);
+  useEffect(()=>{ if(atBottomRef.current) pinBottom(true); },[msgCount]);
   // Fill the chat list from its own top to the bottom of the visible screen.
   // Re-measured on resize (a phone's address bar hiding fires it) and whenever
   // what sits above the list can change (the filter row appears, a banner shows).
   useEffect(()=>{
-    if(!isMobile||sel>=0){ setFitH(null); return; }
+    if(!isMobile||hasSel){ setFitH(null); return; }
     const measure=()=>{ const r=listRef.current?.getBoundingClientRect(); if(r) setFitH(Math.max(280,Math.round(window.innerHeight-r.top-8))); };
     measure();
     const t=setTimeout(measure,150);
     window.addEventListener("resize",measure);
     return ()=>{ clearTimeout(t); window.removeEventListener("resize",measure); };
-  },[isMobile,sel,allConvos.length,avail.length,tagData?.available?.length]);
+  },[isMobile,hasSel,allConvos.length,avail.length,tagData?.available?.length]);
 
   const toggle=async(sender_id,val,isGlobal)=>{
     pendingRef.current[isGlobal?"global":sender_id]=Date.now()+8000;
@@ -208,8 +223,8 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   // reading c.sender on an empty list).
   const ct=(c&&contacts[c.id])||{};
   const cname=ct.name||c?.sender||"";
-  const showList=!isMobile||sel<0;
-  const showChat=(!isMobile||sel>=0)&&!!c;
+  const showList=!isMobile||!hasSel;
+  const showChat=(!isMobile||hasSel)&&!!c;
 
   const send=async()=>{
     const text=input.trim();
@@ -223,7 +238,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
 
   const Toggle=({on,onClick,label})=><Switch on={on} onClick={onClick} label={label} size="sm"/>;
 
-  return <div ref={listRef} style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px minmax(0,1fr)",gap:16,height:isMobile?(sel>=0?"100dvh":(fitH?fitH+"px":"calc(100dvh - 190px)")):"calc(100vh - 130px)"}}>
+  return <div ref={listRef} style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px minmax(0,1fr)",gap:16,height:isMobile?(hasSel?"100dvh":(fitH?fitH+"px":"calc(100dvh - 190px)")):"calc(100vh - 130px)"}}>
     {showList&&<Card style={{overflow:"auto",padding:0,height:"100%"}}>
       <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
@@ -368,7 +383,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
           return <div key={i} style={{display:"flex",justifyContent:mine?"flex-end":"flex-start"}}>
           <div style={{maxWidth:"70%"}}>
             {(m.attachments||[]).length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4,alignItems:mine?"flex-end":"flex-start"}}>
-              {m.attachments.map((u,j)=><img key={j} src={u} alt="" style={{maxWidth:220,borderRadius:16,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
+              {m.attachments.map((u,j)=><img key={j} src={u} alt="" onLoad={onImgLoad} style={{maxWidth:220,borderRadius:16,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
             </div>}
             {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?"#fff":T.text,background:mine?"#0084ff":T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{m.text}</div>}
             {mine&&m.role==="agent"&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>You</div>}
