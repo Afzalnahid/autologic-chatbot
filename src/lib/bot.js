@@ -170,6 +170,17 @@ async function pendingFor(senderId, clientId) {
   return data || [];
 }
 
+// The customer's saved name (from the Conversations API / WhatsApp profile), so
+// the reply can address them correctly — including their likely gender (rule 7).
+// Empty when we never learned it, in which case the bot stays gender-neutral.
+async function getContactName(senderId, clientId) {
+  try {
+    const { data } = await sb().from("contacts").select("name")
+      .eq("client_id", clientId).eq("sender_id", senderId).limit(1);
+    return String(data?.[0]?.name || "").trim();
+  } catch { return ""; }
+}
+
 async function getMemory(senderId, clientId) {
   const { data } = await sb().from("chat_memory").select("*")
     .eq("client_id", clientId).eq("session_id", senderId)
@@ -222,7 +233,7 @@ OUTPUT FORMAT:
 LANGUAGE & GREETING:
 5. Detect and match the customer's exact language and script every time: pure Bangla, pure English, or Banglish (Bangla in English letters). Reply in the same style they used. Bangla always means everyday spoken Bangla, never formal or literary (প্রমিত) Bangla — the LANGUAGE block at the end says exactly how.
 6. Greet ONLY on the very first message of a new conversation. In an ongoing conversation, never greet again - answer directly.
-7. Address the customer politely and respectfully at all times, even if they are rude.
+7. Address the customer politely and respectfully at all times, even if they are rude. When their name is given in [CUSTOMER] below, use it to address them with the RIGHT gender: a clearly WOMAN's name → address her as a woman (Bangla "ম্যাম" or "আপা", English "ma'am"); a clearly MAN's name → as a man ("স্যার" or "ভাই", "sir"). If there is no name, or the name is unisex or its gender is unclear, use a warm NEUTRAL address with NO gendered word (simply "আপনি" / "you") — NEVER guess a gender. Calling a woman "স্যার" (or a man "ম্যাম") is worse than saying nothing, so when unsure, stay neutral. Use the honorific naturally now and then, not in every single line.
 
 ACCURACY & HONESTY:
 8. The injected context below (products / knowledge / business profile) is the ONLY source of truth. NEVER invent, guess or assume facts, prices, links, stock, delivery charges or policies that are not given.
@@ -822,15 +833,16 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   // The widget calls composeReply directly, so this must resolve here too.
   const aiFor = await getClientAI(clientId, "bot", pageId);
 
-  let systemPrompt, history, context, forcedLang = null;
+  let systemPrompt, history, context, custName = "", forcedLang = null;
   try {
     if (isAgency) {
       let snippets;
-      [systemPrompt, history, snippets, forcedLang] = await Promise.all([
+      [systemPrompt, history, snippets, forcedLang, custName] = await Promise.all([
         getSystemPrompt(clientId, bType),
         getMemory(senderId, clientId),
         searchKnowledge(clientId, combined, 6),
         getLanguageMode(clientId),
+        getContactName(senderId, clientId),
       ]);
       context = snippets.length
         ? "\n\nKNOWLEDGE BASE (answer ONLY from this retrieved context; if the answer is not here, say you'll connect them with the team):\n" +
@@ -838,11 +850,12 @@ export async function composeReply({ clientId, client, bType, senderId, combined
         : "\n\nKNOWLEDGE BASE: no relevant information found.";
     } else {
       let products;
-      [systemPrompt, history, products, forcedLang] = await Promise.all([
+      [systemPrompt, history, products, forcedLang, custName] = await Promise.all([
         getSystemPrompt(clientId, bType),
         getMemory(senderId, clientId),
         searchProducts(clientId, combined, combined.includes("--- ITEM") ? 4 : 3, pageId),
         getLanguageMode(clientId),
+        getContactName(senderId, clientId),
       ]);
       context = products.length
         ? "\n\nSEARCH RESULTS (source of truth, pick from these only; each has match_score 0-1 — if the best match_score is below 0.5, do NOT guess: tell the customer you couldn't find that exact item and ask for a clearer photo or more details):\n" +
@@ -875,10 +888,13 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     const rules = (isAgency ? bookingRule() : orderRule) + currentTimeLine();
     const lang = forcedLang || detectLanguage(combined);
     const lock = languageLock(lang);
+    // The customer's name, so the reply can address them correctly and pick the
+    // right gender (rule 7). Absent → the bot stays gender-neutral on purpose.
+    const who = custName ? `\n\n[CUSTOMER] Their name is "${custName}". Address them accordingly (rule 7): the right gender if the name makes it clear, otherwise a neutral, respectful form with no gendered word.` : "";
     // Also on the user turn. A system instruction loses to the visible pattern of
     // the conversation: with a history of Bangla replies the model simply copies
     // the previous answer, whatever the system prompt says.
-    raw = await aiFor.chat(systemPrompt + context + rules + lock,
+    raw = await aiFor.chat(systemPrompt + context + who + rules + lock,
       [...history, { role: "user", content: combined + `\n\n[Reply in ${lang} only.]` }]);
   } catch (e) {
     console.error("gemini chat:", e.message);

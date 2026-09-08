@@ -17,7 +17,11 @@ FIXED_BASE                      ← always
   + [GREETING RULE]             ← if settings.greeting is set
   + [BOT NAME]                  ← if settings.botName is set
   + [BUSINESS PROFILE]          ← settings.businessPrompt (AI-generated, client-editable)
+  + [COLLECTIONS]               ← ecommerce, if the owner set category overview images
   + injected context            ← retrieved products or knowledge chunks
+  + [CUSTOMER]                  ← the customer's saved name, so the reply can
+                                   address them correctly (right gender when the
+                                   name makes it clear, neutral otherwise)
 ```
 
 Built by `getSystemPrompt(clientId, businessType)`. Because the locked blocks are
@@ -38,6 +42,9 @@ Seven rules, grouped:
 **Language & greeting**
 4. Match the customer's language exactly (Bangla / English / Banglish).
 5. Greet only on the first message of a conversation; afterwards answer directly.
+   Address the customer by the right gender when their name (in `[CUSTOMER]`) makes
+   it clear — "ম্যাম"/"স্যার" — and stay neutral (no gendered word) when it does
+   not. Misgendering is worse than a neutral address.
 
 **Accuracy**
 6. The injected context is the only source of truth — never invent facts, prices,
