@@ -202,6 +202,7 @@ export const FIXED_ECOM = `
 14. GENERAL CATALOGUE REQUEST: if the customer asks to "see everything / full collection / all designs" and a catalogue or website link is provided in the business profile, share that link warmly instead of listing products. If no link is provided, ask what type of item they are looking for.
 15. IMAGE MATCHING: when the message contains IDENTIFIED ITEMS sections ("--- ITEM X ---"), pick the SINGLE best-matching product for each item from SEARCH RESULTS. Return exactly one match per item, never more matches than items. If the best match_score is below 0.5, do not guess - say you could not find that exact item and ask for a clearer photo.
 16. PRODUCT DISPLAY (for each product): first {"type":"image_msg","url":"<image_url>"} ONLY if image_url is a valid http link (otherwise skip the image), then {"type":"text_msg","text":"Product: <name>\\nCode: <code>\\nPrice: <price> BDT"}.
+16b. CATEGORY OVERVIEW: if a [COLLECTIONS] list is provided and the customer asks a BROAD question about one of those categories ("do you have <category>?", "<category> ache?", "show me your <category>") WITHOUT naming a specific model, code, capacity, size or colour, then FIRST reply with that collection's cover as {"type":"image_msg","url":"<its cover_url>"} followed by ONE short {"type":"text_msg"} built from its intro, and ask which specific option they want. Do NOT list individual products in this first reply. Only once the customer narrows to a specific model, capacity, size or colour do you show that product (rule 16) and its variant photo (rule 18c). If no COLLECTIONS list matches the category, fall back to the normal product display.
 17. PRICE LOGIC: use sale_price if it is set and not 0, otherwise regular_price. If neither exists, write "যোগাযোগ করুন" (Bangla) or "Contact us" (English). Never state a price that is not in the data.
 18. STOCK: if a product is out of stock, gently say so and suggest the closest available alternative from the search results.
 18b. VARIANTS: if a product has a "variants" list (sizes, colours, models), tell the customer which options are available (skip variants that are out of stock) and ask which one they want before taking the order. Once they choose, use THAT variant's price and name it in the order. Never offer an option that is not in the variants list.
@@ -221,6 +222,33 @@ export const FIXED_AGENCY = `
 18. AFTER BOOKING: reassure the customer that their meeting is set and the meeting link (Google Meet) is on its way automatically.
 19. LEAD CARE: if the customer is not ready to book, stay helpful, answer their questions, and invite them to reach out when ready - never pushy.
 20. CLOSING: end with ONE short warm closing line in the customer's language. Never repeat the same line twice.`;
+
+// Owner-set category overviews (Inventory → "Overview image"). A collection is
+// one image + a short intro the bot sends when a customer asks a BROAD question
+// about a category ("powerbank ache?") instead of dumping every model. Pure and
+// forgiving: only entries with a category and a real http cover image survive,
+// so a half-filled row never reaches the bot. Deduped by category (last wins).
+export function activeCollections(settings = {}) {
+  const raw = Array.isArray(settings?.collections) ? settings.collections : [];
+  const byCat = new Map();
+  for (const c of raw) {
+    const category = String(c?.category || "").trim();
+    const cover_url = String(c?.cover_url || "").trim();
+    const intro = String(c?.intro || "").trim();
+    if (!category || !/^https?:\/\//.test(cover_url)) continue;
+    byCat.set(category.toLowerCase(), { category, cover_url, intro });
+  }
+  return [...byCat.values()];
+}
+
+// The [COLLECTIONS] block injected into an ecommerce system prompt. Empty string
+// when the owner has set none, so the prompt is unchanged for shops that don't
+// use the feature.
+function collectionsBlockText(cols) {
+  if (!cols.length) return "";
+  return "\n\n[COLLECTIONS - owner-set category overviews; used by rule 16b]\n" +
+    cols.map((c) => JSON.stringify({ category: c.category, cover_url: c.cover_url, intro: c.intro })).join("\n");
+}
 
 async function getSystemPrompt(clientId, bType) {
   const { data: row } = await sb().from("app_settings").select("*").eq("id", String(clientId)).maybeSingle();
@@ -245,7 +273,10 @@ async function getSystemPrompt(clientId, bType) {
   // field is edited later — so every structured fact is restated here, from
   // the current settings, and declared to win over the narrative.
   const facts = await businessFacts(clientId, st);
-  return prompt + "\n\n[BUSINESS PROFILE - provided by the owner]\n" + biz + (facts ? "\n\n" + facts : "");
+  // Category overviews are an ecommerce idea (an agency has no "show me your
+  // <category>" to answer with a cover image), so only that side gets them.
+  const cols = bType === "agency" ? "" : collectionsBlockText(activeCollections(st));
+  return prompt + "\n\n[BUSINESS PROFILE - provided by the owner]\n" + biz + (facts ? "\n\n" + facts : "") + cols;
 }
 
 async function businessFacts(clientId, st) {

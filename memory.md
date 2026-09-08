@@ -4,7 +4,37 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, night) — Add-product wizard + confirming the bot's tiered image logic
+## Last session (2026-09-08, late night) — Category overview image on a broad question
+
+Closed the one genuine gap in the owner's tiered-image request: "powerbank ache?" (a BROAD
+question) now sends ONE overview image + intro, then narrows to a model, then a colour. The
+colour→photo (rule 18c) and capacity→photo (search) already worked; the overview was the
+missing piece. Owner chose option (ক): a **category/collection cover image + intro**.
+
+- `bot.js` — `activeCollections(settings)` (pure, exported): keeps only rows with a category
+  AND a real http `cover_url`, trims, dedups by category (last wins), intro optional.
+  `collectionsBlockText()` builds the `[COLLECTIONS]` block; `getSystemPrompt` injects it for
+  ECOM only (an agency has no "show me your <category>"). New **FIXED_ECOM rule 16b**: on a
+  broad category question with no specific model/code/capacity/size/colour, send the
+  collection's cover image + a short intro and ask them to narrow — do NOT list products yet;
+  fall back to normal display when nothing matches.
+- Stored in `app_settings.settings.collections` = `[{id, category, cover_url, intro}]`, saved
+  via PATCH `/api/settings`. No new table.
+- `/api/collection-cover/route.js` (NEW) — POST a cover file → uploads to the **`logos`**
+  bucket (deliberately NOT `product-images`, so the product-delete cleanup never sweeps it) →
+  returns the public URL.
+- `CollectionOverview.js` (NEW) — collapsed opt-in card at the top of Inventory (shown once
+  there is a catalogue). Add rows, upload the image, write the intro, Save. Category input has
+  a datalist of the shop's existing categories. English UI only (dashboard language rule).
+- `tests/t-collections.mjs` (NEW, 16) — activeCollections. Full suite 38/38.
+
+**Owner's to-do to make it work:** Inventory → "Overview image for a category" → Add → upload
+the powerbank infographic → category "Power Bank" → intro → Save. Then set each colour
+variant's own photo (Preview flags the ones without) so the colour step sends the right image.
+
+---
+
+## Earlier session (2026-09-08, night) — Add-product wizard + confirming the bot's tiered image logic
 
 ### The add-product drawer is a Details → Photos → Variants → Preview wizard
 

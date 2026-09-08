@@ -9,6 +9,7 @@ import { findTwins } from "@/lib/duplicate-keys.js";
 import { productState, MISSING, missingToSell, missingMessage } from "@/lib/readiness.js";
 import PhotoBatchSheet from "./PhotoBatch.js";
 import DuplicateSweep from "./DuplicateSweep.js";
+import CollectionOverview from "./CollectionOverview.js";
 import { useT } from "./i18n.js";
 import { useBackClose } from "./back.js";
 
@@ -249,6 +250,11 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
         <Btn gold onClick={goAssistant} style={{ padding: "9px 16px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-sparkles" style={{ marginRight: 6 }} />{t("nav.assistant")}</Btn>
       </div>
     </Card>
+
+    {/* Category overview: one image + intro the bot sends on a broad question
+        ("do you have power banks?") before it narrows to a specific model. Opt-in
+        and collapsed; shown once there is a catalogue to describe. */}
+    {!empty && <CollectionOverview catNames={catNames} />}
 
     {/* Said plainly, above everything else, because the owner cannot see this
         from the outside: the bot is already answering some questions from the
