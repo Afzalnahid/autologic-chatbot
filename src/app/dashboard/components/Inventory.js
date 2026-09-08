@@ -231,18 +231,21 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
       <div style={{ display: "flex", gap: 8, marginLeft: "auto", flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
         {/* Straight to Bot Training → Offers, so bundling products into a deal
             is one click from where the products live. */}
-        <Btn onClick={() => { try { sessionStorage.setItem("al-bt-tab", "offers"); } catch {} window.dispatchEvent(new CustomEvent("al-goto", { detail: "settings" })); }} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-discount-2" style={{ marginRight: 6 }} />Offers</Btn>
-        {/* This tab is the manual one now. Every way of adding a product by
-            hand is here and in the open — the form, and the four imports —
-            because the chat has moved out to its own tab and this page should
-            not look like it needs one. */}
-        <Select value="" placeholder="Add products" options={[
-          { value: "add", label: "Add with the full form", icon: "ti-forms" },
-          { value: "photos", label: "Many photos at once", icon: "ti-photo-plus" },
-          { value: "csv", label: "From a CSV / spreadsheet", icon: "ti-table" },
-          { value: "url", label: "From a product URL", icon: "ti-link" },
-          { value: "woo", label: "From WooCommerce", icon: "ti-brand-wordpress" },
-          { value: "shopify", label: "From Shopify", icon: "ti-brand-shopee" },
+        <Btn onClick={() => { try { sessionStorage.setItem("al-bt-tab", "offers"); } catch {} window.dispatchEvent(new CustomEvent("al-goto", { detail: "settings" })); }} style={{ padding: "9px 14px", borderRadius: 12, whiteSpace: "nowrap" }}><i className="ti ti-discount-2" style={{ marginRight: 6 }} />{t("inv.offers")}</Btn>
+        {/* This tab is the manual one now. The ways to add products are grouped
+            so the menu reads as a decision, not a flat list: add by hand (one
+            product with its sizes/colours, or many from photos), or import an
+            existing shop. Each carries a plain-language second line, and every
+            label goes through the translator so it flips with the language. */}
+        <Select value="" placeholder={t("inv.add.placeholder")} options={[
+          { header: true, label: t("inv.add.grp.byhand") },
+          { value: "add", label: t("inv.add.single"), desc: t("inv.add.single.desc"), icon: "ti-box" },
+          { value: "photos", label: t("inv.add.many"), desc: t("inv.add.many.desc"), icon: "ti-photo-plus" },
+          { header: true, label: t("inv.add.grp.import") },
+          { value: "url", label: t("inv.add.url"), desc: t("inv.add.url.desc"), icon: "ti-link" },
+          { value: "csv", label: t("inv.add.csv"), desc: t("inv.add.csv.desc"), icon: "ti-table" },
+          { value: "woo", label: t("inv.add.woo"), desc: t("inv.add.woo.desc"), icon: "ti-brand-wordpress" },
+          { value: "shopify", label: t("inv.add.shopify"), desc: t("inv.add.shopify.desc"), icon: "ti-brand-shopee" },
         ]} onChange={(v) => (v === "add" ? setEditor({ mode: "add" }) : setImporter(v))} />
         {/* The chat is one tab away, not on this page. A door to it, not a
             second copy of it: two panels that both add products are two things

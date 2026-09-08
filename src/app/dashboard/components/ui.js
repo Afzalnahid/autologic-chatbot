@@ -300,17 +300,26 @@ export function Select({ value, options, onChange, placeholder = "Select", style
             background: T.card, border: `1px solid ${T.border}`, borderRadius: 11, padding: 5,
             boxShadow: "0 12px 32px rgba(19,23,34,.14)", maxHeight: 280, overflowY: "auto" }}>
           {options.map((o, i) => {
+            // A non-clickable group label, so a long action menu reads as tidy
+            // sections ("Add by hand", "Import from elsewhere") instead of a flat
+            // list. Options may also carry a `desc` — a quiet second line.
+            if (o && o.header) return (
+              <div key={"h" + i} style={{ padding: i ? "10px 10px 4px" : "4px 10px 4px", fontSize: 10, fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase", color: T.textDim }}>{o.label}</div>
+            );
             const v = o.value ?? o, l = o.label ?? o, on = v === value;
             return (
               <button key={v} type="button" role="option" aria-selected={on} className="ui-opt"
                 onClick={() => { onChange && onChange(v); setOpen(false); }}
-                style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left",
+                style={{ display: "flex", alignItems: o.desc ? "flex-start" : "center", gap: 9, width: "100%", textAlign: "left",
                   padding: "9px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13.5,
                   background: on ? T.goldBg : "transparent", color: on ? T.gold : T.text,
                   fontWeight: on ? 600 : 400, animationDelay: `${i * 14}ms` }}>
-                {o.icon && <i className={`ti ${o.icon}`} style={{ fontSize: 15 }} />}
-                {l}
-                {on && <i className="ti ti-check" style={{ marginLeft: "auto", fontSize: 15 }} />}
+                {o.icon && <i className={`ti ${o.icon}`} style={{ fontSize: 15, marginTop: o.desc ? 1 : 0, flexShrink: 0 }} />}
+                <span style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: 1 }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{l}</span>
+                  {o.desc && <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 400, lineHeight: 1.35 }}>{o.desc}</span>}
+                </span>
+                {on && <i className="ti ti-check" style={{ fontSize: 15, flexShrink: 0 }} />}
               </button>
             );
           })}
