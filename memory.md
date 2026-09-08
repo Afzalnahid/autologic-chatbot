@@ -25,17 +25,23 @@ New `saveAgentTurn(senderId, clientId, text)` in `bot.js` writes one `ai` turn i
 `role:"agent"` + `saveAgentTurn`, then RETURN — the bot must never reply to the shop's own
 message. Deduped on `wa_msg_id` like every other message. `tests/t-echo.mjs` (19). 39/39.
 
-**⚠️ Owner action required — the code cannot fix this alone.** Queried the live Graph API:
-every connected page is subscribed to `messages, messaging_postbacks, feed` and
-**`message_echoes` is NO** (Broker's BD 112231873927166, EzPz, AutoLogic Systems, and the IG
-account). A page keeps the field list it was connected with, so the owner must **reconnect
-each Facebook page / Instagram account once** (Channels tab) for the new subscription to take
-effect. Until then only dashboard replies (fix 3) reach the bot; Messenger-app replies still
-will not. I did NOT re-subscribe their pages from here — that changes their Meta account
-settings, so it needs their say-so. Offered it.
+**Back-fill done (owner authorised 2026-09-08).** Old pages keep the field list they were
+connected with, so a throwaway script re-POSTed `subscribed_apps` for every connected channel
+using the stored token, then GET-verified. Result: the **three Facebook pages** (Broker's BD
+112231873927166, EzPz, AutoLogic Systems) now show **`message_echoes: YES`** — no reconnect
+needed. **Instagram has NO `message_echoes` field** — the POST failed with IGApiException 100
+("must be one of {...}"), which also means the earlier `ig/select` edit adding it would have
+made every NEW IG connection subscribe to nothing. Reverted: `ig/select` is back to
+`messages,comments,live_comments,message_reactions`. On IG the business's own outgoing
+(including a hand-typed reply) arrives under the ordinary `messages` field with `is_echo`, so
+`parseMessengerEvent` already captures it — no separate field. So **no owner action is needed
+after all**; new clients get `message_echoes` on FB automatically via the fixed `fb/select`.
 
-Known gap left alone: an echo carrying a DIFFERENT app's `app_id` (a third-party tool
-replying) is still dropped — we cannot tell it from our own send without pinning our app id.
+Known gaps left alone: (a) an echo carrying a DIFFERENT app's `app_id` (a third-party tool
+replying) is still dropped — cannot tell it from our own send without pinning our app id;
+(b) IG human-app-typed replies depend on IG actually emitting `is_echo` under `messages`,
+which is unverified here (no live IG test message). Dashboard replies reach the bot on every
+platform regardless (fix 3, `saveAgentTurn` in `/api/send-message`).
 
 ---
 
