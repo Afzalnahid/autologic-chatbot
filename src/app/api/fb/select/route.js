@@ -29,8 +29,13 @@ export async function POST(request) {
 
     // Subscribe to messages + comments (feed). Log the result so we can
     // diagnose missing permissions during App Review.
+    //
+    // message_echoes is what tells us the OWNER answered by hand in the
+    // Messenger app or Page Inbox. Without it Meta sends no notification at all
+    // for a human reply, so it reached neither the dashboard thread nor the
+    // bot's memory and the bot answered as if nothing had been said.
     const sub = await fetch(
-      `https://graph.facebook.com/v24.0/${pageId}/subscribed_apps?subscribed_fields=messages,messaging_postbacks,feed&access_token=${pageToken}`,
+      `https://graph.facebook.com/v24.0/${pageId}/subscribed_apps?subscribed_fields=messages,messaging_postbacks,message_echoes,feed&access_token=${pageToken}`,
       { method: "POST" }
     ).then(r => r.json());
 

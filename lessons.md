@@ -1259,3 +1259,35 @@ the screen — exactly the cut-off footer, on every tab, on every device.
   already been wrong.
 - One overlay bug reported on one tab is a shell bug until proven otherwise — the same
   wrapper was breaking eight components at once.
+
+## A human reply the bot never sees (2026-09-08)
+
+The owner asked why his own manual replies were not captured. Three separate
+places were dropping them, and only the first is the one you would think of:
+
+1. `messenger.js` began with `if (m.message.is_echo) return null;`. That line is
+   half right. Meta reports the Page's outgoing messages as ECHOES, and two very
+   different things arrive that way: our own Send API replies (already saved when
+   we sent them) and a message the OWNER typed in the Messenger app — for which
+   Meta sends no other notification at all. Dropping both meant a human reply
+   existed nowhere: not in the dashboard thread, not in the bot's memory.
+2. `fb/select` subscribed the page to `messages,messaging_postbacks,feed`. Without
+   `message_echoes` Meta never delivers the echo, so fixing the parser alone would
+   have changed nothing. Confirmed against the live Graph API before claiming it.
+3. `/api/send-message` (the dashboard's own reply box) wrote to `message_buffer`
+   but not to `chat_memory`. The inbox showed the reply; the bot could not see it,
+   because the bot's context comes from `chat_memory`, not `message_buffer`.
+
+The visible symptom of all three is the same and is expensive: the bot re-asks a
+question a human already answered and re-quotes a price a human already agreed.
+
+**Rules:**
+- A feature that spans a webhook is not done at the parser. Check what the
+  provider is actually subscribed to — query it, do not read the connect code and
+  assume it ran with today's field list. Existing connections keep the field list
+  they were made with, so a subscription change needs a reconnect.
+- `is_echo` alone never means "ours". `app_id` is the discriminator: present for a
+  send by an app, absent when a human typed it in the provider's own inbox.
+- Two stores that both look like "the conversation" will drift. `message_buffer`
+  is what the OWNER sees; `chat_memory` is what the BOT sees. Anything that
+  speaks to the customer has to be written to both, or one of them is a lie.

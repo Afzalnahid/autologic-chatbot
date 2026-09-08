@@ -4,7 +4,42 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, late night) — Notification panel fits a phone; grid overflow audit
+## Last session (2026-09-08, late night) — Human replies now reach the bot's memory
+
+Owner: "why are the human replies to customers not captured? the bot loses the context."
+Correct, and it was THREE bugs stacked (see `lessons.md`):
+
+1. `messenger.js` did `if (m.message.is_echo) return null;`. Meta reports a reply the owner
+   types in the Messenger app / Page Inbox ONLY as an echo, so it was thrown away — it
+   reached neither the dashboard thread nor the bot. Now: an echo with an `app_id` is our own
+   Send API call (already stored, still dropped); an echo with NO `app_id` is a human and is
+   captured. In an echo sender/recipient are REVERSED (sender = page, recipient = customer).
+2. `fb/select` subscribed to `messages,messaging_postbacks,feed` — no `message_echoes`, so
+   Meta never delivered the echo at all. Added there and in `ig/select`.
+3. `/api/send-message` wrote the dashboard's own reply to `message_buffer` but NOT to
+   `chat_memory` — and `getMemory()` reads `chat_memory`. So even a dashboard reply was
+   invisible to the bot.
+
+New `saveAgentTurn(senderId, clientId, text)` in `bot.js` writes one `ai` turn into
+`chat_memory` (never throws). `handleIncoming` gets an early `event.echo` branch: store as
+`role:"agent"` + `saveAgentTurn`, then RETURN — the bot must never reply to the shop's own
+message. Deduped on `wa_msg_id` like every other message. `tests/t-echo.mjs` (19). 39/39.
+
+**⚠️ Owner action required — the code cannot fix this alone.** Queried the live Graph API:
+every connected page is subscribed to `messages, messaging_postbacks, feed` and
+**`message_echoes` is NO** (Broker's BD 112231873927166, EzPz, AutoLogic Systems, and the IG
+account). A page keeps the field list it was connected with, so the owner must **reconnect
+each Facebook page / Instagram account once** (Channels tab) for the new subscription to take
+effect. Until then only dashboard replies (fix 3) reach the bot; Messenger-app replies still
+will not. I did NOT re-subscribe their pages from here — that changes their Meta account
+settings, so it needs their say-so. Offered it.
+
+Known gap left alone: an echo carrying a DIFFERENT app's `app_id` (a third-party tool
+replying) is still dropped — we cannot tell it from our own send without pinning our app id.
+
+---
+
+## Earlier session (2026-09-08, late night) — Notification panel fits a phone; grid overflow audit
 
 Owner's phone screenshot: the bell dropdown ran off the LEFT edge, "Notifications" cut to
 "fications". Cause: the panel was `position:absolute; right:0` — anchored to the BELL, which is

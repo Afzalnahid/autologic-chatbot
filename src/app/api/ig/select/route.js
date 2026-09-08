@@ -25,8 +25,9 @@ export async function POST(request) {
     if (!cq.ok) return connectFailedPage({ platform: "instagram", status: 403, reason: cq.message });
 
     // Subscribe to messages AND comments for full automation coverage.
+    // message_echoes carries the owner's own hand-typed replies (see fb/select).
     const sub = await fetch(
-      `https://graph.instagram.com/v21.0/${igId}/subscribed_apps?subscribed_fields=messages,comments,live_comments,message_reactions&access_token=${pageToken}`,
+      `https://graph.instagram.com/v21.0/${igId}/subscribed_apps?subscribed_fields=messages,message_echoes,comments,live_comments,message_reactions&access_token=${pageToken}`,
       { method: "POST" }
     ).then(r => r.json()).catch(() => ({}));
 

@@ -78,8 +78,38 @@ export function parseMessengerEvent(body) {
   const platform = body?.object === "instagram" ? "instagram" : "facebook";
   const m = body?.entry?.[0]?.messaging?.[0];
   if (!m?.sender?.id || !m.message) return null;
-  if (m.message.is_echo) return null;
   const atts = m.message.attachments || [];
+
+  // An ECHO is the Page's own outgoing message coming back to us. Two very
+  // different things arrive this way and only one may be dropped:
+  //
+  //   • Our own Send API replies. They carry OUR app_id, and we already saved
+  //     them when we sent them — echoing them back would store everything twice.
+  //   • A message the OWNER typed by hand in the Messenger app or Page Inbox.
+  //     Meta sends no other notification for it, and it has NO app_id. This used
+  //     to be dropped with the rest, so a human reply existed nowhere: not in the
+  //     dashboard inbox, and not in the bot's memory. The bot then answered the
+  //     next message as if the owner had never spoken — re-asking what had just
+  //     been answered and contradicting a price a human had already given.
+  //
+  // In an echo the sender is the PAGE and the recipient is the CUSTOMER, so the
+  // two ids are the other way round from an ordinary message.
+  if (m.message.is_echo) {
+    if (m.message.app_id) return null;      // our own send, already stored
+    if (!m.recipient?.id) return null;
+    return {
+      platform,
+      echo: true,
+      senderId: m.recipient.id,             // the customer this was sent TO
+      pageId: m.sender.id,                  // the page it was sent FROM
+      msgId: m.message.mid || null,
+      text: m.message.text || "",
+      images: atts.filter(a => (a.type === "image" || a.type === "share") && a.payload?.url).map(a => a.payload.url),
+      audio: null,
+      video: false,
+    };
+  }
+
   return {
     platform,
     senderId: m.sender.id,

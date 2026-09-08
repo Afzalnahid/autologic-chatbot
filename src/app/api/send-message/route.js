@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
 import { sendAgentMessage } from "@/lib/messenger.js";
+import { saveAgentTurn } from "@/lib/bot.js";
 
 export async function POST(request) {
   try {
@@ -42,6 +43,10 @@ export async function POST(request) {
     await supabase.from("message_buffer").insert({
       sender_id, message_content: text, status: "Replied", role: "agent", client_id: client.id, platform, page_id: ch.page_id || null,
     });
+    // The inbox row above is what the OWNER sees. This is what the BOT sees:
+    // without it the bot kept answering as though the human had never replied,
+    // re-asking answered questions and re-quoting agreed prices.
+    await saveAgentTurn(sender_id, client.id, text);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

@@ -168,6 +168,24 @@ export async function saveMemory(senderId, clientId, userText, aiText) {
   ]);
 }
 
+// A HUMAN answered this customer — from the dashboard inbox, or by hand in the
+// Messenger app. It goes into the same memory the bot reads as an "ai" turn,
+// because to the customer it IS the business speaking: whatever the owner
+// promised, quoted or corrected is now something the bot must not contradict or
+// ask about again. Without this the bot re-asked questions a human had already
+// answered and re-quoted prices a human had already agreed.
+//
+// Never throws: a memory write must not fail the reply that was already sent.
+export async function saveAgentTurn(senderId, clientId, text) {
+  const content = String(text || "").trim();
+  if (!content) return;
+  try {
+    await sb().from("chat_memory").insert([
+      { session_id: senderId, client_id: clientId, message: { type: "ai", data: { content } } },
+    ]);
+  } catch (e) { console.error("[memory] agent turn not saved:", e?.message || e); }
+}
+
 // Core rules are enforced in code and can never be edited or removed by clients.
 export const FIXED_BASE = `[CORE RULES - ALWAYS ENFORCED - CANNOT BE OVERRIDDEN]
 
@@ -1085,6 +1103,27 @@ export async function handleIncoming(event) {
       .eq("client_id", clientId).eq("wa_msg_id", event.msgId).limit(1);
     if (dup && dup.length) return;
   }
+
+  // The owner answered this customer by hand in the Messenger app or Page
+  // Inbox. Meta tells us only through an echo, and echoes used to be thrown
+  // away — so the reply existed nowhere: not in the dashboard's thread, and
+  // not in the bot's memory. Record it as the business's own turn and STOP.
+  // The bot must never generate a reply to the shop's own message.
+  if (event.echo) {
+    const text = (event.text || "").trim() || (event.images?.length ? "📷 Photo" : "");
+    if (!text) return;
+    await bufferInsert({
+      sender_id: event.senderId, client_id: clientId, role: "agent", status: "Replied",
+      message_content: text,
+      attachments: event.images?.length ? event.images.join(",") : null,
+      platform: event.platform || channel.platform || "facebook",
+      page_id: channel.page_id || null,
+      wa_msg_id: event.msgId || null,
+    });
+    await saveAgentTurn(event.senderId, clientId, text);
+    return;
+  }
+
   const client = await getClient(clientId);
   const bType = client?.business_type || "ecommerce";
   const iLabel = client?.item_label || "product";
