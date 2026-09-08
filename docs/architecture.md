@@ -362,6 +362,14 @@ Every tab lives in `src/app/dashboard/components/`:
 `Broadcast`, `Channels`, `Comments`, `Conversations`, `Inventory`,
 `KnowledgeBase`, `Orders`, `Profile`, `Settings`, `WebsiteWidget`.
 
+The **AI Assistant** configures without leaving its tab: adding products (one at
+a time or many), setting offers and teaching the bot happen in the chat, and the
+ways that need a richer surface — the many-from-photos sheet (`PhotoBatch`) and
+the CSV / product-URL / WooCommerce / Shopify importers (`ImportSheet`, exported
+from `Inventory.js`) — open as an overlay ON the assistant, not by switching to
+Inventory. Only an explicit "take me to X" navigates. The Inventory, Offers and
+Bot Training tabs are then where those changes are viewed and hand-edited.
+
 Four modules are shared by all of them:
 - `session.js` — the supabase client, the auth token and the `api()` fetch helper.
   The token is written through `setAuthToken()` because an exported `let` cannot be

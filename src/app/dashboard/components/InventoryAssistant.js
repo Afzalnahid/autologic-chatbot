@@ -9,6 +9,8 @@ import { useBackClose } from "./back.js";
 import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
 import { buildVariants, parseAxes } from "@/lib/variants.js";
+import PhotoBatchSheet from "./PhotoBatch.js";
+import { ImportSheet } from "./Inventory.js";
 
 // Look after the catalogue by talking to it — and add to it the same way.
 //
@@ -32,6 +34,11 @@ import { buildVariants, parseAxes } from "@/lib/variants.js";
 //
 // TAKING YOU THERE. "Show me the orders" opens the Orders tab. The chat is a
 // front door to the whole dashboard, not a box bolted onto one page of it.
+// But CONFIGURING never leaves the chat: adding products (single or many),
+// setting offers and teaching the bot all happen here, and the ways that need a
+// richer surface — the many-from-photos sheet and the CSV/URL/WooCommerce/
+// Shopify importers — open as an overlay ON this tab, not by switching to
+// Inventory. Only an explicit "take me to X" navigates.
 //
 // The way in is always the same three steps, in this order, and the order
 // matters because each step changes what the next one should say:
@@ -196,6 +203,15 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // Every way of adding products stays on THIS tab. The many-from-photos sheet
+  // and the CSV/URL/WooCommerce/Shopify importers used to switch to Inventory
+  // (onImport → setPage) — now they open as an overlay right over the chat, so
+  // the owner never leaves the assistant.
+  const [importer, setImporter] = useState(null);     // null | photos|csv|url|woo|shopify
+  const [importPrefill, setImportPrefill] = useState(null);
+  const openImporter = (kind, prefill = null) => { setImportPrefill(prefill || null); setImporter(kind); };
+  const closeImporter = () => { setImporter(null); setImportPrefill(null); };
+  useBackClose(!!importer, closeImporter);
 
   // Interview state. `mode` is what the composer and the send button are for.
   const [mode, setMode] = useState("chat");
@@ -545,7 +561,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       // "S, M, L" becomes one axis named the way this shop names it;
       // "Size: S, M; Colour: Black" becomes two. Either is a thing a person
       // types when asked that question, so both are read.
-      onImport?.("photos", { kind: answers.kind, price, category: answers.kind, axes: parseAxes(answers.options, axisWord || "Size") });
+      openImporter("photos", { kind: answers.kind, price, category: answers.kind, axes: parseAxes(answers.options, axisWord || "Size") });
       return;
     }
     // The other two end where every change in this panel ends: as a card the
@@ -798,7 +814,15 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   useBackClose(interviewing || !!wiz, () => backToMenu());
   const filledRows = Object.entries(draft).filter(([, v]) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && !v.length));
 
-  return <Card style={{ padding: 0, marginBottom: fullPage ? 0 : 14, overflow: "hidden", ...(fullPage ? { display: "flex", flexDirection: "column", height: isMobile ? "calc(100dvh - 190px)" : "calc(100vh - 150px)" } : {}) }}>
+  return <>
+  {/* Adding products from photos, a spreadsheet or another shop opens its sheet
+      HERE, over the chat — the owner never leaves the assistant. onDone posts the
+      result back into the conversation and refreshes the catalogue behind it. */}
+  {importer === "photos" && <PhotoBatchSheet isMobile={isMobile} categories={categories} shopAxes={shopAxes} prefill={importPrefill}
+    onClose={closeImporter} onDone={(msg) => { closeImporter(); refresh?.(); if (msg) setMsgs((s) => [...s, { role: "assistant", content: String(msg) }]); }} />}
+  {importer && importer !== "photos" && <ImportSheet kind={importer} isMobile={isMobile}
+    onClose={closeImporter} onDone={(msg) => { closeImporter(); refresh?.(); if (msg) setMsgs((s) => [...s, { role: "assistant", content: String(msg) }]); }} />}
+  <Card style={{ padding: 0, marginBottom: fullPage ? 0 : 14, overflow: "hidden", ...(fullPage ? { display: "flex", flexDirection: "column", height: isMobile ? "calc(100dvh - 190px)" : "calc(100vh - 150px)" } : {}) }}>
     {/* On its own page there is nothing to collapse into — the header is a
         title, not a switch. */}
     {fullPage
@@ -873,7 +897,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           {/* The rule for an import that opens its own sheet. The button is
               what opens it, so the four lines above stay readable for as long
               as the owner wants them there. */}
-          {m.go && <Btn gold onClick={() => onImport?.(m.go)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
+          {m.go && <Btn gold onClick={() => openImporter(m.go)} disabled={busy} style={{ borderRadius: 20, minHeight: 40 }}>
             <i className={`ti ${WAY_ICON[m.go]}`} style={{ marginRight: 6 }} />{t("asst.rule.open")}
           </Btn>}
 
@@ -1067,5 +1091,6 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
         </button>)}
       </div>}
     </div>}
-  </Card>;
+  </Card>
+  </>;
 }

@@ -825,7 +825,10 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
 }
 
 // ── Import sheet (CSV / product URL / WooCommerce) ──────────────────────────
-function ImportSheet({ kind, isMobile, onClose, onDone }) {
+// Exported so the AI Assistant can open it as an overlay ON its own tab, rather
+// than sending the owner to Inventory — every way of adding products stays where
+// the chat is.
+export function ImportSheet({ kind, isMobile, onClose, onDone }) {
   const [url, setUrl] = useState("");
   // WooCommerce wants a URL and a key pair; Shopify wants a myshopify address
   // and one token. One state holds both, because a sheet only ever shows one
