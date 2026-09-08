@@ -47,14 +47,23 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     if(s<60) return "now"; if(s<3600) return Math.floor(s/60)+"m"; if(s<86400) return Math.floor(s/3600)+"h";
     if(s<604800) return Math.floor(s/86400)+"d"; return new Date(t).toLocaleDateString("en-GB",{day:"numeric",month:"short"}); };
   const isMobile=useIsMobile();
-  const [sel,setSel]=useState(-1);
+  // The open conversation is tracked by its STABLE id, not its position in the
+  // list. The list re-sorts every refresh (newest chat first), so an index would
+  // silently point at a different conversation a few seconds later — which is why
+  // scrolling one chat could jump you into another. `sel` is derived from the id.
+  const [selId,setSelId]=useState(null);
+  const sel = selId==null ? -1 : convos.findIndex(x=>String(x.id)===String(selId));
+  // The conversation actually shown in the chat pane: the selected one, or (on
+  // desktop, where the pane is always visible) the top of the list as a preview.
+  const c = convos[sel<0?0:sel] || convos[0] || null;
+  const msgCount = c?.messages?.length || 0;
   // The open conversation answers the back press before the tab does, so one
   // press closes the chat and the next goes to the previous page.
-  useBackClose(sel>=0,()=>setSel(-1));
+  useBackClose(sel>=0,()=>setSelId(null));
   useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&sel>=0);},[sel,isMobile]);
-  // Changing a filter can drop the conversation that was open; let it go rather
-  // than leaving an index pointing at nothing.
-  useEffect(()=>{ if(sel>=convos.length) setSel(convos.length?0:-1); },[convos.length]);
+  // A filter (or a delete) can drop the open conversation from the list; when the
+  // id is no longer there, close back to the list rather than leaving it dangling.
+  useEffect(()=>{ if(selId!=null && sel<0 && convos.length) setSelId(null); },[sel,selId,convos.length]);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
   // null = not loaded yet. Starting at `true` painted a green "Bot ON" for the
@@ -113,7 +122,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   const deleteChat=async()=>{
     if(!confirm(`Delete chat with ${cname}?`)) return;
     await api("/api/conversations",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({sender_id:c.id})});
-    setSel(-1);
+    setSelId(null);
     refresh&&refresh(true);
   };
 
@@ -147,7 +156,18 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     const t=setInterval(()=>{refresh&&refresh(true);loadContacts();},45000);
     return ()=>{getSb().removeChannel(ch);clearInterval(t);};
   },[refresh]);
-  useEffect(()=>{chatRef.current?.scrollTo(0,chatRef.current.scrollHeight);},[convos,sel]);
+  // Whether the reader is at the bottom of the thread right now. Updated on
+  // scroll; a new message only pulls the view down if they were already there —
+  // never yanks them down while they are reading older messages (the old effect
+  // ran on every render because `convos` is a fresh array each time, so any
+  // background refresh scrolled to the bottom).
+  const atBottomRef=useRef(true);
+  const onChatScroll=()=>{ const el=chatRef.current; if(el) atBottomRef.current=(el.scrollHeight-el.scrollTop-el.clientHeight)<80; };
+  // Opening (or switching to) a conversation lands on the latest message
+  // instantly, no animation — keyed on the shown conversation's id.
+  useEffect(()=>{ const el=chatRef.current; if(el){ el.scrollTop=el.scrollHeight; atBottomRef.current=true; } },[c?.id]);
+  // A NEW message scrolls down smoothly, but only if they were at the bottom.
+  useEffect(()=>{ const el=chatRef.current; if(el&&atBottomRef.current) el.scrollTo({top:el.scrollHeight,behavior:"smooth"}); },[msgCount]);
   // Fill the chat list from its own top to the bottom of the visible screen.
   // Re-measured on resize (a phone's address bar hiding fires it) and whenever
   // what sits above the list can change (the filter row appears, a banner shows).
@@ -183,10 +203,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
       As soon as someone writes to your Facebook, Instagram, WhatsApp or website, the chat appears here.
     </div>
   </Card>;
-  const idx=sel<0?0:sel;
-  // `c` is empty whenever a filter matches nothing. Everything below has to
-  // survive that: the crash was reading c.sender on an empty list.
-  const c=convos[idx]||convos[0]||null;
+  // `c` (the shown conversation) is computed near the top; it is empty whenever a
+  // filter matches nothing, and everything below survives that (the crash was
+  // reading c.sender on an empty list).
   const ct=(c&&contacts[c.id])||{};
   const cname=ct.name||c?.sender||"";
   const showList=!isMobile||sel<0;
@@ -281,7 +300,8 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
       {convos.map((cv,i)=>{
         const cvt=contacts[cv.id]||{};
         const multi=(perPlatform[cv.platform]||[]).length>1;
-        return <div key={cv.id} onClick={()=>setSel(i)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:sel===i?T.goldBg:"transparent",borderLeft:sel===i?`3px solid ${T.gold}`:"3px solid transparent"}}>
+        const on=String(selId)===String(cv.id);
+        return <div key={cv.id} onClick={()=>setSelId(cv.id)} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:on?T.goldBg:"transparent",borderLeft:on?`3px solid ${T.gold}`:"3px solid transparent"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:4}}>
             <span style={{fontSize:13,fontWeight:500,display:"flex",alignItems:"center",gap:6,minWidth:0}}>
               <i className={`ti ${CH_ICON[cv.platform]||"ti-message"}`} style={{fontSize:13,color:T.textMuted,flexShrink:0}}/>
@@ -309,7 +329,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
           row below, at both widths, so nothing competes for the name row. */}
       <div style={{borderBottom:`0.5px solid ${T.border}`}}>
         <div style={{padding:isMobile?"10px 10px 10px 6px":"12px 16px",display:"flex",alignItems:"center",gap:isMobile?6:10}}>
-          {isMobile&&<button onClick={()=>setSel(-1)} aria-label="Back" className="ui-sq"
+          {isMobile&&<button onClick={()=>setSelId(null)} aria-label="Back" className="ui-sq"
             style={{background:"none",border:"none",cursor:"pointer",color:T.text,fontSize:21,padding:0,flexShrink:0,
               display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-chevron-left"/></button>}
           <div aria-hidden style={{width:36,height:36,borderRadius:"50%",background:T.goldBg,color:T.gold,
@@ -342,7 +362,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             }}/>
         </div>}
       </div>
-      <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,display:"flex",flexDirection:"column",gap:12}}>
+      <div ref={chatRef} onScroll={onChatScroll} style={{flex:1,overflow:"auto",overscrollBehavior:"contain",WebkitOverflowScrolling:"touch",padding:20,display:"flex",flexDirection:"column",gap:12}}>
         {(c.messages||[]).map((m,i)=>{
           const mine=m.role!=="customer";
           return <div key={i} style={{display:"flex",justifyContent:mine?"flex-end":"flex-start"}}>
