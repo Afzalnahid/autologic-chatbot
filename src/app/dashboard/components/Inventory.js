@@ -251,11 +251,6 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
       </div>
     </Card>
 
-    {/* Category overview: one image + intro the bot sends on a broad question
-        ("do you have power banks?") before it narrows to a specific model. Opt-in
-        and collapsed; shown once there is a catalogue to describe. */}
-    {!empty && <CollectionOverview catNames={catNames} />}
-
     {/* Said plainly, above everything else, because the owner cannot see this
         from the outside: the bot is already answering some questions from the
         wrong row. Not dismissible — it goes away when it is fixed. */}
@@ -322,6 +317,12 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
               </div>}
 
           <div style={{ minWidth: 0 }}>
+            {/* The overview belongs to a category, so it lives under the one the
+                owner has selected — pick "Powerbank" and set Powerbank's overview
+                right there. On "All products" it's a quiet prompt to pick one. */}
+            <div style={{ marginBottom: 12 }}>
+              <CollectionOverview selectedCat={cat} catNames={catNames} onGotoCategory={setCat} />
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 12.5, color: T.textMuted, flexWrap: "wrap" }}>
               <label style={{ display: "inline-flex", alignItems: "center", gap: 7, cursor: "pointer" }}>
                 <input type="checkbox" checked={allVisible} onChange={() => setSel(allVisible ? new Set() : new Set(list.map((p) => p.id)))} style={{ accentColor: T.gold, width: 15, height: 15 }} />
