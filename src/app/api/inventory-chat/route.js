@@ -70,15 +70,22 @@ export async function POST(request) {
 
     // Only proposals about products this shop owns survive. The model has no
     // way to learn another client's id, but "cannot happen" is not a filter.
+    // A screen the model asked to open (a photo interview, an importer, the
+    // overview editor) — validated against the fixed list so a made-up token
+    // does nothing. When one is set, the proposals are dropped: the screen is
+    // the action now.
+    const UI_TOKENS = new Set(["add_photo", "import:photos", "import:csv", "import:url", "import:woo", "import:shopify", "overview"]);
+    const ui = UI_TOKENS.has(String(parsed.ui || "")) ? String(parsed.ui) : null;
+
     const owned = new Set(all.map((p) => String(p.id)));
-    const actions = normalizeActions(parsed.actions).filter((a) => a.do === "create" || owned.has(String(a.id)));
+    const actions = ui ? [] : normalizeActions(parsed.actions).filter((a) => a.do === "create" || owned.has(String(a.id)));
 
     // The same rule for the settings half: an offer or a note the model names
     // has to be one that is actually there, or the proposal is dropped before
     // the owner is ever shown it.
     const offerIds = new Set((Array.isArray(settings.offers) ? settings.offers : []).map((o) => String(o?.id)));
     const noteIds = new Set((Array.isArray(settings.questionnaire?.notes) ? settings.questionnaire.notes : []).map((n) => String(n?.id)));
-    const settingActions = normalizeSettingActions(parsed.settings).filter((a) => {
+    const settingActions = ui ? [] : normalizeSettingActions(parsed.settings).filter((a) => {
       if (a.do === "offer.update" || a.do === "offer.delete") return offerIds.has(String(a.id));
       if (a.do === "note.delete") return noteIds.has(String(a.id));
       return true;
@@ -87,6 +94,7 @@ export async function POST(request) {
     return NextResponse.json({
       ok: true,
       reply: parsed.reply || "I could not put that into words. Try asking it a different way.",
+      ui,
       actions,
       settingActions,
       // The panel reads each product as it stands now, to show "450 → 500"
@@ -153,8 +161,18 @@ WHAT YOU CAN DO
 - PROPOSE changes. You never make a change yourself: every proposal is shown to the owner as a card and only happens if they press a button. Say so when it matters, and never claim something is done.
 - Ask a question back when the request is ambiguous. Proposing the wrong change is worse than asking.
 - Take the owner to another tab when that is what they want. You do not need to do anything for that — the panel recognises "show me the orders", "open bot training" on its own. Just answer normally.
-- You cannot read files or open websites. When the owner mentions a spreadsheet, a CSV, a product link, a WooCommerce shop, or says they have many ${agency ? "services" : "products"} to add, point at the buttons under the message box: "From photos", "A spreadsheet", "A product link", "WooCommerce". Say which one fits. Never offer to do it yourself.
 - You cannot send anything to a customer. Broadcasts and replies are not yours; say the owner does that on Broadcast or Inbox.
+
+SOME THINGS NEED A SCREEN, NOT TEXT — OPEN IT WITH "ui"
+You cannot attach a photo, read a file, connect another shop, or set a picture by typing. When the owner wants one of these, DO NOT propose actions — instead set "ui" to one value and, in "reply", tell them in one short line what is opening:
+- "ui":"add_photo" — they want to add ONE new ${agency ? "service" : "product"}. This opens the guided add where they send its photo and you ask the rest, one question at a time. Prefer this whenever a NEW ${agency ? "service" : "product"} is being added, unless they clearly gave full text details AND said there is no photo — then you may "create" it by text instead.
+- "ui":"import:photos" — MANY ${agency ? "services" : "products"} to add, a photo of each.
+- "ui":"import:csv" — a spreadsheet / CSV / Excel.
+- "ui":"import:url" — a product link / URL.
+- "ui":"import:woo" — a WooCommerce shop.
+- "ui":"import:shopify" — a Shopify shop.
+- "ui":"overview" — set the category OVERVIEW image (the picture the bot sends when a customer first asks broadly, e.g. "power bank ache?").
+When you set "ui", "actions" and "settings" must be empty — the screen takes over.
 
 THE CATALOGUE
 ${all.length} products in total, ${inStock} of them in stock.${hidden > 0 ? ` You are shown ${shown.length} of them below — ${hidden} are NOT in this list, so never say the shop does not have something; say you cannot see it and ask for the name or code.` : ""}
@@ -187,8 +205,8 @@ RULES — BOTH
 
 ANSWER FORMAT
 JSON only, nothing before or after:
-{"reply":"what you say to the owner","actions":[{"do":"update","id":"<id>","set":{"regular_price":"500"}}],"settings":[{"do":"offer.create","set":{"title":"Eid sale","details":"20% off everything until 15 April"}}]}
-Use empty arrays when you are only answering or asking.
+{"reply":"what you say to the owner","actions":[{"do":"update","id":"<id>","set":{"regular_price":"500"}}],"settings":[{"do":"offer.create","set":{"title":"Eid sale","details":"20% off everything until 15 April"}}],"ui":""}
+Use empty arrays when you are only answering or asking, and "ui":"" unless you are opening a screen (see above).
 Catalogue verbs: "update" (needs id), "create" (needs set.product_name), "delete" (needs id).
 Settings verbs: "offer.create", "offer.update" (needs id), "offer.delete" (needs id), "bargain.set", "note.add", "note.delete" (needs id), "training.set", "identity.set", "followup.set".`;
 }
@@ -203,8 +221,8 @@ function parse(raw) {
   if (start >= 0 && end > start) {
     try {
       const j = JSON.parse(text.slice(start, end + 1));
-      if (j && typeof j === "object") return { reply: String(j.reply || "").trim(), actions: j.actions, settings: j.settings };
+      if (j && typeof j === "object") return { reply: String(j.reply || "").trim(), actions: j.actions, settings: j.settings, ui: j.ui };
     } catch {}
   }
-  return { reply: text.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim(), actions: [], settings: [] };
+  return { reply: text.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim(), actions: [], settings: [], ui: "" };
 }

@@ -33,25 +33,18 @@ import { CategoryOverviewSheet } from "./CollectionOverview.js";
 // right field. A product can carry several photos — the first is the one
 // customers see — and they are attached from the message box like any chat.
 //
-// TAKING YOU THERE. "Show me the orders" opens the Orders tab. The chat is a
-// front door to the whole dashboard, not a box bolted onto one page of it.
-// But CONFIGURING never leaves the chat: adding products (single or many),
-// setting offers and teaching the bot all happen here, and the ways that need a
-// richer surface — the many-from-photos sheet and the CSV/URL/WooCommerce/
-// Shopify importers — open as an overlay ON this tab, not by switching to
-// Inventory. Only an explicit "take me to X" navigates.
+// NO MENU. It is a plain conversation, the way Claude is: the owner just says
+// what they want and the model works it out — no intent buttons, no "one or
+// several", no rows of ways. `/api/inventory-chat` reads the sentence and either
+// answers, asks back, or proposes a change. The few things text cannot do — a
+// photo, a file, connecting a shop, an image — the model asks the panel to open
+// by returning a `ui` value (add_photo, import:*, overview); the panel opens
+// that screen as an OVERLAY on this tab. "Show me the orders" still navigates,
+// because that is the owner asking to go and look, not to configure.
 //
-// The way in is always the same three steps, in this order, and the order
-// matters because each step changes what the next one should say:
-//
-//   1. WHERE ARE THEY COMING FROM — being asked, photos, a spreadsheet, a
-//      link, WooCommerce.
-//   2. ONE, OR SEVERAL — asked before anything else, because interviewing
-//      somebody about the first of fifteen shirts is the single mistake here
-//      that costs a whole evening.
-//   3. WHAT IS ABOUT TO HAPPEN — four lines of it, before it happens. Somebody
-//      who has never done this cannot tell an assistant that is collecting
-//      from one that is saving, and that difference is the whole design.
+// A guided add (the photo interview) and the short offer/training wizards still
+// exist as the ENGINE behind "add_photo" and a couple of proposals — but they
+// are entered by conversation now, not by pressing a button.
 //
 // The draft is held here and sent with every turn, not remembered by the model.
 // What can be saved is decided by draftGaps, not by the assistant saying it
@@ -59,10 +52,10 @@ import { CategoryOverviewSheet } from "./CollectionOverview.js";
 // the translator: the owner picks a language once, and a chat answering in
 // English under a Bangla screen was the last place that rule was broken.
 
-// Four things to try, two from each half of what this tab reaches — so the
-// first thing an owner reads is not "this is for products", which is what it
-// was and what it no longer is.
-const CHIP_KEYS = ["asst.chip.low", "asst.chip.noPrice", "asst.chip.offer", "asst.chip.teach"];
+// A few example prompts, the way Claude opens — one from each corner of what a
+// plain sentence can now do here (add a product, set an offer, query the
+// catalogue, teach the bot), so the owner sees the range without a menu.
+const EXAMPLE_KEYS = ["asst.chip.add", "asst.chip.offer", "asst.chip.noPrice", "asst.chip.teach"];
 
 // The first question, and the only one that is not about products: what does
 // the owner want to do at all.
@@ -302,9 +295,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   }, [open, mode, msgs.length, photos.length]);
   useEffect(() => () => blobs.current.forEach(URL.revokeObjectURL), []);
   // Started from outside the panel — the toolbar button, or the empty state.
-  // It lands on step 2, not straight into an interview: somebody who pressed
-  // "Add by chat" has told us the method and nothing else.
-  useEffect(() => { if (startSignal > 0) { setOpen(true); pickIntent("add"); } }, [startSignal]);
+  // "Add by chat" from Inventory starts the guided add straight away — the one
+  // product interview, photo first — rather than a menu of choices.
+  useEffect(() => { if (startSignal > 0) { setOpen(true); startInterview(); } }, [startSignal]);
 
   const gaps = draftGaps(draft, photos.length);
   // The moment the product becomes saveable, put the button where the owner can
@@ -390,6 +383,18 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     });
     setBusy(false);
     if (r.error) { setErr(r.error); return; }
+    // The model decided this needs a screen it cannot fill by text — a photo
+    // interview, an importer, the overview editor. It says which; the panel
+    // opens it. This is what lets the whole thing run by conversation: the owner
+    // types "add a power bank", the model opens the guided add.
+    if (r.ui) {
+      if (r.reply) say({ content: r.reply });
+      if (r.ui === "add_photo") return startInterview();
+      if (r.ui === "overview") { setOverviewOpen(true); return; }
+      const im = /^import:(photos|csv|url|woo|shopify)$/.exec(r.ui);
+      if (im) { openImporter(im[1]); return; }
+      return;
+    }
     // One list, whichever half of the dashboard each proposal is about — a
     // price and an offer are the same thing to the owner: something that will
     // happen if they leave it ticked. The `kind` is only there so the card
@@ -429,7 +434,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     setMsgs((s) => s.map((x, i) => i !== mi ? x : { ...x, done: { ok: r.done, failed } }));
     // The job is finished, so the way back to the other two is offered without
     // being asked for.
-    if (r.done) say({ key: "asst.whatNext", menu: true });
+    if (r.done) say({ key: "asst.whatNext" });
     refresh?.();
   };
 
@@ -603,12 +608,16 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // header button. It APPENDS rather than resetting: the conversation above is
   // what the owner just did, and throwing it away to show a menu would be a
   // strange way to offer them a menu.
-  const backToMenu = (key = "asst.whatNext") => {
+  // Return to plain chat — the conversation continues, no menu of buttons. Used
+  // after a change is applied, when a guided add is cancelled, and by the back
+  // button while one is in progress.
+  const backToChat = (key = "asst.whatNext") => {
     setWiz(null);
     if (mode === "interview") { setMode("chat"); setDraft(emptyDraft()); setPhotos([]); setVisual(""); setDup(null); setRefused(false); }
     setErr("");
-    say({ key, menu: true });
+    say({ key });
   };
+  const backToMenu = backToChat;
 
   const stopInterview = () => backToMenu("asst.stopped");
 
@@ -852,11 +861,10 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>{t("inv.assistantTitle")}</span>
             <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, marginTop: 1 }}>{t("inv.assistantSub")}</span>
           </span>
-          {/* Always a way back to the three things, from wherever the
-              conversation has got to. Only once there IS a conversation —
-              on an empty panel the menu is already the whole screen. */}
-          {msgs.length > 0 && <Btn small onClick={() => backToMenu()} disabled={busy} style={{ flexShrink: 0, borderRadius: 11, whiteSpace: "nowrap" }}>
-            <i className="ti ti-arrow-back-up" style={{ marginRight: 5 }} />{t("asst.mainMenu")}
+          {/* A way OUT of a guided add — nothing else has buttons, so this only
+              shows while an interview or a short wizard is in progress. */}
+          {(interviewing || !!wiz) && <Btn small onClick={() => backToChat("asst.stopped")} disabled={busy} style={{ flexShrink: 0, borderRadius: 11, whiteSpace: "nowrap" }}>
+            <i className="ti ti-x" style={{ marginRight: 5 }} />{t("common.cancel")}
           </Btn>}
         </div>
       : <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="ui-btn"
@@ -883,9 +891,11 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
           <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.65, marginBottom: 10 }}>
             {t("asst.intro", { n: products?.length || 0 })}
           </div>
-          {menu}
+          {/* No menu of buttons — this is a conversation. A few example prompts,
+              the way Claude opens, so the owner knows the sort of thing they can
+              just say; clicking one only fills the box's first message. */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {CHIP_KEYS.map((c) => <button key={c} type="button" onClick={() => ask(t(c))} className="ui-btn ob-chip"
+            {EXAMPLE_KEYS.map((c) => <button key={c} type="button" onClick={() => ask(t(c))} className="ui-btn ob-chip"
               style={{ padding: "8px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>{t(c)}</button>)}
           </div>
 
@@ -1092,29 +1102,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
         <Btn gold type="submit" disabled={busy || !input.trim()} aria-label={t("common.send")} style={{ borderRadius: 12, padding: "9px 16px", minHeight: 44 }}><i className="ti ti-send" style={{ fontSize: 16 }} /></Btn>
       </form>
 
-      {/* Still reachable once the conversation has started, as a compact row —
-          the full cards belong to the empty state, where there is room. These
-          skip the two questions, because pressing "A spreadsheet" has already
-          answered both of them. Hidden mid-interview and mid-wizard, where they
-          would be an invitation to abandon a half-finished product. */}
-      {!interviewing && !wiz && msgs.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, flexShrink: 0 }}>
-        <button type="button" onClick={() => pickIntent("add")} disabled={busy} className="ui-btn ob-chip"
-          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
-            background: T.goldBg, border: `1px solid ${T.gold}`, color: T.gold }}>
-          <i className="ti ti-plus" style={{ marginRight: 5 }} />{t("asst.intent.add")}
-        </button>
-        {WAYS.map((w) => <button key={w} type="button" onClick={() => pickWay(w)} disabled={busy} className="ui-btn ob-chip"
-          title={t(`asst.way.${w}Sub`)}
-          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
-            background: "none", border: `1px solid ${T.border}`, color: T.textMuted }}>
-          <i className={`ti ${WAY_ICON[w]}`} style={{ marginRight: 5 }} />{t(`asst.way.${w}`)}
-        </button>)}
-        {businessType !== "agency" && <button type="button" onClick={() => setOverviewOpen(true)} disabled={busy} className="ui-btn ob-chip"
-          style={{ padding: "7px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer", fontFamily: "inherit", minHeight: 36,
-            background: "none", border: `1px solid ${T.border}`, color: T.textMuted }}>
-          <i className="ti ti-photo-star" style={{ marginRight: 5 }} />{t("asst.overview.chip")}
-        </button>}
-      </div>}
+      {/* No row of buttons once the conversation is going: everything — add a
+          product, an offer, an import, the overview image — is reached by just
+          saying it. The model opens the right screen (the `ui` signal). */}
     </div>}
   </Card>
   </>;

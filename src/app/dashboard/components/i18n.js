@@ -107,7 +107,7 @@ const DICT = {
     // then the whole dashboard is in it — a chat that answers in English under
     // a Bangla screen is the one place that rule was still being broken.
     "asst.intro": "Add products with the buttons below, or just say what you want — about your {n} products, your offers, or what the bot should know. Nothing is saved until you press a button.",
-    "asst.chip.low": "What is running low?",
+    "asst.chip.add": "Add a new product",
     "asst.chip.noPrice": "Which products have no price?",
     "asst.chip.offer": "Make an Eid offer — 20% off everything",
     "asst.chip.teach": "Tell the bot we are closed on Fridays",
@@ -123,7 +123,6 @@ const DICT = {
     "asst.intent.addSub": "One, or your whole shop at once",
     "asst.intent.offer": "Set up an offer",
     "asst.intent.offerSub": "A deal the bot quotes to customers",
-    "asst.mainMenu": "Main menu",
     "asst.whatNext": "Done. What next?",
 
     // Step 2 and 3: one or several, and then how.
@@ -165,7 +164,6 @@ const DICT = {
     "asst.rule.woo": "Here is how it goes:\n1. Give me your WooCommerce address and its two keys, from WooCommerce → Settings → Advanced → REST API.\n2. I bring across every product with its photos.\n3. You check the list before anything is added.\n4. Your shop stays exactly as it is — nothing is changed there.",
     "asst.rule.open": "Open it",
     "asst.overview.open": "Opening the overview image editor — pick the category, drop the image the bot should send, and add a short intro.",
-    "asst.overview.chip": "Category overview image",
 
     // The three questions asked once for a whole rail.
     "asst.batch.kind": "What kind of thing are these? One answer for all of them. (for example: Box T-shirt)",
@@ -316,7 +314,7 @@ const DICT = {
 
     // ---- shared ----
     "common.save": "Save", "common.saved": "Saved", "common.unsaved": "Unsaved changes",
-    "common.optional": "optional", "common.skip": "Skip", "common.back": "Back", "common.send": "Send",
+    "common.optional": "optional", "common.skip": "Skip", "common.back": "Back", "common.send": "Send", "common.cancel": "Cancel",
     "common.delete": "Delete", "common.close": "Close", "common.on": "On", "common.off": "Off",
     "common.loading": "Loading…", "common.search": "Search",
     "docs.learn": "Read docs", "docs.learnHint": "Read the guide for this tab",
@@ -522,7 +520,7 @@ const DICT = {
 
     // ---- the assistant's own conversation ----
     "asst.intro": "নিচের বোতাম দিয়ে প্রোডাক্ট যোগ করুন, অথবা যা চান বলুন — আপনার {n}টা প্রোডাক্ট, অফার, বা বট কী জানবে তা নিয়ে। বোতাম না চাপা পর্যন্ত কিছুই সেভ হবে না।",
-    "asst.chip.low": "কোনগুলো ফুরিয়ে আসছে?",
+    "asst.chip.add": "একটা নতুন প্রোডাক্ট যোগ করুন",
     "asst.chip.noPrice": "কোন প্রোডাক্টের দাম দেওয়া নেই?",
     "asst.chip.offer": "ঈদের অফার দিন — সবকিছুতে ২০% ছাড়",
     "asst.chip.teach": "বটকে বলুন শুক্রবার আমরা বন্ধ",
@@ -533,7 +531,6 @@ const DICT = {
     "asst.intent.addSub": "একটা, বা পুরো দোকান একসাথে",
     "asst.intent.offer": "অফার সেট করুন",
     "asst.intent.offerSub": "বট কাস্টমারকে যে ডিলটা বলবে",
-    "asst.mainMenu": "মূল মেনু",
     "asst.whatNext": "হয়ে গেছে। এবার কী?",
 
     "asst.one.ask": "কীভাবে যোগ করতে চান?",
@@ -568,7 +565,6 @@ const DICT = {
     "asst.rule.woo": "নিয়মটা এরকম:\n১. আপনার WooCommerce ঠিকানা আর দুইটা কী দিন — WooCommerce → Settings → Advanced → REST API থেকে পাবেন।\n২. আমি সব প্রোডাক্ট ছবিসহ নিয়ে আসব।\n৩. কিছু যোগ হওয়ার আগে তালিকাটা দেখে নিন।\n৪. আপনার দোকান যেমন আছে তেমনই থাকবে — সেখানে কিছু বদলাবে না।",
     "asst.rule.open": "খুলুন",
     "asst.overview.open": "ওভারভিউ ছবির এডিটর খুলছি — ক্যাটাগরি বাছুন, বট যে ছবিটা পাঠাবে সেটা দিন, আর ছোট একটা বর্ণনা লিখুন।",
-    "asst.overview.chip": "ক্যাটাগরি ওভারভিউ ছবি",
 
     "asst.batch.kind": "এগুলো কী জিনিস? সবগুলোর জন্য একটাই উত্তর। (যেমন: বক্স টি-শার্ট)",
     "asst.batch.kindPh": "যেমন: বক্স টি-শার্ট",
@@ -698,7 +694,7 @@ const DICT = {
     "shell.logout": "লগ আউট", "shell.sync": "রিফ্রেশ", "shell.language": "ভাষা",
 
     "common.save": "সেভ", "common.saved": "সেভ হয়েছে", "common.unsaved": "সেভ করা হয়নি",
-    "common.optional": "ঐচ্ছিক", "common.skip": "বাদ দিন", "common.back": "আগেরটা", "common.send": "পাঠান",
+    "common.optional": "ঐচ্ছিক", "common.skip": "বাদ দিন", "common.back": "আগেরটা", "common.send": "পাঠান", "common.cancel": "বাতিল",
     "common.delete": "মুছুন", "common.close": "বন্ধ", "common.on": "চালু", "common.off": "বন্ধ",
     "common.loading": "লোড হচ্ছে…", "common.search": "খুঁজুন",
     "docs.learn": "ডকস পড়ুন", "docs.learnHint": "এই ট্যাবের গাইডটা পড়ুন",

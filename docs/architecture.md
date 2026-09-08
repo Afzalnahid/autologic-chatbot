@@ -362,17 +362,20 @@ Every tab lives in `src/app/dashboard/components/`:
 `Broadcast`, `Channels`, `Comments`, `Conversations`, `Inventory`,
 `KnowledgeBase`, `Orders`, `Profile`, `Settings`, `WebsiteWidget`.
 
-The **AI Assistant** configures without leaving its tab: adding products (one at
-a time or many, with their sizes/colours — the interview asks for `options`),
-setting offers and teaching the bot happen in the chat, and the ways that need a
-richer surface — the many-from-photos sheet (`PhotoBatch`), the CSV / product-URL
-/ WooCommerce / Shopify importers (`ImportSheet`, exported from `Inventory.js`),
-and the category **overview image** editor (`CategoryOverviewSheet`, exported
-from `CollectionOverview.js`, opened by the "overview image" phrases or its chip
-because a picture can't be typed) — all open as an overlay ON the assistant, not
-by switching to Inventory. Only an explicit "take me to X" navigates. The
-Inventory, Offers and Bot Training tabs are then where those changes are viewed
-and hand-edited.
+The **AI Assistant** is a plain conversation — no menu of buttons. The owner just
+says what they want and `/api/inventory-chat` understands it: it answers, asks
+back when unsure, and PROPOSES changes (products, offers, bargaining, notes,
+training, identity) as cards the owner confirms; `/api/inventory-apply` carries
+them out. Anything that needs a surface text can't fill — attaching a photo,
+reading a file, connecting a shop, setting a picture — the model asks for by
+setting a `ui` value in its reply (`add_photo`, `import:photos|csv|url|woo|shopify`,
+`overview`); the panel opens that screen (the guided add interview, `PhotoBatch`,
+`ImportSheet` from `Inventory.js`, or `CategoryOverviewSheet` from
+`CollectionOverview.js`) as an OVERLAY on the assistant, never by switching tabs.
+So "add a power bank", "set a 10% Eid offer", "teach the bot we deliver free over
+2000", "set the power bank overview image" all just work by saying them. Only an
+explicit "take me to X" navigates. The Inventory, Offers and Bot Training tabs are
+where those changes are then viewed and hand-edited.
 
 Four modules are shared by all of them:
 - `session.js` — the supabase client, the auth token and the `api()` fetch helper.
