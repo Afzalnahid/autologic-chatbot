@@ -91,7 +91,7 @@ export default function Profile() {
   if(!p) return <Card style={{color:T.textDim}}>Loading...</Card>;
   const planColor=p.plan==="pro"?T.success:p.plan==="trial"?T.gold:T.textDim;
 
-  return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,alignItems:"start"}}>
+  return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:16,alignItems:"start"}}>
     <PushToggle/>
     <Card>
       <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20,paddingBottom:16,borderBottom:`0.5px solid ${T.border}`}}>

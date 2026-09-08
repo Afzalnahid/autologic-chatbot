@@ -28,6 +28,9 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState(0);
   const wrap = useRef(null);
+  const btn = useRef(null);
+  // Where the panel's top edge sits on a phone, measured from the bell itself.
+  const [top, setTop] = useState(0);
 
   useEffect(() => { setSeen(readSeen()); }, []);
 
@@ -58,13 +61,30 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
 
   const unread = useMemo(() => items.filter((i) => new Date(i.time).getTime() > seen).length, [items, seen]);
 
-  // Close on a click anywhere outside the bell + dropdown.
+  // Close on a click anywhere outside the bell + dropdown. touchstart as well as
+  // mousedown: on a phone the panel is a fixed sheet, and a tap outside it has
+  // to shut it the same way a click does.
   useEffect(() => {
     if (!open) return;
     const onDoc = (e) => { if (wrap.current && !wrap.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("touchstart", onDoc, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("touchstart", onDoc);
+    };
   }, [open]);
+
+  // On a phone the panel spans the SCREEN, not the bell, so it needs the bell's
+  // position in viewport coordinates. Re-measured whenever it opens (and on
+  // resize/rotate) rather than assumed from a header height that can wrap.
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    const measure = () => { const r = btn.current?.getBoundingClientRect(); if (r) setTop(Math.round(r.bottom + 8)); };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [open, isMobile]);
 
   const toggle = () => {
     setOpen((v) => {
@@ -80,7 +100,7 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
 
   return (
     <div ref={wrap} style={{ position: "relative" }}>
-      <button onClick={toggle} className="pbtn"
+      <button ref={btn} onClick={toggle} className="pbtn"
         aria-label={`Notifications${unread ? `, ${unread} new` : ""}`}
         style={isMobile ? { width: 36, height: 36, borderRadius: 11 } : undefined}>
         <i className="ti ti-bell" />
@@ -88,9 +108,17 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
       </button>
 
       {open && (
+        // The panel used to hang off the bell with right:0 on every screen. The
+        // bell is not the last thing in the header (the avatar is), so on a phone
+        // a 340px panel started ~40px off the LEFT edge of the screen and its
+        // title was cut in half. On a phone it is now pinned to the VIEWPORT —
+        // 10px from each side, below the bell — and only the desktop keeps the
+        // anchored dropdown, where there is room for it.
         <div style={{
-          position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 60,
-          width: isMobile ? "min(340px, calc(100vw - 24px))" : 360, maxHeight: "70vh",
+          ...(isMobile
+            ? { position: "fixed", top, left: 10, right: 10, maxHeight: `calc(100dvh - ${top + 12}px)` }
+            : { position: "absolute", top: "calc(100% + 8px)", right: 0, width: 360, maxHeight: "70vh" }),
+          zIndex: 60,
           display: "flex", flexDirection: "column",
           background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
           boxShadow: "0 12px 40px rgba(0,0,0,0.18)", overflow: "hidden",

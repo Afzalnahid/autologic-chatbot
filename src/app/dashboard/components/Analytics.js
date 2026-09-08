@@ -78,7 +78,7 @@ export default function Analytics({isAgency}) {
     </Card>
 
     {/* Conversation health + customer mix */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:16}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:16,marginBottom:16}}>
       <Card>
         <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>Conversation health</div>
         <div style={{fontSize:11.5,color:T.textDim,marginBottom:16}}>How well the bot is handling customers on its own</div>
@@ -130,7 +130,7 @@ export default function Analytics({isAgency}) {
     </div>
 
     {/* Channels + hours */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:16}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:16,marginBottom:16}}>
       <Card>
         <div style={{fontSize:14,fontWeight:500,marginBottom:14}}>Channels</div>
         {d.channels.length?d.channels.map(ch=><div key={ch.platform} style={{marginBottom:14}}>
@@ -164,7 +164,7 @@ export default function Analytics({isAgency}) {
     </div>
 
     {/* Queries + business-specific */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:16}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:16,marginBottom:16}}>
       <Card>
         <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>What customers ask about</div>
         <div style={{fontSize:11.5,color:T.textDim,marginBottom:14}}>Most frequent words in customer messages</div>
@@ -180,7 +180,7 @@ export default function Analytics({isAgency}) {
     </div>
 
     {/* Conversions over time + status */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:16}}>
       <Card>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14,gap:8}}>
           <div style={{fontSize:14,fontWeight:500}}>{isAgency?"Bookings":"Orders"} over time</div>

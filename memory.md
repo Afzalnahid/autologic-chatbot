@@ -4,7 +4,27 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, late night) — The dashboard fits every screen again
+## Last session (2026-09-08, late night) — Notification panel fits a phone; grid overflow audit
+
+Owner's phone screenshot: the bell dropdown ran off the LEFT edge, "Notifications" cut to
+"fications". Cause: the panel was `position:absolute; right:0` — anchored to the BELL, which is
+not the last thing in the header (the avatar is). A 340px panel hanging left from there starts
+~40px off-screen on a 375px phone. On mobile it is now `position:fixed` pinned to the VIEWPORT
+(`left:10, right:10`, `top` measured from the bell's own rect on open + on resize/rotate),
+`maxHeight: calc(100dvh - top - 12)`; desktop keeps the anchored dropdown. Also closes on
+`touchstart`, not just `mousedown`. **Verified at 375×812: panel left 10 → right 365, no
+horizontal overflow.**
+
+Audited every tab's grids for small-phone overflow (measured, not guessed): `auto-fit` +
+`minmax(Npx,1fr)` does NOT shrink below N, so `minmax(280px,1fr)` in a ~260px container (320px
+phone, page padding + card padding) produced a 280px cell — 20px of overflow. Fixed the only
+two files with 280px tracks (`Analytics.js` ×4, `Profile.js` ×1) to `minmax(min(280px,100%),1fr)`.
+230px and below measured clean, so they were left alone. Billing's and Inventory's wide tables
+are already wrapped in `overflowX:auto` — checked, not assumed.
+
+---
+
+## Earlier session (2026-09-08, late night) — The dashboard fits every screen again
 
 Owner: the Orders drawer footer is cut off, and other pages "do not fit" — wants it right on
 Windows, Mac, iPad, iPhone, Android and tablets.
