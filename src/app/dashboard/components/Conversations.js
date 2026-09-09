@@ -431,7 +431,11 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             circle became a 34x44 oval. "ui-sq" grows both dimensions
             together on a touch screen, so every one of these stays a true
             circle, just a bigger one where a thumb needs it. */}
-        <div style={{padding:"8px 8px",display:"flex",gap:4,alignItems:"center"}}>
+        {/* The extra bottom pad is the phone's safe area: installed as an app
+            (no browser bar), this chat fills the screen edge-to-edge, so without
+            it the composer slides under the Android/iOS navigation bar. It is
+            0 in a normal browser, so nothing changes there. */}
+        <div style={{padding:"8px 8px calc(8px + env(safe-area-inset-bottom)) 8px",display:"flex",gap:4,alignItems:"center"}}>
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e=>{sendMedia(e.target.files[0],"image");e.target.value="";}}/>
           <input ref={galleryRef} type="file" accept="image/*" hidden onChange={e=>{sendMedia(e.target.files[0],"image");e.target.value="";}}/>
           <button onClick={()=>cameraRef.current?.click()} title="Camera" aria-label="Camera" className="ui-sq"
