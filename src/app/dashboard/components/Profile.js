@@ -148,7 +148,7 @@ export default function Profile() {
         :<><Row k="Products" v={p.usage?.products??0}/><Row k="Orders" v={p.usage?.orders??0}/></>}
       <Row k="Channels" v={p.usage?.channels??0}/>
       <div style={{height:16}}/>
-      <Btn danger onClick={async()=>{await getSb().auth.signOut({scope:"local"});setAuthToken("");location.reload();}} style={{width:"100%"}}><i className="ti ti-logout" style={{marginRight:6}}/>Logout</Btn>
+      <Btn danger onClick={async()=>{await getSb().auth.signOut({scope:"local"});try{localStorage.removeItem("gv_app_signed_in");}catch{} setAuthToken("");location.reload();}} style={{width:"100%"}}><i className="ti ti-logout" style={{marginRight:6}}/>Logout</Btn>
     </Card>
     <Card>
       <div style={{fontSize:14,fontWeight:600,marginBottom:6}}><i className="ti ti-package" style={{marginRight:6,color:T.gold}}/>Your package</div>

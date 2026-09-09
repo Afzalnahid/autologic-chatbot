@@ -710,7 +710,19 @@ export default function Dashboard() {
   useEffect(()=>{
     (async()=>{
       const { data:{ session } }=await getSb().auth.getSession();
-      if(session){setAuthToken(session.access_token);setAuthed(true);await loadMe();}
+      // Installed as an app, it must have a login of its OWN. A Trusted Web
+      // Activity shares getvoicium.com's cookies with the phone's Chrome, so
+      // someone already signed in there would otherwise land straight in the
+      // dashboard without ever signing into the app — which does not read as a
+      // real app. So in app mode we ignore that shared session until the owner
+      // has signed in from INSIDE the app once (the marker set on sign-in); a
+      // plain browser tab is untouched and keeps working as before.
+      const inApp = (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)
+        || window.navigator.standalone===true
+        || (document.referrer||"").startsWith("android-app://");
+      let appAuthed=true;
+      try{ appAuthed = !inApp || localStorage.getItem("gv_app_signed_in")==="1"; }catch{ appAuthed=true; }
+      if(session&&appAuthed){setAuthToken(session.access_token);setAuthed(true);await loadMe();}
       else setStage("auth");
       setAuthChecked(true);
     })();
@@ -765,7 +777,7 @@ export default function Dashboard() {
   },[authed,stage]);
 
   if(!authChecked||stage==="loading") return null;
-  if(stage==="auth") return <AuthGate onReady={async()=>{setAuthed(true);await loadMe();}}/>;
+  if(stage==="auth") return <AuthGate onReady={async()=>{try{localStorage.setItem("gv_app_signed_in","1");}catch{} setAuthed(true);await loadMe();}}/>;
   // The first-run screens need the palette and motion sheet too — without them
   // every CSS variable is undefined and the pages render unstyled.
   if(stage==="onboarding") return <><Theme/><Motion/><Onboarding me={me} onTrial={async()=>{await loadMe();setStage("connect");}}/></>;
@@ -852,7 +864,7 @@ export default function Dashboard() {
             site. In an installed app, being thrown to the landing page read as
             leaving the app. reload() is what forces it, since navigating to
             /dashboard from /dashboard#tab would only drop the hash. */}
-        <button onClick={async()=>{try{await getSb().auth.signOut({scope:"local"});}catch{} setAuthToken(""); window.location.reload();}}
+        <button onClick={async()=>{try{await getSb().auth.signOut({scope:"local"});}catch{} try{localStorage.removeItem("gv_app_signed_in");}catch{} setAuthToken(""); window.location.reload();}}
           className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,
             padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
             fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left",whiteSpace:"nowrap"}}>

@@ -186,6 +186,13 @@ Two shell behaviours matter once it runs as a full-screen app:
   sidebar). Every bottom-anchored composer adds `env(safe-area-inset-bottom)` so
   it clears the phone's navigation bar, whether that is three buttons or a
   gesture pill. `fullBleed` in `dashboard-client.js` gates all of this.
+- **The app has its own login.** A Trusted Web Activity shares the origin's
+  cookies with the phone's Chrome, so someone signed in there would otherwise
+  land in the dashboard without ever signing into the app. In app mode
+  (`display-mode: standalone`, iOS `navigator.standalone`, or an `android-app://`
+  referrer) the shared session is ignored until the owner signs in from inside
+  the app once — marked by `gv_app_signed_in` in localStorage, set on sign-in
+  and cleared on log out. A plain browser tab is unaffected.
 - **A reload stays put.** The active tab lives in the URL as `#tab`; on mount
   the shell reads it back, so pull-to-refresh (or the app reopening) returns to
   the same tab instead of Home. The mount `replaceState` keeps the fragment —
