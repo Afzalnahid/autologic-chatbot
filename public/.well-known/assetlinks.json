@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.getvoicium.twa",
+      "sha256_cert_fingerprints": ["46:6E:82:DB:74:7A:3C:25:77:C0:CA:1A:93:EC:A3:A3:35:0A:AF:B0:36:AE:9E:1D:83:59:BD:C8:E5:E5:39:16"]
+    }
+  }
+]
