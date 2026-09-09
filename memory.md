@@ -4,7 +4,66 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-08, late night) — Usage counts bot replies, not the owner's manual ones
+## Last session (2026-09-10) — getvoicium becomes an installable mobile app (PWA → Android TWA)
+
+Owner wants a real mobile app people install (manual `.apk` sharing now, Play Store later),
+NOT a rewrite. Chosen path: make the site a proper **PWA**, then package it with **PWABuilder**
+into an Android **TWA** (a thin native shell that loads the live site — so a normal `git push`
+updates the app too; only name/icon/identity changes need a rebuild). Full reference in
+`docs/architecture.md` (§ "Installable app (PWA)"). Commits, in order:
+
+- `5c589d0` **PWA basics.** `src/app/manifest.js` (name, icons `logo.png`/`icon.svg`,
+  `display:standalone`, crimson theme, `start_url:/dashboard`); `public/sw.js` gained a no-op
+  `fetch` handler (required for installability; deliberately never caches — a logged-in
+  dashboard must stay fresh); `layout.js` registers the SW for every visitor + `appleWebApp`.
+- `305d79c`, `6298234` **Full-screen app shell on a phone.** A `fullBleed` flag
+  (`dashboard-client.js`) makes the open inbox chat AND the AI Assistant fill the screen edge
+  to edge (shell header + page padding dropped; the assistant gained its own menu button via
+  `onMenu`). Both composers add `env(safe-area-inset-bottom)` so they clear the nav bar on
+  button- and gesture-nav phones. **Reload keeps the tab:** the mount `replaceState` now keeps
+  the `#tab` fragment (was `""`, which stripped it and sent every refresh to Analytics).
+- `6711648` **Log out → the app's own sign-in screen** (reload → AuthGate), not the public
+  marketing site.
+- `cdf69ce` → `ef7e10a` **Digital Asset Links** at `public/.well-known/assetlinks.json` (so the
+  Android app opens with no browser address bar).
+- `90f96ef` **The installed app requires its OWN login.** A TWA shares the origin's cookies
+  with the phone's Chrome, so a browser-logged-in owner landed straight in the dashboard. In
+  app mode (`display-mode:standalone` / iOS `navigator.standalone` / `android-app://` referrer)
+  the shared session is now ignored until the owner signs in from inside the app once — marker
+  `gv_app_signed_in` in localStorage, set on sign-in, cleared on log out. Browser tab unchanged.
+
+**Key facts for whoever continues this:**
+- **The site's canonical host is `www.getvoicium.com`.** The apex `getvoicium.com` 308-redirects
+  to www (a Vercel domain setting, not in code). Google will NOT verify assetlinks through a
+  redirect, so the **TWA must be built against `https://www.getvoicium.com`** (where the file is
+  served directly). The apex build failed verification; the www rebuild is the live one.
+- **Installed app identity:** package `com.getvoicium.www.twa`, signing fingerprint
+  `C8:AD:E2:9C:AB:54:B8:19:20:E1:6B:69:C9:86:5B:44:84:B9:AA:7F:9C:DB:83:B2:BB:F6:CA:06:3D:85:24:63`
+  — this is what `assetlinks.json` currently declares. The owner holds the PWABuilder signing
+  key (must be kept for every future update + Play Store).
+- **Google Digital Asset Links caches the statement ~1h.** After the `ef7e10a` update, Google
+  still served the OLD package for ~45 min, so a reinstall during that window kept failing
+  (address bar + "Running in Chrome"). Once Google's `statements:list` for www shows
+  `com.getvoicium.www.twa`, an **uninstall + reinstall** of the www `.apk` verifies and the
+  address bar / "Running in Chrome" disappear. (Verify with
+  `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://www.getvoicium.com&relation=delegate_permission/common.handle_all_urls`.)
+
+**⚠️ OPEN — owner/next-session tasks:**
+1. **Reinstall the www `.apk`** once Google's DAL cache shows the new package → address bar goes.
+2. **Play Store later:** Google re-signs the AAB with its own key, so the fingerprint changes —
+   add Google Play App Signing's SHA-256 to `assetlinks.json` (keep both) or the address bar
+   returns on the store build.
+3. Still open from before: **run `docs/sql/2026-09-08-reply-turn.sql`** (usage counts customer
+   messages via fallback until then); **rotate the Supabase `service_role` key** (pasted in an
+   earlier chat); build the **BYOK separate price list** ([[byok-separate-price-list]]).
+
+40/40 suites pass throughout. Standing rule reaffirmed by owner: **keep `memory.md` current so
+the project can be resumed from any Claude account** — a new account should `git pull` then run
+`/start` (which loads CLAUDE.md → AGENTS.md → memory.md → lessons.md).
+
+---
+
+## Earlier session (2026-09-08, late night) — Usage counts bot replies, not the owner's manual ones
 
 Owner's rule: a counted/billable message is a **bot reply**, never the **page owner's manual
 (agent) reply** — but agent replies must still SHOW in the conversation. This surfaced right
