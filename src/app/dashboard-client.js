@@ -656,7 +656,12 @@ export default function Dashboard() {
     }
     const h=window.location.hash.replace("#","");
     if(h) setPageRaw(h);
-    window.history.replaceState({page:window.location.hash.replace("#","")||HOME,level:0},"","");
+    // Keep the tab in the address as "#tab" so a reload (pull-to-refresh, or an
+    // installed app reopening) lands back on the SAME tab instead of Home. The
+    // third argument used to be "", which drops the fragment — the app then
+    // reloaded to Analytics every time. Passing the hash explicitly also clears
+    // any ?connected / ?upgrade query that was just read above.
+    window.history.replaceState({page:h||HOME,level:0},"","#"+(h||HOME));
     return ()=>window.removeEventListener("popstate",onPop);
   },[]);
   useEffect(()=>{ pageRef.current=page; },[page]);
@@ -775,6 +780,12 @@ export default function Dashboard() {
   // media query that is false on the first paint, so a phone briefly got 100vh —
   // the tall viewport that ignores the browser's own toolbars — and the shell
   // was cut off until hydration corrected it. dvh equals vh on a desktop.
+  // A "full-bleed" screen fills the whole phone, edge to edge, with no shell
+  // header and no page padding above it — the way a chat thread or the
+  // assistant should feel on a phone. The open inbox chat has always done this;
+  // the assistant now does too. Each such screen carries its own header (with a
+  // menu button) so the sidebar is still reachable. Never on desktop.
+  const fullBleed=isMobile&&((page==="conversations"&&chatOpen)||page==="assistant");
   return <div style={{display:"flex",height:"100dvh",overflow:"hidden",background:T.bg}}>
     <Theme/><Motion/>
     {sidebarOpen&&isMobile&&<div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:40}}/>}
@@ -859,7 +870,7 @@ export default function Dashboard() {
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0,marginLeft:(!isMobile&&sidebarOpen)?280:0,transition:"margin-left 0.28s cubic-bezier(.22,.61,.36,1)"}}>
       {/* The reference header: a rounded bar floating on the surface, square
           soft-shadow buttons that flood red on hover, a live avatar on the end. */}
-      {!(isMobile&&chatOpen)&&<div style={{margin:isMobile?"10px 10px 0":"14px 18px 0",padding:isMobile?"8px 10px":"9px 12px",
+      {!fullBleed&&<div style={{margin:isMobile?"10px 10px 0":"14px 18px 0",padding:isMobile?"8px 10px":"9px 12px",
         background:T.card,borderRadius:isMobile?16:20,boxShadow:T.nmSm,
         display:"flex",alignItems:"center",gap:isMobile?8:12,flexShrink:0}}>
 
@@ -917,27 +928,29 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
-      }<div style={{flex:1,overflow:"auto",padding:isMobile&&chatOpen?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
+      }<div style={{flex:1,overflow:"auto",padding:fullBleed?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
-          <div key={page} className="ui-page">
+          <div key={page} className="ui-page" style={fullBleed?{height:"100%",display:"flex",flexDirection:"column",minHeight:0}:undefined}>
             {/* Not on Billing: that tab already says "Expired" and offers the
-                same button, and two calls to action stacked read as a bug. */}
-            {page!=="billing"&&<BotOffBanner me={me} onFix={()=>setPage("billing")}/>}
+                same button, and two calls to action stacked read as a bug.
+                A full-bleed screen drops this and the "Read docs" line so the
+                chat/assistant can own the whole height. */}
+            {!fullBleed&&page!=="billing"&&<BotOffBanner me={me} onFix={()=>setPage("billing")}/>}
             {/* The guide for this tab. Quiet inline text rather than a filled
                 bar or a button in the header — the same way Meta's own console
                 offers "Read docs" at the end of a description. Same place and
                 same shape on a phone and on a desktop, so there is one thing to
                 learn and one code path to keep right. Its left edge lines up
                 with the cards below it. */}
-            <div style={{marginBottom:isMobile?12:14}}>
+            {!fullBleed&&<div style={{marginBottom:isMobile?12:14}}>
               <LearnMore page={page} plain/>
-            </div>
+            </div>}
             {/* The assistant has a page of its own now, and it is the first
                 thing in the sidebar. Choosing an import from here takes the
                 owner to Inventory with that sheet already open, rather than a
                 second copy of those sheets living in two places. */}
             {page==="assistant"&&<InventoryAssistant fullPage products={products} refresh={load}
-              businessType={bt} settings={settings}
+              businessType={bt} settings={settings} onMenu={isMobile?()=>setSidebarOpen(true):undefined}
               onGo={(to,intent)=>{ if(intent) setInvIntent({...intent,at:Date.now()}); setPage(to); }}
               onImport={(kind,prefill)=>{ setInvIntent({importer:kind,prefill,at:Date.now()}); setPage("inventory"); }}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}

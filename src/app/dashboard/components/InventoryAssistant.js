@@ -170,7 +170,7 @@ function destinationFor(text) {
   return null;
 }
 
-export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [], fullPage = false, onGo, businessType = "ecommerce", settings = null }) {
+export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [], fullPage = false, onGo, businessType = "ecommerce", settings = null, onMenu = null }) {
   const isMobile = useIsMobile();
   // The categories this shop already uses, offered under the question that asks
   // for one. Read from the catalogue rather than kept anywhere: it is always
@@ -863,11 +863,15 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   {importer && importer !== "photos" && <ImportSheet kind={importer} isMobile={isMobile}
     onClose={closeImporter} onDone={(msg) => { closeImporter(); refresh?.(); if (msg) setMsgs((s) => [...s, { role: "assistant", content: String(msg) }]); }} />}
   {overviewOpen && <CategoryOverviewSheet catNames={categories} onClose={() => { setOverviewOpen(false); refresh?.(); }} />}
-  <Card style={{ padding: 0, marginBottom: fullPage ? 0 : 14, overflow: "hidden", ...(fullPage ? { display: "flex", flexDirection: "column", height: isMobile ? "calc(100dvh - 190px)" : "calc(100vh - 150px)" } : {}) }}>
+  <Card style={{ padding: 0, marginBottom: fullPage ? 0 : 14, overflow: "hidden", ...(fullPage ? { display: "flex", flexDirection: "column", height: isMobile ? "100%" : "calc(100vh - 150px)" } : {}) }}>
     {/* On its own page there is nothing to collapse into — the header is a
         title, not a switch. */}
     {fullPage
       ? <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "13px 16px", flexShrink: 0 }}>
+          {/* On a phone this screen fills the display and the shell's own header
+              is hidden, so this is the only way back to the menu. */}
+          {onMenu && <button type="button" onClick={onMenu} aria-label="Menu" className="ui-sq"
+            style={{ width: 36, height: 36, flexShrink: 0, minHeight: 0, padding: 0, borderRadius: 11, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><i className="ti ti-menu-2" style={{ fontSize: 18 }} /></button>}
           <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 10, background: T.goldBg, display: "flex", alignItems: "center", justifyContent: "center" }}><i className="ti ti-sparkles" style={{ fontSize: 17, color: T.gold }} /></span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: "block", fontSize: 13.5, fontWeight: 700 }}>{t("inv.assistantTitle")}</span>
@@ -894,7 +898,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
         bottom of it. It used to be an ordinary stack in the page, so every
         answer pushed the input further down and it ended up below the fold —
         the owner was typing into something they could not see. */}
-    {(open || fullPage) && <div style={{ borderTop: `1px solid ${T.border}`, padding: "12px 16px 14px", display: "flex", flexDirection: "column",
+    {(open || fullPage) && <div style={{ borderTop: `1px solid ${T.border}`, padding: fullPage ? "12px 16px calc(14px + env(safe-area-inset-bottom))" : "12px 16px 14px", display: "flex", flexDirection: "column",
       ...(fullPage ? { flex: 1, minHeight: 0 } : { height: isMobile ? "min(70dvh, calc(100dvh - 240px))" : "min(560px, calc(100dvh - 300px))" }) }}>
       {/* The transcript is what gives way. The product being built and the box
           you type in keep their room; older messages scroll. */}

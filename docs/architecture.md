@@ -178,6 +178,19 @@ mobile codebase. Three pieces make that work:
   only those who turn on push) and sets `appleWebApp` so iOS opens the icon
   full-screen. The apple-touch icon comes from `src/app/apple-icon.js`.
 
+Two shell behaviours matter once it runs as a full-screen app:
+
+- **Full-bleed screens.** On a phone the open inbox chat and the AI Assistant
+  fill the display edge-to-edge — the shell header and page padding are dropped
+  and each screen carries its own header (with a menu button back to the
+  sidebar). Every bottom-anchored composer adds `env(safe-area-inset-bottom)` so
+  it clears the phone's navigation bar, whether that is three buttons or a
+  gesture pill. `fullBleed` in `dashboard-client.js` gates all of this.
+- **A reload stays put.** The active tab lives in the URL as `#tab`; on mount
+  the shell reads it back, so pull-to-refresh (or the app reopening) returns to
+  the same tab instead of Home. The mount `replaceState` keeps the fragment —
+  passing `""` there would strip it and send every reload to Analytics.
+
 Store packaging is done with **PWABuilder** (pwabuilder.com): point it at
 `https://getvoicium.com`, it reads this manifest and produces a signed Android
 `.apk`/`.aab` (a Trusted Web Activity wrapping the live site) and an iOS package —
