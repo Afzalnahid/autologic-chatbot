@@ -421,6 +421,19 @@ So "add a power bank", "set a 10% Eid offer", "teach the bot we deliver free ove
 explicit "take me to X" navigates. The Inventory, Offers and Bot Training tabs are
 where those changes are then viewed and hand-edited.
 
+**It has an agency twin.** A service business has no catalogue — its bot answers
+from the **knowledge documents** it uploads plus the Bot Training answers — so for
+`business_type === "agency"` the route swaps the catalogue for the knowledge-base
+documents (`file_registry`) and uses `agencyPrompt`: the same offers / notes /
+training / identity / follow-up settings (which already feed the agency bot's
+prompt through `businessFacts` in `bot.js`), but no products, and its one `ui`
+token is `import:docs`. In `InventoryAssistant`, an agency's 📎 attach uploads a
+PDF/Word/text file straight to `/api/knowledge` (reported in the chat), the example
+prompts are about teaching and training rather than adding stock, and the guided
+photo interview is never used. So a service owner runs the whole thing by chat too
+— "set our services and pricing", "add our rate card" (attaches the document),
+"set the bot's tone to friendly".
+
 Four modules are shared by all of them:
 - `session.js` — the supabase client, the auth token and the `api()` fetch helper.
   The token is written through `setAuthToken()` because an exported `let` cannot be

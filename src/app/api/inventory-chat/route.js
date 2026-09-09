@@ -50,22 +50,30 @@ export async function POST(request) {
       .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content).slice(0, 4000) }));
     if (!messages.length) return NextResponse.json({ error: "nothing to answer" }, { status: 400 });
 
-    // Both halves of what the owner can talk about, read together: the shop's
-    // catalogue and everything the Bot Training tab holds.
-    const [{ data: rows }, { data: setRow }] = await Promise.all([
-      supabase.from("products").select("id,metadata,created_at").eq("client_id", client.id)
-        .order("created_at", { ascending: false }).limit(1000),
+    // A shop is driven through its CATALOGUE; a service business through the
+    // KNOWLEDGE its bot answers from (uploaded documents) — different tables, so
+    // an agency reads its knowledge docs where a shop reads its products. Both
+    // read everything the Bot Training tab holds (one row in app_settings).
+    const agency = client.business_type === "agency";
+    const [{ data: rows }, { data: files }, { data: setRow }] = await Promise.all([
+      agency ? Promise.resolve({ data: [] })
+        : supabase.from("products").select("id,metadata,created_at").eq("client_id", client.id)
+            .order("created_at", { ascending: false }).limit(1000),
+      agency ? supabase.from("file_registry").select("file_id,file_name,chunks,created_at").eq("client_id", client.id)
+            .order("created_at", { ascending: false }).limit(200)
+        : Promise.resolve({ data: [] }),
       supabase.from("app_settings").select("settings").eq("id", String(client.id)).maybeSingle(),
     ]);
     const all = (rows || []).map((r) => ({ id: r.id, ...(r.metadata || {}) }));
+    const docs = files || [];
     const settings = setRow?.settings || {};
 
     const last = messages[messages.length - 1].content;
-    const shown = pick(all, last, CONTEXT_ROWS);
-    const hidden = all.length - shown.length;
+    const shown = agency ? [] : pick(all, last, CONTEXT_ROWS);
+    const hidden = agency ? 0 : all.length - shown.length;
 
     const ai = await getClientAI(client.id, "product.assistant");
-    const raw = await ai.chat(systemPrompt(client, all, shown, hidden, settings), messages);
+    const raw = await ai.chat(agency ? agencyPrompt(client, docs, settings) : systemPrompt(client, all, shown, hidden, settings), messages);
     const parsed = parse(raw);
 
     // Only proposals about products this shop owns survive. The model has no
@@ -74,11 +82,18 @@ export async function POST(request) {
     // overview editor) — validated against the fixed list so a made-up token
     // does nothing. When one is set, the proposals are dropped: the screen is
     // the action now.
-    const UI_TOKENS = new Set(["add_photo", "import:photos", "import:csv", "import:url", "import:woo", "import:shopify", "overview"]);
+    // A service business has no catalogue screens; the one screen it opens is
+    // the document upload for its knowledge base.
+    const UI_TOKENS = agency
+      ? new Set(["import:docs"])
+      : new Set(["add_photo", "import:photos", "import:csv", "import:url", "import:woo", "import:shopify", "overview"]);
     const ui = UI_TOKENS.has(String(parsed.ui || "")) ? String(parsed.ui) : null;
 
+    // No catalogue for an agency, so no product proposals — its half of the
+    // dashboard is the knowledge documents (uploaded, not proposed) and the Bot
+    // Training settings below.
     const owned = new Set(all.map((p) => String(p.id)));
-    const actions = ui ? [] : normalizeActions(parsed.actions).filter((a) => a.do === "create" || owned.has(String(a.id)));
+    const actions = agency ? [] : (ui ? [] : normalizeActions(parsed.actions).filter((a) => a.do === "create" || owned.has(String(a.id))));
 
     // The same rule for the settings half: an offer or a note the model names
     // has to be one that is actually there, or the proposal is dropped before
@@ -149,6 +164,53 @@ const line = (p) => [
   p.options?.length ? `options=${p.options.map((o) => `${o.name}:${(o.values || []).join("/")}`).join("; ")}` : "",
   p.variants?.length ? `variants=${p.variants.length}` : "",
 ].filter(Boolean).join(" | ");
+
+// The agency twin of systemPrompt. A service business's bot answers from three
+// things — the profile answers, the facts it has been taught, and the uploaded
+// KNOWLEDGE DOCUMENTS — not from a catalogue of products with prices and stock.
+// So this prompt drops products, offers-as-catalogue and bargaining, and instead
+// knows how to teach the bot, fill in the profile, and open the document upload.
+function agencyPrompt(client, docs, settings) {
+  const keys = trainingKeys("agency");
+  const docLines = (docs || []).length
+    ? docs.map((d) => `- ${d.file_name || "(untitled)"}${d.chunks ? ` (${d.chunks} pieces)` : ""}`).join("\n")
+    : "(no documents uploaded yet)";
+  return `You run the dashboard of a service business in Bangladesh, by conversation, for its owner. Their business is "${client.business_name || "this business"}". You are the one place from which the whole thing is driven: what the bot knows, what it has been taught, who it says it is, and how it follows up.
+
+WHAT YOU CAN DO
+- Answer questions from what you are shown below. It is everything you can see.
+- PROPOSE changes. You never make a change yourself: every proposal is shown to the owner as a card and only happens if they press a button. Say so when it matters, and never claim something is done.
+- Ask a question back when the request is ambiguous. Proposing the wrong change is worse than asking.
+- Take the owner to another tab when that is what they want (e.g. "show me the bookings", "open bot training"). Just answer normally — the panel recognises it.
+- You cannot send anything to a customer. Broadcasts and replies are not yours; say the owner does that on Broadcast or Inbox.
+
+HOW THIS BOT LEARNS — TWO WAYS, KNOW WHICH TO USE
+1. A SHORT FACT or a PROFILE ANSWER — the owner tells you something in words (a service and its price, opening hours, the refund policy, how the work runs). You SAVE it yourself: use "note.add" for a single standalone fact, or "training.set" to fill in one of the profile answers below. Both reach the bot immediately.
+2. A LOT of written material — a rate card, a brochure, a services document. That is a FILE and you cannot read or type it in. Set "ui":"import:docs" and tell them in one line that the upload is opening; they attach the PDF / Word / text file and it is added to the knowledge base.
+When you set "ui", "settings" must be empty — the screen takes over.
+
+THE KNOWLEDGE DOCUMENTS (what the bot has been given to read from)
+${docLines}
+
+THE BOT'S OWN SETTINGS
+${settingsSummary(settings, keys)}
+
+RULES
+- TEACHING: "note.add" is one plain fact the bot should know — "we are closed on Fridays", "a logo design starts at 5000 taka". Short, one fact each.
+- PROFILE ANSWERS are the long-form training: ${keys.join(", ")}. Setting one REPLACES what is there, so read the old answer back if you are only adding to it.
+- IDENTITY: ${Object.keys(IDENTITY_FIELDS).join(", ")}. "tone" must be exactly one of: ${TONES.join(" | ")}. "languages" must be exactly one of: ${LANGUAGES.join(" | ")}.
+- OFFERS are deals the bot quotes word for word. Fields: ${Object.keys(OFFER_FIELDS).join(", ")}.
+- Only propose an offer or note change with an id that appears above. Copy it exactly.
+- Never invent a service, a price, a policy or a fact the owner has not given you.
+- Prices are in taka; write digits only, no currency symbol.
+- Reply in the language the owner is writing in.
+
+ANSWER FORMAT
+JSON only, nothing before or after:
+{"reply":"what you say to the owner","settings":[{"do":"note.add","set":{"text":"We are closed on Fridays"}}],"ui":""}
+Use an empty array when you are only answering or asking, and "ui":"" unless you are opening the upload.
+Settings verbs: "note.add", "note.delete" (needs id), "training.set", "identity.set", "offer.create", "offer.update" (needs id), "offer.delete" (needs id), "followup.set".`;
+}
 
 function systemPrompt(client, all, shown, hidden, settings) {
   const inStock = all.filter((p) => p.stock_status !== "outofstock").length;

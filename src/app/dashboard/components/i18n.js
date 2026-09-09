@@ -107,10 +107,20 @@ const DICT = {
     // then the whole dashboard is in it — a chat that answers in English under
     // a Bangla screen is the one place that rule was still being broken.
     "asst.intro": "Just tell me what you want — add a product (attach its photo with 📎), set an offer, change a price, or teach the bot something. I'll ask if I need more, and show you every change before it happens. You have {n} products.",
+    "asst.introAgency": "Just tell me what you want — teach the bot a fact, fill in what your service is, set its tone, or attach a document (📎) for it to learn from. I'll ask if I need more, and show you every change before it happens.",
     "asst.chip.add": "Add a new product",
     "asst.chip.noPrice": "Which products have no price?",
     "asst.chip.offer": "Make an Eid offer — 20% off everything",
     "asst.chip.teach": "Tell the bot we are closed on Fridays",
+    "asst.chip.teachAgency": "Tell the bot we are closed on Fridays",
+    "asst.chip.trainAgency": "Set our services and how pricing works",
+    "asst.chip.docsAgency": "Add our rate card document",
+    "asst.chip.identityAgency": "Set the bot's tone to friendly",
+    "asst.doc.attach": "Attach a document for the bot to learn from",
+    "asst.kb.reading": "Reading “{name}” and teaching it to the bot…",
+    "asst.kb.learned": "Learned from “{name}” — the bot can now answer from it.",
+    "asst.kb.failed": "Could not read “{name}”. Use a PDF, Word or text file.",
+    "asst.kb.badType": "Attach a PDF, Word (.docx) or text file for the bot to learn from.",
 
     // Step 1: what do you want to do at all. Not "how would you like to add
     // products" — that is the right SECOND question and the wrong first one.
@@ -519,10 +529,20 @@ const DICT = {
 
     // ---- the assistant's own conversation ----
     "asst.intro": "শুধু বলুন কী চান — প্রোডাক্ট যোগ করুন (📎 দিয়ে ছবি দিন), অফার দিন, দাম বদলান, বা বটকে কিছু শেখান। দরকার হলে জিজ্ঞেস করব, আর কিছু হওয়ার আগে দেখিয়ে দেব। আপনার {n}টা প্রোডাক্ট আছে।",
+    "asst.introAgency": "শুধু বলুন কী চান — বটকে একটা তথ্য শেখান, আপনার সার্ভিস কী তা লিখুন, বটের টোন ঠিক করুন, বা শেখার জন্য একটা ডকুমেন্ট দিন (📎)। দরকার হলে জিজ্ঞেস করব, আর কিছু হওয়ার আগে দেখিয়ে দেব।",
     "asst.chip.add": "একটা নতুন প্রোডাক্ট যোগ করুন",
     "asst.chip.noPrice": "কোন প্রোডাক্টের দাম দেওয়া নেই?",
     "asst.chip.offer": "ঈদের অফার দিন — সবকিছুতে ২০% ছাড়",
     "asst.chip.teach": "বটকে বলুন শুক্রবার আমরা বন্ধ",
+    "asst.chip.teachAgency": "বটকে বলুন শুক্রবার আমরা বন্ধ",
+    "asst.chip.trainAgency": "আমাদের সার্ভিস আর দাম কীভাবে হয় সেট করুন",
+    "asst.chip.docsAgency": "আমাদের রেট কার্ড ডকুমেন্ট যোগ করুন",
+    "asst.chip.identityAgency": "বটের টোন বন্ধুত্বপূর্ণ করুন",
+    "asst.doc.attach": "বট যা থেকে শিখবে সেই ডকুমেন্ট দিন",
+    "asst.kb.reading": "“{name}” পড়ে বটকে শেখানো হচ্ছে…",
+    "asst.kb.learned": "“{name}” থেকে শেখা হলো — বট এখন এটা থেকে উত্তর দিতে পারবে।",
+    "asst.kb.failed": "“{name}” পড়া গেল না। PDF, Word বা টেক্সট ফাইল দিন।",
+    "asst.kb.badType": "বট শেখার জন্য PDF, Word (.docx) বা টেক্সট ফাইল দিন।",
 
     "asst.intent.train": "বটকে শেখান",
     "asst.intent.trainSub": "আপনার ব্যবসার কী কী জানা দরকার",

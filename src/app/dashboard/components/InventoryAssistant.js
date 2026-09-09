@@ -56,6 +56,9 @@ import { CategoryOverviewSheet } from "./CollectionOverview.js";
 // plain sentence can now do here (add a product, set an offer, query the
 // catalogue, teach the bot), so the owner sees the range without a menu.
 const EXAMPLE_KEYS = ["asst.chip.add", "asst.chip.offer", "asst.chip.noPrice", "asst.chip.teach"];
+// A service business is driven differently: teach a fact, fill in a profile
+// answer, upload a document, set the bot's tone — no catalogue.
+const EXAMPLE_KEYS_AGENCY = ["asst.chip.teachAgency", "asst.chip.trainAgency", "asst.chip.docsAgency", "asst.chip.identityAgency"];
 
 // The first question, and the only one that is not about products: what does
 // the owner want to do at all.
@@ -172,6 +175,11 @@ function destinationFor(text) {
 
 export default function InventoryAssistant({ products, refresh, startSignal = 0, onImport, shopAxes = [], fullPage = false, onGo, businessType = "ecommerce", settings = null, onMenu = null }) {
   const isMobile = useIsMobile();
+  // A service business drives its bot through the KNOWLEDGE it uploads and the
+  // Bot Training answers, not a catalogue of photographed products — so the
+  // assistant attaches DOCUMENTS, not product photos, and its example prompts
+  // are about teaching and training rather than adding stock.
+  const isAgency = businessType === "agency";
   // The categories this shop already uses, offered under the question that asks
   // for one. Read from the catalogue rather than kept anywhere: it is always
   // right, and a category stops existing the moment its last product does.
@@ -389,6 +397,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // types "add a power bank", the model opens the guided add.
     if (r.ui) {
       if (r.reply) say({ content: r.reply });
+      if (r.ui === "import:docs") { fileRef.current?.click(); return; }
       if (r.ui === "add_photo") return startInterview();
       if (r.ui === "overview") { setOverviewOpen(true); return; }
       const im = /^import:(photos|csv|url|woo|shopify)$/.exec(r.ui);
@@ -656,9 +665,31 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   // The attach button, from anywhere. Attaching a photo in plain chat means "add
   // this product" — the commonest reason to hand the assistant a picture — so it
   // starts the guided add with that photo. Mid-interview it just adds the photo.
+  // For a service business a document is what the bot learns from, so attaching
+  // one uploads it to the knowledge base and reports back in the chat.
+  const uploadDocs = async (list) => {
+    if (busy) return;
+    const ok = /\.(pdf|docx?|txt|md|csv)$/i;
+    const files = [...(list || [])].filter((f) => ok.test(f.name || ""));
+    if (!files.length) { say({ key: "asst.kb.badType" }); return; }
+    setBusy(true);
+    for (const file of files) {
+      say({ content: t("asst.kb.reading", { name: file.name }) });
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const r = await apiJson("/api/knowledge", { method: "POST", body: fd });
+        if (r.error) say({ content: t("asst.kb.failed", { name: file.name }) });
+        else { say({ content: t("asst.kb.learned", { name: file.name, n: r.chunks ?? 0 }) }); refresh?.(); }
+      } catch { say({ content: t("asst.kb.failed", { name: file.name }) }); }
+    }
+    setBusy(false);
+  };
+
   const attach = (list) => {
     const files = [...(list || [])];
     if (!files.length) return;
+    if (isAgency) { uploadDocs(files); return; }
     if (interviewing) { addPhotos(files); return; }
     setMode("interview"); setDraft(emptyDraft()); setVisual(""); setSaved(""); setDup(null); setRefused(false); setErr(""); seenPhotos.current = new Set();
     setPhotos([]);       // chat-mode photos is already empty; make sure of it
@@ -905,7 +936,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       <div style={{ flex: "1 1 auto", minHeight: 84, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 10 }}>
         {!msgs.length && <div style={{ padding: "6px 0 2px" }}>
           <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.65, marginBottom: 10 }}>
-            {t("asst.intro", { n: products?.length || 0 })}
+            {t(isAgency ? "asst.introAgency" : "asst.intro", { n: products?.length || 0 })}
           </div>
           {/* No menu of buttons — this is a conversation. A few example prompts,
               the way Claude opens, so the owner knows the sort of thing they can
@@ -914,7 +945,7 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
               No "or open" row of tabs: every tab is in the sidebar already, so a
               second copy here was exactly the clutter the owner asked to remove. */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {EXAMPLE_KEYS.map((c) => <button key={c} type="button" onClick={() => ask(t(c))} className="ui-btn ob-chip"
+            {(isAgency ? EXAMPLE_KEYS_AGENCY : EXAMPLE_KEYS).map((c) => <button key={c} type="button" onClick={() => ask(t(c))} className="ui-btn ob-chip"
               style={{ padding: "8px 12px", borderRadius: 20, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.textMuted, cursor: "pointer", fontFamily: "inherit", minHeight: 36 }}>{t(c)}</button>)}
           </div>
         </div>}
@@ -1092,9 +1123,9 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
       <form ref={formRef} onSubmit={(e) => { e.preventDefault(); ask(input); }} style={{ display: "flex", gap: 8, flexShrink: 0 }}>
         {/* Always here, like Claude's attach — a photo can be dropped in at any
             point, not only mid-add. */}
-        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { attach(e.target.files); e.target.value = ""; }} />
-        <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || prepping || (interviewing && photos.length >= MAX_PHOTOS)}
-          aria-label={t("asst.photo.attach")} title={interviewing && photos.length >= MAX_PHOTOS ? t("asst.photo.full", { max: MAX_PHOTOS }) : t("asst.photo.attach")} className="ui-btn"
+        <input ref={fileRef} type="file" accept={isAgency ? ".pdf,.doc,.docx,.txt,.md,.csv" : "image/*"} multiple hidden onChange={(e) => { attach(e.target.files); e.target.value = ""; }} />
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={busy || prepping || (!isAgency && interviewing && photos.length >= MAX_PHOTOS)}
+          aria-label={isAgency ? t("asst.doc.attach") : t("asst.photo.attach")} title={isAgency ? t("asst.doc.attach") : (interviewing && photos.length >= MAX_PHOTOS ? t("asst.photo.full", { max: MAX_PHOTOS }) : t("asst.photo.attach"))} className="ui-btn"
           style={{ width: 44, height: 44, flexShrink: 0, minHeight: 0, padding: 0, borderRadius: 12, background: T.bgAlt, border: `1px solid ${T.border}`, color: T.gold, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <i className="ti ti-paperclip" style={{ fontSize: 18 }} />
         </button>
