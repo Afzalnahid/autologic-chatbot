@@ -161,6 +161,30 @@ notification's `url` carries the target tab as a hash (`/dashboard#orders`,
 tab to the running app, because an already-open dashboard ignores a hash-only
 change on its own.
 
+**Installable app (PWA).** getvoicium is a Progressive Web App: on a phone it can
+be installed to the home screen and opens full-screen, like a native app, and the
+*same* web app is packaged into a Play Store / App Store build with no separate
+mobile codebase. Three pieces make that work:
+
+- `src/app/manifest.js` — the Web App Manifest (name, icons, `display: standalone`,
+  brand colours), served by Next at `/manifest.webmanifest`. `start_url` is
+  `/dashboard`, so an installed app opens straight into the owner's dashboard.
+- `public/sw.js` — besides push, it has a no-op `fetch` handler. That handler is
+  what makes the app *installable* (a browser offers "Add to Home Screen" only for
+  a site with a service worker that handles fetch). It deliberately never caches:
+  a logged-in dashboard must always be served fresh, or one owner could see
+  another's cached data.
+- `src/app/layout.js` — registers the service worker for **every** visitor (not
+  only those who turn on push) and sets `appleWebApp` so iOS opens the icon
+  full-screen. The apple-touch icon comes from `src/app/apple-icon.js`.
+
+Store packaging is done with **PWABuilder** (pwabuilder.com): point it at
+`https://getvoicium.com`, it reads this manifest and produces a signed Android
+`.apk`/`.aab` (a Trusted Web Activity wrapping the live site) and an iOS package —
+no Android Studio or Mac build tooling on the developer's machine. The Android
+package needs Digital Asset Links (`/.well-known/assetlinks.json`) to hide the URL
+bar; PWABuilder supplies the file and the exact contents to host.
+
 ---
 
 ## 5. Two bot modes

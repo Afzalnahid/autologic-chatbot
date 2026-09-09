@@ -6,6 +6,14 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
+// A fetch handler is what marks this a real, installable app: without one the
+// browser offers no "Add to Home Screen", and PWABuilder cannot package the
+// store apps. It deliberately does nothing else — it never returns a cached
+// response, so a logged-in dashboard is always served fresh from the network
+// (a stale cache here would show one owner another's data). Letting the event
+// fall through hands every request straight to the network, untouched.
+self.addEventListener("fetch", () => {});
+
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }

@@ -17,6 +17,9 @@ export const metadata = {
   // Without this Next cannot turn a relative share-image path into the absolute
   // URL that Facebook and WhatsApp require, and it warns on every build.
   metadataBase: new URL(SITE),
+  // Makes iOS open the home-screen icon full-screen, like a native app, instead
+  // of inside Safari's chrome (Android reads this from the manifest instead).
+  appleWebApp: { capable: true, title: "getvoicium", statusBarStyle: "default" },
 };
 
 export default function RootLayout({ children }) {
@@ -46,6 +49,17 @@ export default function RootLayout({ children }) {
             never run). It only sets data-theme; the toggle button is wired by
             delegation on document, so hydration replacing the button is fine. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_JS }} />
+        {/* Register the service worker for every visitor, not only those who
+            turn on push. Its presence (with the fetch handler in sw.js) is what
+            makes the whole site an installable app and lets the phone show
+            "Add to Home Screen". Registering the same URL twice is a no-op, so
+            the push toggle re-registering later is harmless. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}",
+          }}
+        />
       </head>
       <body><main>{children}</main></body>
     </html>
