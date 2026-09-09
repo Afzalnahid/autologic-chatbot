@@ -3,8 +3,8 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.getvoicium.twa",
-      "sha256_cert_fingerprints": ["46:6E:82:DB:74:7A:3C:25:77:C0:CA:1A:93:EC:A3:A3:35:0A:AF:B0:36:AE:9E:1D:83:59:BD:C8:E5:E5:39:16"]
+      "package_name": "com.getvoicium.www.twa",
+      "sha256_cert_fingerprints": ["C8:AD:E2:9C:AB:54:B8:19:20:E1:6B:69:C9:86:5B:44:84:B9:AA:7F:9C:DB:83:B2:BB:F6:CA:06:3D:85:24:63"]
     }
   }
 ]
