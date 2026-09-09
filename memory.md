@@ -4,7 +4,39 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-10) — getvoicium becomes an installable mobile app (PWA → Android TWA)
+## Last session (2026-09-10, later) — The AI Assistant now serves agency clients too
+
+Owner: "the AI assistant is dedicated for only e-commerce; it should serve agency
+clients too — two assistants, each expert for its own bot/dashboard." Owner chose
+the FULL-expert option (teach by typing + upload documents + set identity/tone/
+booking, all by chat). `0517f33`.
+
+**Key model fact that made it small:** an agency bot answers from `knowledge_base`
+(uploaded documents, via `searchKnowledge`) PLUS the Bot Training answers/notes —
+and those settings (`training.set`, `note.add`, `identity.set`, offers, follow-up)
+ALREADY feed the agency bot through `businessFacts()` in `bot.js` and already work
+for both business types. So the only real gap was the CATALOGUE half.
+
+- `/api/inventory-chat`: for `business_type === "agency"` it reads the knowledge
+  docs (`file_registry`) instead of `products` and uses a new **`agencyPrompt`** —
+  same settings verbs, NO product proposals (`actions` forced to `[]`), and its one
+  `ui` token is `import:docs`.
+- `InventoryAssistant.js`: `isAgency` branch — the 📎 attach uploads a PDF/Word/text
+  file straight to `/api/knowledge` (`uploadDocs`, reported in chat) instead of the
+  photo interview; `ui:"import:docs"` opens that picker; agency example chips +
+  intro (`EXAMPLE_KEYS_AGENCY`, `asst.introAgency`); the file input accepts docs,
+  not images. The guided photo interview stays shop-only.
+- i18n EN+BN: `asst.introAgency`, `asst.chip.{teach,train,docs,identity}Agency`,
+  `asst.doc.attach`, `asst.kb.{reading,learned,failed,badType}`.
+- Did NOT need `ingestText` or new apply verbs: typed facts go to the existing
+  `note.add`/`training.set` (which feed the agency bot), bulk material goes through
+  document upload to `/api/knowledge`. `docs/architecture.md` updated.
+
+40/40 suites pass.
+
+---
+
+## Earlier session (2026-09-10) — getvoicium becomes an installable mobile app (PWA → Android TWA)
 
 Owner wants a real mobile app people install (manual `.apk` sharing now, Play Store later),
 NOT a rewrite. Chosen path: make the site a proper **PWA**, then package it with **PWABuilder**
