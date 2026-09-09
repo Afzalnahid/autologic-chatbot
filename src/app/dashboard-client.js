@@ -847,7 +847,12 @@ export default function Dashboard() {
           On a phone this is also where sync and the theme switch live. */}
       <div style={{padding:"10px 12px 14px",borderTop:`1px solid ${T.border}`,display:"flex",
         flexDirection:isMobile?"column":"row",alignItems:isMobile?"stretch":"center",gap:6}}>
-        <button onClick={async()=>{try{await getSb().auth.signOut({scope:"local"});}catch{} window.location.href="/";}}
+        {/* Log out lands on the app's own sign-in screen (this same /dashboard,
+            which shows AuthGate when signed out) — NOT the public marketing
+            site. In an installed app, being thrown to the landing page read as
+            leaving the app. reload() is what forces it, since navigating to
+            /dashboard from /dashboard#tab would only drop the hash. */}
+        <button onClick={async()=>{try{await getSb().auth.signOut({scope:"local"});}catch{} setAuthToken(""); window.location.reload();}}
           className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,
             padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
             fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left",whiteSpace:"nowrap"}}>
