@@ -66,8 +66,18 @@ Anything that cannot fill `VERIFIED` with real evidence is not done.
 2. Pushed, and Vercel reports **READY** — not "probably fine"
 3. Behaviour confirmed for **both** `ecommerce` and `agency`
 4. Multi-tenant check: does this leak across `client_id`? Prove it does not.
+5. **Both surfaces.** The product ships as the web app AND the native Android
+   app (`mobile/`, a Capacitor shell that shows the live site in its own
+   WebView). Answer for each change: what happens in a browser, and what
+   happens in the app's WebView? Native-only code is guarded (`isNativeApp()`)
+   so browsers are never touched. If the change is to the app shell itself
+   (icon, name, start URL, plugins, manifest permissions) say **"needs an APK
+   rebuild"** in the handoff — web changes reach the app on their own.
+   A real phone / the APK cannot be run from the dev machine: say what the
+   owner must check there, never claim app behaviour that was only reasoned.
 
 Fail any gate → fix before the next stage. Never stack unverified stages.
+Every finished stage is committed and pushed; nothing is left uncommitted.
 
 ---
 
@@ -140,6 +150,19 @@ were not asked to touch. If the right fix is bigger than the task, **stop and as
   second personal profile.
 - Pages owned by a Business Portfolio do not appear in `/me/accounts` without
   `business_management`.
+- **The Android app's WebView is not Chrome.** No Web Push (native FCM via
+  `@capacitor/push-notifications` instead); the hardware back button exits
+  unless `@capacitor/app` handles it; `canvas.toBlob` can return null (use the
+  `toDataURL` fallback in `shrink-image.js`); runtime permissions must be
+  declared in the manifest (`mobile/scripts/patch-manifest.mjs`) or Android
+  never prompts. Capacitor injects `window.Capacitor` into the remote page, so
+  plugins are reached as `window.Capacitor.Plugins.X` — no client bundle needed.
+- **Vercel refuses any request body over ~4.5 MB at the edge**, before our code
+  runs, and the browser then sees no response at all ("network"). Product
+  photos therefore upload ONE per request (`/api/product-photo`); never send a
+  whole gallery in one request, and refuse oversize files with a real message.
+- The APK is built free on GitHub Actions ("Build Android APK", manual run) —
+  nothing is built on the dev machine; see `mobile/README.md`.
 
 ---
 

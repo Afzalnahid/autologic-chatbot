@@ -75,6 +75,13 @@ Google Calendar · Vercel (`getvoicium.com`)
   shared components — **the** source of truth for styling) and `session.js` (auth
   token and the `api()` helper).
 - `docs/` — architecture, database, security, error handling, phases, prompts.
+- `mobile/` — the native Android app: a Capacitor shell (own `package.json`,
+  isolated from the Next.js build) that shows the live site in its own WebView.
+  Built free on GitHub Actions (`.github/workflows/android-build.yml`, manual
+  "Build Android APK" run). Web changes reach the app by themselves; only the
+  app shell (icon, plugins, permissions, start URL) needs an APK rebuild.
+  Every change must work in BOTH the browser and the app's WebView
+  (AGENTS.md gate 5).
 
 ## Tests
 `npm test` runs everything in `tests/` — plain node scripts, one file per
