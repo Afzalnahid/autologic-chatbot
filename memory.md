@@ -4,7 +4,78 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-10, latest) — Auth polish, and admin-delete now removes the login
+## Last session (2026-09-10, latest) — Admin drawer refreshes in place; reply-turn SQL found ALREADY applied
+
+- `90c7216` — **admin client drawer now updates AT ONCE after an action** (plan change /
+  extend / suspend). `run()`'s list refresh only patched the top badge (`detail.client`);
+  the Subscription card, usage and dates come from `/api/admin/client-detail` and had to
+  be re-fetched. `act()` is now async and, when the acted-on client's drawer is open,
+  calls `openDetail(id, true)`; the new `silent` flag on `openDetail` skips the loading
+  spinner so the drawer updates in place instead of flashing. Admin-only, no tenant/
+  business-type surface, no client_id leak. 40/40 suites, JSX parses, **Vercel READY**
+  (live on www.getvoicium.com). This was an uncommitted change already in the working tree
+  at session start (provenance unknown, lessons #9/#12) — owner decided to keep + commit it.
+- **CORRECTION — `docs/sql/2026-09-08-reply-turn.sql` is ALREADY APPLIED in production.**
+  Earlier notes list it as an open owner task ("must run it… until then usage counts
+  customer messages via fallback"). Verified live against project `cchvsgouqqxibhubioch`:
+  the `reply_turn` boolean column (default false, NOT NULL) AND the partial index
+  `message_buffer_reply_turn_idx` (client_id, created_at) WHERE reply_turn BOTH exist,
+  and **91 rows are flagged reply_turn=true** (of 551 bot rows), last flag 2026-09-09. So
+  usage has been counted on the real per-bot-reply basis since then, not the fallback.
+  **This item is OFF the open-tasks list.** (Supabase MCP `execute_sql`/`apply_migration`
+  is available this session and CAN run DDL — so the old "owner must run SQL by hand, the
+  service key can't DDL via JS" constraint no longer binds; migrations can be applied from
+  here with the owner's go.)
+
+Found-in-passing (NOT fixed): the admin login screen still uses `T.gold` (admin-client.js
+~165–172) — brand invariant says gold is dead. Pre-existing, internal super-admin console.
+
+### BYOK price list — BUILT this session, NOT yet pushed or migrated
+
+Owner's long-open task ([[byok-separate-price-list]]). Design the owner chose: a
+**separate lower price per tier, on ALL paid tiers**, Shop = Service. A client on
+their own AI key pays less because they cover their own AI cost. Prices
+(monthly/yearly): Starter ৳1000/10000, Growth ৳2500/25000, Scale ৳4000/40000
+(vs standard 1500/15000, 3500/35000, 6000/60000). Built in four stages, all
+local, **41/41 suites, every changed file parses** (JSX via Next babel):
+
+- **Data + core:** `byok_monthly`/`byok_yearly` columns
+  (`docs/sql/2026-09-10-byok-prices.sql`, add-if-missing + seed-if-null, safe to
+  re-run); `byokMonthly`/`byokYearly` on the 6 paid plans in `src/lib/plans.js`
+  + two pure helpers there — `planPrices(plan,cycle)` and
+  `priceForClient(plan,cycle,ownKey)` (BYOK price only when key AND package set
+  one >0, else standard; never 0, never the low price without a key). Exposed via
+  `fromConstant`/`limitsFor` in `plan-limits.js` and in `/api/plans`.
+  `tests/t-byok-price.mjs` (35).
+- **Server pricing:** `clientHasOwnKey(clientId)` in `src/lib/ai.js` (same test
+  `getClientAI` routes on — saved Google key in `client_ai`, no decrypt; a
+  failing key still counts; fails closed). `/api/billing` GET returns `own_key`;
+  `POST /api/billing` and `/api/billing/checkout` both price server-side with
+  `priceForClient` so the amount can't be forged.
+- **Client UI:** `Billing.js` shows the reduced price + struck-through standard +
+  a neutral "you're on your own key" note (NOT mint — invariant; NOT gold);
+  `pricing-client.js` shows an informational own-key line per paid card and the
+  COMPARE "Use your own AI key (lower price)" row now true for all paid tiers;
+  `ui.js` PLAN_LIST fallback carries byok too.
+- **Admin editing:** Packages → Edit → "Own-key price (BYOK)" two boxes
+  (`Packages.js`); `save_plan` in `/api/admin/packages` persists `byok_monthly`/
+  `byok_yearly` via `int()` (blank → NULL). Docs: `architecture.md` → "The
+  own-key (BYOK) price list".
+
+Note the consequence flagged to the owner: own-key is usable on ANY tier the
+admin grants (no `features.byok` gate enforced at runtime), so the public
+COMPARE row was widened from Scale-only to all paid tiers to match.
+
+**⚠️ WHAT'S NEXT (needs the owner's go, both held back deliberately):**
+1. `git push` → Vercel deploy (live price surfaces). Nothing shows a BYOK price
+   until a client actually has a key, so it's low-risk, but it is a price change.
+2. Run `docs/sql/2026-09-10-byok-prices.sql` (adds the two columns + seeds the 6
+   tiers). Can be applied from here via Supabase MCP `apply_migration` on project
+   `cchvsgouqqxibhubioch` with the owner's go, or the owner runs it in the SQL
+   editor. Until it runs, `/api/plans` serves the code-constant byok prices
+   (fromConstant fallback) so the UI still works; the DB path lights up after.
+
+## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
 - `7597e39` — `AuthGate` defaults to **sign-in** (was sign-up on first visit, which
   turned a login attempt into a new account + onboarding); a failed sign-in shows a
