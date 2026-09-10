@@ -197,8 +197,22 @@ the whole service-account JSON, redeploy — WITHOUT it native push is a quiet n
 `cchvsgouqqxibhubioch`, or owner runs it); (3) push (Vercel deploys server+web);
 (4) owner rebuilds the APK (Actions → Build Android APK) so the push plugin +
 google-services are in it; (5) test: open app → Profile → Turn on notifications →
-Send a test. NOT YET pushed at time of writing. Notification small-icon polish
-(a monochrome icon) and cold-start tap navigation are follow-ups.
+Send a test. Notification small-icon polish (a monochrome icon) and cold-start
+tap navigation are follow-ups. SHIPPED: pushed, Vercel READY, migration applied
+(fcm_tokens table verified), owner set the Vercel env.
+
+### Native app: Android back button (exit-confirm)
+
+Owner: the hardware back button dumped them out of the app from any tab. Added
+`@capacitor/app` + `@capacitor/dialog` (mobile deps) and
+`src/app/dashboard/components/native-back.js`: on backButton, if `canGoBack` →
+`window.history.back()` (the shell already keeps one history entry per tab +
+drawers push one, so this navigates tabs / closes a drawer via its popstate
+handler); at the root → a native Dialog.confirm "Exit getvoicium?" (Exit →
+App.exitApp, Cancel → stay). `initNativeApp()` (back + push tap wiring) is called
+once from a new useEffect in `dashboard-client.js` (one import + one effect —
+minimal touch to the shell). All native-guarded; browser unchanged. Needs an APK
+rebuild (new plugins). 42/42.
 
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
