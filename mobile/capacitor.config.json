@@ -1,0 +1,13 @@
+{
+  "appId": "com.getvoicium.app",
+  "appName": "getvoicium",
+  "webDir": "www",
+  "backgroundColor": "#EEF0F5",
+  "server": {
+    "url": "https://www.getvoicium.com",
+    "cleartext": false
+  },
+  "android": {
+    "backgroundColor": "#EEF0F5"
+  }
+}

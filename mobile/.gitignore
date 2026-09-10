@@ -1,0 +1,6 @@
+# The generated native project and installed packages are rebuilt from scratch
+# in CI (npm install + npx cap add android), so they are never committed.
+node_modules/
+android/
+ios/
+.DS_Store
