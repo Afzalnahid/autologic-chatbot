@@ -119,7 +119,16 @@ export default function AdminClient() {
   // the owner out of their client dashboard as a side effect.
   const logout = async () => { await getSb().auth.signOut({ scope: "local" }); setData(null); setSuperKey(""); };
   const run = async (label, fn) => { setBusy(label); setErr(""); const res = await fn(); if (res && !res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "That did not work — please try again."); } await load(true); setBusy(""); return res?.ok; };
-  const act = (id, action, value) => run(id + action, () => api("PUT", { id, action, value }));
+  // After a change to a client (plan, extend, suspend), re-read the OPEN drawer so
+  // it updates AT ONCE. run()'s list refresh only patches the top badge
+  // (detail.client); the Subscription card, usage and dates come from the
+  // client-detail endpoint and have to be fetched again — silently, so the drawer
+  // updates in place instead of flashing its loading state.
+  const act = async (id, action, value) => {
+    const ok = await run(id + action, () => api("PUT", { id, action, value }));
+    if (detail?.id === id) await openDetail(id, true);
+    return ok;
+  };
   const reviewPayment = (req, decision, note) => run(req.id + decision, () => api("PUT", { type: "payment", request_id: req.id, decision, note: note || null }));
   const del = (c) => run(c.id + "del", () => api("DELETE", { id: c.id, confirm: "DELETE" }));
   const setRole = (target_email, new_role) => run(target_email + new_role, () => api("PUT", { type: "set_role", target_email, new_role }, { "x-admin-key": superKey }));
@@ -138,11 +147,15 @@ export default function AdminClient() {
   };
   const allowAiKey = aiPermission("allow");
   const revokeAiKey = aiPermission("revoke");
-  const openDetail = async (id) => {
-    setDetailLoading(true); setDetail({ id, loading: true });
+  // silent: refresh the already-open drawer in place (no loading spinner), used
+  // right after an action so the numbers change under the owner's eyes.
+  const openDetail = async (id, silent) => {
+    if (!silent) { setDetailLoading(true); setDetail({ id, loading: true }); }
     const res = await fetch(`/api/admin/client-detail?id=${id}&t=${Date.now()}`, { cache: "no-store", headers: { Authorization: `Bearer ${session?.access_token || ""}` } });
     const d = await res.json().catch(() => null);
-    setDetail(d && !d.error ? { id, ...d } : null); setDetailLoading(false);
+    if (d && !d.error) setDetail({ id, ...d });
+    else if (!silent) setDetail(null);
+    setDetailLoading(false);
   };
   // Keep the open drawer fresh after an action on that client.
   useEffect(() => { if (detail?.id && !detail.loading && data) { const row = data.clients?.find((c) => c.id === detail.id); if (row) setDetail((d) => d ? { ...d, client: { ...d.client, plan: row.plan, plan_expires_at: row.plan_expires_at, trial_end: row.trial_end, suspended: row.suspended } } : d); } }, [data]); // eslint-disable-line
