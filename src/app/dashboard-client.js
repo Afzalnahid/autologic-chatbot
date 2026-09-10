@@ -717,7 +717,11 @@ export default function Dashboard() {
       // real app. So in app mode we ignore that shared session until the owner
       // has signed in from INSIDE the app once (the marker set on sign-in); a
       // plain browser tab is untouched and keeps working as before.
-      const inApp = (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)
+      // A verified TWA / installed PWA reports one of these display modes; an
+      // Android TWA also arrives with an android-app:// referrer, and iOS uses
+      // navigator.standalone. Any one of them means "opened as the app".
+      const dm=(m)=>{ try{ return !!(window.matchMedia&&window.matchMedia("(display-mode: "+m+")").matches); }catch{ return false; } };
+      const inApp = dm("standalone") || dm("fullscreen") || dm("minimal-ui")
         || window.navigator.standalone===true
         || (document.referrer||"").startsWith("android-app://");
       let appAuthed=true;
