@@ -66,14 +66,54 @@ Note the consequence flagged to the owner: own-key is usable on ANY tier the
 admin grants (no `features.byok` gate enforced at runtime), so the public
 COMPARE row was widened from Scale-only to all paid tiers to match.
 
-**⚠️ WHAT'S NEXT (needs the owner's go, both held back deliberately):**
-1. `git push` → Vercel deploy (live price surfaces). Nothing shows a BYOK price
-   until a client actually has a key, so it's low-risk, but it is a price change.
-2. Run `docs/sql/2026-09-10-byok-prices.sql` (adds the two columns + seeds the 6
-   tiers). Can be applied from here via Supabase MCP `apply_migration` on project
-   `cchvsgouqqxibhubioch` with the owner's go, or the owner runs it in the SQL
-   editor. Until it runs, `/api/plans` serves the code-constant byok prices
-   (fromConstant fallback) so the UI still works; the DB path lights up after.
+**SHIPPED (owner approved push + migration):** commits `f17038d` (feature) +
+`0a4ae7c` (memory), pushed; **Vercel READY** (commit `0a4ae7c`, live on
+www.getvoicium.com); migration applied via Supabase MCP `apply_migration` on
+`cchvsgouqqxibhubioch` (success). Verified end-to-end: DB has byok prices on all
+6 tiers, and live `/api/plans` returns them. BYOK price list is fully live.
+
+### Plan entitlements — features + usage, visible to admin AND client (shipped this session)
+
+Owner: the client list doesn't show which package a client is on or what
+features it has; each client (and the client themselves) should see their
+features and how much of each limit is used/remaining. Built in four stages,
+**42/42 suites, every file parses**:
+- **`src/lib/features.js`** (NO imports — safe in any bundle): `FEATURE_DEFS` (the
+  ONE labelled capability list, each tagged with its business type) + pure
+  `featureList(features,biz)` and `shapeMeter(key,label,used,limit)`.
+  `tests/t-entitlements.mjs` (20).
+- **`src/lib/entitlements.js`**: `usageMeters` (one cheap count per meter in
+  parallel — messages, products|documents by biz, channels, broadcasts, website
+  imports; each fails soft to null) + `entitlementsFor(client)` →
+  `{planId, planName, period, features, meters}`. The one shared assembler, so
+  admin and client never disagree. NEVER call per list row (count storm).
+- **Admin list:** `/api/admin` catalogue now carries each plan's `features`;
+  `admin-client.js` `FeatureChips` shows package features as icon chips per row
+  (cheap — package-level, no per-client query). Added a "Features" column
+  (desktop, non-compact) + chips on the mobile card.
+- **Admin drawer:** `client-detail` `subscriptionOf` now returns `features` +
+  broadcasts/scrapes meters; the `Subscription` card renders a features on/off
+  list + all six meters. `Meter` now shows "—" for an unread count.
+- **Client dashboard:** `/api/billing` returns `entitlements`; Profile "Your
+  package" card renders used/remaining bars (`PlanMeter`, "N left") + the
+  capability features. Old marketing-bullet path kept as a fallback.
+- Feature on/off ticks are NEUTRAL (not mint — invariant); usage bars follow the
+  existing green→amber→red convention. docs/architecture.md → "What a plan
+  includes, and how much is left (entitlements)".
+
+**The one BYOK client — Broker's BD** (client_id a5305b5e-…, shop_growth, verified
+own Google key since 2026-08-22, active to 2026-09-19). No "convert" action was
+needed: the BYOK price is package-level and applies automatically by key status,
+so their Billing now shows ৳2,500 and their next renewal charges it. Owner's
+choice on the current period: option (ক) — no manual adjustment.
+
+**Follow-up (small, noted not done):** the capability labels now live in BOTH
+`src/lib/features.js` (`FEATURE_DEFS`) and `src/app/admin/Packages.js` (`FEATURES`,
+the toggle list). Left as two near-identical lists to keep this a feature, not a
+refactor — worth pointing Packages.js at the shared list next time (lesson #19).
+
+This entitlements work was NOT pushed yet — local only, 42/42, awaiting the owner's
+go to commit/push (no DB migration needed — it reads existing data).
 
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
