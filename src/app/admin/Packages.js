@@ -6,6 +6,7 @@ import { T, Card, Btn, Badge, Inp, Select, Switch, useIsMobile, fmtNum } from ".
 import { AREAS, FEATURES as USAGE_FEATURES, featureLabel } from "@/lib/usage-features.js";
 import { limitConflicts, limitMeaning, trialTotal, trialTextMismatch } from "@/lib/limit-conflicts.js";
 import { clampTrialDays, MIN_TRIAL_DAYS, MAX_TRIAL_DAYS } from "@/lib/plans.js";
+import { FEATURE_DEFS } from "@/lib/features.js";
 import { perCallRates, packageCost, floorPrice, marginAt } from "@/lib/package-cost.js";
 
 // The package list, in two parts. A shop and a service buy different things, so
@@ -82,20 +83,11 @@ const AREA_INFO = {
   unattributed: { label: "Not attributed", hint: "Recorded before each call started naming itself. Real money, but it cannot be split after the fact — it stops growing from today." },
 };
 
-// The capability switches a package can turn on or off. Kept here (not in the
-// database) so the list is code-reviewed: adding one means teaching the product
-// to honour it.
-const FEATURES = [
-  ["vision", "Photo product matching"],
-  ["voice", "Voice message understanding"],
-  ["kb", "Knowledge Base uploads"],
-  ["calendar", "Google Calendar booking"],
-  ["comments", "Comment automation"],
-  ["widget", "Website chat widget"],
-  ["broadcast", "Broadcasts"],
-  ["followup", "Follow-up messages"],
-  ["byok", "Can use their own AI key"],
-];
+// The capability switches a package can turn on or off — the SAME labelled list
+// the client dashboard and the admin drawer show (src/lib/features.js), so the
+// three can never drift. Adding a capability there teaches the whole product to
+// honour it; here it is just the toggle list, in the same order.
+const FEATURES = FEATURE_DEFS.map((d) => [d.key, d.label]);
 
 const LIMITS = [
   ["messages_per_day", "Messages / day"],
