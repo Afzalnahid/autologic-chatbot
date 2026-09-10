@@ -28,7 +28,10 @@ const SKIP_UNDER = 600 * 1024;
 // 6.5 MB and would have been refused exactly as before. When that happens the
 // whole set steps down a rung until it fits.
 export const GALLERY_BUDGET = 3_500_000;
-const LADDER = [1280, 1024, 800];
+// The last rung is small on purpose: twelve 640px photos weigh about a megabyte,
+// so a gallery that still does not fit after this rung was never shrunk at all
+// (decoding failed) — which galleryFits() lets the screen say plainly.
+const LADDER = [1280, 1024, 800, 640];
 
 /**
  * Returns a smaller JPEG File, or the original file when shrinking it would
@@ -60,9 +63,12 @@ export async function shrinkImage(file, { maxSide = MAX_SIDE, quality = QUALITY,
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close?.();
 
-    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", quality));
-    // toBlob can hand back null, and a re-encode of an already-efficient photo
-    // can come out bigger than it went in. Either way, keep the original.
+    let blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", quality));
+    // Some Android WebViews hand back null from toBlob; toDataURL still works
+    // there, so try it before giving up on the shrink.
+    if (!blob) blob = dataUrlToBlob(canvas.toDataURL("image/jpeg", quality));
+    // A re-encode of an already-efficient photo can come out bigger than it
+    // went in. Keep the original then.
     if (!blob || blob.size >= file.size) return file;
 
     const name = file.name?.replace(/\.[^.]+$/, "") || "photo";
@@ -70,6 +76,18 @@ export async function shrinkImage(file, { maxSide = MAX_SIDE, quality = QUALITY,
   } catch {
     return file;
   }
+}
+
+function dataUrlToBlob(dataUrl) {
+  try {
+    const [head, b64] = String(dataUrl || "").split(",");
+    if (!b64) return null;
+    const mime = /data:([^;]+)/.exec(head)?.[1] || "image/jpeg";
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  } catch { return null; }
 }
 
 // createImageBitmap is the fast path and the only one that applies the EXIF
@@ -110,6 +128,19 @@ export async function shrinkBatch(files, keepBytes = 0, budget = GALLERY_BUDGET)
   }
   return out;
 }
+
+/** Total bytes of a gallery (File objects or {file} rows) plus what is already held. */
+export const galleryBytes = (files, keepBytes = 0) =>
+  (files || []).reduce((a, f) => a + ((f && f.file ? f.file.size : f?.size) || 0), keepBytes);
+
+/**
+ * Whether a gallery may be sent as ONE request. When this is false after
+ * shrinkBatch has run, shrinking did not take effect (the browser could not
+ * decode or re-encode the photos) — the screen must block the save and say so,
+ * never fire a request that the platform is certain to refuse.
+ */
+export const galleryFits = (files, keepBytes = 0, budget = GALLERY_BUDGET) =>
+  galleryBytes(files, keepBytes) <= budget;
 
 /** Human-readable size, for telling someone why an upload was refused. */
 export const fileSize = (bytes) =>

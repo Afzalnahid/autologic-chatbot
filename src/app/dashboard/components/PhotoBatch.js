@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { T, Card, Btn, Inp } from "./ui.js";
 import { apiJson } from "./session.js";
 import { shrinkImage, fileSize } from "@/lib/shrink-image.js";
+import { uploadPhotos, tooLargePhotos, PHOTO_MAX_BYTES } from "./photo-upload.js";
 import { dropRepeats } from "@/lib/photo-fingerprint.js";
 import { missingToSell } from "@/lib/readiness.js";
 import { buildVariants } from "@/lib/variants.js";
@@ -494,6 +495,10 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
     if (!drafts.length || busy) return;
     if (unnamed) { setErr(`${unnamed} product${unnamed > 1 ? "s have" : " has"} no name yet. Name them, or use “Name all” above.`); return; }
     if (unpriced) { setErr(`${unpriced} product${unpriced > 1 ? "s have" : " has"} no price. A product without one leaves the bot unable to answer the first thing every customer asks — set one above and press Apply to price them all at once.`); setBulkOpen(true); return; }
+    // A photo the browser could not shrink can never be sent — the platform
+    // refuses it before our code runs. Say so now, not as "check your internet".
+    const big = drafts.reduce((n, d) => n + tooLargePhotos(d.photos).length, 0);
+    if (big) { setErr(`${big} photo${big > 1 ? "s" : ""} could not be shrunk and ${big > 1 ? "are" : "is"} over ${fileSize(PHOTO_MAX_BYTES)} — too large to send. Remove ${big > 1 ? "them" : "it"} or re-attach ${big > 1 ? "them" : "it"} so ${big > 1 ? "they" : "it"} can be shrunk.`); return; }
     setErr(""); setBusy(true);
     let done = 0, fail = 0, unread = 0, dupes = 0, stop = "";
 
@@ -516,9 +521,19 @@ export default function PhotoBatchSheet({ isMobile, categories = [], shopAxes = 
       if (vis.some(Boolean)) fd.append("visuals", JSON.stringify(vis));
       fd.append("options", JSON.stringify(opts));
       fd.append("variants", JSON.stringify(buildVariants(opts, { regular_price: d.regular_price })));
-      // The product's whole gallery, in the order shown. The first is primary.
-      d.photos.forEach((p) => fd.append("images", p.file));
-      fd.append("image_urls", JSON.stringify(d.photos.map((_, i) => `upload:${i}`)));
+      // The product's gallery, in the order shown; the first is primary and
+      // travels as bytes (the server's photo duplicate check hashes it). The
+      // rest go up one at a time first, so no request can exceed the platform's
+      // ~4.5 MB ceiling however many photos a product has.
+      let list = d.photos;
+      if (d.photos.length > 1) {
+        const up = await uploadPhotos(d.photos, { from: 1, onProgress: (done, total) => setMsg(`Adding ${done + fail + dupes + 1} of ${drafts.length}: ${d.product_name} — uploading photo ${done} of ${total}…`) });
+        d.photos = up.photos;   // keep the URLs already won for a retry
+        if (!up.ok) { fail++; stop = up.error; break; }
+        list = up.photos;
+      }
+      fd.append("images", list[0].file);
+      fd.append("image_urls", JSON.stringify(list.map((p, i) => (i === 0 ? "upload:0" : p.url))));
       const r = await apiJson("/api/add-product", { method: "POST", body: fd });
       // Something the shop already has — the same folder chosen twice is how
       // this happens. Counted and reported, never failed: stopping fifteen

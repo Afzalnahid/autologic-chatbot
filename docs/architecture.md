@@ -161,6 +161,23 @@ notification's `url` carries the target tab as a hash (`/dashboard#orders`,
 tab to the running app, because an already-open dashboard ignores a hash-only
 change on its own.
 
+**Product photos go up one at a time.** Vercel refuses any request over ~4.5 MB
+at the edge, before our code runs — so a 12-photo product saved in one request
+died, and the dashboard could only say "check your internet" (fetch got no
+response at all). Now every save path (the AI Assistant, the Inventory editor,
+the many-from-photos batch) uploads photos 2..N through `product-photo` (one
+file → its public URL, stored by `uploadProductImage` at `<clientId>/<file>` so
+the delete-cleanup guard recognises it) and sends `add-product` / `products`
+PATCH the URLs, which they already accepted. The FIRST photo still travels as
+bytes: the server's photo-based duplicate check hashes those bytes and must keep
+working. `src/app/dashboard/components/photo-upload.js` holds the shared uploader
+(each photo remembers its URL, so a retry after a dropped connection sends only
+the missing ones) and `PHOTO_MAX_BYTES`; a photo over that could not be shrunk in
+the browser, and the screens now refuse to save, say so, and offer "Shrink
+photos" (the 640px rung) — instead of firing a request the platform is certain
+to reject. `shrink-image.js` also falls back to `toDataURL` where an Android
+WebView's `toBlob` returns null.
+
 **Native push** (the installed Capacitor app, whose WebView cannot do Web Push):
 `push/register-native` saves/removes an FCM device token in a separate table,
 `fcm_tokens` (its own table because an FCM token has none of Web Push's

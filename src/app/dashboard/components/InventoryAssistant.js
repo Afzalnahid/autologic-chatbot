@@ -6,7 +6,8 @@ import { getLang, useT } from "./i18n.js";
 import { describeAction, draftGaps } from "@/lib/inventory-actions.js";
 import { describeSetting, trainingKeys } from "@/lib/assistant-actions.js";
 import { useBackClose } from "./back.js";
-import { shrinkBatch, fileSize, GALLERY_BUDGET } from "@/lib/shrink-image.js";
+import { shrinkBatch, shrinkImage, fileSize } from "@/lib/shrink-image.js";
+import { uploadPhotos, tooLargePhotos, PHOTO_MAX_BYTES } from "./photo-upload.js";
 import { dropRepeats, fingerprint } from "@/lib/photo-fingerprint.js";
 import { buildVariants, parseAxes } from "@/lib/variants.js";
 import PhotoBatchSheet from "./PhotoBatch.js";
@@ -210,6 +211,8 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // {done,total} while the photos are being sent one at a time on save.
+  const [uploading, setUploading] = useState(null);
   // Every way of adding products stays on THIS tab. The many-from-photos sheet
   // and the CSV/URL/WooCommerce/Shopify importers used to switch to Inventory
   // (onImport → setPage) — now they open as an overlay right over the chat, so
@@ -801,9 +804,40 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
 
   // `force` is the owner having read that this looks like something they
   // already have, and saying they meant it.
+  // A photo the browser could not shrink can never be sent — the platform
+  // refuses it before our code runs. Last resort: shrink it hard, from the
+  // file we hold, at the smallest rung.
+  const reshrink = async () => {
+    if (busy || prepping) return;
+    setPrepping(true); setErr("");
+    const again = await Promise.all(photos.map(async (p) =>
+      p.file.size > PHOTO_MAX_BYTES ? { ...p, file: await shrinkImage(p.file, { maxSide: 640, quality: 0.75, skipUnder: 0 }) } : p));
+    setPhotos(again);
+    setPrepping(false);
+    if (tooLargePhotos(again).length) setErr(t("asst.photoTooLarge", { n: tooLargePhotos(again).length, max: fileSize(PHOTO_MAX_BYTES) }));
+  };
+
   const save = async (force = false) => {
     if (!gaps.ready || busy) return;
+    // Refuse to fire a request the platform is certain to reject; say what is
+    // wrong instead of letting it come back as "check your internet".
+    const big = tooLargePhotos(photos);
+    if (big.length) { setErr(t("asst.photoTooLarge", { n: big.length, max: fileSize(PHOTO_MAX_BYTES) })); return; }
     setBusy(true); setErr(""); setRefused(false);
+
+    // Photos 2..N go up one at a time (each request small), and the product is
+    // then created from their URLs. The first stays as bytes so the server's
+    // photo-based duplicate check keeps working. A dropped connection keeps the
+    // URLs already won, so pressing Save again only sends what is missing.
+    let list = photos;
+    if (photos.length > 1) {
+      const up = await uploadPhotos(photos, { from: 1, onProgress: (done, total) => setUploading({ done, total }) });
+      setUploading(null);
+      setPhotos(up.photos);
+      if (!up.ok) { setBusy(false); setErr(up.error); return; }
+      list = up.photos;
+    }
+
     const opts = draft.options || [];
     const fd = new FormData();
     if (force) fd.append("allow_duplicate", "1");
@@ -818,11 +852,12 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
     // catalogue knows every side of this product rather than only its front.
     // `vis[0]` rather than the stored `visual`, because making another photo the
     // first one changes which description belongs to the primary.
-    const vis = photos.map((p) => p.visual || "");
+    const vis = list.map((p) => p.visual || "");
     if (vis[0] || visual) fd.append("visual", vis[0] || visual);
     if (vis.some(Boolean)) fd.append("visuals", JSON.stringify(vis));
-    photos.forEach((p) => fd.append("images", p.file));
-    fd.append("image_urls", JSON.stringify(photos.map((_, i) => `upload:${i}`)));
+    // Only the primary travels as a file now; the rest are the URLs just won.
+    fd.append("images", list[0].file);
+    fd.append("image_urls", JSON.stringify(list.map((p, i) => (i === 0 ? "upload:0" : p.url))));
 
     const r = await apiJson("/api/add-product", { method: "POST", body: fd });
     setBusy(false);
@@ -1104,13 +1139,22 @@ export default function InventoryAssistant({ products, refresh, startSignal = 0,
             : gaps.wanted.length
               ? <>{t("asst.readyPrefix")}<strong style={{ color: T.warn }}>{gaps.wanted.map(fld).join(" · ")}</strong>{t(gaps.wanted.length > 1 ? "asst.readyMany" : "asst.readyOne")}</>
               : t("asst.allFilled")}
-          {photos.length > 0 && <> · {t("asst.photoCount", { n: photos.length, size: fileSize(photos.reduce((a, p) => a + p.file.size, 0)), budget: fileSize(GALLERY_BUDGET) })}</>}
+          {photos.length > 0 && <> · {t("asst.photoCount", { n: photos.length, size: fileSize(photos.reduce((a, p) => a + p.file.size, 0)) })}</>}
         </div>
+        {/* Shrinking failed for some photos: they can never be sent as they are.
+            Said here, with the fix, before the owner ever presses Save. */}
+        {tooLargePhotos(photos).length > 0 && <div style={{ fontSize: 12, color: T.danger, marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span>{t("asst.photoTooLarge", { n: tooLargePhotos(photos).length, max: fileSize(PHOTO_MAX_BYTES) })}</span>
+          <button onClick={reshrink} disabled={busy || prepping} className="ui-btn" style={{ background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, color: T.text, fontSize: 12, fontWeight: 600, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
+            {prepping ? "…" : t("asst.shrinkAgain")}
+          </button>
+        </div>}
+        {uploading && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 6 }}>{t("asst.uploading", { done: uploading.done, total: uploading.total })}</div>}
 
         {/* The ref is on the wrapper, not the button: Btn is a plain function
             component and does not forward one. */}
         {gaps.ready && <div ref={saveRef} style={{ marginTop: 11, display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Btn gold onClick={() => save()} disabled={busy || prepping} style={{ borderRadius: 11 }}>
+          <Btn gold onClick={() => save()} disabled={busy || prepping || tooLargePhotos(photos).length > 0} style={{ borderRadius: 11 }}>
             <i className="ti ti-check" style={{ marginRight: 6 }} />{t("asst.save", { name: draft.product_name })}
           </Btn>
           {/* Only after a save has actually been turned away. */}

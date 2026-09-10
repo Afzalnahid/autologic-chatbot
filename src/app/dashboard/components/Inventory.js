@@ -3,7 +3,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { T, Card, Btn, Inp, Badge, Select, Segmented, useIsMobile, taka } from "./ui.js";
 import { api, apiJson } from "./session.js";
 import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
-import { shrinkBatch } from "@/lib/shrink-image.js";
+import { shrinkBatch, fileSize } from "@/lib/shrink-image.js";
+import { uploadPhotos, tooLargePhotos, PHOTO_MAX_BYTES } from "./photo-upload.js";
 import { buildVariants, usableOptions, newVariantId, knownAxes } from "@/lib/variants.js";
 import { findTwins } from "@/lib/duplicate-keys.js";
 import { productState, MISSING, missingToSell, missingMessage } from "@/lib/readiness.js";
@@ -541,7 +542,29 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
       }
     }
     if (busy) return;
+    // Photos the browser could not shrink can never be sent — the platform
+    // refuses them before our code runs. Say so, instead of "check your internet".
+    const files0 = gallery.filter((g) => g.kind === "file");
+    const kept0 = f.variants.filter((v) => (v.name || "").trim() || Object.keys(v.attrs || {}).length || varImg[v.id]?.file || v.image_url);
+    const varFiles0 = kept0.filter((v) => varImg[v.id]?.file).map((v) => ({ file: varImg[v.id].file }));
+    const big = tooLargePhotos([...files0, ...varFiles0]).length;
+    if (big) { setErr(`${big} photo${big > 1 ? "s" : ""} could not be shrunk and ${big > 1 ? "are" : "is"} over ${fileSize(PHOTO_MAX_BYTES)} — too large to send. Remove or re-attach ${big > 1 ? "them" : "it"}.`); setTab("photos"); return; }
     setBusy(true); setErr(""); setDup(null);
+
+    // Every photo but the first gallery file goes up ONE AT A TIME first and
+    // becomes a URL, so no request can exceed the platform's ~4.5 MB ceiling
+    // however many gallery or variant photos there are. The first gallery file
+    // stays as bytes: the server's photo duplicate check hashes it.
+    const extraGallery = files0.slice(1).map((g) => ({ file: g.file, g }));
+    const variantUps = kept0.filter((v) => varImg[v.id]?.file).map((v) => ({ file: varImg[v.id].file, vid: v.id }));
+    const ups = [...extraGallery, ...variantUps];
+    let urlOfG = new Map(), urlOfV = new Map();
+    if (ups.length) {
+      const up = await uploadPhotos(ups, { from: 0 });
+      if (!up.ok) { setBusy(false); setErr(up.error); return; }
+      up.photos.forEach((u) => { if (u.g) urlOfG.set(u.g, u.url); else urlOfV.set(u.vid, u.url); });
+    }
+
     const fd = new FormData();
     if (force) fd.append("allow_duplicate", "1");
     if (edit) fd.append("id", p.id);
@@ -549,10 +572,11 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     fd.append("stock_qty", f.stock_qty === "" || f.stock_qty === null ? "" : String(f.stock_qty));
     fd.append("options", JSON.stringify(f.options.filter((o) => o.name.trim() && o.values.length)));
 
-    // Order is the owner's; each new file becomes "upload:N" in that order.
-    const files = gallery.filter((g) => g.kind === "file");
-    fd.append("image_urls", JSON.stringify(gallery.map((g) => g.kind === "url" ? g.u : `upload:${files.indexOf(g)}`)));
-    for (const g of files) fd.append("images", g.file);
+    // Order is the owner's. The first new file is "upload:0"; every other new
+    // file is the URL it was just given above.
+    const files = files0;
+    fd.append("image_urls", JSON.stringify(gallery.map((g) => g.kind === "url" ? g.u : (g === files[0] ? "upload:0" : urlOfG.get(g) || ""))));
+    if (files[0]) fd.append("images", files[0].file);
 
     // Variant photos ride in the SAME `images` list, numbered after the
     // gallery, and each variant points at its own index. The server keeps the
@@ -562,13 +586,9 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     // the photo clause, someone who picked a picture and had not typed the name
     // yet would watch the row — and the photo they just chose — disappear on
     // save, with nothing said.
-    const kept = f.variants.filter((v) => (v.name || "").trim() || Object.keys(v.attrs || {}).length || varImg[v.id]?.file || v.image_url);
-    const withPhoto = kept.filter((v) => varImg[v.id]?.file);
-    for (const v of withPhoto) fd.append("images", varImg[v.id].file);
-    fd.append("variants", JSON.stringify(kept.map((v) => {
-      const at = withPhoto.findIndex((x) => x.id === v.id);
-      return { ...v, image_url: at >= 0 ? `upload:${files.length + at}` : (v.image_url || "") };
-    })));
+    // Variant photos were uploaded above; each variant now carries its URL.
+    const kept = kept0;
+    fd.append("variants", JSON.stringify(kept.map((v) => ({ ...v, image_url: urlOfV.get(v.id) || v.image_url || "" }))));
     const r = await apiJson(edit ? "/api/products" : "/api/add-product", { method: edit ? "PATCH" : "POST", body: fd });
     setBusy(false);
     // A duplicate is not a failure, it is a question. The message names the
