@@ -113,10 +113,11 @@ call (2026-09-10): keep the expiry (09-19) as-is, price stays BYOK. Done.
 **afzalnahid021@gmail.com cleanup — DONE (confirmed 2026-09-10):** gone from both
 auth.users and clients (verified by live query, zero rows). Off the task list.
 
-**Follow-up (small, noted not done):** the capability labels now live in BOTH
-`src/lib/features.js` (`FEATURE_DEFS`) and `src/app/admin/Packages.js` (`FEATURES`,
-the toggle list). Left as two near-identical lists to keep this a feature, not a
-refactor — worth pointing Packages.js at the shared list next time (lesson #19).
+**Follow-up — DONE:** Packages.js `FEATURES` (the admin toggle list) now derives
+from `FEATURE_DEFS` in `src/lib/features.js` (`FEATURE_DEFS.map(d => [d.key, d.label])`),
+so the capability labels live in ONE place (lesson #19). The admin byok toggle
+label changed "Can use their own AI key" → "Use your own AI key" as a side effect
+(harmless). 42/42.
 
 SHIPPED: commits `4d12826` + memory, Vercel READY, live. Verified against live DB
 for Broker's BD (shop_growth, ecommerce): features + meters compute correctly
