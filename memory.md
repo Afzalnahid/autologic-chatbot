@@ -167,6 +167,39 @@ a Capacitor WebView may not match, so that gate may not fire in this app (it wil
 behave like a normal browser session; revisit if the owner wants the app-login
 requirement in the native app too).
 
+### Native push (FCM) for the app — the WebView can't do Web Push
+
+The native app's WebView cannot do Web Push (browser limitation), so the existing
+web-push stack shows "this browser cannot show push notifications" inside the app.
+Added native push via **Firebase Cloud Messaging**, built and verified (42/42), NOT
+yet shipped. Owner created a Firebase project (id `getvoicium`, package
+`com.getvoicium.app`) and sent `google-services.json` (committed to `mobile/` — it
+is NOT a secret, ships in every APK). Pieces:
+- **App:** `@capacitor/push-notifications` added; CI copies `mobile/google-services.json`
+  into `android/app/` (Capacitor's template applies the google-services gradle
+  plugin when the file is present).
+- **Server:** new table `fcm_tokens` (`docs/sql/2026-09-11-fcm-tokens.sql`, its own
+  table — an FCM token has no p256dh/auth). `src/lib/fcm.js`: `fcmEnabled()`,
+  `saveFcmToken`/`removeFcmToken`, `sendFcm` (FCM HTTP v1, auth via
+  `google-auth-library` from env `FIREBASE_SERVICE_ACCOUNT`; prunes UNREGISTERED;
+  never throws). New `notify()` in `push.js` fans out to BOTH web push AND FCM; the
+  3 bot.js triggers + `/api/push/test` now call `notify()`. New route
+  `/api/push/register-native` (POST/DELETE the token). `google-auth-library` added
+  to root package.json.
+- **Web:** `src/app/dashboard/components/native-push.js` (Capacitor PushNotifications
+  via the injected bridge — register token, tap→al-goto navigation); `PushToggle`
+  branches to native when `isNativeApp()`. All native code is guarded, so the
+  browser path is unchanged.
+
+**⚠️ SHIP STEPS (pending):** (1) owner sets Vercel env `FIREBASE_SERVICE_ACCOUNT` =
+the whole service-account JSON, redeploy — WITHOUT it native push is a quiet no-op;
+(2) run `docs/sql/2026-09-11-fcm-tokens.sql` (Supabase MCP apply_migration on
+`cchvsgouqqxibhubioch`, or owner runs it); (3) push (Vercel deploys server+web);
+(4) owner rebuilds the APK (Actions → Build Android APK) so the push plugin +
+google-services are in it; (5) test: open app → Profile → Turn on notifications →
+Send a test. NOT YET pushed at time of writing. Notification small-icon polish
+(a monochrome icon) and cold-start tap navigation are follow-ups.
+
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
 - `7597e39` — `AuthGate` defaults to **sign-in** (was sign-up on first visit, which
