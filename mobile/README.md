@@ -45,3 +45,13 @@ TWA `com.getvoicium.www.twa`, so both can coexist during testing).
   future updates (same rule as the PWABuilder key).
 - **iOS.** Capacitor can also produce an iOS project, but building it needs a
   Mac + Xcode + an Apple Developer account ($99/yr). Defer.
+
+## Signing (why updates install over each other)
+
+`mobile/debug.keystore` is the app's signing key. CI creates it the first time
+(and commits it), then every build signs with it, so a new APK installs OVER
+the old one on a phone. A debug key is not a secret — standard Android practice —
+but if it is ever deleted or regenerated, every phone must uninstall and
+reinstall once (Android refuses a build with a different signature). For a
+Play Store release generate a separate release key (or let Play App Signing
+manage one) and keep it in repo Secrets, never in git.

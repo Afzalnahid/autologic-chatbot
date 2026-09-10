@@ -1291,3 +1291,25 @@ question a human already answered and re-quotes a price a human already agreed.
 - Two stores that both look like "the conversation" will drift. `message_buffer`
   is what the OWNER sees; `chat_memory` is what the BOT sees. Anything that
   speaks to the customer has to be written to both, or one of them is a lie.
+
+## A cloud build machine signs each APK with a brand-new key (2026-09-11)
+
+The Android APK is built on GitHub Actions and signed with the runner's debug
+key. A runner is a fresh machine every run, so every build minted a NEW debug
+key — and Android refuses to install a build over one carrying a different
+signature. The second and every later APK failed on the phone with a bare "App
+not installed", after I had told the owner "install it over the old one, it
+updates in place". The first install had worked, which is exactly what made the
+advice look right.
+
+**Rules:**
+- A build that must UPDATE an installed app needs a signing key that is the
+  same every time. On an ephemeral CI machine that means the key is stored —
+  here a debug keystore committed to the repo (a debug key is not a secret; a
+  release key for a store goes in Secrets) and copied to `~/.android/` before
+  Gradle runs.
+- "App not installed" with no reason on Android almost always means a
+  signature mismatch, not a broken file. Uninstall → install proves it in a
+  minute; do that check before theorising about the APK.
+- Do not promise "it updates in place" about a mechanism you have not verified
+  on the second install. The first install of anything succeeds.

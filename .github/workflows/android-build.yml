@@ -12,6 +12,10 @@ name: Build Android APK
 on:
   workflow_dispatch:
 
+# The key step below may commit the signing key back to the repo (first run only).
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,6 +36,27 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+
+      # Android only installs a new build OVER an existing one when both carry
+      # the SAME signature. A fresh build machine mints a new throwaway debug key
+      # every run, so every rebuild used to fail on the phone with "App not
+      # installed". The key now lives in the repo (mobile/debug.keystore — a
+      # debug key, not a secret, standard Android practice) and is created here
+      # once, then committed, so every build signs identically forever.
+      - name: Stable signing key
+        run: |
+          if [ ! -f mobile/debug.keystore ]; then
+            keytool -genkeypair -v -keystore mobile/debug.keystore -storepass android -keypass android \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=getvoicium Debug, O=getvoicium, C=BD"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add mobile/debug.keystore
+            git commit -m "mobile: stable debug signing key (generated once by CI)"
+            git push
+          fi
+          mkdir -p ~/.android
+          cp mobile/debug.keystore ~/.android/debug.keystore
 
       - name: Install Capacitor
         working-directory: mobile
@@ -73,9 +98,12 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
+      - name: Name the file
+        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk mobile/android/app/build/outputs/apk/debug/getvoicium.apk
+
       - name: Upload the APK
         uses: actions/upload-artifact@v4
         with:
           name: getvoicium-android-apk
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          path: mobile/android/app/build/outputs/apk/debug/getvoicium.apk
           if-no-files-found: error

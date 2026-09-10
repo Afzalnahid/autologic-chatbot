@@ -250,6 +250,20 @@ Fix (owner: "do all, web + app, never again"):
 No migration. Server routes unchanged (they already accepted URLs). Not
 unit-testable here (canvas/fetch); 42/42 suites still pass.
 
+### APK "App not installed" — every cloud build signed with a new key (FIXED)
+
+Owner screenshot: the 2nd+ APK failed on the phone with "App not installed".
+Cause: GitHub Actions runners are fresh machines, so Gradle minted a NEW debug
+key every build and Android refuses to install over a different signature. My
+earlier "install over the old one, it updates" advice was wrong — lessons.md
+entry added. Fix: the workflow now generates mobile/debug.keystore ONCE
+(keytool on the runner; Java is not on the dev machine), commits it back
+(permissions: contents: write), and copies it to ~/.android/debug.keystore
+before every build → identical signature forever; artifact renamed
+getvoicium.apk. Owner must uninstall + reinstall ONE more time (the key changes
+once more), then updates install in place. Play Store later needs a separate
+release key (Secrets, never git). README + lessons noted.
+
 ### Notification centre: feed of comments/orders/bookings/hand-offs/alerts, deep links, emails
 
 Owner: the panel must show comments, messages, orders, alerts, and "a customer
