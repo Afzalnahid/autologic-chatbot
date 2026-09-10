@@ -19,6 +19,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { decryptSecret } from "@/lib/crypt.js";
 import { notifyKeyFailing } from "@/lib/email.js";
+import { notify } from "@/lib/push.js";
 import { recordUsage, geminiTokens } from "@/lib/usage.js";
 import { limitsFor } from "@/lib/plan-limits.js";
 import { getPlatformAI } from "@/lib/platform-ai.js";
@@ -218,6 +219,13 @@ async function markFailing(clientId, e) {
         provider: flipped.provider, model: flipped.model, error: errMsg,
       }).catch(() => {});
     }
+    // The same once-per-outage moment, on the phone: the bot is paused until
+    // the key is fixed, and the owner must not learn that from a customer.
+    notify(clientId, {
+      title: "⚠️ Your AI key stopped working",
+      body: "The bot is paused until it is fixed. Open AI Engine to check the key.",
+      url: "/dashboard#ai", tag: "key-failing",
+    }).catch(() => {});
   } catch (err) {
     console.error("[ai] markFailing:", String(err?.message || err).slice(0, 160));
   }

@@ -178,6 +178,55 @@ photos" (the 640px rung) — instead of firing a request the platform is certain
 to reject. `shrink-image.js` also falls back to `toDataURL` where an Android
 WebView's `toBlob` returns null.
 
+**The notification feed** (`notifications`, GET): everything worth the owner's
+attention, assembled in one place on the server and scoped by `client_id` —
+customers waiting for a person (`contacts.needs_human`), recent public comments
+(`comments`, the ones the bot could not answer marked urgent), orders, bookings,
+and system alerts (plan lapsed/expiring, own AI key failing, message limit
+near/hit, a channel whose token expired, a payment decision). Messages waiting
+for a reply are not in it — the shell already holds live conversations (10 s)
+and the bell merges them. The shell polls it every 30 s. Each item is
+`{ key, type, level, icon, title, body, time, target, id }`; keys AND times are
+stable while a fact holds (an expiry date, the start of the metering window),
+never "now", so a poll cannot make a read alert look new. The bell
+(`NotificationsBell.js`) groups items into *Needs you / Customers / Business*,
+keeps Facebook-style read state per device (a watermark moved by "Mark all as
+read" + the keys tapped since + when each key was first seen, so a brand-new
+alert with an old fact-time is still unread), and opens the exact item.
+
+**Deep links — `#tab:id`.** A navigation target is `tab` or `tab:id`:
+`#conversations:<sender_id>` opens that customer's chat, `#orders:<id or code>`
+opens that order. Push payloads, the bell (`onNavigate(tab, id)`), the service
+worker's `gv-navigate`, the native app's notification tap (`al-goto`) and a
+cold-start hash all speak this form; the shell (`splitSpec`, `goTo`, `focus`)
+sets the tab and hands `focus={tab,id,ts}` to `Conversations` / `Orders`, which
+select the item as soon as their list holds it. The address keeps only the tab.
+
+**Hand-off — "this customer needs a person".** The bot was always told to
+promise a team member and nothing recorded it. Now `src/lib/handoff.js` (pure,
+tested): the model ends a hand-off reply with `[[HANDOFF]]` (FIXED_BASE rule 11;
+`extractHandoff` strips it before the customer sees anything), and `wantsHuman`
+reads the customer's own words (EN/BN/Banglish: human, manager, owner, call me…).
+`composeReply` returns `handoff`; `processConversation` and the widget route
+call `flagNeedsHuman`, which flips `contacts.needs_human` ONCE (atomic update on
+`needs_human=false`) and then pushes + emails the owner. Cleared when the owner
+replies (`send-message`) or flips the bot switch for that customer (`contacts`).
+
+**Owner emails for business events** (`email.js`): `notifyNewOrder`,
+`notifyNewBooking` (money — one email each, no throttle), `notifyNeedsHuman`
+(once per hand-off), `notifyChannelExpired`. `emailOwner()` in bot.js looks the
+address up and imports the module lazily. Push now also fires for the bot going
+quiet for a billing reason (same once-a-day gate as the email) and for an own
+AI key failing (same once-per-outage flip), and for website-widget
+conversations, which used to produce no push at all.
+
+**Channel token check** (`cron/channels`, daily 04:30 UTC, `vercel.json`):
+Facebook Page tokens only, and only Graph's own error code 190 counts — flips
+`channels.status` to `"expired"` atomically, pushes + emails once. The Channels
+tab shows an expired row in red with a Reconnect button; the normal connect
+flow upserts a fresh token and `"connected"`. Instagram/WhatsApp tokens are not
+probed yet (different hosts; a wrong verdict would be worse than none).
+
 **Native push** (the installed Capacitor app, whose WebView cannot do Web Push):
 `push/register-native` saves/removes an FCM device token in a separate table,
 `fcm_tokens` (its own table because an FCM token has none of Web Push's

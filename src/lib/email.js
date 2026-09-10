@@ -120,6 +120,73 @@ export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
   });
 }
 
+// ── Business events, to the owner ───────────────────────────────────────────
+// An order and a booking are money; a customer waiting for a person is a
+// customer about to leave. One email each, on the event — no throttling, because
+// missing one costs more than reading one. Push goes out too (push.js notify).
+const dash = (tab) => `<a href="https://www.getvoicium.com/dashboard#${tab}" style="color:#D92632">dashboard</a>`;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+export async function notifyNewOrder(clientEmail, { customer, products, total, orderCode, platform }) {
+  return send({
+    to: clientEmail,
+    subject: `New order${customer ? ` from ${customer}` : ""}${total ? ` — ৳${Number(total).toLocaleString("en-IN")}` : ""}`,
+    html: clientWrap(
+      "\u{1F6D2} New order",
+      `<strong>${esc(customer || "A customer")}</strong> just ordered${platform ? ` on ${esc(platform)}` : ""}.
+       <br/><br/>
+       ${products ? `Items: <strong>${esc(products)}</strong><br/>` : ""}
+       ${total ? `Total: <strong>৳${Number(total).toLocaleString("en-IN")}</strong><br/>` : ""}
+       ${orderCode ? `Order: <strong>${esc(orderCode)}</strong><br/>` : ""}
+       <br/>Open your ${dash("orders")} to confirm it.`
+    ),
+  });
+}
+
+export async function notifyNewBooking(clientEmail, { customer, service, date, time, platform }) {
+  return send({
+    to: clientEmail,
+    subject: `New booking${customer ? ` — ${customer}` : ""}${date ? ` · ${date}${time ? " " + time : ""}` : ""}`,
+    html: clientWrap(
+      "\u{1F4C5} New booking",
+      `<strong>${esc(customer || "A customer")}</strong> booked${service ? ` <strong>${esc(service)}</strong>` : ""}${platform ? ` via ${esc(platform)}` : ""}.
+       <br/><br/>
+       ${date ? `When: <strong>${esc(date)}${time ? " " + esc(time) : ""}</strong><br/>` : ""}
+       <br/>See it in your ${dash("orders")}.`
+    ),
+  });
+}
+
+// A customer asked for a person (or the bot handed off). Sent once per
+// hand-off — the flag flips false→true only once until the owner replies.
+export async function notifyNeedsHuman(clientEmail, { customer, preview, platform }) {
+  return send({
+    to: clientEmail,
+    subject: `${customer || "A customer"} is waiting for you — getvoicium`,
+    html: clientWrap(
+      "\u{1F64B} A customer needs a person",
+      `<strong>${esc(customer || "A customer")}</strong>${platform ? ` on ${esc(platform)}` : ""} asked to talk to someone, and the bot has told them a team member will help.
+       ${preview ? `<br/><br/><em style="color:#c9d3e6">“${esc(preview)}”</em>` : ""}
+       <br/><br/>Please reply from your ${dash("conversations")} — they are waiting.`
+    ),
+  });
+}
+
+// A connected channel's token stopped working: the bot can no longer see or
+// answer messages there until the owner reconnects it.
+export async function notifyChannelExpired(clientEmail, { business, platform, name }) {
+  const label = { facebook: "Facebook Page", instagram: "Instagram account", whatsapp: "WhatsApp number" }[platform] || platform;
+  return send({
+    to: clientEmail,
+    subject: `Your ${label} needs reconnecting — getvoicium`,
+    html: clientWrap(
+      "⚠️ A channel disconnected",
+      `The connection to your ${label}${name ? ` <strong>${esc(name)}</strong>` : ""} for <strong>${esc(business || "your business")}</strong> has expired, so the bot cannot answer customers there right now.
+       <br/><br/>This happens when Facebook renews its permissions. Open your ${dash("channels")} and press <strong>Reconnect</strong> — it takes a few seconds and nothing else changes.`
+    ),
+  });
+}
+
 // Payment could not be verified.
 export async function notifyPaymentRejected(clientEmail, reason) {
   return send({

@@ -53,6 +53,9 @@ export async function POST(request) {
     // without it the bot kept answering as though the human had never replied,
     // re-asking answered questions and re-quoting agreed prices.
     await saveAgentTurn(sender_id, client.id, text);
+    // The owner has answered in person: this customer is no longer waiting.
+    await supabase.from("contacts").update({ needs_human: false })
+      .eq("client_id", client.id).eq("sender_id", sender_id).eq("needs_human", true);
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });

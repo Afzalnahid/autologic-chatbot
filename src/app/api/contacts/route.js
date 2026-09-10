@@ -159,7 +159,9 @@ export async function PUT(request) {
     // report that as a failure instead of a false "ok".
     const { data: saved, error: upErr } = isGlobal
       ? await supabase.from("channels").update({ bot_enabled }).eq("client_id", client.id).select("id,bot_enabled")
-      : await supabase.from("contacts").upsert({ sender_id, bot_enabled, client_id: client.id }, { onConflict: "client_id,sender_id" }).select("sender_id,bot_enabled");
+      // Flipping the switch for a customer means the owner has looked at them —
+      // the "needs a person" flag is cleared either way.
+      : await supabase.from("contacts").upsert({ sender_id, bot_enabled, needs_human: false, client_id: client.id }, { onConflict: "client_id,sender_id" }).select("sender_id,bot_enabled");
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
     if (!saved || !saved.length) return NextResponse.json({ error: "Nothing was saved (no matching row)." }, { status: 500 });
     // Turning the bot back ON for one conversation: answer the message that came

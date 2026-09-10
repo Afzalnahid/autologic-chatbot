@@ -1,23 +1,40 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { T } from "./ui.js";
 
-// The bell in the header. It opens a dropdown of recent things worth the owner's
-// attention, built from data the dashboard already has — no extra fetch:
-//   • conversations waiting for a reply (an unanswered customer message)
-//   • orders the bot has taken
+// The bell in the header — everything worth the owner's attention, organised the
+// way Facebook does it:
+//   NEEDS YOU   a customer waiting for a person, a comment the bot could not
+//               answer, an alert (plan, AI key, message limit, a channel that
+//               needs reconnecting, a payment decision)
+//   CUSTOMERS   messages waiting for a reply, new public comments
+//   BUSINESS    orders and bookings, and quieter updates (payment confirmed)
+// Messages come from the shell's live conversation list (10 s); everything else
+// from /api/notifications (30 s).
 //
-// Read state works the way Facebook's does, which is what the owner asked for:
-//   • each notification is unread until it is tapped, or "Mark all as read" is
-//     pressed — merely OPENING the panel no longer clears anything;
-//   • the bell badge is the number still unread, and disappears at zero;
-//   • a new notification arriving later is unread again, on its own.
-// Kept in localStorage so it survives a refresh: a watermark (everything older
-// than it counts as read — also what "Mark all as read" moves) plus the keys of
-// the individual items tapped since. (This is the in-app list; the phone push in
-// Profile is the separate "reach me when the app is shut".)
+// Read state, per device (localStorage): each notification stays unread until
+// it is tapped or "Mark all as read" is pressed — opening the panel clears
+// nothing; the badge is the unread count; a later notification is unread on its
+// own. A watermark (everything older counts read; mark-all moves it) plus the
+// keys of items tapped since.
+//
+// Tapping an item opens THE thing it is about — the conversation with that
+// customer, that order — via onNavigate(tab, id).
 const SEEN_KEY = "gv-notif-seen";
 const READ_KEY = "gv-notif-read";
-const READ_CAP = 200;
+const FIRST_KEY = "gv-notif-first";   // key → when this device first saw it
+const READ_CAP = 300;
+
+// An alert's own time is the FACT's time (a plan's expiry date, the start of
+// the month) and can be older than the last "Mark all as read" — so "new" is
+// judged by when this device first saw the key, or the item's time, whichever
+// is later. A brand-new alert is unread; one already seen stays read.
+const readFirst = () => { try { const o = JSON.parse(localStorage.getItem(FIRST_KEY) || "{}"); return o && typeof o === "object" ? o : {}; } catch { return {}; } };
+const writeFirst = (o) => {
+  try {
+    const entries = Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, READ_CAP);
+    localStorage.setItem(FIRST_KEY, JSON.stringify(Object.fromEntries(entries)));
+  } catch { /* private mode */ }
+};
 
 const readSeen = () => { try { return Number(localStorage.getItem(SEEN_KEY)) || 0; } catch { return 0; } };
 const writeSeen = (t) => { try { localStorage.setItem(SEEN_KEY, String(t)); } catch { /* private mode */ } };
@@ -38,48 +55,65 @@ function ago(t) {
   return new Date(t).toLocaleDateString();
 }
 
-export default function NotificationsBell({ convos = [], orders = [], isMobile, onNavigate }) {
+const SECTIONS = [
+  { id: "needs", label: "Needs you" },
+  { id: "customers", label: "Customers" },
+  { id: "business", label: "Business" },
+];
+const sectionOf = (it) => {
+  if (it.level === "urgent") return "needs";
+  if (it.type === "message" || it.type === "comment") return "customers";
+  return "business";
+};
+const ICON_COLOR = { message: T.gold, comment: T.info, order: T.success, booking: T.purple, handover: T.danger, alert: T.warn };
+
+export default function NotificationsBell({ convos = [], feed = [], isMobile, onNavigate }) {
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState(0);
   const [readSet, setReadSet] = useState(() => new Set());
   const wrap = useRef(null);
   const btn = useRef(null);
-  // Where the panel's top edge sits on a phone, measured from the bell itself.
   const [top, setTop] = useState(0);
 
   useEffect(() => { setSeen(readSeen()); setReadSet(readReadSet()); }, []);
 
-  // Build the list once from whatever the shell is holding.
+  // Messages waiting for a reply come from the live conversation list; the rest
+  // arrives ready-made from the server.
   const items = useMemo(() => {
     const out = [];
     for (const c of convos) {
-      if (c.status !== "active" || !c.time) continue; // only chats waiting on a reply
+      if (c.status !== "active" || !c.time) continue;
       out.push({
-        key: "msg-" + c.id, type: "message", icon: "ti-message-2",
+        key: "msg-" + c.id, type: "message", level: "info", icon: "ti-message-2",
         title: c.sender || "A customer", body: c.lastMsg || "sent a message",
-        time: c.time, target: "conversations",
+        time: c.time, target: "conversations", id: c.id,
       });
     }
-    for (const o of orders) {
-      if (!o.created_at) continue;
-      const total = o.total || o.total_price;
-      out.push({
-        key: "ord-" + (o.id || o.order_code), type: "order", icon: "ti-shopping-cart",
-        title: "New order · " + (o.customer_name || "customer"),
-        body: [o.product_names, total ? "৳" + total : ""].filter(Boolean).join(" · "),
-        time: o.created_at, target: "orders",
-      });
-    }
+    for (const f of feed) if (f && f.key) out.push(f);
     out.sort((a, b) => new Date(b.time) - new Date(a.time));
-    return out.slice(0, 20);
-  }, [convos, orders]);
+    return out.slice(0, 60);
+  }, [convos, feed]);
 
-  const isUnread = (it) => new Date(it.time).getTime() > seen && !readSet.has(it.key);
-  const unread = useMemo(() => items.filter(isUnread).length, [items, seen, readSet]); // eslint-disable-line
+  // Remember when each key was first seen on this device (persisted).
+  const [first, setFirst] = useState(() => ({}));
+  useEffect(() => { setFirst(readFirst()); }, []);
+  useEffect(() => {
+    if (!items.length) return;
+    let changed = false; const next = { ...first }; const now = Date.now();
+    for (const it of items) if (!next[it.key]) { next[it.key] = now; changed = true; }
+    if (changed) { writeFirst(next); setFirst(next); }
+  }, [items]); // eslint-disable-line
 
-  // Close on a click anywhere outside the bell + dropdown. touchstart as well as
-  // mousedown: on a phone the panel is a fixed sheet, and a tap outside it has
-  // to shut it the same way a click does.
+  const isUnread = (it) => Math.max(new Date(it.time).getTime() || 0, first[it.key] || 0) > seen && !readSet.has(it.key);
+  const unread = useMemo(() => items.filter(isUnread).length, [items, seen, readSet, first]); // eslint-disable-line
+  const urgent = useMemo(() => items.filter((i) => i.level === "urgent" && isUnread(i)).length, [items, seen, readSet, first]); // eslint-disable-line
+
+  const grouped = useMemo(() => {
+    const g = { needs: [], customers: [], business: [] };
+    for (const it of items) g[sectionOf(it)].push(it);
+    return g;
+  }, [items]);
+
   useEffect(() => {
     if (!open) return;
     const onDoc = (e) => { if (wrap.current && !wrap.current.contains(e.target)) setOpen(false); };
@@ -91,9 +125,6 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
     };
   }, [open]);
 
-  // On a phone the panel spans the SCREEN, not the bell, so it needs the bell's
-  // position in viewport coordinates. Re-measured whenever it opens (and on
-  // resize/rotate) rather than assumed from a header height that can wrap.
   useEffect(() => {
     if (!open || !isMobile) return;
     const measure = () => { const r = btn.current?.getBoundingClientRect(); if (r) setTop(Math.round(r.bottom + 8)); };
@@ -104,25 +135,45 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
 
   const toggle = () => setOpen((v) => !v);
 
-  // Everything up to now is read: move the watermark, and the per-item keys are
-  // no longer needed (they are all older than it).
   const markAll = () => {
     const now = Date.now();
     writeSeen(now); setSeen(now);
     const empty = new Set(); writeReadSet(empty); setReadSet(empty);
   };
 
-  // Tapping one notification reads THAT one and follows it.
   const go = (it) => {
     if (isUnread(it)) {
       const next = new Set(readSet); next.add(it.key);
       writeReadSet(next); setReadSet(next);
     }
     setOpen(false);
-    onNavigate?.(it.target);
+    onNavigate?.(it.target, it.id || null);
   };
 
-  const iconColor = { message: T.gold, order: T.success, booking: T.purple };
+  const Row = ({ it }) => {
+    const un = isUnread(it);
+    const color = ICON_COLOR[it.type] || T.gold;
+    return (
+      <button onClick={() => go(it)} className="ui-btn" style={{
+        width: "100%", textAlign: "left", display: "flex", gap: 11, alignItems: "flex-start",
+        padding: "11px 15px", border: "none", borderBottom: `1px solid ${T.border}`,
+        background: un ? `color-mix(in srgb, ${T.gold} 7%, transparent)` : "none",
+        cursor: "pointer", fontFamily: "inherit", color: T.text,
+      }}>
+        <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: `color-mix(in srgb, ${color} 12%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <i className={`ti ${it.icon || "ti-bell"}`} style={{ fontSize: 16, color }} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 13, fontWeight: un ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</span>
+          <span style={{ display: "block", fontSize: 12, color: un ? T.text : T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.body}</span>
+        </span>
+        <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0, marginTop: 1 }}>
+          <span style={{ fontSize: 11, color: un ? T.gold : T.textDim, fontWeight: un ? 600 : 400 }}>{ago(it.time)}</span>
+          {un && <span aria-label="unread" style={{ width: 9, height: 9, borderRadius: 999, background: it.level === "urgent" ? T.danger : T.gold, display: "block" }} />}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <div ref={wrap} style={{ position: "relative" }}>
@@ -130,20 +181,14 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
         aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
         style={isMobile ? { width: 36, height: 36, borderRadius: 11 } : undefined}>
         <i className="ti ti-bell" />
-        {unread > 0 && <span className="pbadge">{unread > 9 ? "9+" : unread}</span>}
+        {unread > 0 && <span className="pbadge" style={urgent ? { background: T.danger } : undefined}>{unread > 9 ? "9+" : unread}</span>}
       </button>
 
       {open && (
-        // The panel used to hang off the bell with right:0 on every screen. The
-        // bell is not the last thing in the header (the avatar is), so on a phone
-        // a 340px panel started ~40px off the LEFT edge of the screen and its
-        // title was cut in half. On a phone it is now pinned to the VIEWPORT —
-        // 10px from each side, below the bell — and only the desktop keeps the
-        // anchored dropdown, where there is room for it.
         <div style={{
           ...(isMobile
             ? { position: "fixed", top, left: 10, right: 10, maxHeight: `calc(100dvh - ${top + 12}px)` }
-            : { position: "absolute", top: "calc(100% + 8px)", right: 0, width: 360, maxHeight: "70vh" }),
+            : { position: "absolute", top: "calc(100% + 8px)", right: 0, width: 380, maxHeight: "72vh" }),
           zIndex: 60,
           display: "flex", flexDirection: "column",
           background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
@@ -164,31 +209,14 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
                   <i className="ti ti-bell-off" style={{ fontSize: 26, display: "block", marginBottom: 8 }} />
                   Nothing new right now.
                 </div>
-              : items.map((it) => {
-                const un = isUnread(it);
-                return (
-                  <button key={it.key} onClick={() => go(it)} className="ui-btn" style={{
-                    width: "100%", textAlign: "left", display: "flex", gap: 11, alignItems: "flex-start",
-                    padding: "11px 15px", border: "none", borderBottom: `1px solid ${T.border}`,
-                    // An unread row sits on a faint brand tint, like Facebook's, so the
-                    // eye finds what is new before reading a word of it.
-                    background: un ? `color-mix(in srgb, ${T.gold} 7%, transparent)` : "none",
-                    cursor: "pointer", fontFamily: "inherit", color: T.text,
-                  }}>
-                    <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: T.bgAlt, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <i className={`ti ${it.icon}`} style={{ fontSize: 16, color: iconColor[it.type] || T.gold }} />
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: 13, fontWeight: un ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</span>
-                      <span style={{ display: "block", fontSize: 12, color: un ? T.text : T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.body}</span>
-                    </span>
-                    <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0, marginTop: 1 }}>
-                      <span style={{ fontSize: 11, color: un ? T.gold : T.textDim, fontWeight: un ? 600 : 400 }}>{ago(it.time)}</span>
-                      {un && <span aria-label="unread" style={{ width: 9, height: 9, borderRadius: 999, background: T.gold, display: "block" }} />}
-                    </span>
-                  </button>
-                );
-              })}
+              : SECTIONS.map((s) => grouped[s.id].length > 0 && (
+                <div key={s.id}>
+                  <div style={{ padding: "8px 15px 4px", fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: s.id === "needs" ? T.danger : T.textDim, background: T.bgAlt }}>
+                    {s.label}
+                  </div>
+                  {grouped[s.id].map((it) => <Row key={it.key} it={it} />)}
+                </div>
+              ))}
           </div>
         </div>
       )}

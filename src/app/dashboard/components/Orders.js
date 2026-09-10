@@ -40,7 +40,7 @@ function Money({ o, compact }) {
   </div>;
 }
 
-export default function Orders({ orders, refresh }) {
+export default function Orders({ orders, refresh, focus = null }) {
   const isMobile = useIsMobile();
   const [filter, setFilter] = useState("All");
   const [q, setQ] = useState("");
@@ -51,6 +51,13 @@ export default function Orders({ orders, refresh }) {
   const [toast, setToast] = useState("");
   // The open order answers the back press before the tab does.
   useBackClose(!!open, () => setOpen(null));
+  // A notification was tapped for ONE order: open it (by id or order code) as
+  // soon as the list holds it.
+  useEffect(() => {
+    if (!focus?.id) return;
+    const o = orders.find((x) => String(x.id) === String(focus.id) || String(x.order_code || "") === String(focus.id));
+    if (o) setOpen(o);
+  }, [focus?.id, focus?.ts, orders.length]); // eslint-disable-line
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 2800); return () => clearTimeout(t); }, [toast]);
 
   const update = async (id, patch) => {

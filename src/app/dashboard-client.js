@@ -560,8 +560,23 @@ function BotOffBanner({me,onFix}) {
   </div>;
 }
 
+// A navigation target is "tab" or "tab:id" — the id opens ONE thing inside the
+// tab (a conversation by sender, an order by id/code). Push notifications, the
+// bell and the service worker all speak this form, so tapping "New order from
+// Rahim" lands on Rahim's order, not merely on the Orders tab.
+const splitSpec=(s)=>{
+  const m=/^([a-z_-]+)(?::(.+))?$/i.exec(String(s||""));
+  if(!m) return [String(s||""),null];
+  let id=m[2]||null; if(id){ try{ id=decodeURIComponent(id); }catch{} }
+  return [m[1],id];
+};
+
 export default function Dashboard() {
   const isMobile=useIsMobile();
+  // Which single item a tab should open next ({tab,id,ts}); ts makes the same
+  // target twice in a row count as two taps.
+  const [focus,setFocus]=useState(null);
+  const [feed,setFeed]=useState([]);
   // The popstate handler below is wired up once, on mount (see its effect's
   // empty dependency list — it has to be, or a fresh listener would stack up
   // on every render). A ref is the only way it can still see the CURRENT
@@ -611,10 +626,18 @@ export default function Dashboard() {
   useEffect(()=>{
     if(!window.history.state?.page) window.history.replaceState({page:pageRef.current},"","#"+pageRef.current);
   },[]);
+  // Open a tab, and optionally one item inside it — "orders:ABC123".
+  const goTo=(spec,id)=>{
+    const [t,sid]=id?[spec,id]:splitSpec(spec);
+    if(!t||!PAGES.includes(t)) return;
+    if(t!==pageRef.current) setPage(t);
+    if(sid) setFocus({tab:t,id:sid,ts:Date.now()});
+  };
   // Any tab can send the owner to another tab (e.g. Profile's "Manage plan"
-  // opens Billing) without threading a prop through the whole tree.
+  // opens Billing) without threading a prop through the whole tree. The native
+  // app's notification tap arrives here too, as "tab:id".
   useEffect(()=>{
-    const g=(e)=>{ if(typeof e.detail==="string"&&e.detail) setPage(e.detail); };
+    const g=(e)=>{ if(typeof e.detail==="string"&&e.detail) goTo(e.detail); };
     window.addEventListener("al-goto",g);
     return ()=>window.removeEventListener("al-goto",g);
   },[]);
@@ -623,7 +646,7 @@ export default function Dashboard() {
   // also messages the running app; the app already open would otherwise ignore a
   // hash-only change (it does not reload), so it listens for both here.
   useEffect(()=>{
-    const toTab=(tab)=>{ if(tab&&PAGES.includes(tab)&&tab!==pageRef.current) setPage(tab); };
+    const toTab=(spec)=>goTo(spec);
     const onHash=()=>toTab(window.location.hash.replace("#",""));
     const onSwMsg=(e)=>{ if(e?.data&&e.data.type==="gv-navigate") toTab(e.data.tab); };
     window.addEventListener("hashchange",onHash);
@@ -670,8 +693,11 @@ export default function Dashboard() {
       window.history.replaceState({page:"billing",level:1},"","#billing");
       return;
     }
-    const h=window.location.hash.replace("#","");
+    // "#orders:ABC123" from a notification tap on a cold start: the tab AND the
+    // item. The address keeps only the tab (below), so a reload does not reopen it.
+    const [h,hid]=splitSpec(window.location.hash.replace("#",""));
     if(h) setPageRaw(h);
+    if(h&&hid) setFocus({tab:h,id:hid,ts:Date.now()});
     // Keep the tab in the address as "#tab" so a reload (pull-to-refresh, or an
     // installed app reopening) lands back on the SAME tab instead of Home. The
     // third argument used to be "", which drops the fragment — the app then
@@ -782,6 +808,7 @@ export default function Dashboard() {
         if(Array.isArray(cv)) setConvos(cv);
         return;
       }
+      loadFeed();
       const [pr,cv,or,st,ch]=await Promise.all([
         api("/api/products").then(r=>r.json()).catch(()=>[]),
         api("/api/conversations").then(r=>r.json()).catch(()=>[]),
@@ -806,11 +833,20 @@ export default function Dashboard() {
   // a premium dashboard opens with its menu in place; a phone keeps it away.
   useEffect(()=>{ if(stage==="app") setSidebarOpen(!isMobile); },[isMobile,stage]);
 
+  // The bell's feed — comments, orders, bookings, hand-offs and alerts — built
+  // by the server in one call. Every 30 s; conversations keep their own 10 s.
+  const loadFeed=async()=>{
+    try{
+      const r=await api(`/api/notifications?t=${Date.now()}`).then(r=>r.json()).catch(()=>null);
+      if(r&&Array.isArray(r.items)) setFeed(r.items);
+    }catch{}
+  };
   useEffect(()=>{if(authed&&stage==="app")load();},[authed,stage]);
   useEffect(()=>{
     if(!authed||stage!=="app") return;
     const t=setInterval(()=>load(true),10000);
-    return ()=>clearInterval(t);
+    const f=setInterval(loadFeed,30000);
+    return ()=>{ clearInterval(t); clearInterval(f); };
   },[authed,stage]);
 
   if(!authChecked||stage==="loading") return null;
@@ -964,7 +1000,7 @@ export default function Dashboard() {
             title="Sync" aria-label="Sync">
             <i className="ti ti-refresh" style={{animation:loading?"spin 0.8s linear infinite":"none"}}/>
           </button>}
-          <NotificationsBell convos={convos} orders={orders} isMobile={isMobile} onNavigate={setPage}/>
+          <NotificationsBell convos={convos} feed={feed} isMobile={isMobile} onNavigate={goTo}/>
           {!isMobile&&<LangToggle/>}
           {!isMobile&&<ThemeToggle mode={mode} toggle={toggleTheme}/>}
           {/* The avatar is where people expect their account to be, so it
@@ -1008,11 +1044,11 @@ export default function Dashboard() {
               onGo={(to,intent)=>{ if(intent) setInvIntent({...intent,at:Date.now()}); setPage(to); }}
               onImport={(kind,prefill)=>{ setInvIntent({importer:kind,prefill,at:Date.now()}); setPage("inventory"); }}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
-            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels}/>}
+            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels} focus={focus?.tab==="conversations"?focus:null}/>}
             {page==="broadcast"&&<Broadcast/>}
             {page==="comments"&&<Comments/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent} onIntentDone={()=>setInvIntent(null)}/>)}
-            {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load}/>)}
+            {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load} focus={focus?.tab==="orders"?focus:null}/>)}
             {page==="channels"&&<Channels onConnect={()=>setStage("connect")} justConnected={justConnected} onDismissConnected={()=>setJustConnected(null)}/>}
             {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}
             {page==="profile"&&<Profile/>}

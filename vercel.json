@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/expiry",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/channels",
+      "schedule": "30 4 * * *"
     }
   ]
 }

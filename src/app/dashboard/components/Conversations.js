@@ -9,7 +9,7 @@ import { useBackClose } from "./back.js";
 const CH_ICON = { facebook:"ti-brand-messenger", instagram:"ti-brand-instagram",
   whatsapp:"ti-brand-whatsapp", website:"ti-world" };
 
-export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[]}) {
+export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[],focus=null}) {
   const cap=(w)=>String(w||"").charAt(0).toUpperCase()+String(w||"").slice(1);
   const [chFilter,setChFilter]=useState("all");
   const [tagFilter,setTagFilter]=useState("all");
@@ -86,6 +86,13 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   // The open conversation answers the back press before the tab does, so one
   // press closes the chat and the next goes to the previous page.
   useBackClose(hasSel,()=>setSelId(null));
+  // A notification was tapped for ONE customer: open that chat as soon as it is
+  // in the list (the list may still be loading on a cold start). `ts` lets the
+  // same customer be opened twice in a row.
+  useEffect(()=>{
+    if(!focus?.id) return;
+    if(allConvos.some(x=>String(x.id)===String(focus.id))) setSelId(focus.id);
+  },[focus?.id,focus?.ts,allConvos.length]); // eslint-disable-line
   useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&hasSel);},[hasSel,isMobile]);
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);

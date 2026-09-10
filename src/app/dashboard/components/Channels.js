@@ -68,17 +68,23 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
     const m=META[ch.platform];
     const isOpen=open===ch.id;
     const on=ch.status==="connected";
+    // "expired": the platform revoked the token (found by the daily check). The
+    // switch cannot fix that — only a fresh connection can — so it is replaced
+    // by a Reconnect button and the row says so in red.
+    const expired=ch.status==="expired";
     return <div style={{borderTop:`0.5px solid ${T.border}`}}>
       <div onClick={()=>setOpen(isOpen?null:ch.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 2px",cursor:"pointer"}}>
         <span style={{width:36,height:36,borderRadius:11,background:`${m.color}14`,color:m.color,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,position:"relative"}}>
           <i className={`ti ${m.icon}`}/>
-          <span style={{position:"absolute",right:-3,bottom:-3,width:11,height:11,borderRadius:"50%",background:on?T.live:T.textDim,border:`2px solid ${T.card}`}}/>
+          <span style={{position:"absolute",right:-3,bottom:-3,width:11,height:11,borderRadius:"50%",background:on?T.live:expired?T.danger:T.textDim,border:`2px solid ${T.card}`}}/>
         </span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:13.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ch.name||`${m.label} ${m.noun} · …${String(ch.page_id||"").slice(-4)}`}</div>
-          <div style={{fontSize:11.5,color:T.textMuted,marginTop:1}}>{on?"Live — the bot is answering":"Paused — messages wait for you"}</div>
+          <div style={{fontSize:11.5,color:expired?T.danger:T.textMuted,marginTop:1}}>{on?"Live — the bot is answering":expired?"Disconnected — the connection expired, reconnect to resume":"Paused — messages wait for you"}</div>
         </div>
-        <span onClick={e=>e.stopPropagation()}><Toggle on={on} disabled={busyId===ch.id} onClick={()=>toggle(ch)}/></span>
+        {expired
+          ?<span onClick={e=>e.stopPropagation()}><Btn gold onClick={onConnect} style={{padding:"7px 12px",fontSize:12.5,borderRadius:10}}><i className="ti ti-plug-connected" style={{marginRight:5}}/>Reconnect</Btn></span>
+          :<span onClick={e=>e.stopPropagation()}><Toggle on={on} disabled={busyId===ch.id} onClick={()=>toggle(ch)}/></span>}
         <i className={`ti ti-chevron-${isOpen?"up":"down"}`} style={{fontSize:15,color:T.textDim,flexShrink:0}}/>
       </div>
       {isOpen&&<div style={{padding:"2px 2px 14px 50px"}}>

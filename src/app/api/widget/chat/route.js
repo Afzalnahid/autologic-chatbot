@@ -3,7 +3,7 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
-import { composeReply, botAllowed, bufferInsert, botReplyRows, saveMemory, getClient } from "@/lib/bot.js";
+import { composeReply, botAllowed, bufferInsert, botReplyRows, saveMemory, getClient, notifyIncomingMessage, flagNeedsHuman } from "@/lib/bot.js";
 import { rateLimit } from "@/lib/rate-limit.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { originAllowed } from "@/lib/widget.js";
@@ -82,7 +82,7 @@ export const POST = withErrors(async (request) => {
 
   // The visitor's message is recorded first, so the owner sees it in the inbox
   // even when the bot is not allowed to answer.
-  await bufferInsert({
+  const savedRow = await bufferInsert({
     sender_id: senderId, client_id: clientId, role: "customer", status: "Pending",
     message_content: text, platform: PLATFORM, page_id: channel.page_id || null,
   });
@@ -90,6 +90,12 @@ export const POST = withErrors(async (request) => {
     { sender_id: senderId, client_id: clientId, name: `Website visitor · ${String(sessionId).slice(-4)}` },
     { onConflict: "client_id,sender_id" }
   ).select();
+  // The owner's phone, when a visitor starts a conversation — the same rule as
+  // Messenger/WhatsApp (this path used to send no push at all). The row just
+  // saved is passed as the cut-off so it is not counted as "an earlier message"
+  // — otherwise the first message of every chat would look mid-conversation and
+  // never notify. Fire-and-forget.
+  notifyIncomingMessage(clientId, senderId, text, savedRow?.created_at || null).catch(() => {});
 
   const block = await botAllowed(channel, senderId);
   if (!block.allowed) {
@@ -111,6 +117,7 @@ export const POST = withErrors(async (request) => {
   try {
     const r = await composeReply({ clientId, client, bType, senderId, combined: text, platform: PLATFORM, pageId: channel.page_id || "" });
     items = r.items;
+    if (r.handoff) flagNeedsHuman(clientId, senderId, text, PLATFORM).catch(() => {});
   } catch (e) {
     console.error("[widget] composeReply:", e.message);
     items = [{ type: "text_msg", text: "একটু সমস্যা হচ্ছে — আবার একবার চেষ্টা করুন। / Something went wrong at our end. Please try that again." }];
