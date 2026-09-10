@@ -7,7 +7,7 @@ import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
 import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { getClientAI } from "@/lib/ai.js";
-import { sendPush } from "@/lib/push.js";
+import { notify } from "@/lib/push.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 // The SAME words that described the product when it was added. A customer's
 // photo and the catalogue photo are both put through this and the two
@@ -568,7 +568,7 @@ async function maybeSaveOrder(items, clientId, senderId, platform) {
     });
     // Tell the owner's phone. Fire-and-forget: a push must never hold up or fail
     // the order it is announcing.
-    sendPush(clientId, {
+    notify(clientId, {
       title: "🛒 New order",
       body: `${it.customer_name || "A customer"}${prodNames ? " · " + prodNames : ""}${totalStr ? " · ৳" + totalStr : ""}`,
       url: "/dashboard#orders",
@@ -667,7 +667,7 @@ async function maybeCreateBooking(items, client, senderId, platform) {
       booked = true;
       bookingNote = `[A meeting was already booked for ${b.customer_name || "the customer"} on ${b.meeting_date || ""} ${b.meeting_time || ""}. Do not book again.]`;
       // Notify the owner's phone — fire-and-forget.
-      sendPush(client.id, {
+      notify(client.id, {
         title: "📅 New booking",
         body: `${b.customer_name || "A customer"}${b.service_want ? " · " + b.service_want : ""}${b.meeting_date ? " · " + b.meeting_date + " " + (b.meeting_time || "") : ""}`,
         url: "/dashboard#orders",
@@ -1110,7 +1110,7 @@ async function notifyIncomingMessage(clientId, senderId, content, thisAt) {
     const { data: ct } = await sb().from("contacts").select("name").eq("client_id", clientId).eq("sender_id", senderId).limit(1);
     const name = ct?.[0]?.name || "A customer";
     const preview = String(content || "").replace(/\s+/g, " ").slice(0, 80);
-    await sendPush(clientId, {
+    await notify(clientId, {
       title: "💬 " + name,
       body: preview || "sent you a message",
       url: "/dashboard#conversations",

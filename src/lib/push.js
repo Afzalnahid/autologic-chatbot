@@ -7,6 +7,7 @@
 // never delay or break the order/booking/reply that triggered it.
 import webpush from "web-push";
 import { supabase } from "@/lib/supabase.js";
+import { sendFcm } from "@/lib/fcm.js";
 
 const PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 const PRIVATE = process.env.VAPID_PRIVATE_KEY || "";
@@ -92,4 +93,16 @@ export async function sendPush(clientId, payload = {}) {
     console.error("[push] sendPush:", e?.message || e);
     return { sent: 0, reason: "error" };
   }
+}
+
+// The one call the app makes to reach the owner on every device they have —
+// browsers/PWAs via Web Push AND the installed native app via FCM. Both halves
+// never throw and run in parallel, so a caller (a new order, booking, message)
+// fires one notify() and does not care which channels a given owner uses.
+export async function notify(clientId, payload = {}) {
+  const [web, native] = await Promise.all([
+    sendPush(clientId, payload),
+    sendFcm(clientId, payload),
+  ]);
+  return { web, native, sent: (web.sent || 0) + (native.sent || 0) };
 }

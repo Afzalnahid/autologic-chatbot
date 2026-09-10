@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { T, Card, Btn } from "./ui.js";
 import { apiJson } from "./session.js";
+import { isNativeApp, initNativePush, nativePushState, enableNativePush, disableNativePush } from "./native-push.js";
 
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 
@@ -25,8 +26,23 @@ export default function PushToggle() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [test, setTest] = useState(""); // last test-push result message
+  // Inside the installed app, push goes through the native FCM path, not the
+  // browser's PushManager (which the app's WebView does not support).
+  const native = isNativeApp();
 
   useEffect(() => {
+    // The native app: FCM, via the Capacitor plugin. Register the listeners, and
+    // if the OS already granted permission, re-register (keeps the token fresh)
+    // and show it as on.
+    if (isNativeApp()) {
+      initNativePush();
+      (async () => {
+        const p = await nativePushState();
+        if (p === "granted") { enableNativePush().catch(() => {}); setState("on"); }
+        else setState(p === "denied" ? "denied" : "off");
+      })();
+      return;
+    }
     if (!VAPID) { setState("unconfigured"); return; }
     if (!supported()) { setState("unsupported"); return; }
     if (Notification.permission === "denied") { setState("denied"); return; }
@@ -41,6 +57,13 @@ export default function PushToggle() {
 
   const enable = async () => {
     setBusy(true); setErr("");
+    if (isNativeApp()) {
+      const r = await enableNativePush();
+      if (r === "granted") setState("on");
+      else if (r === "denied") setState("denied");
+      else { setErr("Could not turn on notifications. Please try again."); setState("off"); }
+      setBusy(false); return;
+    }
     try {
       const reg = await navigator.serviceWorker.register("/sw.js");
       await navigator.serviceWorker.ready;
@@ -61,6 +84,7 @@ export default function PushToggle() {
 
   const disable = async () => {
     setBusy(true); setErr("");
+    if (isNativeApp()) { await disableNativePush(); setState("off"); setBusy(false); return; }
     try {
       const reg = await navigator.serviceWorker.getRegistration();
       const sub = reg ? await reg.pushManager.getSubscription() : null;
@@ -111,7 +135,9 @@ export default function PushToggle() {
   );
   if (state === "denied") return (
     <Card><Head>Phone notifications</Head>
-      <Sub>Notifications are <strong>blocked</strong> in this browser. Allow them for getvoicium.com in your browser's site settings, then reload this page.</Sub>
+      <Sub>Notifications are <strong>blocked</strong>. {native
+        ? "Allow them for getvoicium in your phone's Settings → Apps → getvoicium → Notifications, then reopen the app."
+        : "Allow them for getvoicium.com in your browser's site settings, then reload this page."}</Sub>
     </Card>
   );
 

@@ -161,6 +161,22 @@ notification's `url` carries the target tab as a hash (`/dashboard#orders`,
 tab to the running app, because an already-open dashboard ignores a hash-only
 change on its own.
 
+**Native push** (the installed Capacitor app, whose WebView cannot do Web Push):
+`push/register-native` saves/removes an FCM device token in a separate table,
+`fcm_tokens` (its own table because an FCM token has none of Web Push's
+p256dh/auth). `src/lib/fcm.js` sends through the FCM HTTP v1 API, authorised by a
+Firebase service account in one env var, `FIREBASE_SERVICE_ACCOUNT` (missing →
+`fcmEnabled()` false and every send is a quiet no-op); it mirrors the web
+payload, prunes a token FCM reports UNREGISTERED, and never throws. **`notify()`
+in `push.js` is the single call the bot makes** — it fans out to BOTH Web Push
+and FCM in parallel, so the three triggers (order, booking, message) and the test
+route reach every device an owner has, browser or app, through one call. On the
+web side `src/app/dashboard/components/native-push.js` uses the Capacitor
+PushNotifications plugin (injected into the remote page inside the app) to ask
+permission, register the token, and follow a tapped notification to its tab;
+`PushToggle` branches to it when `isNativeApp()`. Firebase config for the app
+lives in `mobile/google-services.json` (not a secret — it ships in every APK).
+
 **Installable app (PWA).** getvoicium is a Progressive Web App: on a phone it can
 be installed to the home screen and opens full-screen, like a native app, and the
 *same* web app is packaged into a Play Store / App Store build with no separate

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "869664348441",
+    "project_id": "getvoicium",
+    "storage_bucket": "getvoicium.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:869664348441:android:4580cbce7f0542fe2d8d88",
+        "android_client_info": {
+          "package_name": "com.getvoicium.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvrEedR-IPxUcMDlW5L6XrVVFph7H4xhY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

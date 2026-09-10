@@ -45,6 +45,10 @@ jobs:
         working-directory: mobile
         run: npx cap add android
 
+      - name: Add Firebase config (enables FCM push)
+        working-directory: mobile
+        run: cp google-services.json android/app/google-services.json
+
       - name: Apply the app icon and splash (crimson bolt, no border)
         working-directory: mobile
         run: npx capacitor-assets generate --android
