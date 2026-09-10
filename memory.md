@@ -42,6 +42,13 @@ with internet on. Address bar gone == verified == notification + login both fixe
   full-bleed fixes are all in the SHARED shell, and agency components (Bookings,
   KnowledgeBase) already use `useBackClose` — so no agency-specific gap found; likely a
   stale cached app. Awaiting the owner's exact screen + repro before changing anything.
+- `7597e39` — auth UX: `AuthGate` now defaults to **sign-in** (was sign-up on first
+  visit, so typing login details created an account and jumped to onboarding); a failed
+  sign-in shows a friendly "no account matches … tap Create account" instead of raw
+  "Invalid login credentials"; and the phone back button during the sign-up flow
+  (onboarding / connect / connect-cal) returns to the sign-in screen signed out
+  (`useBackClose` + a history entry pushed on entering the flow), instead of doing
+  nothing / exiting.
 
 40/40 suites pass.
 
