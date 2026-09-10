@@ -17,6 +17,24 @@ function Row({k,v}) {
   </div>;
 }
 
+// One metered allowance as a used/remaining bar. Unlimited shows "∞" and no
+// bar; an unread count shows "—", never 0. Bar tone matches the Billing and
+// admin usage bars (green healthy → amber → red), the app's usage convention.
+function PlanMeter({ m }) {
+  const unread = m.used === null || m.used === undefined;
+  const tone = m.pct === null ? T.textDim : m.pct >= 90 ? T.danger : m.pct >= 70 ? T.warn : T.success;
+  return <div style={{marginBottom:10}}>
+    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
+      <span style={{color:T.textMuted}}>{m.label}</span>
+      <span><b>{unread?"—":m.used.toLocaleString("en-IN")}</b><span style={{color:T.textDim}}> / {m.unlimited?"∞":Number(m.limit).toLocaleString("en-IN")}</span></span>
+    </div>
+    <div style={{height:5,background:T.bgAlt,borderRadius:3,overflow:"hidden"}}>
+      <div style={{height:"100%",width:m.pct===null?0:`${Math.min(100,m.pct)}%`,background:tone,borderRadius:3}}/>
+    </div>
+    {!m.unlimited&&!unread&&<div style={{fontSize:10.5,color:T.textDim,marginTop:3}}>{m.remaining.toLocaleString("en-IN")} left</div>}
+  </div>;
+}
+
 export default function Profile() {
   const [p,setP]=useState(null);
   const [editing,setEditing]=useState(false);
@@ -158,15 +176,31 @@ export default function Profile() {
         <Row k="Status" v={<span style={{color:bill.active?T.success:T.danger,fontWeight:600}}>{bill.active?"Active":"Expired"}</span>}/>
         {bill.plan==="trial"&&bill.trial_end&&<Row k="Trial ends" v={new Date(bill.trial_end).toLocaleDateString()}/>}
         {bill.plan!=="trial"&&bill.plan_expires_at&&<Row k="Valid until" v={new Date(bill.plan_expires_at).toLocaleDateString()}/>}
-        <Row k="Messages today" v={`${bill.usage?.today??0}${bill.usage?.daily_limit?` / ${bill.usage.daily_limit}`:""}`}/>
-        <Row k="Messages this month" v={`${bill.usage?.month??0}${bill.usage?.monthly_limit?` / ${bill.usage.monthly_limit}`:" · unlimited"}`}/>
-        {features.length>0&&<>
+        {bill.entitlements?<>
+          {/* Every metered allowance with how much is used and how much is left,
+              plus the capability features — from the one shared assembler, so
+              this matches exactly what the admin sees for this account. */}
+          <div style={{fontSize:12.5,fontWeight:600,margin:"14px 0 8px"}}>Usage this {bill.entitlements.period}</div>
+          {bill.entitlements.meters.map((m)=><PlanMeter key={m.key} m={m}/>)}
           <div style={{fontSize:12.5,fontWeight:600,margin:"14px 0 8px"}}>What's included</div>
-          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4}}>
-            {features.map((f,i)=><div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:12.5,color:T.textMuted,lineHeight:1.5}}>
-              <i className="ti ti-check" style={{color:T.success,fontSize:14,marginTop:2,flexShrink:0}}/>{f}
+          {/* Neutral on/off — mint is reserved for "bot is live". */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(150px,100%),1fr))",gap:"6px 14px",marginBottom:4}}>
+            {bill.entitlements.features.map((f)=><div key={f.key} style={{display:"flex",gap:7,alignItems:"center",fontSize:12,color:f.on?T.text:T.textDim}}>
+              <i className={`ti ${f.on?"ti-check":"ti-minus"}`} style={{fontSize:13,width:14,flexShrink:0}}/>
+              <span style={{textDecoration:f.on?"none":"line-through"}}>{f.label}</span>
             </div>)}
           </div>
+        </>:<>
+          <Row k="Messages today" v={`${bill.usage?.today??0}${bill.usage?.daily_limit?` / ${bill.usage.daily_limit}`:""}`}/>
+          <Row k="Messages this month" v={`${bill.usage?.month??0}${bill.usage?.monthly_limit?` / ${bill.usage.monthly_limit}`:" · unlimited"}`}/>
+          {features.length>0&&<>
+            <div style={{fontSize:12.5,fontWeight:600,margin:"14px 0 8px"}}>What's included</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4}}>
+              {features.map((f,i)=><div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:12.5,color:T.textMuted,lineHeight:1.5}}>
+                <i className="ti ti-check" style={{color:T.success,fontSize:14,marginTop:2,flexShrink:0}}/>{f}
+              </div>)}
+            </div>
+          </>}
         </>}
         <div style={{height:14}}/>
         <Btn gold style={{width:"100%"}} onClick={()=>window.dispatchEvent(new CustomEvent("al-goto",{detail:"billing"}))}>

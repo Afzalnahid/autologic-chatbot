@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
+import { featureList } from "@/lib/features.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -22,9 +23,22 @@ const SUPER_ADMIN = "nahidafzal97@gmail.com";
 // read off the screen instead of guessed at.
 async function subscriptionOf(client, payments, used) {
   if (!client) return null;
-  const { limitsFor } = await import("@/lib/plan-limits.js");
+  const { limitsFor, quotaWindowStart } = await import("@/lib/plan-limits.js");
   const limits = await limitsFor(client);
   const isTrial = client.plan === "trial";
+
+  // Broadcasts and website imports, over the plan's window (trial → the trial,
+  // else the month) — the two meters the drawer was missing. Each fails soft so
+  // a hiccup on one never blanks the card.
+  const winSince = quotaWindowStart(client);
+  const soft = async (p) => { try { return await p; } catch { return null; } };
+  const [bcUsed, scrapeRows] = await Promise.all([
+    soft(supabase.from("broadcasts").select("id", { count: "exact", head: true })
+      .eq("client_id", client.id).gte("created_at", winSince).then((r) => (r.error ? null : (r.count || 0)))),
+    soft(supabase.from("usage_daily").select("calls").eq("client_id", client.id).eq("kind", "scrape")
+      .gte("day", String(winSince).slice(0, 10)).limit(2000).then((r) => (r.error ? null : r.data))),
+  ]);
+  const scrapesUsed = Array.isArray(scrapeRows) ? scrapeRows.reduce((n, r) => n + (r.calls || 0), 0) : null;
 
   const paid = (payments || []).filter((p) => p.status === "approved");
   const last = paid[0] || null;   // payQ is newest first
@@ -51,6 +65,10 @@ async function subscriptionOf(client, payments, used) {
     started_at: isTrial ? client.trial_start : (paid.length ? paid[paid.length - 1].created_at : null),
     expires_at: expiresAt || null,
     days_left: daysLeft,
+    // Which capability features this package grants (on/off), filtered to the
+    // client's business type. Pure — the same labelled list the client's own
+    // dashboard shows, so the two never disagree.
+    features: featureList(limits.features, client.business_type),
     // null limit means unlimited, and the panel must show that rather than 0.
     usage: {
       period: isTrial ? "day" : "month",
@@ -58,6 +76,8 @@ async function subscriptionOf(client, payments, used) {
       channels: { used: used.channels, limit: limits.channels },
       products: { used: used.products, limit: limits.maxProducts },
       documents: { used: used.files, limit: limits.maxKbFiles },
+      broadcasts: { used: bcUsed, limit: limits.maxBroadcastsPerMonth },
+      scrapes: { used: scrapesUsed, limit: limits.maxScrapesPerMonth },
     },
     payments: {
       count: paid.length,

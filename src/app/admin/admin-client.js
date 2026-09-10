@@ -5,6 +5,7 @@ import Packages from "./Packages.js";
 import AIAdmin from "./AIAdmin.js";
 import { useWhere } from "./where.js";
 import { planOptions } from "@/lib/plan-options.js";
+import { featureList } from "@/lib/features.js";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
 
 // The super-admin console. Same design system as the customer dashboard —
@@ -56,6 +57,20 @@ function PlanPill({ c }) {
   const left = c.plan === "trial" ? c.trial_days_left : c.plan_days_left;
   const sub = left === null || left === undefined ? "" : left <= 0 ? " · expired" : ` · ${left}d`;
   return <Badge color={planColor(c.plan)}>{planName(c.plan)}{sub}</Badge>;
+}
+// The capability features a package grants, as small icon chips. Reads the live
+// catalogue's features map (passed down), filtered to the business type, so the
+// client list shows "which package, which features" at a glance — no per-client
+// query. `max` caps how many icons show before a "+N".
+const FEATURE_ICONS = { vision: "ti-photo", voice: "ti-microphone", kb: "ti-files", calendar: "ti-calendar", comments: "ti-message-2", widget: "ti-world", broadcast: "ti-speakerphone", followup: "ti-clock-bolt", byok: "ti-key" };
+function FeatureChips({ features, biz, max = 0 }) {
+  const on = featureList(features || {}, biz).filter((f) => f.on);
+  if (!on.length) return <span style={{ fontSize: 11, color: T.textDim }}>—</span>;
+  const shown = max ? on.slice(0, max) : on;
+  return <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+    {shown.map((f) => <span key={f.key} title={f.label} style={{ width: 22, height: 22, borderRadius: 7, display: "inline-flex", alignItems: "center", justifyContent: "center", background: T.bgAlt, color: T.textMuted, fontSize: 12.5 }}><i className={`ti ${FEATURE_ICONS[f.key] || "ti-check"}`} /></span>)}
+    {max && on.length > max ? <span style={{ fontSize: 11, color: T.textDim }}>+{on.length - max}</span> : null}
+  </span>;
 }
 function SectionTitle({ icon, children, right }) {
   return <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
@@ -277,8 +292,8 @@ export function AdminApp(props) {
       <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "12px 10px" : 20, minHeight: 0 }}>
         {err && <Card style={{ marginBottom: 14, padding: "10px 14px", borderColor: `color-mix(in srgb, ${T.danger} 40%, transparent)`, display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}><i className="ti ti-alert-circle" style={{ color: T.danger, fontSize: 18 }} /><span style={{ flex: 1 }}>{err}</span><button onClick={clearErr} style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer" }}><i className="ti ti-x" /></button></Card>}
         <div key={page} className="ui-page">
-          {page === "overview" && <Overview o={o} clients={clients} attention={attention} activity={activity} openDetail={openDetail} go={go} isMobile={isMobile} />}
-          {page === "clients" && <Clients clients={clients} openDetail={openDetail} isMobile={isMobile} />}
+          {page === "overview" && <Overview o={o} clients={clients} attention={attention} activity={activity} openDetail={openDetail} go={go} isMobile={isMobile} catalogue={data.plans || []} />}
+          {page === "clients" && <Clients clients={clients} openDetail={openDetail} isMobile={isMobile} catalogue={data.plans || []} />}
           {page === "payments" && <Payments payments={payments} canEdit={canEdit} busy={busy} review={reviewPayment} openDetail={openDetail} isMobile={isMobile} />}
           {page === "packages" && <Packages token={props.token} isSuper={isSuper} tab={subTab} onTab={(t) => go("packages", t)} />}
           {page === "ai" && isSuper && <AIAdmin token={props.token} superKey={superKey} setSuperKey={setSuperKey} />}
@@ -293,7 +308,7 @@ export function AdminApp(props) {
 }
 
 // ── Overview ─────────────────────────────────────────────────────────────────
-function Overview({ o, clients, attention, activity, openDetail, go, isMobile }) {
+function Overview({ o, clients, attention, activity, openDetail, go, isMobile, catalogue = [] }) {
   const s = (k) => (o.series?.[k] || []).map((d) => ({ v: d.value }));
   const lbl = (k) => { const arr = o.series?.[k] || []; return arr.length ? [shortDate(arr[0].day), "today"] : []; };
   const top = [...clients].sort((a, b) => b.messages_7d - a.messages_7d).slice(0, 6);
@@ -351,14 +366,16 @@ function Overview({ o, clients, attention, activity, openDetail, go, isMobile })
 
     <Card style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ padding: "16px 18px 4px" }}><SectionTitle icon="ti-flame" right={<button onClick={() => go("clients")} style={{ background: "none", border: "none", color: T.gold, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>All clients →</button>}>Most active this week</SectionTitle></div>
-      <ClientTable rows={top} openDetail={openDetail} isMobile={isMobile} compact />
+      <ClientTable rows={top} openDetail={openDetail} isMobile={isMobile} compact catalogue={catalogue} />
     </Card>
   </div>;
 }
 
 // ── Clients ──────────────────────────────────────────────────────────────────
-function ClientTable({ rows, openDetail, isMobile, compact }) {
+function ClientTable({ rows, openDetail, isMobile, compact, catalogue = [] }) {
   if (!rows.length) return <Empty icon="ti-users" text="No clients match." />;
+  // plan id → its package's capability features, from the live catalogue.
+  const featOf = (planId) => (catalogue.find((p) => p.id === planId)?.features) || {};
   if (isMobile) return <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: compact ? "0 10px 10px" : 0 }}>
     {rows.map((c) => <button key={c.id} onClick={() => openDetail(c.id)} className="ui-btn ob-row" style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", borderRadius: 16, background: T.card, boxShadow: T.nmSm, border: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit", color: T.text, width: "100%" }}>
       <Avatar c={c} size={40} />
@@ -366,6 +383,7 @@ function ClientTable({ rows, openDetail, isMobile, compact }) {
         <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.business_name || "—"}</span>{c.suspended && <i className="ti ti-player-pause" style={{ color: T.danger, fontSize: 13 }} />}</span>
         <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.owner_email}</span>
         <span style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, flexWrap: "wrap" }}><PlanPill c={c} /><ChannelDots channels={c.channels} /><span style={{ fontSize: 11, color: T.textDim }}>{fmtNum(c.messages_7d)} msgs · 7d</span></span>
+        <span style={{ display: "flex", marginTop: 5 }}><FeatureChips features={featOf(c.plan)} biz={c.business_type} max={5} /></span>
       </span>
       <i className="ti ti-chevron-right" style={{ color: T.textDim }} />
     </button>)}
@@ -373,10 +391,11 @@ function ClientTable({ rows, openDetail, isMobile, compact }) {
   const th = { padding: "10px 14px", textAlign: "left", color: T.textMuted, fontWeight: 600, fontSize: 10.5, textTransform: "uppercase", letterSpacing: .8, whiteSpace: "nowrap" };
   const td = { padding: "10px 14px", fontSize: 13, verticalAlign: "middle" };
   return <div style={{ overflowX: "auto" }}><table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse" }}>
-    <thead><tr style={{ borderBottom: `1px solid ${T.border}` }}>{["Business", "Plan", "Channels", "Msgs 7d", compact ? "Today" : "Orders / Bookings", "Last active", ""].map((h, i) => <th key={i} style={th}>{h}</th>)}</tr></thead>
+    <thead><tr style={{ borderBottom: `1px solid ${T.border}` }}>{["Business", "Plan", ...(compact ? [] : ["Features"]), "Channels", "Msgs 7d", compact ? "Today" : "Orders / Bookings", "Last active", ""].map((h, i) => <th key={i} style={th}>{h}</th>)}</tr></thead>
     <tbody>{rows.map((c) => { const t = pct(c.messages_7d, c.messages_prev7); return <tr key={c.id} className="ui-row" onClick={() => openDetail(c.id)} style={{ borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
       <td style={td}><div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}><Avatar c={c} size={36} /><div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>{c.business_name || "—"}<Badge color={c.business_type === "agency" ? T.purple : T.gold}>{c.business_type === "agency" ? "Agency" : "Shop"}</Badge>{c.suspended && <Badge color={T.danger}>Suspended</Badge>}{c.pending_payment && <Badge color={T.warn}>Payment</Badge>}</div><div style={{ fontSize: 11.5, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>{c.owner_email}</div></div></div></td>
       <td style={td}><PlanPill c={c} /></td>
+      {!compact && <td style={td}><FeatureChips features={featOf(c.plan)} biz={c.business_type} max={6} /></td>}
       <td style={td}><ChannelDots channels={c.channels} /></td>
       <td style={{ ...td, fontWeight: 600 }}>{fmtNum(c.messages_7d)} {t !== null && t !== 0 && <span style={{ fontSize: 11, color: t > 0 ? T.success : T.danger, marginLeft: 4 }}>{t > 0 ? "↑" : "↓"}{Math.abs(t)}%</span>}</td>
       <td style={{ ...td, color: T.textMuted }}>{compact ? fmtNum(c.messages_today) : (c.business_type === "agency" ? `${c.bookings} bookings · ${c.kb_files} files` : `${c.orders} orders · ${c.products} products`)}</td>
@@ -386,7 +405,7 @@ function ClientTable({ rows, openDetail, isMobile, compact }) {
   </table></div>;
 }
 
-function Clients({ clients, openDetail, isMobile }) {
+function Clients({ clients, openDetail, isMobile, catalogue = [] }) {
   const [q, setQ] = useState(""); const [plan, setPlan] = useState("all"); const [type, setType] = useState("all"); const [sort, setSort] = useState("active");
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -406,7 +425,7 @@ function Clients({ clients, openDetail, isMobile }) {
       <Select value={sort} onChange={setSort} options={[{ value: "active", label: "Most active (7d)", icon: "ti-flame" }, { value: "recent", label: "Recently active", icon: "ti-clock" }, { value: "newest", label: "Newest", icon: "ti-user-plus" }, { value: "messages", label: "Most messages", icon: "ti-messages" }, { value: "name", label: "Name A–Z", icon: "ti-sort-ascending-letters" }]} />
     </Card>
     <div style={{ fontSize: 12.5, color: T.textMuted }}>{list.length} of {clients.length} clients</div>
-    {isMobile ? <ClientTable rows={list} openDetail={openDetail} isMobile /> : <Card style={{ padding: 0, overflow: "hidden" }}><ClientTable rows={list} openDetail={openDetail} /></Card>}
+    {isMobile ? <ClientTable rows={list} openDetail={openDetail} isMobile catalogue={catalogue} /> : <Card style={{ padding: 0, overflow: "hidden" }}><ClientTable rows={list} openDetail={openDetail} catalogue={catalogue} /></Card>}
   </div>;
 }
 
@@ -422,13 +441,14 @@ function Clients({ clients, openDetail, isMobile }) {
 // made confidently.
 function Meter({ label, used, limit }) {
   const has = limit !== null && limit !== undefined;
-  const u = Number(used) || 0;
-  const pct = has && Number(limit) > 0 ? Math.min(100, Math.round((u / Number(limit)) * 100)) : null;
+  const unread = used === null || used === undefined;
+  const u = unread ? null : (Number(used) || 0);
+  const pct = !unread && has && Number(limit) > 0 ? Math.min(100, Math.round((u / Number(limit)) * 100)) : null;
   const tone = pct === null ? T.textDim : pct >= 90 ? T.danger : pct >= 70 ? T.warn : T.success;
   return <div>
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 5 }}>
       <span style={{ color: T.textMuted }}>{label}</span>
-      <span><b>{u.toLocaleString("en-IN")}</b><span style={{ color: T.textDim }}> / {has ? Number(limit).toLocaleString("en-IN") : "∞"}</span></span>
+      <span><b>{unread ? "—" : u.toLocaleString("en-IN")}</b><span style={{ color: T.textDim }}> / {has ? Number(limit).toLocaleString("en-IN") : "∞"}</span></span>
     </div>
     <div style={{ height: 5, background: T.inset, borderRadius: 3, overflow: "hidden" }}>
       <div style={{ height: "100%", width: pct === null ? 0 : `${pct}%`, background: tone, borderRadius: 3 }} />
@@ -476,8 +496,20 @@ function Subscription({ s, isMobile }) {
             allowed, which is what a package with neither zeroed means. */}
         {s.usage.products.limit !== 0 && <Meter label="Products" used={s.usage.products.used} limit={s.usage.products.limit} />}
         {s.usage.documents.limit !== 0 && <Meter label="Knowledge documents" used={s.usage.documents.used} limit={s.usage.documents.limit} />}
+        {s.usage.broadcasts && s.usage.broadcasts.limit !== 0 && <Meter label="Broadcasts" used={s.usage.broadcasts.used} limit={s.usage.broadcasts.limit} />}
+        {s.usage.scrapes && s.usage.scrapes.limit !== 0 && <Meter label="Website imports" used={s.usage.scrapes.used} limit={s.usage.scrapes.limit} />}
       </div>
     </div>
+    {Array.isArray(s.features) && s.features.length > 0 && <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
+      <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 9 }}>Features included</div>
+      {/* Neutral on/off, no mint — mint means "bot is live" and nothing else. */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "6px 22px" }}>
+        {s.features.map((f) => <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: f.on ? T.text : T.textDim }}>
+          <i className={`ti ${f.on ? "ti-check" : "ti-minus"}`} style={{ fontSize: 14, width: 16 }} />
+          <span style={{ textDecoration: f.on ? "none" : "line-through" }}>{f.label}</span>
+        </div>)}
+      </div>
+    </div>}
   </Card>;
 }
 

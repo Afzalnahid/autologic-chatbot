@@ -216,7 +216,10 @@ export async function GET(request) {
   // its own name, and the dropdown has to be able to show what they are on.
   const catalogue = Object.values(await loadPlans())
     .sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0))
-    .map((p) => ({ id: p.id, name: p.name, biz: p.biz || "both", active: p.active !== false, monthly: Number(p.monthly) || 0 }));
+    .map((p) => ({ id: p.id, name: p.name, biz: p.biz || "both", active: p.active !== false, monthly: Number(p.monthly) || 0,
+      // The capability switches this package grants, so the client list can show
+      // which features each account gets without a per-client query.
+      features: p.features || {} }));
 
   return NextResponse.json(
     { role, email, overview, clients: rows, admins, payments, attention, activity, plans: catalogue, server_time: new Date().toISOString() },

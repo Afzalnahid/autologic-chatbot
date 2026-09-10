@@ -366,6 +366,37 @@ headline and shows the own-key figure as an informational line. The owner edits
 the two prices per package in **Packages → Edit → "Own-key price (BYOK)"**.
 Initial prices were seeded by `docs/sql/2026-09-10-byok-prices.sql`.
 
+### What a plan includes, and how much is left (entitlements)
+
+"Which client is on which package, which features that package has, and how much
+of each allowance is used" is answered by **one shared assembler** so the admin
+and the client can never see different numbers for the same account.
+
+- **`src/lib/features.js`** (no imports, so any bundle can use it) holds
+  `FEATURE_DEFS` — the one labelled list of the capability switches (vision,
+  voice, kb, calendar, comments, widget, broadcast, followup, byok), each tagged
+  with the business type it applies to — plus two pure helpers: `featureList(features, biz)`
+  (the capabilities relevant to a business type, each on/off; unknown defaults on,
+  like `can()`) and `shapeMeter(key, label, used, limit)` (null limit = unlimited,
+  null used = "—" never 0).
+- **`src/lib/entitlements.js`** adds the usage half: `usageMeters(client, limits)`
+  runs one cheap count per meter in parallel (messages, products *or* documents by
+  business type, channels, broadcasts, website imports), each failing soft to null,
+  and `entitlementsFor(client)` returns `{ planId, planName, period, features, meters }`.
+  Fine for ONE client; never called per row of the admin list.
+
+Where it surfaces:
+- **Admin client list** (`admin-client.js` `ClientTable` + `FeatureChips`) shows each
+  client's package and its features as icon chips, read from the catalogue `/api/admin`
+  now returns (each plan's `features` map) — no per-client query, so the list stays cheap.
+- **Admin client drawer** (`client-detail` `subscriptionOf` → the `Subscription` card)
+  shows the features list plus used/remaining meters for all six allowances.
+- **Client dashboard** — `/api/billing` returns `entitlements`, and the Profile tab's
+  "Your package" card renders the meters (with "N left") and the capability features.
+
+Feature on/off ticks are drawn neutral, never mint — mint means "a bot is live" and
+nothing else. Usage bars follow the app's existing green→amber→red convention.
+
 ### Channels allowed, and broadcasts
 
 Both were set in the panel, saved, returned by `limitsFor()` — and read by

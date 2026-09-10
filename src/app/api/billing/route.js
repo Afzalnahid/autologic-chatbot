@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase.js";
 import { planActive, priceForClient } from "@/lib/plans.js";
 import { loadPlans, limitsFor } from "@/lib/plan-limits.js";
 import { clientHasOwnKey } from "@/lib/ai.js";
+import { entitlementsFor } from "@/lib/entitlements.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { sslEnabled } from "@/lib/sslcommerz.js";
@@ -39,12 +40,15 @@ export const GET = withErrors(async (request) => {
   const { client, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const [limits, month, today, reqQ, ownKey] = await Promise.all([
+  const [limits, month, today, reqQ, ownKey, entitlements] = await Promise.all([
     limitsFor(client),
     usageThisMonth(client.id),
     usageToday(client.id),
     supabase.from("payment_requests").select("*").eq("client_id", client.id).order("created_at", { ascending: false }).limit(10),
     clientHasOwnKey(client.id),
+    // Features + every metered allowance with used/remaining, from the one
+    // shared assembler — so the client's dashboard and the admin drawer agree.
+    entitlementsFor(client),
   ]);
 
   const requests = reqQ.data || [];
@@ -86,6 +90,9 @@ export const GET = withErrors(async (request) => {
     online: sslEnabled(),
     pending_request: pending,
     requests,
+    // The full "what your plan includes and how much is left" panel (features +
+    // metered allowances), rendered on the client's Profile tab.
+    entitlements,
   }, NO_CACHE);
 }, "billing");
 
