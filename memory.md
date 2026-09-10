@@ -4,7 +4,34 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-10, latest) — TWA verification diagnosed to the device; app-login gate hardened
+## Last session (2026-09-10, latest) — Auth polish, and admin-delete now removes the login
+
+- `7597e39` — `AuthGate` defaults to **sign-in** (was sign-up on first visit, which
+  turned a login attempt into a new account + onboarding); a failed sign-in shows a
+  friendly "no account matches … tap Create account" message; and the phone back
+  button during the sign-up flow (onboarding/connect/connect-cal) returns to sign-in
+  signed out (`useBackClose` + a pushed history entry). **Verified live in a browser**
+  (login now reads "Welcome back / Sign in").
+- `895f5d3` — **admin DELETE now also deletes the Supabase Auth user** (new helper
+  `deleteAuthUserByEmail`, reads `owner_email` before dropping the client). Root cause
+  of "a deleted account keeps coming back": admin delete removed the client rows but
+  NOT the auth login, so the email still signed in; with no client row, `loadMe()` in
+  `dashboard-client.js` (~line 708) **silently auto-registers a fresh client** (name =
+  email prefix, plan "none") and drops them into onboarding. Left `loadMe`'s
+  auto-register as-is (it is the legit incomplete-signup recovery path; the root fix is
+  removing the auth user on delete).
+- **Open cleanup:** `afzalnahid021@gmail.com` is in exactly this re-created state —
+  auth user (id `035fa162-1911-4e75-9cec-9d34c0f9347e`, created 2026-09-01) AND a fresh
+  empty client (id `0c9eaf35-…`, plan "none", created 2026-09-10). To fully remove it:
+  after `895f5d3` deploys, re-delete it from the admin panel (now removes both), or
+  delete client rows + auth user directly. Verified via a read-only `.env.local`
+  service-key script (`supabase.auth.admin.listUsers`).
+
+40/40 suites pass.
+
+---
+
+## Earlier session (2026-09-10, later-2) — TWA verification diagnosed to the device; app-login gate hardened
 
 Owner: the installed Android app still "already logged in", notification still says
 "Running in Chrome", and no install-time permission prompt — "not satisfied". These
