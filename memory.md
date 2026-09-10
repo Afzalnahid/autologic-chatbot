@@ -197,8 +197,12 @@ the whole service-account JSON, redeploy — WITHOUT it native push is a quiet n
 `cchvsgouqqxibhubioch`, or owner runs it); (3) push (Vercel deploys server+web);
 (4) owner rebuilds the APK (Actions → Build Android APK) so the push plugin +
 google-services are in it; (5) test: open app → Profile → Turn on notifications →
-Send a test. Notification small-icon polish (a monochrome icon) and cold-start
-tap navigation are follow-ups. SHIPPED: pushed, Vercel READY, migration applied
+Send a test. **Notification small-icon DONE** (gen-assets writes a white-bolt-on-
+transparent `notif-icon.png`; CI drops it at `res/drawable/ic_stat_notify.png`
+and patch-manifest adds the FCM `default_notification_icon` meta-data — so the
+status-bar icon is the bolt silhouette, not a white square). Cold-start tap
+navigation still a follow-up (tap opens /dashboard; deep-tab nav only when the
+app was already running). SHIPPED: pushed, Vercel READY, migration applied
 (fcm_tokens table verified), owner set the Vercel env.
 
 ### Native app: Android back button (exit-confirm)

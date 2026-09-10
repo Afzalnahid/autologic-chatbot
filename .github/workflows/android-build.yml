@@ -57,6 +57,12 @@ jobs:
         working-directory: mobile
         run: npx capacitor-assets generate --android
 
+      - name: Add the notification small icon (white bolt silhouette)
+        working-directory: mobile
+        run: |
+          mkdir -p android/app/src/main/res/drawable
+          cp assets/notif-icon.png android/app/src/main/res/drawable/ic_stat_notify.png
+
       - name: Sync web assets and config
         working-directory: mobile
         run: npx cap sync android

@@ -35,6 +35,16 @@ if (!xml.includes("READ_EXTERNAL_STORAGE")) {
 if (lines.length) {
   if (!/<\/manifest>\s*$/.test(xml)) throw new Error("AndroidManifest.xml: closing </manifest> not found");
   xml = xml.replace(/<\/manifest>\s*$/, lines.join("\n") + "\n</manifest>\n");
-  writeFileSync(path, xml);
 }
-console.log(`manifest: ${lines.length} permission(s) added`);
+
+// FCM's default notification small icon. Without it Android draws the app icon
+// as the status-bar icon, which — flattened to a silhouette — becomes a white
+// square; ic_stat_notify is the white-bolt-on-transparent drawable CI drops in.
+let metaAdded = 0;
+if (!xml.includes("com.google.firebase.messaging.default_notification_icon")) {
+  const meta = '        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_notify" />';
+  if (/<\/application>/.test(xml)) { xml = xml.replace(/<\/application>/, meta + "\n    </application>"); metaAdded = 1; }
+}
+
+writeFileSync(path, xml);
+console.log(`manifest: ${lines.length} permission(s), ${metaAdded} meta-data added`);

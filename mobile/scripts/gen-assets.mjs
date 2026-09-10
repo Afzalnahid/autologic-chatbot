@@ -26,6 +26,11 @@ const foreground = svg(1024, "-9 -9 42 42", bolt("#fff"));
 const background = svg(1024, "0 0 24 24", `<rect x="0" y="0" width="24" height="24" fill="${CRIMSON}"/>`);
 // Splash: a smaller centred bolt on the same crimson field.
 const splash = svg(2732, "-30 -30 84 84", `<rect x="-30" y="-30" width="84" height="84" fill="${CRIMSON}"/>${bolt("#fff")}`);
+// Notification small icon: the bolt as a WHITE-on-TRANSPARENT silhouette.
+// Android's status bar keeps only the alpha channel, so the bolt must be the
+// only opaque shape — a full (crimson-square) icon would render as a white box.
+// A little padding (viewBox wider than the art) keeps it off the edges.
+const notif = svg(96, "-5 -5 34 34", bolt("#fff"));
 
 const write = (name, source) => sharp(Buffer.from(source)).png().toFile(`assets/${name}`);
 
@@ -34,6 +39,7 @@ await Promise.all([
   write("icon-background.png", background),
   write("splash.png", splash),
   write("splash-dark.png", splash),
+  write("notif-icon.png", notif),
 ]);
 
 console.log("brand icon + splash source images written to mobile/assets/");
