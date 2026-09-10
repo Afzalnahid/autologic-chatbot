@@ -4,7 +4,50 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-10, later) — The AI Assistant now serves agency clients too
+## Last session (2026-09-10, latest) — TWA verification diagnosed to the device; app-login gate hardened
+
+Owner: the installed Android app still "already logged in", notification still says
+"Running in Chrome", and no install-time permission prompt — "not satisfied". These
+are ONE root cause: the TWA is **not verifying**, so it runs as a Chrome Custom Tab,
+which (a) shows the Chrome notification + address bar and (b) reports
+`display-mode: browser`, so the installed-app login gate is bypassed and the shared
+Chrome session logs the owner straight in. Fix the verification and BOTH resolve.
+
+**Proven NOT a site/APK/key problem — it is device-side (Chrome cache on MIUI).**
+Inspected the actual installed APK at
+`C:\Users\This Pc\Downloads\getvoicium - Google Play package\Getvoicium.apk` (read the
+zip with .NET `System.IO.Compression`, pulled the v1 signer cert from
+`META-INF/MY-KEY-A.RSA` via `System.Security.Cryptography.Pkcs.SignedCms` and SHA-256'd
+`cert.RawData`; read the baked host from `AndroidManifest.xml` + `resources.arsc`
+strings). ALL THREE match the hosted `www` assetlinks and Google's DAL:
+- package `com.getvoicium.www.twa`
+- signing SHA-256 `C8:AD:E2:9C:AB:54:B8:19:20:E1:6B:69:C9:86:5B:44:84:B9:AA:7F:9C:DB:83:B2:BB:F6:CA:06:3D:85:24:63`
+- baked host `https://www.getvoicium.com` (launch `/dashboard`)
+So Chrome cached the FAILED verification from the first install (done while Google's
+DAL cache was still stale) and a plain reinstall does not clear it. **Fix for the
+owner:** uninstall → Settings → Apps → Chrome → Storage → Clear storage (or reboot the
+phone) → confirm Chrome is updated and the default browser → reinstall Getvoicium.apk
+with internet on. Address bar gone == verified == notification + login both fixed.
+
+- `0de146c` — app-login gate now also treats `display-mode: fullscreen` / `minimal-ui`
+  as the installed app (was standalone / iOS-standalone / `android-app://` referrer
+  only). Note the shared-storage limit stands: once signed in inside the app the
+  `gv_app_signed_in` marker persists across reinstall (TWA shares Chrome storage), so
+  the owner's own device auto-logs-in until they Log out; a genuinely new user's phone
+  (no marker) always sees the login screen — which is the actual requirement.
+- Owner is weighing TWA vs a fully native app (a TWA renders on the phone's Chrome
+  engine invisibly, so it needs a Chromium browser present — true on ~all Android;
+  native removes that dependency but is a full rewrite). Decision still open.
+- Agency dashboard "back button / reload" issue the owner reported: the back/reload/
+  full-bleed fixes are all in the SHARED shell, and agency components (Bookings,
+  KnowledgeBase) already use `useBackClose` — so no agency-specific gap found; likely a
+  stale cached app. Awaiting the owner's exact screen + repro before changing anything.
+
+40/40 suites pass.
+
+---
+
+## Earlier session (2026-09-10, later) — The AI Assistant now serves agency clients too
 
 Owner: "the AI assistant is dedicated for only e-commerce; it should serve agency
 clients too — two assistants, each expert for its own bot/dashboard." Owner chose
