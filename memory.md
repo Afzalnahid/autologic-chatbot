@@ -250,6 +250,18 @@ Fix (owner: "do all, web + app, never again"):
 No migration. Server routes unchanged (they already accepted URLs). Not
 unit-testable here (canvas/fetch); 42/42 suites still pass.
 
+### Notification bell now reads like Facebook's (mark all / per-item unread)
+
+Owner: wants a "Mark all as read" like FB; after it the badge goes, and a NEW
+notification shows again. Before, merely OPENING the panel marked everything
+read. `NotificationsBell.js` rewritten: read state = a watermark
+(`gv-notif-seen`, everything older counts read; "Mark all as read" moves it to
+now and clears the per-item set) + per-item read keys (`gv-notif-read`, capped
+200) added when a notification is TAPPED. Opening no longer clears anything.
+Unread rows: faint brand tint, bold title, crimson dot + time; header shows
+"N unread" and the Mark-all button only while unread > 0; badge = unread count.
+localStorage-only (per device, like before); no server change. 42/42.
+
 ### Native app: runtime permissions asked on first launch
 
 Owner's App-info screenshot showed **"Permissions — No permissions requested"**:
