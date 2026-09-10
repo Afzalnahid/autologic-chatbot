@@ -118,8 +118,19 @@ auth.users and clients (verified by live query, zero rows). Off the task list.
 the toggle list). Left as two near-identical lists to keep this a feature, not a
 refactor — worth pointing Packages.js at the shared list next time (lesson #19).
 
-This entitlements work was NOT pushed yet — local only, 42/42, awaiting the owner's
-go to commit/push (no DB migration needed — it reads existing data).
+SHIPPED: commits `4d12826` + memory, Vercel READY, live. Verified against live DB
+for Broker's BD (shop_growth, ecommerce): features + meters compute correctly
+(messages 91/15000, products 3/3000, channels 1/3, broadcasts 0/20, imports 0/200).
+No DB migration — reads existing data.
+
+**byok-display fix (`52fa027`, shipped):** the "Use your own AI key" feature now
+follows the client's REAL key state (`clientHasOwnKey`), not just the package
+flag — a BYOK client on a non-Scale tier (like Broker's BD) was wrongly shown
+"off". `featureList(features, biz, {ownKey})` carries the override; entitlementsFor
+and the admin drawer both pass it; the admin LIST stays package-level by design
+(no per-client query). Test +4 (24). The admin list showing package-level byok
+while the drawer/dashboard show the client's real key is intentional (list =
+package, drawer/dashboard = this client).
 
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
