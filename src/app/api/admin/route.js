@@ -396,6 +396,31 @@ export async function PUT(request) {
   return NextResponse.json({ ok: true });
 }
 
+// Remove the Supabase Auth user for an email, so a deleted account is truly
+// gone. Without this the login (email + password) survived, and signing back in
+// found no client row — which the dashboard treats as an incomplete signup and
+// silently RE-CREATES the account, dropping the person into onboarding. So a
+// "deleted" account kept coming back. Best-effort: the client rows are already
+// gone by the time this runs, so a failure here is logged, not fatal.
+async function deleteAuthUserByEmail(email) {
+  const e = (email || "").toLowerCase();
+  if (!e) return;
+  try {
+    let page = 1, uid = null;
+    while (page <= 10 && !uid) {
+      const { data: list } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+      const users = list?.users || [];
+      const match = users.find((u) => (u.email || "").toLowerCase() === e);
+      if (match) uid = match.id;
+      if (users.length < 200) break;
+      page++;
+    }
+    if (uid) await supabase.auth.admin.deleteUser(uid);
+  } catch (err) {
+    console.error("auth delete:", err.message);
+  }
+}
+
 export async function DELETE(request) {
   const email = await callerEmail(request);
   if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -404,10 +429,14 @@ export async function DELETE(request) {
 
   const { id, confirm } = await request.json().catch(() => ({}));
   if (!id || confirm !== "DELETE") return NextResponse.json({ error: "missing id or confirm" }, { status: 400 });
+  // Read the owner's email before the row is gone, so the login can be removed too.
+  const { data: cl } = await supabase.from("clients").select("owner_email").eq("id", id).maybeSingle();
   for (const t of ["message_buffer", "chat_memory", "orders", "contacts", "channels", "products"]) {
     await supabase.from(t).delete().eq("client_id", id);
   }
   const { error } = await supabase.from("clients").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Now the login itself, so the account cannot sign back in and re-create.
+  if (cl?.owner_email) await deleteAuthUserByEmail(cl.owner_email);
   return NextResponse.json({ ok: true });
 }
