@@ -214,6 +214,31 @@ once from a new useEffect in `dashboard-client.js` (one import + one effect —
 minimal touch to the shell). All native-guarded; browser unchanged. Needs an APK
 rebuild (new plugins). 42/42.
 
+### Native app: runtime permissions asked on first launch
+
+Owner's App-info screenshot showed **"Permissions — No permissions requested"**:
+the generated manifest declared none, so Android never prompted and push could
+not work. Fix, two halves:
+- **Manifest:** `mobile/scripts/patch-manifest.mjs` (CI, right after `cap add`)
+  appends POST_NOTIFICATIONS, CAMERA, READ_MEDIA_IMAGES, RECORD_AUDIO,
+  MODIFY_AUDIO_SETTINGS, ACCESS_COARSE/FINE_LOCATION, READ_EXTERNAL_STORAGE
+  (maxSdk 32) before `</manifest>`; idempotent (skips ones a plugin already
+  declared). **Verified locally** against a Capacitor-shaped sample manifest: 8
+  added on run 1, 0 on run 2, XML well-formed.
+- **First-launch prompts:** `native-permissions.js` `requestAllNativePermissions()`
+  runs once per install (localStorage `gv_native_perms_v1`): notifications
+  (`enableNativePush` → OS prompt + FCM register), Camera (`@capacitor/camera`
+  requestPermissions camera+photos), Location (`@capacitor/geolocation`), mic (a
+  getUserMedia audio probe, released at once — the WebView raises RECORD_AUDIO).
+  Called from `initNativeApp()`. Added `@capacitor/camera` + `@capacitor/geolocation`
+  to mobile deps.
+- **Token vs login:** first launch asks BEFORE sign-in, and `/api/push/register-native`
+  needs a session — so `postToken` in native-push.js sends now if signed in, else
+  waits on `onAuthStateChange` and sends ~1.5s after sign-in (the shell stores the
+  fresh access token on that same event). Owner's rule: no "test notification"
+  needed — the permission prompts on first launch are the proof. Needs an APK
+  rebuild. 42/42.
+
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
 - `7597e39` — `AuthGate` defaults to **sign-in** (was sign-up on first visit, which
