@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 import { T, words, useIsMobile, Btn, Card, Inp, Motion, Theme, useTheme, ThemeToggle, Select, Segmented, OnboardFrame, SAMPLE_ECOM, SAMPLE_AGENCY } from "./dashboard/components/ui.js";
 import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
+import { initNativeApp } from "./dashboard/components/native-back.js";
 import Broadcast from "./dashboard/components/Broadcast.js";
 import NotificationsBell from "./dashboard/components/NotificationsBell.js";
 import WebsiteWidget from "./dashboard/components/WebsiteWidget.js";
@@ -583,6 +584,11 @@ export default function Dashboard() {
     window.addEventListener("message",h);
     return ()=>window.removeEventListener("message",h);
   },[]);
+  // Inside the installed app only: make the Android back button navigate the
+  // tabs / close a drawer and, at the root, ask before exiting — instead of
+  // dropping the owner straight out. Also wires push tap-navigation. No-op in a
+  // browser.
+  useEffect(()=>{ initNativeApp(); },[]);
   // Back goes to the PREVIOUS PAGE, the way every app the owner already uses
   // behaves. One entry per tab actually visited.
   //
