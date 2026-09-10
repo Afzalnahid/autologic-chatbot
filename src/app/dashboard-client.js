@@ -21,7 +21,7 @@ import Channels from "./dashboard/components/Channels.js";
 import Conversations from "./dashboard/components/Conversations.js";
 import LearnMore from "./dashboard/components/LearnMore.js";
 import { useT, LangToggle } from "./dashboard/components/i18n.js";
-import { runBack } from "./dashboard/components/back.js";
+import { runBack, useBackClose } from "./dashboard/components/back.js";
 
 // Exported so the screenshot studio can list exactly these tabs rather than
 // keeping a copy that falls behind.
@@ -49,15 +49,16 @@ const LABELS = ["AI Assistant","Analytics","Inbox","Comments","Broadcast","Inven
 
 
 function AuthGate({onReady}) {
-  // Priority: explicit ?auth=signup/signin from the landing page → then first-visit localStorage.
+  // Default to SIGN IN, like every app the owner already uses — typing an email
+  // and password means "let me in", not "make me a new account". Creating one is
+  // a deliberate tap on "Create account". Only an explicit ?auth=signup from the
+  // landing page's "Start free" button opens straight in signup.
   const [mode,setMode]=useState("signin");
   useEffect(()=>{
     try {
       const param = new URLSearchParams(window.location.search).get("auth");
-      if (param === "signup" || param === "signin") { setMode(param); return; }
-      const seen = localStorage.getItem("autologic_visited");
-      setMode(seen ? "signin" : "signup");
-    } catch { setMode("signin"); }
+      if (param === "signup") setMode("signup");
+    } catch {}
   },[]);
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
@@ -85,7 +86,16 @@ function AuthGate({onReady}) {
       try { localStorage.setItem("autologic_visited","1"); } catch {}
       if(mode==="signup") await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:biz||email.split("@")[0]})});
       onReady();
-    }catch(e){setErr(e.message||"Failed");}
+    }catch(e){
+      // Supabase gives one generic message for both a wrong password and an
+      // account that does not exist (on purpose — it will not confirm whether an
+      // email is registered). Say it plainly and point at the way to sign up,
+      // rather than the raw "Invalid login credentials".
+      const m=e?.message||"Failed";
+      setErr(mode==="signin"&&/invalid login credentials/i.test(m)
+        ? "No account matches this email and password. Check them — or tap “Create account” if you're new."
+        : m);
+    }
     setBusy(false);
   };
   const forgot=async()=>{
@@ -737,6 +747,23 @@ export default function Dashboard() {
     window.addEventListener("logo-updated",h);
     return ()=>window.removeEventListener("logo-updated",h);
   },[]);
+
+  // While signing up — the profile form, connecting the first channel — the
+  // phone's back button means "I've changed my mind", so it returns to the
+  // sign-in screen (signed out) rather than leaving the owner half-created or
+  // dropping them out of the app. A history entry is pushed on entering the flow
+  // so the back press has something to consume (the same trick every overlay
+  // uses via useBackClose).
+  const inSignup = stage==="onboarding"||stage==="connect"||stage==="connect-cal";
+  useEffect(()=>{
+    if(!inSignup||typeof window==="undefined") return;
+    try{ window.history.pushState({signup:true},"",window.location.pathname); }catch{}
+  },[inSignup]);
+  useBackClose(inSignup, async()=>{
+    try{ await getSb().auth.signOut({scope:"local"}); }catch{}
+    try{ localStorage.removeItem("gv_app_signed_in"); }catch{}
+    setAuthToken(""); setMe(null); setStage("auth");
+  });
 
   const load=async(silent)=>{
     if(!silent)setLoading(true);
