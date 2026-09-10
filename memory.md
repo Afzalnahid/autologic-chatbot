@@ -214,6 +214,37 @@ once from a new useEffect in `dashboard-client.js` (one import + one effect —
 minimal touch to the shell). All native-guarded; browser unchanged. Needs an APK
 rebuild (new plugins). 42/42.
 
+### "Could not reach the server" on a 12-photo save — photos now upload one at a time
+
+Owner's screenshot (assistant, "boxy jersey", **"12 photos, 17.6 MB of 3.3 MB"**
+then "Could not reach the server"). Diagnosed from code, not guessed: (1) the
+gallery was still 17.6 MB AFTER shrinkBatch — shrinking silently returned the
+originals (shrinkImage swallows decode/encode failures by design; likely the
+app's WebView); (2) all 12 went in ONE request to /api/add-product and Vercel
+refuses >~4.5 MB at the edge; (3) `offlineError()` in api-error.js is only
+returned when fetch gets NO response — a 17.6 MB body on 3.5 KB/s was cut off,
+so it read as "no internet". Worst part: the UI showed 17.6/3.3 MB and still
+enabled Save.
+Fix (owner: "do all, web + app, never again"):
+- **New `/api/product-photo`** (one file → URL via `uploadProductImage`, so the
+  cleanup guard still recognises it; 413 JSON over `PHOTO_MAX_BYTES` 3.5 MB).
+- **`photo-upload.js`**: `uploadPhotos(photos,{from,onProgress})` sends photos
+  one at a time, each keeps `url` so a retry sends only the missing; honest
+  "connection dropped while uploading photo N" text. `tooLargePhotos`.
+- **All three save paths** (InventoryAssistant, Inventory.js incl. variant
+  photos, PhotoBatch) now: pre-flight refuse + message if any photo is too
+  large; upload 2..N first; send `images=[first]` + `image_urls=["upload:0",
+  ...urls]` (variants carry URLs — `resolveVariantImages` passes http through).
+  The FIRST photo stays as bytes on purpose: `primaryPhotoKey` hashes it for
+  photo-duplicate detection (switching it to a URL would silently break that).
+- `shrink-image.js`: 640px rung added to LADDER, `toDataURL` fallback when
+  `toBlob` returns null (Android WebView), `galleryBytes`/`galleryFits`.
+- Assistant UI: "Shrink photos" button + "Uploading photo N of M…" line; i18n
+  keys `asst.photoTooLarge`, `asst.shrinkAgain`, `asst.uploading` (EN+BN);
+  `asst.photoCount` no longer mentions a budget.
+No migration. Server routes unchanged (they already accepted URLs). Not
+unit-testable here (canvas/fetch); 42/42 suites still pass.
+
 ### Native app: runtime permissions asked on first launch
 
 Owner's App-info screenshot showed **"Permissions — No permissions requested"**:
