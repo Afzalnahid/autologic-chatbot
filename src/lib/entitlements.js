@@ -12,6 +12,7 @@ import { limitsFor, quotaWindowStart, WIDGET_PLATFORM } from "@/lib/plan-limits.
 import { countBillableMessages } from "@/lib/message-usage.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { featureList, shapeMeter } from "@/lib/features.js";
+import { clientHasOwnKey } from "@/lib/ai.js";
 
 export { FEATURE_DEFS, featureList, shapeMeter } from "@/lib/features.js";
 
@@ -64,12 +65,16 @@ export async function usageMeters(client, limits) {
 // allowances (used/limit/remaining). One call, for one client.
 export async function entitlementsFor(client) {
   const limits = await limitsFor(client);
-  const { period, meters } = await usageMeters(client, limits);
+  const [{ period, meters }, ownKey] = await Promise.all([
+    usageMeters(client, limits),
+    clientHasOwnKey(client?.id),
+  ]);
   return {
     planId: limits.planId,
     planName: limits.planName,
     period,
-    features: featureList(limits.features, client?.business_type),
+    // byok reflects the client's REAL key state, not just the package flag.
+    features: featureList(limits.features, client?.business_type, { ownKey }),
     meters,
   };
 }

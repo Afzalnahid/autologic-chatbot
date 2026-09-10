@@ -8,6 +8,7 @@ import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 import { featureList } from "@/lib/features.js";
+import { clientHasOwnKey } from "@/lib/ai.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -32,11 +33,12 @@ async function subscriptionOf(client, payments, used) {
   // a hiccup on one never blanks the card.
   const winSince = quotaWindowStart(client);
   const soft = async (p) => { try { return await p; } catch { return null; } };
-  const [bcUsed, scrapeRows] = await Promise.all([
+  const [bcUsed, scrapeRows, ownKey] = await Promise.all([
     soft(supabase.from("broadcasts").select("id", { count: "exact", head: true })
       .eq("client_id", client.id).gte("created_at", winSince).then((r) => (r.error ? null : (r.count || 0)))),
     soft(supabase.from("usage_daily").select("calls").eq("client_id", client.id).eq("kind", "scrape")
       .gte("day", String(winSince).slice(0, 10)).limit(2000).then((r) => (r.error ? null : r.data))),
+    clientHasOwnKey(client.id),
   ]);
   const scrapesUsed = Array.isArray(scrapeRows) ? scrapeRows.reduce((n, r) => n + (r.calls || 0), 0) : null;
 
@@ -68,7 +70,7 @@ async function subscriptionOf(client, payments, used) {
     // Which capability features this package grants (on/off), filtered to the
     // client's business type. Pure — the same labelled list the client's own
     // dashboard shows, so the two never disagree.
-    features: featureList(limits.features, client.business_type),
+    features: featureList(limits.features, client.business_type, { ownKey }),
     // null limit means unlimited, and the panel must show that rather than 0.
     usage: {
       period: isTrial ? "day" : "month",

@@ -375,10 +375,12 @@ and the client can never see different numbers for the same account.
 - **`src/lib/features.js`** (no imports, so any bundle can use it) holds
   `FEATURE_DEFS` — the one labelled list of the capability switches (vision,
   voice, kb, calendar, comments, widget, broadcast, followup, byok), each tagged
-  with the business type it applies to — plus two pure helpers: `featureList(features, biz)`
+  with the business type it applies to — plus two pure helpers: `featureList(features, biz, {ownKey})`
   (the capabilities relevant to a business type, each on/off; unknown defaults on,
-  like `can()`) and `shapeMeter(key, label, used, limit)` (null limit = unlimited,
-  null used = "—" never 0).
+  like `can()`; `byok` is the one per-client override — a client actually running
+  on their own key shows "Use your own AI key" ON even when their package's byok
+  flag is off, since the super admin can grant a key on any tier) and
+  `shapeMeter(key, label, used, limit)` (null limit = unlimited, null used = "—" never 0).
 - **`src/lib/entitlements.js`** adds the usage half: `usageMeters(client, limits)`
   runs one cheap count per meter in parallel (messages, products *or* documents by
   business type, channels, broadcasts, website imports), each failing soft to null,

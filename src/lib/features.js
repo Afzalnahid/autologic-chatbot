@@ -28,10 +28,20 @@ const relevant = (biz, defBiz) => defBiz === "both" || defBiz === (biz || "ecomm
 // type, with whether their package grants it. An unknown key defaults ON, the
 // same as can() in plan-limits.js — a feature added to the product later is not
 // silently off for everyone until the owner has set it per package.
-export function featureList(features = {}, biz = "ecommerce") {
+//
+// `ownKey` is the one per-CLIENT override: the super admin can grant a client
+// their own AI key regardless of the package's byok flag (only Scale sets it),
+// so a client actually running on their own key shows "Use your own AI key" as
+// ON even when their package does not include it. Package capabilities are still
+// read from `features`; only byok takes the client's real key state into account.
+export function featureList(features = {}, biz = "ecommerce", { ownKey = false } = {}) {
   return FEATURE_DEFS
     .filter((d) => relevant(biz, d.biz))
-    .map((d) => ({ key: d.key, label: d.label, on: features?.[d.key] !== false }));
+    .map((d) => ({
+      key: d.key,
+      label: d.label,
+      on: d.key === "byok" ? (features?.byok !== false || !!ownKey) : (features?.[d.key] !== false),
+    }));
 }
 
 // Shape one metered allowance for display. `limit` null/undefined = unlimited;

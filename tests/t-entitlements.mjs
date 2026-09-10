@@ -29,6 +29,13 @@ is("a feature nobody set defaults on", shop.find((f) => f.key === "widget").on, 
 is("missing biz defaults to shop", featureList({}).map((f) => f.key).includes("vision"), true);
 ok("every entry carries a label", featureList({}, "ecommerce").every((f) => typeof f.label === "string" && f.label.length));
 
+// ── byok reflects the client's real key, not just the package flag ───────────
+const byokOf = (features, biz, opts) => featureList(features, biz, opts).find((f) => f.key === "byok").on;
+is("package byok off, no key → off", byokOf({ byok: false }, "ecommerce"), false);
+is("package byok off, but client HAS own key → on", byokOf({ byok: false }, "ecommerce", { ownKey: true }), true);
+is("package byok on → on regardless of key", byokOf({ byok: true }, "ecommerce", { ownKey: false }), true);
+is("ownKey does not flip an unrelated off feature", featureList({ comments: false }, "ecommerce", { ownKey: true }).find((f) => f.key === "comments").on, false);
+
 // ── shapeMeter ───────────────────────────────────────────────────────────────
 is("used under a limit", shapeMeter("m", "M", 420, 3000), { key: "m", label: "M", used: 420, limit: 3000, remaining: 2580, unlimited: false, pct: 14 });
 is("at the limit → 0 remaining, 100%", shapeMeter("m", "M", 3000, 3000), { key: "m", label: "M", used: 3000, limit: 3000, remaining: 0, unlimited: false, pct: 100 });
