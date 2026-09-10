@@ -4,7 +4,7 @@
   "webDir": "www",
   "backgroundColor": "#EEF0F5",
   "server": {
-    "url": "https://www.getvoicium.com",
+    "url": "https://www.getvoicium.com/dashboard",
     "cleartext": false
   },
   "android": {
