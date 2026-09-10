@@ -5,6 +5,7 @@
 // there; only at the very first screen does it ask before exiting — the way a
 // real app behaves. All no-ops in a browser.
 import { isNativeApp, initNativePush } from "./native-push.js";
+import { requestAllNativePermissions } from "./native-permissions.js";
 
 let _inited = false;
 
@@ -37,7 +38,12 @@ export function initNativeBack() {
 }
 
 // One call the dashboard shell makes on mount to wire everything the native app
-// needs — the back button and push tap-navigation. Inert in a browser.
+// needs — the back button, push tap-navigation, and (first launch only) the
+// permission prompts. Inert in a browser.
 export function initNativeApp() {
-  try { initNativeBack(); initNativePush(); } catch { /* never break the shell */ }
+  try {
+    initNativeBack();
+    initNativePush();
+    requestAllNativePermissions().catch(() => {});
+  } catch { /* never break the shell */ }
 }

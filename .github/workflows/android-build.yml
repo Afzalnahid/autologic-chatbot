@@ -49,6 +49,10 @@ jobs:
         working-directory: mobile
         run: cp google-services.json android/app/google-services.json
 
+      - name: Declare runtime permissions (notifications, camera, mic, location, photos)
+        working-directory: mobile
+        run: node scripts/patch-manifest.mjs
+
       - name: Apply the app icon and splash (crimson bolt, no border)
         working-directory: mobile
         run: npx capacitor-assets generate --android

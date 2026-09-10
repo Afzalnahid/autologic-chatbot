@@ -4,7 +4,7 @@
 // behaviour is completely unchanged. Inside the app, Capacitor injects its bridge
 // into this remote page, so window.Capacitor.Plugins.PushNotifications is the
 // live native plugin.
-import { apiJson } from "./session.js";
+import { apiJson, getSb } from "./session.js";
 
 export function isNativeApp() {
   try { return !!(typeof window !== "undefined" && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
@@ -18,6 +18,27 @@ const plugin = () => {
 let _inited = false;
 let _lastToken = null;
 
+// Save the token on the server. The registration endpoint needs a signed-in
+// client, and on first launch the permission is asked BEFORE the owner has
+// logged in — so if there is no session yet, wait for the sign-in and send it
+// then, rather than losing the token.
+const postToken = async (token) => {
+  const send = () => apiJson("/api/push/register-native", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  }).catch(() => null);
+  try {
+    const { data } = await getSb().auth.getSession();
+    if (data?.session) { await send(); return; }
+    const { data: sub } = getSb().auth.onAuthStateChange((_evt, s) => {
+      if (!s) return;
+      // The shell stores the fresh access token on this same event; give it a beat.
+      setTimeout(send, 1500);
+      try { sub?.subscription?.unsubscribe?.(); } catch {}
+    });
+  } catch { await send(); }
+};
+
 // Wire the listeners ONCE: save the FCM token when the device registers, and
 // follow a tapped notification to its tab. Safe to call repeatedly.
 export function initNativePush() {
@@ -27,11 +48,7 @@ export function initNativePush() {
   try {
     PN.addListener("registration", async (t) => {
       _lastToken = t?.value || null;
-      if (!_lastToken) return;
-      await apiJson("/api/push/register-native", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: _lastToken }),
-      }).catch(() => {});
+      if (_lastToken) await postToken(_lastToken);
     });
     PN.addListener("registrationError", (e) => console.error("[native-push] registration error", e));
     // Tapping a notification: jump to its tab (the app uses the same "al-goto"
