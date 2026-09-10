@@ -132,6 +132,41 @@ and the admin drawer both pass it; the admin LIST stays package-level by design
 while the drawer/dashboard show the client's real key is intentional (list =
 package, drawer/dashboard = this client).
 
+### Native Android app (Capacitor) — replaces the flaky TWA, cloud APK build (`d216732`)
+
+Owner report: the installed TWA opens to just the splash logo forever on ANOTHER
+phone, while Chrome on that phone loads the site fine. Diagnosed: a TWA renders
+via the phone's DEFAULT browser's Custom Tabs; on a phone where Chrome is not the
+default (common on Xiaomi/other brands) it can't hand off and hangs on splash.
+Fix path the owner chose: a real native app that carries its OWN WebView.
+
+Built as a **Capacitor WebView shell** — NOT a rewrite, NOT touching the web app:
+- Everything lives in an ISOLATED `mobile/` folder (own package.json) +
+  `.github/workflows/android-build.yml`. Root package.json / next.config / src
+  are untouched, so Vercel builds the identical website (verified: `git status`
+  showed only new files). `mobile/capacitor.config.json` sets
+  `server.url = https://www.getvoicium.com`, appId `com.getvoicium.app`, name
+  "getvoicium", bg `#EEF0F5`; `mobile/www/index.html` is a placeholder loader.
+- The workflow (manual `workflow_dispatch` only, so it never runs on web pushes)
+  builds a **debug-signed installable APK** on GitHub Actions (free) and uploads
+  it as artifact `getvoicium-android-apk`. Node 20 + JDK 17 + Android SDK →
+  `npm install` → `npx cap add android` → `cap sync` → `gradlew assembleDebug`.
+  Its OWN WebView removes the default-browser dependency.
+
+**⚠️ NOT yet verified — could not run it here** (this machine has no Android SDK
+and no `gh` CLI, so the cloud build is untested). The FIRST run on GitHub Actions
+is the real test; if it errors, read the Actions log and fix (likely gradle/SDK/
+`cap add` details). Owner must trigger it: GitHub → Actions → "Build Android APK"
+→ Run workflow → download the artifact → sideload the APK.
+
+**Follow-ups (in mobile/README.md):** branded app icon (default Capacitor icon
+for now; needs a 1024² logo via @capacitor/assets), release signing + Play Store
+(keystore in repo Secrets, switch to assembleRelease), iOS (Mac+Xcode+$99). Also
+note: the app-login gate keys on display-mode standalone/android-app referrer —
+a Capacitor WebView may not match, so that gate may not fire in this app (it will
+behave like a normal browser session; revisit if the owner wants the app-login
+requirement in the native app too).
+
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
 - `7597e39` — `AuthGate` defaults to **sign-in** (was sign-up on first visit, which
