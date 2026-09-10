@@ -21,6 +21,9 @@ function fromConstant() {
   for (const [id, p] of Object.entries(PLANS)) {
     out[id] = {
       id, name: p.name, tagline: p.tagline, monthly: p.monthly, yearly: p.yearly,
+      // The lower price for a client on their own AI key (null on the trial and
+      // any package with none). Kept in snake_case to match a `plans` table row.
+      byok_monthly: p.byokMonthly ?? null, byok_yearly: p.byokYearly ?? null,
       // Which business the package is for; "both" is the trial. A row read from
       // the database before the biz migration has no value, and everything that
       // reads this treats a missing one as "both" — showing a package to
@@ -69,6 +72,11 @@ export async function limitsFor(client) {
     planName: plan.name || "Plan",
     monthly: Number(plan.monthly || 0),
     yearly: Number(plan.yearly || 0),
+    // The own-key prices, or null when the package sets none. The billing screen
+    // shows these to a client who has their own key; priceForClient picks between
+    // them and the standard price.
+    byokMonthly: plan.byok_monthly ?? null,
+    byokYearly: plan.byok_yearly ?? null,
     messagesPerDay: pick("messages_per_day") ?? null,
     messagesPerMonth: pick("messages_per_month") ?? null,
     messagesPerChannel: pick("messages_per_channel") ?? null,

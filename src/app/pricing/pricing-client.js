@@ -33,7 +33,7 @@ const COMPARE = [
   { label: "Broadcasts & follow-ups", trial: true, starter: true, growth: true, scale: true },
   { label: "Voice message understanding", trial: true, starter: false, growth: true, scale: true },
   { label: "Comment automation", trial: false, starter: false, growth: true, scale: true },
-  { label: "Use your own AI key", trial: false, starter: false, growth: false, scale: true },
+  { label: "Use your own AI key (lower price)", trial: false, starter: true, growth: true, scale: true },
   { label: "Priority support", trial: false, starter: false, growth: false, scale: true },
 
   { only: "ecommerce", label: "Product catalogue & orders", trial: true, starter: true, growth: true, scale: true },
@@ -77,6 +77,7 @@ function Check({ on }) {
 const FALLBACK_PLANS = PLAN_ORDER.map((id) => ({
   id, biz: PLANS[id].biz || "both", name: PLANS[id].name, tagline: PLANS[id].tagline,
   monthly: PLANS[id].monthly, yearly: PLANS[id].yearly,
+  byok_monthly: PLANS[id].byokMonthly ?? null, byok_yearly: PLANS[id].byokYearly ?? null,
   highlight: !!PLANS[id].highlight, features: PLANS[id].features || [],
 }));
 
@@ -165,6 +166,12 @@ export default function PricingClient() {
             // Months saved by paying yearly, computed from this plan's own prices
             // so it works for any admin-created package, not just the built-in ones.
             const saving = p.monthly ? Math.round((p.monthly * 12 - p.yearly) / p.monthly) : 0;
+            // The lower price for a client who brings their own AI key, shown as
+            // an informational line (the public page has no client to check, so
+            // the standard price stays the headline). Only when the package sets
+            // a real BYOK price below the standard one.
+            const byokPrice = yearly ? p.byok_yearly : p.byok_monthly;
+            const hasByok = !free && byokPrice != null && Number(byokPrice) > 0 && Number(byokPrice) < price;
             return (
               <div key={id} style={{
                 background: T.card, border: p.highlight ? `1.5px solid ${T.gold}` : `1px solid ${T.border}`,
@@ -180,6 +187,11 @@ export default function PricingClient() {
                 <div style={{ fontSize: 11.5, color: yearly && saving ? T.green : T.dim, minHeight: 18 }}>
                   {free ? "No card needed" : yearly && saving ? `${saving} months free` : `or ${formatMoney(p.yearly)}/year`}
                 </div>
+                {hasByok && (
+                  <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6, lineHeight: 1.5 }}>
+                    🔑 {formatMoney(byokPrice)}/{yearly ? "year" : "month"} with your own AI key
+                  </div>
+                )}
                 {REACH[tierOf(id)] && (
                   <div style={{ fontSize: 11.5, color: T.muted, marginTop: 10, padding: "8px 10px", background: T.goldBg, borderRadius: 8, lineHeight: 1.5 }}>
                     {REACH[tierOf(id)]}

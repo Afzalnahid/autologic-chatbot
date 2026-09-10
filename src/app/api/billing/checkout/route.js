@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
 import { loadPlans } from "@/lib/plan-limits.js";
+import { priceForClient } from "@/lib/plans.js";
+import { clientHasOwnKey } from "@/lib/ai.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { sslEnabled, initiateSession, newTranId, baseUrl } from "@/lib/sslcommerz.js";
 
@@ -30,7 +32,10 @@ export const POST = withErrors(async (request) => {
     return NextResponse.json({ error: "You already have a payment under review. We'll confirm it shortly." }, { status: 409 });
   }
 
-  const amount = cycle === "yearly" ? (Number(chosen.yearly) || 0) : (Number(chosen.monthly) || 0);
+  // A client on their own AI key pays the lower BYOK price where a package sets
+  // one (same rule as the manual flow), priced server-side from the live key.
+  const ownKey = await clientHasOwnKey(client.id);
+  const amount = priceForClient(chosen, cycle, ownKey);
   if (!(amount > 0)) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
   const tranId = newTranId(client.id);
 

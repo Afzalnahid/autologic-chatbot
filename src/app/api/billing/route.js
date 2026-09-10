@@ -4,8 +4,9 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
-import { planActive } from "@/lib/plans.js";
+import { planActive, priceForClient } from "@/lib/plans.js";
 import { loadPlans, limitsFor } from "@/lib/plan-limits.js";
+import { clientHasOwnKey } from "@/lib/ai.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { sslEnabled } from "@/lib/sslcommerz.js";
@@ -38,11 +39,12 @@ export const GET = withErrors(async (request) => {
   const { client, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const [limits, month, today, reqQ] = await Promise.all([
+  const [limits, month, today, reqQ, ownKey] = await Promise.all([
     limitsFor(client),
     usageThisMonth(client.id),
     usageToday(client.id),
     supabase.from("payment_requests").select("*").eq("client_id", client.id).order("created_at", { ascending: false }).limit(10),
+    clientHasOwnKey(client.id),
   ]);
 
   const requests = reqQ.data || [];
@@ -61,6 +63,11 @@ export const GET = withErrors(async (request) => {
     business_type: client.business_type || "ecommerce",
     plan_name: limits.planName || "No plan",
     active: planActive(client),
+    // Whether this account runs on its own AI key. When true the billing screen
+    // shows (and the purchase below charges) the lower BYOK price on any package
+    // that sets one; when false, the standard price. The key is added in the AI
+    // Engine tab, so this can change between a visit and a purchase.
+    own_key: ownKey,
     trial_end: client.trial_end,
     plan_expires_at: client.plan_expires_at,
     suspended: !!client.suspended,
@@ -109,7 +116,11 @@ export const POST = withErrors(async (request) => {
     return NextResponse.json({ error: "You already have a payment under review. We'll confirm it shortly." }, { status: 409 });
   }
 
-  const amount = cycle === "yearly" ? (Number(chosen.yearly) || 0) : (Number(chosen.monthly) || 0);
+  // A client on their own AI key pays the lower BYOK price on any package that
+  // sets one; everyone else pays the standard price. Priced server-side from the
+  // live key status, so the amount cannot be forged from the client.
+  const ownKey = await clientHasOwnKey(client.id);
+  const amount = priceForClient(chosen, cycle, ownKey);
   const { data, error: insErr } = await supabase.from("payment_requests").insert({
     client_id: client.id,
     plan,

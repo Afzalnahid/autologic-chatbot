@@ -1316,6 +1316,18 @@ function PlanForm({ plan, onSave, onCancel, busy, trialDays }) {
       {num("monthly", "Price / month (৳)", "0")}
       {num("yearly", "Price / year (৳)", "0")}
     </div>
+    {/* The lower price for a client running on their OWN AI key — they cover
+        their AI cost, so the platform fee drops. Charged only while they have a
+        saved key (priceForClient decides); blank means this package has no
+        own-key discount. Not offered on the trial, which is already free. */}
+    {!isTrial && <>
+      <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 4px" }}>Own-key price (BYOK)</div>
+      <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 8 }}>Charged only to a client running on their own AI key. Leave blank for no own-key discount.</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
+        {num("byok_monthly", "Own-key / month (৳)", "none")}
+        {num("byok_yearly", "Own-key / year (৳)", "none")}
+      </div>
+    </>}
     {/* Which business may buy this. It decides what the package is allowed to
         promise as much as what it is shown to: a shop has no calendar to book
         into, a service has no catalogue to match a photo against. */}

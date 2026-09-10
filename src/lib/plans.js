@@ -78,6 +78,8 @@ export const PLANS = {
     tagline: "One channel, your catalogue answering for itself",
     monthly: 1500,
     yearly: 15000,
+    byokMonthly: 1000,
+    byokYearly: 10000,
     messagesPerDay: null,
     messagesPerMonth: 3000,
     channels: 1,
@@ -98,6 +100,8 @@ export const PLANS = {
     tagline: "Every channel, and customers who send photos instead of names",
     monthly: 3500,
     yearly: 35000,
+    byokMonthly: 2500,
+    byokYearly: 25000,
     messagesPerDay: null,
     messagesPerMonth: 15000,
     channels: 3,
@@ -118,6 +122,8 @@ export const PLANS = {
     tagline: "For a catalogue and a crowd that keep growing",
     monthly: 6000,
     yearly: 60000,
+    byokMonthly: 4000,
+    byokYearly: 40000,
     messagesPerDay: null,
     messagesPerMonth: 50000,
     channels: 3,
@@ -140,6 +146,8 @@ export const PLANS = {
     tagline: "One channel, answering from your own documents",
     monthly: 1500,
     yearly: 15000,
+    byokMonthly: 1000,
+    byokYearly: 10000,
     messagesPerDay: null,
     messagesPerMonth: 3000,
     channels: 1,
@@ -160,6 +168,8 @@ export const PLANS = {
     tagline: "Every channel, and meetings booked while you sleep",
     monthly: 3500,
     yearly: 35000,
+    byokMonthly: 2500,
+    byokYearly: 25000,
     messagesPerDay: null,
     messagesPerMonth: 15000,
     channels: 3,
@@ -180,6 +190,8 @@ export const PLANS = {
     tagline: "For a practice that answers all day",
     monthly: 6000,
     yearly: 60000,
+    byokMonthly: 4000,
+    byokYearly: 40000,
     messagesPerDay: null,
     messagesPerMonth: 50000,
     channels: 3,
@@ -235,6 +247,42 @@ export function yearlySavingMonths(planId) {
   const p = PLANS[planId];
   if (!p || !p.monthly) return 0;
   return Math.round((p.monthly * 12 - p.yearly) / p.monthly);
+}
+
+// ── BYOK pricing ────────────────────────────────────────────────────────────
+// A client running on their OWN AI key covers their own AI cost, so every paid
+// package carries a second, lower price for them. It applies ONLY while the
+// client actually has a saved own key (see clientHasOwnKey); with no key, or on
+// a package that sets no BYOK price, they pay the standard price.
+//
+// A plan object reaches these two ways: the code constant uses camelCase
+// (byokMonthly/byokYearly) and a `plans` table row uses snake_case
+// (byok_monthly/byok_yearly). Both are read so the same helper serves every
+// caller, and 0/blank/unset all mean "no BYOK price for this package".
+const numOrNull = (v) => {
+  if (v === null || v === undefined || String(v).trim() === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+// { std, byok } for a plan + cycle. std is always a number; byok is a number
+// only when the package sets a real (> 0) BYOK price, else null.
+export function planPrices(plan, cycle = "monthly") {
+  const yearly = cycle === "yearly";
+  const std = yearly ? numOrNull(plan?.yearly) : numOrNull(plan?.monthly);
+  const byokRaw = yearly
+    ? (plan?.byokYearly ?? plan?.byok_yearly)
+    : (plan?.byokMonthly ?? plan?.byok_monthly);
+  const byok = numOrNull(byokRaw);
+  return { std: std ?? 0, byok: byok && byok > 0 ? byok : null };
+}
+
+// The amount a client actually pays. ownKey clients get the BYOK price when the
+// package sets one; everyone else, and any package with no BYOK price, pays the
+// standard price. Never returns the BYOK price to a client without a key.
+export function priceForClient(plan, cycle = "monthly", ownKey = false) {
+  const { std, byok } = planPrices(plan, cycle);
+  return ownKey && byok !== null ? byok : std;
 }
 
 export function formatMoney(n) {

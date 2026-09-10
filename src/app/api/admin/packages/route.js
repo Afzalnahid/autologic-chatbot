@@ -308,6 +308,10 @@ export async function POST(request) {
       public: p.public !== false,
       monthly: Number(p.monthly) || 0,
       yearly: Number(p.yearly) || 0,
+      // The own-key (BYOK) prices, null when blank — a package with none simply
+      // charges its standard price to an own-key client (priceForClient).
+      byok_monthly: int(p.byok_monthly),
+      byok_yearly: int(p.byok_yearly),
       messages_per_day: int(p.messages_per_day),
       messages_per_month: int(p.messages_per_month),
       messages_per_channel: int(p.messages_per_channel),

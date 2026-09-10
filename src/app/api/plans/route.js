@@ -23,6 +23,12 @@ export async function GET() {
       tagline: p.tagline || "",
       monthly: Number(p.monthly) || 0,
       yearly: Number(p.yearly) || 0,
+      // The lower price for a client running on their own AI key, when the
+      // package sets one (null otherwise). Public: the pricing page shows it as
+      // a "with your own AI key" figure, and the billing screen uses it once the
+      // client actually has a key.
+      byok_monthly: p.byok_monthly ?? null,
+      byok_yearly: p.byok_yearly ?? null,
       highlight: !!p.highlight,
       features: Array.isArray(p.feature_list) && p.feature_list.length
         ? p.feature_list

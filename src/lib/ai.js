@@ -87,6 +87,23 @@ export async function getClientAI(clientId, feature = "other", pageId = "") {
   return build(id, cfg, platformChain, platformApiKey, feature, pageId);
 }
 
+// Does this client run on their OWN AI key right now? The same test getClientAI
+// makes when it routes (a saved Google key), without decrypting it — used by
+// billing to price a BYOK client on the lower price list. A key that is
+// currently "failing" still counts: they are a BYOK client whose key needs
+// fixing, not a platform-key client, so their price must not jump back up.
+// Fails closed (false) on any error, which charges the standard price — the safe
+// direction, and it never hands the lower price to someone without a key.
+export async function clientHasOwnKey(clientId) {
+  try {
+    const { data } = await supabase.from("client_ai")
+      .select("api_key_enc,provider").eq("client_id", clientId).maybeSingle();
+    return !!(data?.api_key_enc && data?.provider === "google");
+  } catch {
+    return false;
+  }
+}
+
 function build(clientId, cfg, platformChain, platformApiKey, feature, pageId = "") {
   // Token meter. Every AI call reports through this so the admin panel can
   // answer "what does this client cost me?" — see src/lib/usage.js. Cost follows

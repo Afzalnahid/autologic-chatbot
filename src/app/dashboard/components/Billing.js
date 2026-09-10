@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { T, Card, Btn, Inp, Badge, PLAN_META, PLAN_LIST, taka, shortDate } from "./ui.js";
 import { api } from "./session.js";
+import { priceForClient } from "@/lib/plans.js";
 
 // The Billing tab, moved out of dashboard-client.js unchanged.
 
@@ -80,6 +81,13 @@ export default function Billing({initialPlan,initialCycle}) {
   if(!d) return <Card style={{textAlign:"center",color:T.textDim,padding:40}}>Could not load billing information.</Card>;
 
   const meta=PLAN_META[d.plan]||PLAN_META.none;
+  // A client on their own AI key pays the lower BYOK price wherever a package
+  // sets one. priceOf is the effective price (shared with the server via
+  // priceForClient, so the screen and the charge agree); stdOf is the standard
+  // price, shown struck through when it differs so the saving is visible.
+  const ownKey=!!d.own_key;
+  const priceOf=(p,c=cycle)=>priceForClient(p,c,ownKey);
+  const stdOf=(p,c=cycle)=>c==="yearly"?Number(p.yearly||0):Number(p.monthly||0);
   const u=d.usage;
   const limit=u.daily_limit||u.monthly_limit;
   const usedNow=u.daily_limit?u.today:u.month;
@@ -96,7 +104,7 @@ export default function Billing({initialPlan,initialCycle}) {
     ?plans.filter(p=>!p.biz||p.biz==="both"||p.biz===d.business_type)
     :plans;
   const selPlan=buyable.find(p=>p.id===sel);
-  const amount=selPlan?(cycle==="yearly"?selPlan.yearly:selPlan.monthly):0;
+  const amount=selPlan?priceOf(selPlan):0;
 
   return <div style={{maxWidth:900,margin:"0 auto"}}>
     {/* Current plan */}
@@ -134,6 +142,17 @@ export default function Billing({initialPlan,initialCycle}) {
       {!limit&&d.active&&<div style={{fontSize:12.5,color:T.success,marginTop:14}}><i className="ti ti-infinity" style={{marginRight:5}}/>Unlimited messages on this plan</div>}
     </Card>
 
+    {/* On their own AI key → the reduced price list. Neutral styling on purpose:
+        mint means "bot is live" and nothing else, and gold is retired. */}
+    {ownKey&&<Card style={{marginBottom:16}}>
+      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+        <i className="ti ti-key" style={{fontSize:18,color:T.text,marginTop:2}}/>
+        <div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.7}}>
+          You're using your own AI key, so you pay the lower <strong style={{color:T.text}}>own-key price</strong> on every plan below — you cover the AI usage directly.
+        </div>
+      </div>
+    </Card>}
+
     {/* Pending review */}
     {d.pending_request&&<Card style={{marginBottom:16,border:`1px solid color-mix(in srgb, ${T.warn} 27%, transparent)`}}>
       <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
@@ -165,8 +184,9 @@ export default function Billing({initialPlan,initialCycle}) {
             <span style={{fontSize:14,fontWeight:600}}>{p.name}</span>
             {p.highlight&&<Badge>Popular</Badge>}
           </div>
-          <div style={{fontSize:19,fontWeight:700,marginTop:6}}>{taka(cycle==="yearly"?p.yearly:p.monthly)}
-            <span style={{fontSize:11.5,color:T.textMuted,fontWeight:400}}>/{cycle==="yearly"?"yr":"mo"}</span></div>
+          <div style={{fontSize:19,fontWeight:700,marginTop:6}}>{taka(priceOf(p))}
+            <span style={{fontSize:11.5,color:T.textMuted,fontWeight:400}}>/{cycle==="yearly"?"yr":"mo"}</span>
+            {ownKey&&priceOf(p)!==stdOf(p)&&<span style={{fontSize:11.5,color:T.textDim,fontWeight:400,textDecoration:"line-through",marginLeft:6}}>{taka(stdOf(p))}</span>}</div>
           <div style={{fontSize:11.5,color:T.textMuted,marginTop:3}}>{p.tagline}</div>
         </div>)}
       </div>
@@ -235,8 +255,9 @@ export default function Billing({initialPlan,initialCycle}) {
           <span style={{fontSize:16,fontWeight:600}}>{p.name}</span>
           {d.plan===p.id?<Badge color={T.success}>Current</Badge>:p.highlight?<Badge>Popular</Badge>:null}
         </div>
-        <div style={{fontSize:24,fontWeight:700,margin:"10px 0 2px"}}>{taka(p.monthly)}<span style={{fontSize:12,color:T.textMuted,fontWeight:400}}>/month</span></div>
-        <div style={{fontSize:11.5,color:T.textDim,marginBottom:12}}>or {taka(p.yearly)}/year</div>
+        <div style={{fontSize:24,fontWeight:700,margin:"10px 0 2px"}}>{taka(priceOf(p,"monthly"))}<span style={{fontSize:12,color:T.textMuted,fontWeight:400}}>/month</span>
+          {ownKey&&priceOf(p,"monthly")!==stdOf(p,"monthly")&&<span style={{fontSize:13,color:T.textDim,fontWeight:400,textDecoration:"line-through",marginLeft:7}}>{taka(stdOf(p,"monthly"))}</span>}</div>
+        <div style={{fontSize:11.5,color:T.textDim,marginBottom:12}}>or {taka(priceOf(p,"yearly"))}/year</div>
         <ul style={{listStyle:"none",padding:0,margin:"0 0 16px",display:"flex",flexDirection:"column",gap:7,flex:1}}>
           {p.features.map((f,i)=><li key={i} style={{fontSize:12.3,color:T.textMuted,display:"flex",gap:7,lineHeight:1.5}}>
             <span style={{color:T.success,flexShrink:0}}>✓</span><span>{f}</span></li>)}

@@ -332,6 +332,40 @@ repeating it. `trialTextMismatch()` also checks the owner's own prose — the
 tagline and the pricing bullets — for a "N day" that no longer matches, because
 changing the box does not change what a customer reads on the pricing page.
 
+### The own-key (BYOK) price list
+
+A client who brings their own AI key covers their own AI cost, so every paid
+package carries a second, lower price for them: `byok_monthly` / `byok_yearly`
+on the `plans` table (and `byokMonthly` / `byokYearly` on the code constant in
+`src/lib/plans.js`). A package with neither has no own-key discount, so a BYOK
+client simply pays the standard price — the trial and any custom package are
+safe by default.
+
+**One function decides the amount.** `priceForClient(plan, cycle, ownKey)` in
+`src/lib/plans.js` returns the BYOK price when the client has a key *and* the
+package sets one (`> 0`), and the standard price otherwise — it never hands the
+lower price to a client without a key, and never returns `0` for a package that
+left BYOK blank. Both the screen and the charge call it, so they cannot
+disagree. `planPrices(plan, cycle)` behind it reads both the camelCase constant
+and the snake_case table row.
+
+**"Has their own key" is the same test the bot routes on.**
+`clientHasOwnKey(clientId)` (`src/lib/ai.js`) mirrors `getClientAI`'s own check
+— a saved Google key in `client_ai` (`api_key_enc` set, `provider = "google"`)
+— without decrypting it. A key that is currently *failing* still counts: they
+are a BYOK client whose key needs fixing, not a platform-key client, so their
+price must not jump back up. It fails closed (standard price) on any error.
+
+`/api/billing` GET returns `own_key`, so the dashboard Billing tab shows the
+reduced prices (standard struck through) with a short "you're on your own key"
+note. Both purchase paths — manual (`POST /api/billing`) and online
+(`/api/billing/checkout`) — price the payment request with `priceForClient` from
+the live key status, server-side, so the amount cannot be forged. The public
+pricing page has no client to check, so it keeps the standard price as the
+headline and shows the own-key figure as an informational line. The owner edits
+the two prices per package in **Packages → Edit → "Own-key price (BYOK)"**.
+Initial prices were seeded by `docs/sql/2026-09-10-byok-prices.sql`.
+
 ### Channels allowed, and broadcasts
 
 Both were set in the panel, saved, returned by `limitsFor()` — and read by
