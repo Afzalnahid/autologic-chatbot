@@ -5,15 +5,29 @@ import { T } from "./ui.js";
 // attention, built from data the dashboard already has — no extra fetch:
 //   • conversations waiting for a reply (an unanswered customer message)
 //   • orders the bot has taken
-// "Unread" is anything newer than the last time the dropdown was opened, kept in
-// localStorage so the badge is not noisy across refreshes. (This is the in-app
-// list; the phone push in Profile is the separate "reach me when the app is shut".)
+//
+// Read state works the way Facebook's does, which is what the owner asked for:
+//   • each notification is unread until it is tapped, or "Mark all as read" is
+//     pressed — merely OPENING the panel no longer clears anything;
+//   • the bell badge is the number still unread, and disappears at zero;
+//   • a new notification arriving later is unread again, on its own.
+// Kept in localStorage so it survives a refresh: a watermark (everything older
+// than it counts as read — also what "Mark all as read" moves) plus the keys of
+// the individual items tapped since. (This is the in-app list; the phone push in
+// Profile is the separate "reach me when the app is shut".)
 const SEEN_KEY = "gv-notif-seen";
+const READ_KEY = "gv-notif-read";
+const READ_CAP = 200;
 
-const readSeen = () => {
-  try { return Number(localStorage.getItem(SEEN_KEY)) || 0; } catch { return 0; }
-};
+const readSeen = () => { try { return Number(localStorage.getItem(SEEN_KEY)) || 0; } catch { return 0; } };
 const writeSeen = (t) => { try { localStorage.setItem(SEEN_KEY, String(t)); } catch { /* private mode */ } };
+const readReadSet = () => {
+  try { const a = JSON.parse(localStorage.getItem(READ_KEY) || "[]"); return new Set(Array.isArray(a) ? a : []); }
+  catch { return new Set(); }
+};
+const writeReadSet = (set) => {
+  try { localStorage.setItem(READ_KEY, JSON.stringify([...set].slice(-READ_CAP))); } catch { /* private mode */ }
+};
 
 function ago(t) {
   const s = Math.max(0, (Date.now() - new Date(t).getTime()) / 1000);
@@ -27,12 +41,13 @@ function ago(t) {
 export default function NotificationsBell({ convos = [], orders = [], isMobile, onNavigate }) {
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState(0);
+  const [readSet, setReadSet] = useState(() => new Set());
   const wrap = useRef(null);
   const btn = useRef(null);
   // Where the panel's top edge sits on a phone, measured from the bell itself.
   const [top, setTop] = useState(0);
 
-  useEffect(() => { setSeen(readSeen()); }, []);
+  useEffect(() => { setSeen(readSeen()); setReadSet(readReadSet()); }, []);
 
   // Build the list once from whatever the shell is holding.
   const items = useMemo(() => {
@@ -59,7 +74,8 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
     return out.slice(0, 20);
   }, [convos, orders]);
 
-  const unread = useMemo(() => items.filter((i) => new Date(i.time).getTime() > seen).length, [items, seen]);
+  const isUnread = (it) => new Date(it.time).getTime() > seen && !readSet.has(it.key);
+  const unread = useMemo(() => items.filter(isUnread).length, [items, seen, readSet]); // eslint-disable-line
 
   // Close on a click anywhere outside the bell + dropdown. touchstart as well as
   // mousedown: on a phone the panel is a fixed sheet, and a tap outside it has
@@ -86,22 +102,32 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
     return () => window.removeEventListener("resize", measure);
   }, [open, isMobile]);
 
-  const toggle = () => {
-    setOpen((v) => {
-      const next = !v;
-      if (next) { const now = Date.now(); writeSeen(now); setSeen(now); } // opening = read
-      return next;
-    });
+  const toggle = () => setOpen((v) => !v);
+
+  // Everything up to now is read: move the watermark, and the per-item keys are
+  // no longer needed (they are all older than it).
+  const markAll = () => {
+    const now = Date.now();
+    writeSeen(now); setSeen(now);
+    const empty = new Set(); writeReadSet(empty); setReadSet(empty);
   };
 
-  const go = (it) => { setOpen(false); onNavigate?.(it.target); };
+  // Tapping one notification reads THAT one and follows it.
+  const go = (it) => {
+    if (isUnread(it)) {
+      const next = new Set(readSet); next.add(it.key);
+      writeReadSet(next); setReadSet(next);
+    }
+    setOpen(false);
+    onNavigate?.(it.target);
+  };
 
   const iconColor = { message: T.gold, order: T.success, booking: T.purple };
 
   return (
     <div ref={wrap} style={{ position: "relative" }}>
       <button ref={btn} onClick={toggle} className="pbtn"
-        aria-label={`Notifications${unread ? `, ${unread} new` : ""}`}
+        aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
         style={isMobile ? { width: 36, height: 36, borderRadius: 11 } : undefined}>
         <i className="ti ti-bell" />
         {unread > 0 && <span className="pbadge">{unread > 9 ? "9+" : unread}</span>}
@@ -123,9 +149,13 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
           background: T.card, border: `1px solid ${T.border}`, borderRadius: 14,
           boxShadow: "0 12px 40px rgba(0,0,0,0.18)", overflow: "hidden",
         }}>
-          <div style={{ padding: "12px 15px", borderBottom: `1px solid ${T.border}`, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span>Notifications</span>
-            {items.length > 0 && <span style={{ fontSize: 11.5, color: T.textDim, fontWeight: 500 }}>{items.length}</span>}
+          <div style={{ padding: "12px 15px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>Notifications{unread > 0 && <span style={{ fontSize: 11.5, color: T.gold, fontWeight: 600, marginLeft: 7 }}>{unread} unread</span>}</span>
+            {unread > 0 && (
+              <button onClick={markAll} className="ui-btn" style={{ background: "none", border: "none", padding: "4px 2px", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: T.gold, minHeight: 0 }}>
+                <i className="ti ti-checks" style={{ marginRight: 4 }} />Mark all as read
+              </button>
+            )}
           </div>
 
           <div style={{ overflowY: "auto", minHeight: 0 }}>
@@ -134,22 +164,31 @@ export default function NotificationsBell({ convos = [], orders = [], isMobile, 
                   <i className="ti ti-bell-off" style={{ fontSize: 26, display: "block", marginBottom: 8 }} />
                   Nothing new right now.
                 </div>
-              : items.map((it) => (
-                <button key={it.key} onClick={() => go(it)} className="ui-btn" style={{
-                  width: "100%", textAlign: "left", display: "flex", gap: 11, alignItems: "flex-start",
-                  padding: "11px 15px", background: "none", border: "none", borderBottom: `1px solid ${T.border}`,
-                  cursor: "pointer", fontFamily: "inherit", color: T.text,
-                }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: T.bgAlt, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className={`ti ${it.icon}`} style={{ fontSize: 16, color: iconColor[it.type] || T.gold }} />
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</span>
-                    <span style={{ display: "block", fontSize: 12, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.body}</span>
-                  </span>
-                  <span style={{ fontSize: 11, color: T.textDim, flexShrink: 0, marginTop: 1 }}>{ago(it.time)}</span>
-                </button>
-              ))}
+              : items.map((it) => {
+                const un = isUnread(it);
+                return (
+                  <button key={it.key} onClick={() => go(it)} className="ui-btn" style={{
+                    width: "100%", textAlign: "left", display: "flex", gap: 11, alignItems: "flex-start",
+                    padding: "11px 15px", border: "none", borderBottom: `1px solid ${T.border}`,
+                    // An unread row sits on a faint brand tint, like Facebook's, so the
+                    // eye finds what is new before reading a word of it.
+                    background: un ? `color-mix(in srgb, ${T.gold} 7%, transparent)` : "none",
+                    cursor: "pointer", fontFamily: "inherit", color: T.text,
+                  }}>
+                    <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: T.bgAlt, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <i className={`ti ${it.icon}`} style={{ fontSize: 16, color: iconColor[it.type] || T.gold }} />
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: un ? 700 : 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</span>
+                      <span style={{ display: "block", fontSize: 12, color: un ? T.text : T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.body}</span>
+                    </span>
+                    <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0, marginTop: 1 }}>
+                      <span style={{ fontSize: 11, color: un ? T.gold : T.textDim, fontWeight: un ? 600 : 400 }}>{ago(it.time)}</span>
+                      {un && <span aria-label="unread" style={{ width: 9, height: 9, borderRadius: 999, background: T.gold, display: "block" }} />}
+                    </span>
+                  </button>
+                );
+              })}
           </div>
         </div>
       )}
