@@ -250,6 +250,43 @@ Fix (owner: "do all, web + app, never again"):
 No migration. Server routes unchanged (they already accepted URLs). Not
 unit-testable here (canvas/fetch); 42/42 suites still pass.
 
+### Notification centre: feed of comments/orders/bookings/hand-offs/alerts, deep links, emails
+
+Owner: the panel must show comments, messages, orders, alerts, and "a customer
+needs the owner"; organise it; decide what also goes by email; and tapping a
+notification (push or panel) must open THE conversation/order. Built as one
+feature, all web (no APK rebuild):
+- **`/api/notifications`** (new): server-assembled feed, client_id-scoped —
+  needs_human contacts, comments (last 3 d; reply/dm failed = urgent), orders +
+  bookings (7 d), alerts (plan lapsed/expiring ≤3 d, key failing, limit ≥90%/hit,
+  channel expired, payment approved/rejected 7 d). Stable keys+times (fact time,
+  never "now"). Shell polls 30 s (`loadFeed`); messages still from convos (10 s).
+  Column names verified against the live DB (no `orders.total`, no
+  `channels.page_name`/`updated_at` — `total_price`, `name`, `connected_at`).
+- **Bell**: sections Needs you / Customers / Business; FB read model + a
+  per-device "first seen" map (`gv-notif-first`) so a new alert with an old
+  fact-time is still unread; urgent → red badge/dot; `onNavigate(tab,id)`.
+- **Deep links `#tab:id`**: shell `splitSpec`/`goTo`/`focus` → Conversations
+  (`setSelId`) and Orders (`setOpen` by id or order_code) open the item; push
+  urls now `#conversations:<sender>` / `#orders:<code>`; sw `gv-navigate` and
+  native `al-goto` pass "tab:id" through unchanged.
+- **Hand-off** (the big missing signal): `src/lib/handoff.js` pure
+  (`extractHandoff` strips `[[HANDOFF]]` the prompt now asks for; `wantsHuman`
+  EN/BN/Banglish), `tests/t-handoff.mjs` (22). `composeReply` returns `handoff`;
+  `flagNeedsHuman` (bot.js) flips `contacts.needs_human` once + push + email;
+  cleared by `send-message` and the contacts bot-switch. Migration
+  `docs/sql/2026-09-11-needs-human.sql` APPLIED to prod (Supabase MCP).
+- **Emails**: notifyNewOrder, notifyNewBooking (default ON, one each),
+  notifyNeedsHuman, notifyChannelExpired; `emailOwner()` helper in bot.js.
+  **Push** added for bot-blocked (24 h gate), key-failing (per-outage flip),
+  widget conversation-start (was none), hand-off.
+- **Channel token check**: `/api/cron/channels` daily (vercel.json 04:30 UTC),
+  Facebook only, error 190 only → `status="expired"` atomic flip + push + email;
+  Channels.js shows red "Disconnected" + Reconnect button (uses `onConnect`).
+- Owner's two decisions taken as recommended: order/booking emails on by
+  default (toggle = follow-up), channel detector included (FB only).
+43/43 suites.
+
 ### Notification bell now reads like Facebook's (mark all / per-item unread)
 
 Owner: wants a "Mark all as read" like FB; after it the badge goes, and a NEW
