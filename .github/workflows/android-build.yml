@@ -37,9 +37,17 @@ jobs:
         working-directory: mobile
         run: npm install
 
+      - name: Build the brand icon + splash source images
+        working-directory: mobile
+        run: node scripts/gen-assets.mjs
+
       - name: Generate the Android project
         working-directory: mobile
         run: npx cap add android
+
+      - name: Apply the app icon and splash (crimson bolt, no border)
+        working-directory: mobile
+        run: npx capacitor-assets generate --android
 
       - name: Sync web assets and config
         working-directory: mobile
