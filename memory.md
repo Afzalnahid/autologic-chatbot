@@ -102,10 +102,16 @@ features and how much of each limit is used/remaining. Built in four stages,
   includes, and how much is left (entitlements)".
 
 **The one BYOK client — Broker's BD** (client_id a5305b5e-…, shop_growth, verified
-own Google key since 2026-08-22, active to 2026-09-19). No "convert" action was
-needed: the BYOK price is package-level and applies automatically by key status,
-so their Billing now shows ৳2,500 and their next renewal charges it. Owner's
-choice on the current period: option (ক) — no manual adjustment.
+own Google key since 2026-08-22, active to 2026-09-19). **No DB change made, and
+none needed:** BYOK price is package-level and applies automatically by key
+status, so their Billing already shows ৳2,500 and renewal charges it. When the
+owner asked to "convert the current period to BYOK", a live query showed
+**Broker's BD has NO payment_requests at all** — their shop_growth was set
+manually, not purchased, so there was no overpayment to credit. Owner's final
+call (2026-09-10): keep the expiry (09-19) as-is, price stays BYOK. Done.
+
+**afzalnahid021@gmail.com cleanup — DONE (confirmed 2026-09-10):** gone from both
+auth.users and clients (verified by live query, zero rows). Off the task list.
 
 **Follow-up (small, noted not done):** the capability labels now live in BOTH
 `src/lib/features.js` (`FEATURE_DEFS`) and `src/app/admin/Packages.js` (`FEATURES`,
@@ -131,12 +137,10 @@ go to commit/push (no DB migration needed — it reads existing data).
   email prefix, plan "none") and drops them into onboarding. Left `loadMe`'s
   auto-register as-is (it is the legit incomplete-signup recovery path; the root fix is
   removing the auth user on delete).
-- **Open cleanup:** `afzalnahid021@gmail.com` is in exactly this re-created state —
-  auth user (id `035fa162-1911-4e75-9cec-9d34c0f9347e`, created 2026-09-01) AND a fresh
-  empty client (id `0c9eaf35-…`, plan "none", created 2026-09-10). To fully remove it:
-  after `895f5d3` deploys, re-delete it from the admin panel (now removes both), or
-  delete client rows + auth user directly. Verified via a read-only `.env.local`
-  service-key script (`supabase.auth.admin.listUsers`).
+- **Open cleanup — DONE (owner confirmed 2026-09-10, verified).** `afzalnahid021@gmail.com`
+  was in the re-created state (auth user + a fresh empty client). It is now GONE from
+  BOTH `auth.users` AND `clients` — verified by a live query on `cchvsgouqqxibhubioch`
+  (a union of the two returned zero rows). Nothing left to do.
 
 40/40 suites pass.
 
