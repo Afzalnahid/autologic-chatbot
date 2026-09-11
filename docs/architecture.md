@@ -199,6 +199,16 @@ keeps Facebook-style read state per device (a watermark moved by "Mark all as
 read" + the keys tapped since + when each key was first seen, so a brand-new
 alert with an old fact-time is still unread), and opens the exact item.
 
+**Inbox read state (Messenger's rule).** A conversation is *unread* when its newest
+customer message is newer than the last time this device opened it and newer than the
+last "Mark all as read" — a bot or dashboard reply does not make it read
+(`src/lib/convo-read.js`, pure; `dashboard/components/convo-read.js` is the
+localStorage store `gv-convo-seen` / `gv-convo-seen-all` + `useConvoRead()`, with one
+window event so every reader re-renders). Unread rows are bold with a dot in the inbox
+list; the sidebar Inbox badge counts the same set; opening a chat marks it seen up to its
+newest customer message (again when a new one lands while it is open); the bell's "Mark
+all as read" also clears the inbox.
+
 **Deep links — `#tab:id`.** A navigation target is `tab` or `tab:id`:
 `#conversations:<sender_id>` opens that customer's chat, `#orders:<id or code>`
 opens that order. Push payloads, the bell (`onNavigate(tab, id)`), the service

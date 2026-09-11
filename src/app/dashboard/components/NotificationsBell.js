@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { T } from "./ui.js";
+import { markAllConvosRead } from "./convo-read.js";
 
 // The bell in the header — everything worth the owner's attention, organised the
 // way Facebook does it:
@@ -139,6 +140,9 @@ export default function NotificationsBell({ convos = [], feed = [], isMobile, on
     const now = Date.now();
     writeSeen(now); setSeen(now);
     const empty = new Set(); writeReadSet(empty); setReadSet(empty);
+    // Also the inbox: every bold chat goes normal and the Inbox badge clears,
+    // like Facebook — one "Mark all as read" means all of it.
+    markAllConvosRead();
   };
 
   const go = (it) => {

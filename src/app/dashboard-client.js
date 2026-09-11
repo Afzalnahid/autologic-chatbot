@@ -6,6 +6,7 @@ import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 import { initNativeApp } from "./dashboard/components/native-back.js";
 import Broadcast from "./dashboard/components/Broadcast.js";
 import NotificationsBell from "./dashboard/components/NotificationsBell.js";
+import { useConvoRead } from "./dashboard/components/convo-read.js";
 import WebsiteWidget from "./dashboard/components/WebsiteWidget.js";
 import Billing from "./dashboard/components/Billing.js";
 import Analytics from "./dashboard/components/Analytics.js";
@@ -709,6 +710,11 @@ export default function Dashboard() {
   useEffect(()=>{ pageRef.current=page; },[page]);
   const [products,setProducts]=useState([]);
   const [convos,setConvos]=useState([]);
+  // Sidebar Inbox badge = UNREAD chats on this device (Messenger's rule), the
+  // same set the inbox shows bold — cleared by opening a chat or the bell's
+  // "Mark all as read". It used to count chats awaiting a reply, which stayed
+  // at "10" after everything was marked read and confused the owner.
+  const convoRead=useConvoRead();
   const [dashChannels,setDashChannels]=useState([]);
   const [orders,setOrders]=useState([]);
   const [bookingCount,setBookingCount]=useState(0);
@@ -857,7 +863,7 @@ export default function Dashboard() {
   if(stage==="connect") return <><Theme/><Motion/><ConnectChannel clientId={me?.client?.id} onDone={async()=>{const bt=me?.client?.business_type;await loadMe();setStage(bt==="agency"?"connect-cal":"app");}}/></>;
   if(stage==="connect-cal") return <><Theme/><Motion/><ConnectCalendar clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/></>;
 
-  const activeCount=convos.filter(c=>c.status==="active").length;
+  const activeCount=convoRead.count(convos);
   const botLive=dashChannels.length>0;
   const initials=(me?.client?.business_name||"A").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
 

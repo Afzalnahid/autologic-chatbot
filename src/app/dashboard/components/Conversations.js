@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { T, Card, Badge, useIsMobile, Select, Switch } from "./ui.js";
 import { api, getSb, apiJson } from "./session.js";
 import { useBackClose } from "./back.js";
+import { useConvoRead, markConvoSeen } from "./convo-read.js";
 
 // The Conversations tab, moved out of dashboard-client.js unchanged.
 
@@ -94,6 +95,13 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     if(allConvos.some(x=>String(x.id)===String(focus.id))) setSelId(focus.id);
   },[focus?.id,focus?.ts,allConvos.length]); // eslint-disable-line
   useEffect(()=>{onChatOpen&&onChatOpen(isMobile&&hasSel);},[hasSel,isMobile]);
+  // Read state, Messenger's way: the chat on screen is "seen" up to its newest
+  // customer message — on open, and again when a new message lands while it is
+  // open. Per device (localStorage), shared with the sidebar badge and the
+  // bell's Mark-all through useConvoRead.
+  const convoRead=useConvoRead();
+  const cLastCustomerAt=(c?.messages||[]).reduce((t,m)=>m.role==="customer"?Math.max(t,new Date(m.time).getTime()):t,0);
+  useEffect(()=>{ if(c) markConvoSeen(c); },[c?.id,cLastCustomerAt]); // eslint-disable-line
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
   // null = not loaded yet. Starting at `true` painted a green "Bot ON" for the
@@ -353,14 +361,13 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         const cvt=contacts[cv.id]||{};
         const multi=(perPlatform[cv.platform]||[]).length>1;
         const on=String(selId)===String(cv.id);
-        // Messenger's rule: a chat whose newest message is the customer's and
-        // has had NO reply yet — not from the bot, not from you, not from the
-        // Messenger app — is shown bold, with a dot. The moment any reply
-        // lands it goes back to normal weight. This is the same set the
-        // sidebar's Inbox badge counts, so the number and the bold rows
-        // always agree.
-        const waiting=cv.status==="active";
-        return <div key={cv.id} onClick={()=>setSelId(cv.id)} title={waiting?"Waiting for a reply":undefined} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:on?T.goldBg:"transparent",borderLeft:on?`3px solid ${T.gold}`:"3px solid transparent"}}>
+        // Messenger's rule: a chat with a customer message this device has not
+        // looked at yet is bold, with a dot. Opening it — or "Mark all as
+        // read" in the bell — makes it normal; the next customer message
+        // makes it bold again. A bot reply does not make it read. The sidebar
+        // Inbox badge counts the same set, so number and bold rows agree.
+        const waiting=convoRead.isUnread(cv);
+        return <div key={cv.id} onClick={()=>setSelId(cv.id)} title={waiting?"Unread":undefined} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:on?T.goldBg:"transparent",borderLeft:on?`3px solid ${T.gold}`:"3px solid transparent"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:4}}>
             <span style={{fontSize:13,fontWeight:waiting?700:500,color:T.text,display:"flex",alignItems:"center",gap:6,minWidth:0}}>
               <i className={`ti ${CH_ICON[cv.platform]||"ti-message"}`} style={{fontSize:13,color:T.textMuted,flexShrink:0}}/>
@@ -369,7 +376,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
               <span style={{fontSize:10.5,color:waiting?T.text:T.textDim,fontWeight:waiting?600:400}}>{ago(cv.time)}</span>
               {ctLoaded&&<Badge color={cvt.bot_enabled===false?T.warn:T.success}>{cvt.bot_enabled===false?"manual":"bot"}</Badge>}
-              {waiting&&<span aria-label="Waiting for a reply" style={{width:9,height:9,borderRadius:"50%",background:T.gold,flexShrink:0,display:"inline-block"}}/>}
+              {waiting&&<span aria-label="Unread" style={{width:9,height:9,borderRadius:"50%",background:T.gold,flexShrink:0,display:"inline-block"}}/>}
             </span>
           </div>
           <span style={{fontSize:12,color:waiting?T.text:T.textMuted,fontWeight:waiting?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{cv.lastMsg}</span>
