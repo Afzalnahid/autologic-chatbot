@@ -1333,3 +1333,24 @@ owner found it; the 2026-09-08 test passed because it only tried "no app_id".
 - A webhook branch that affects what the bot remembers deserves a second guard
   on content (same text already stored in the last minutes → skip), because
   Meta's exact payload shape is documentation-plus-folklore, not a contract.
+
+## A Meta webhook field needs TWO subscriptions, and the logs tell you which is missing (2026-09-11)
+
+`message_echoes` was on every Page's `subscribed_apps` list (checked via Graph),
+the parser was fixed to keep human echoes, tests passed — and still no owner
+reply from Business Suite ever reached the inbox. An hour of webhook logs held
+only customer messages, while those customers were visibly answering the
+owner. Meta delivers a field only when BOTH the app's subscription (App
+Dashboard → Webhooks → Page, `/{app-id}/subscriptions`) and the Page's carry
+it; the app-level list had never been given `message_echoes`.
+
+**Rules:**
+- "Subscribed" on a Page proves nothing about delivery. Check the app-level
+  list too (`/{app-id}/subscriptions` with an app token), or simply look for
+  the event in the webhook logs — absence there is the real answer.
+- Before shipping a parser/handler fix for an event, confirm the event ARRIVES
+  (logs, or a raw-body counter). I fixed the app_id drop first; it was a real
+  bug, but not the one blocking the owner.
+- Keep such repairs in the product (an admin page that shows and fixes the
+  app-level subscription) so the next Page or the next app does not depend on
+  someone remembering a dashboard checkbox.

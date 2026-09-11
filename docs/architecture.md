@@ -64,7 +64,13 @@ An echo is dropped only when its `app_id` is one of OUR Meta app ids (our own se
 already stored); Meta's own tools stamp their app id on a human's reply, so "has an
 app_id" alone never means "ours" (`parseMessengerEvent`, `OWN_APP_IDS`). As a second
 guard, an echo whose text the bot or dashboard already wrote to that thread in the
-last 5 minutes is ignored (`handleIncoming`). When the owner switches the bot
+last 5 minutes is ignored (`handleIncoming`). Meta delivers a field only when BOTH
+subscriptions carry it: the Facebook APP's Page subscription (App Dashboard →
+Webhooks, `/{app-id}/subscriptions`) and each Page's (`/{page-id}/subscribed_apps`,
+set at connect). The admin console's *Meta webhooks* page (`/api/admin/webhooks`,
+super admin + secret key to change) shows the app-level list and re-subscribes with
+the required fields (`messages, messaging_postbacks, message_echoes, feed`) when one
+is missing — server-side, the app secret and verify token never reach the browser. When the owner switches the bot
 back ON for a conversation (`/api/contacts` PUT), if the last message is still an
 unanswered customer message the bot answers it then (`processConversation`, gated by the
 same `botAllowed` checks).
