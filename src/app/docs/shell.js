@@ -3,6 +3,7 @@ import { PAGES, GROUPS } from "@/lib/docs/index.js";
 import { docHref } from "./copy.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 import DocsSearch from "./search.js";
+import DocsAuthButton from "./auth-button.js";
 
 // The frame every documentation page sits in: nav, sidebar, content, footer.
 //
@@ -213,7 +214,7 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
             <a href={other} className="navbtn" aria-label="Change language">
               <i className="ti ti-language" style={{ fontSize: 13 }} />{ui.langOther}
             </a>
-            <a href="/dashboard?auth=signin" className="navbtn navcta">{ui.login}</a>
+            <DocsAuthButton login={ui.login} dashboard={ui.dashboard || "Open dashboard"} />
           </div>
         </div>
       </nav>
