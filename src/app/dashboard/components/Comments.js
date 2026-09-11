@@ -106,9 +106,17 @@ export default function Comments() {
         {rows.length===0?"No comments yet. When someone comments on one of your posts, it will appear here.":"Nothing matches this filter"}
       </Card>
       :filtered.map(c=><Card key={c.id}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:10}}>
-          <div style={{minWidth:0}}>
-            <div style={{fontSize:14,fontWeight:600}}>{c.commenter_name||"Someone"}</div>
+        {/* The name block and the status badges share one row on a wide
+            screen and stack on a phone. The badge group used to be
+            flexShrink:0 with no wrap on the row, so at a phone's width the
+            badges kept their full size, the name column was squeezed to a
+            few pixels and the badges drew straight over the name (owner's
+            screenshot, 2026-09-11). Now the row wraps, the name asks for a
+            sensible minimum, and the badges drop to their own line when
+            there is not room for both. */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"8px 12px",marginBottom:10,flexWrap:"wrap"}}>
+          <div style={{minWidth:0,flex:"1 1 180px"}}>
+            <div style={{fontSize:14,fontWeight:600,overflowWrap:"anywhere"}}>{c.commenter_name||"Someone"}</div>
             <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:4}}>
               <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:600,
                 padding:"3px 8px",borderRadius:6,background:T.goldBg,color:T.gold}}>
@@ -119,7 +127,7 @@ export default function Comments() {
               <PostLink c={c}/>
             </div>
           </div>
-          <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end",alignItems:"center",flex:"0 1 auto",minWidth:0}}>
             <Badge color={c.replied?T.success:T.textDim}>{c.replied?"Replied publicly":"Not replied"}</Badge>
             <Badge color={c.dm_sent?T.success:(c.dm_error?T.danger:T.textDim)}>
               {c.dm_sent?`Sent to ${CH[c.platform]?.inbox||"inbox"}`:(c.dm_error?"Inbox failed":"No inbox msg")}
