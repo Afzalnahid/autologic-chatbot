@@ -64,7 +64,12 @@ An echo is dropped only when its `app_id` is one of OUR Meta app ids (our own se
 already stored); Meta's own tools stamp their app id on a human's reply, so "has an
 app_id" alone never means "ours" (`parseMessengerEvent`, `OWN_APP_IDS`). As a second
 guard, an echo whose text the bot or dashboard already wrote to that thread in the
-last 5 minutes is ignored (`handleIncoming`). Meta delivers a field only when BOTH
+last 5 minutes is ignored (`handleIncoming`). Meta's own *instant reply / away
+message* echoes the same way (same app id) seconds after the customer wrote: it is
+stored in the thread but treated as AUTOMATED (`src/lib/echo-rules.js`
+`isAutomatedEcho`: within 20 s of the newest customer message and no business reply in
+the previous 10 min) — the customer's rows stay Pending so the bot still answers, and
+it is kept out of the bot's memory. Meta delivers a field only when BOTH
 subscriptions carry it: the Facebook APP's Page subscription (App Dashboard →
 Webhooks, `/{app-id}/subscriptions`) and each Page's (`/{page-id}/subscribed_apps`,
 set at connect). The admin console's *Meta webhooks* page (`/api/admin/webhooks`,

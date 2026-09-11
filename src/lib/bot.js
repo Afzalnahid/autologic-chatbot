@@ -9,6 +9,7 @@ import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } fr
 import { getClientAI } from "@/lib/ai.js";
 import { notify } from "@/lib/push.js";
 import { extractHandoff, wantsHuman } from "@/lib/handoff.js";
+import { isAutomatedEcho } from "@/lib/echo-rules.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 // The SAME words that described the product when it was added. A customer's
 // photo and the catalogue photo are both put through this and the two
@@ -1233,6 +1234,22 @@ export async function handleIncoming(event) {
       page_id: channel.page_id || null,
       wa_msg_id: event.msgId || null,
     });
+    // Meta's own "instant reply" / "away message" comes back the same way, with
+    // the same app id, seconds after the customer wrote. It is shown in the
+    // thread (the customer did receive it) but it is NOT a person answering:
+    // the customer's messages stay Pending so the bot still replies, and it
+    // is kept out of the bot's memory. Seen live 2026-09-11 (1.8 s echo).
+    const [{ data: lastC }, { data: lastB }] = await Promise.all([
+      sb().from("message_buffer").select("created_at").eq("client_id", clientId).eq("sender_id", event.senderId)
+        .eq("role", "customer").order("created_at", { ascending: false }).limit(1),
+      sb().from("message_buffer").select("created_at").eq("client_id", clientId).eq("sender_id", event.senderId)
+        .in("role", ["bot", "agent"]).neq("message_content", text).order("created_at", { ascending: false }).limit(1),
+    ]);
+    const at = (rows) => (rows && rows[0] ? new Date(rows[0].created_at).getTime() : 0);
+    if (isAutomatedEcho({ now: Date.now(), lastCustomerAt: at(lastC), lastBusinessAt: at(lastB) })) {
+      console.log("[echo] automated reply kept out of hand-off:", { clientId, senderId: event.senderId });
+      return;
+    }
     // The owner answered by hand, so the customer's pending messages are handled
     // — clear them, so re-enabling the bot does not re-answer them (see
     // send-message route for the same rule).
