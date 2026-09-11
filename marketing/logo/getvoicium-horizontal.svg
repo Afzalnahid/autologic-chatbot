@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 260" width="1000" height="260" role="img" aria-label="getvoicium">
+  <defs>
+    <linearGradient id="tile2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E12F3E"/>
+      <stop offset="1" stop-color="#B01824"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(24,24) scale(0.41406)">
+    <rect width="512" height="512" rx="116" fill="url(#tile2)"/>
+    <g fill="#FFFFFF">
+      <rect x="116" y="110" width="280" height="210" rx="46"/>
+      <path d="M160 312 L150 372 L208 315 Z"/>
+    </g>
+    <g fill="#D92632">
+      <rect x="152" y="185" width="24" height="60" rx="12"/>
+      <rect x="198" y="160" width="24" height="110" rx="12"/>
+      <rect x="244" y="140" width="24" height="150" rx="12"/>
+      <rect x="290" y="160" width="24" height="110" rx="12"/>
+      <rect x="336" y="185" width="24" height="60" rx="12"/>
+    </g>
+  </g>
+  <text x="272" y="172" font-family="Georgia, 'Times New Roman', serif" font-size="122" font-weight="700" letter-spacing="-3" fill="#17171B">getvoicium</text>
+</svg>

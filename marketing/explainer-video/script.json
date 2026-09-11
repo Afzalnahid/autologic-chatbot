@@ -1,0 +1,118 @@
+{
+  "brand": { "site": "getvoicium.com", "crimson": "#D92632", "deep": "#B01824", "mint": "#2ED3A7" },
+  "voices": { "en": "en-US-AndrewNeural", "bn": "bn-BD-PradeepNeural" },
+  "scenes": [
+    {
+      "id": "01-hook", "template": "hook",
+      "en": { "title": "Every message you miss is a sale someone else makes.", "sub": "An AI assistant that answers your customers 24/7 — on Messenger, Instagram, WhatsApp and your website.",
+        "vo": "Every message your business misses is a sale someone else makes. A customer asks a question at midnight, and by morning they have bought from whoever replied first. This is the story of how one small assistant fixes that — for every message, on every channel, all day and all night." },
+      "bn": { "title": "যে মেসেজ আপনি মিস করলেন, সেটাই অন্য কারও বিক্রি।", "sub": "একটা AI সহকারী, যেটা Messenger, Instagram, WhatsApp আর আপনার ওয়েবসাইটে কাস্টমারকে ২৪ ঘণ্টা উত্তর দেয়।",
+        "vo": "আপনার ব্যবসা যে মেসেজটা মিস করে, সেটাই অন্য কারও বিক্রি হয়ে যায়। কাস্টমার রাত বারোটায় দাম জিজ্ঞেস করে, আর সকালে দেখা যায় যে আগে উত্তর দিয়েছে তার কাছ থেকেই কিনে ফেলেছে। আজ দেখাব ছোট্ট একটা সহকারী কীভাবে এই সমস্যাটা মেটায় — প্রতিটা মেসেজে, প্রতিটা চ্যানেলে, দিনরাত।" }
+    },
+    {
+      "id": "02-problem", "template": "problem",
+      "en": { "title": "The inbox never sleeps.", "sub": "Facebook · Instagram · WhatsApp · Website — all at once.",
+        "vo": "If you run a shop or a service in Bangladesh, you know the feeling. Facebook, Instagram, WhatsApp, your website — the same questions, hundreds of times a day. Price? Size? Delivery? Is it in stock? You cannot answer them all, and every unanswered one quietly walks away." },
+      "bn": { "title": "ইনবক্স কখনো ঘুমায় না।", "sub": "Facebook · Instagram · WhatsApp · ওয়েবসাইট — সব একসাথে।",
+        "vo": "বাংলাদেশে দোকান বা সার্ভিস চালালে এই অনুভূতিটা আপনার চেনা। Facebook, Instagram, WhatsApp, ওয়েবসাইট — একই প্রশ্ন দিনে শত শত বার। দাম কত? সাইজ আছে? ডেলিভারি কত? স্টকে আছে? সব উত্তর দেওয়া সম্ভব না, আর যে প্রশ্নের উত্তর হয় না, সেই কাস্টমার চুপচাপ চলে যায়।" }
+    },
+    {
+      "id": "03-solution", "template": "channels",
+      "en": { "title": "One assistant. Every channel. One inbox.", "sub": "Connect a Page, an account or a number in a single click — no tokens, no code, no developer.",
+        "vo": "Meet getvoicium. One AI assistant, trained on your business, that answers on every channel from one simple dashboard. Connecting a Facebook Page, an Instagram account, a WhatsApp number or your website takes a single click — you log in with your own account, choose the Page, and the bot is live from that moment. No tokens, no code, no developer." },
+      "bn": { "title": "একটা সহকারী। সব চ্যানেল। একটা ইনবক্স।", "sub": "পেজ, অ্যাকাউন্ট বা নম্বর যুক্ত করুন এক ক্লিকে — টোকেন নেই, কোড নেই, ডেভেলপার লাগে না।",
+        "vo": "পরিচয় করিয়ে দিই getvoicium-এর সাথে। একটা AI সহকারী, আপনার ব্যবসা শিখে নিয়ে, একটা সহজ ড্যাশবোর্ড থেকে সব চ্যানেলে উত্তর দেয়। Facebook পেজ, Instagram অ্যাকাউন্ট, WhatsApp নম্বর বা ওয়েবসাইট যুক্ত করতে লাগে মাত্র এক ক্লিক — নিজের অ্যাকাউন্ট দিয়ে লগইন করুন, পেজটা বাছুন, সেই মুহূর্ত থেকে বট চালু। টোকেন নেই, কোড নেই, ডেভেলপার লাগে না।" }
+    },
+    {
+      "id": "04-inbox", "template": "inbox",
+      "en": { "title": "Watch it work — and step in whenever you want.", "sub": "Bold means unread. One switch hands any chat to you; the bot keeps serving everyone else.",
+        "vo": "This is the Inbox. Every conversation from every channel, live. A new message arrives, the bot replies in seconds — in Bangla, Banglish or English, whatever the customer wrote in. Unread chats show in bold, like Messenger. And when you want to handle someone yourself, one switch puts that chat on manual. The bot keeps serving everyone else." },
+      "bn": { "title": "কাজ করতে দেখুন — আর যখন খুশি নিজে ঢুকে পড়ুন।", "sub": "মোটা হরফ মানে না-পড়া। একটা সুইচে যেকোনো চ্যাট আপনার হাতে; বাকিদের বট সামলায়।",
+        "vo": "এটা ইনবক্স। সব চ্যানেলের সব কথোপকথন, লাইভ। নতুন মেসেজ এলো, বট কয়েক সেকেন্ডে উত্তর দিল — বাংলা, বাংলিশ বা ইংরেজি, কাস্টমার যে ভাষায় লিখেছে সেই ভাষায়। না-পড়া চ্যাট মোটা হরফে দেখায়, Messenger-এর মতো। আর কাউকে নিজে সামলাতে চাইলে একটা সুইচে সেই চ্যাট ম্যানুয়ালে চলে যায়। বাকি সবাইকে বট সামলাতে থাকে।" }
+    },
+    {
+      "id": "05-photo", "template": "photo",
+      "en": { "title": "A photo instead of a name? No problem.", "sub": "The bot finds the exact product in your catalogue and quotes the real price.",
+        "vo": "Customers rarely know your product names. They send a photo — a screenshot from your page, a picture from a friend. The bot looks at it, finds that exact product in your catalogue, and answers with the real price, the sizes in stock and the delivery charge. No more 'which one do you mean?'" },
+      "bn": { "title": "নামের বদলে ছবি? সমস্যা নেই।", "sub": "বট আপনার ক্যাটালগ থেকে ঠিক সেই পণ্যটা খুঁজে আসল দাম বলে দেয়।",
+        "vo": "কাস্টমার সাধারণত পণ্যের নাম জানে না। তারা ছবি পাঠায় — আপনার পেজের স্ক্রিনশট, বন্ধুর পাঠানো ছবি। বট ছবিটা দেখে, ক্যাটালগ থেকে ঠিক সেই পণ্যটা খুঁজে বের করে, আর আসল দাম, স্টকে থাকা সাইজ আর ডেলিভারি চার্জ জানিয়ে দেয়। আর 'কোনটার কথা বলছেন?' জিজ্ঞেস করতে হয় না।" }
+    },
+    {
+      "id": "06-order", "template": "order",
+      "en": { "title": "From question to order — inside the chat.", "sub": "Name, phone, address, size. Confirmed. It appears in your Orders tab with a code.",
+        "vo": "When the customer is ready, the bot takes the order right there in the chat. It asks for the name, the phone number, the address and the size, confirms everything, and the order appears in your Orders tab with its own code. You get a notification on your phone and an email the moment it lands." },
+      "bn": { "title": "প্রশ্ন থেকে অর্ডার — চ্যাটের ভেতরেই।", "sub": "নাম, ফোন, ঠিকানা, সাইজ। নিশ্চিত। কোডসহ আপনার Orders ট্যাবে চলে আসে।",
+        "vo": "কাস্টমার তৈরি হলে বট চ্যাটের ভেতরেই অর্ডার নিয়ে নেয়। নাম, ফোন নম্বর, ঠিকানা আর সাইজ জিজ্ঞেস করে, সব নিশ্চিত করে, আর অর্ডারটা নিজের কোডসহ আপনার Orders ট্যাবে চলে আসে। অর্ডার আসার সাথে সাথে আপনার ফোনে নোটিফিকেশন আর একটা ইমেইল পান।" }
+    },
+    {
+      "id": "07-booking", "template": "booking",
+      "en": { "title": "Run a service? It books the meeting for you.", "sub": "Checks your Google Calendar, picks a free slot, creates the Meet link.",
+        "vo": "Running an agency or a service instead of a shop? Then the bot answers from the documents you upload — your price list, your policies — and books meetings straight into your Google Calendar. It checks when you are free, picks a slot, creates the Meet link and sends it to the customer. You just show up." },
+      "bn": { "title": "সার্ভিস ব্যবসা? মিটিংটা বটই বুক করে দেয়।", "sub": "আপনার Google Calendar দেখে, খালি সময় বেছে, Meet লিংক বানিয়ে দেয়।",
+        "vo": "দোকান নয়, এজেন্সি বা সার্ভিস চালান? তাহলে বট আপনার আপলোড করা ডকুমেন্ট থেকে উত্তর দেয় — প্রাইস লিস্ট, নিয়মকানুন — আর মিটিং সরাসরি আপনার Google Calendar-এ বুক করে। কখন ফ্রি আছেন দেখে, একটা সময় বাছে, Meet লিংক বানিয়ে কাস্টমারকে পাঠিয়ে দেয়। আপনি শুধু হাজির থাকবেন।" }
+    },
+    {
+      "id": "08-voice", "template": "voice",
+      "en": { "title": "Voice notes? It listens and answers.", "sub": "No more 'please type your question'.",
+        "vo": "Many customers prefer to talk. Send a voice note, and the bot listens, understands it, and replies in text — in the language the customer spoke. Nobody is told to please type their question." },
+      "bn": { "title": "ভয়েস নোট? শুনে উত্তর দেয়।", "sub": "আর 'লিখে পাঠান' বলতে হয় না।",
+        "vo": "অনেক কাস্টমার লেখার বদলে বলতেই পছন্দ করে। ভয়েস নোট পাঠালে বট সেটা শোনে, বোঝে, আর কাস্টমার যে ভাষায় বলেছে সেই ভাষায় লিখে উত্তর দেয়। কাউকে 'দয়া করে লিখে পাঠান' বলতে হয় না।" }
+    },
+    {
+      "id": "09-comments", "template": "comments",
+      "en": { "title": "Comments become conversations.", "sub": "A public reply on the post, and a private message in their inbox.",
+        "vo": "Comments on your posts are customers too. The bot replies publicly under the comment and, at the same time, sends the person a private message to continue in the inbox. Every comment you see here has both — the reply, and the inbox message — with a status you can check at a glance." },
+      "bn": { "title": "কমেন্ট থেকে কথোপকথন।", "sub": "পোস্টে পাবলিক উত্তর, আর ইনবক্সে একটা প্রাইভেট মেসেজ।",
+        "vo": "পোস্টের কমেন্টও কাস্টমার। বট কমেন্টের নিচে পাবলিক উত্তর দেয়, আর একই সাথে সেই মানুষটাকে ইনবক্সে প্রাইভেট মেসেজ পাঠায়, যাতে কথাটা এগোয়। এখানে প্রতিটা কমেন্টের দুটোই দেখা যায় — উত্তর আর ইনবক্স মেসেজ — এক নজরে স্ট্যাটাসসহ।" }
+    },
+    {
+      "id": "10-handoff", "template": "handoff",
+      "en": { "title": "When a customer needs a person, it calls you.", "sub": "Reply from the dashboard, Messenger or Business Suite — the bot remembers what you said.",
+        "vo": "Some customers need a human. When someone asks for a person, or asks something the bot must not decide, it says a person will follow up and alerts you — on the bell, on your phone, by email. Reply from the dashboard, from the Messenger app, from Business Suite, from WhatsApp on your own phone — it all lands in the same chat, and the bot remembers what you said. A price you quoted by hand is a price it will never contradict." },
+      "bn": { "title": "কাস্টমারের মানুষ দরকার হলে আপনাকে ডাকে।", "sub": "ড্যাশবোর্ড, Messenger বা Business Suite থেকে উত্তর দিন — বট আপনার কথা মনে রাখে।",
+        "vo": "কিছু কাস্টমারের একজন মানুষ দরকার। কেউ মানুষ চাইলে, বা এমন কিছু জিজ্ঞেস করলে যেটা বটের সিদ্ধান্ত নেওয়ার কথা না, বট জানায় একজন যোগাযোগ করবেন, আর আপনাকে সতর্ক করে — বেলে, ফোনে, ইমেইলে। উত্তর দিন ড্যাশবোর্ড থেকে, Messenger অ্যাপ থেকে, Business Suite থেকে, নিজের ফোনের WhatsApp থেকে — সব একই চ্যাটে জমা হয়, আর বট আপনার কথা মনে রাখে। আপনি হাতে যে দাম বলেছেন, বট কখনো তার উল্টো বলবে না।" }
+    },
+    {
+      "id": "11-notify", "template": "notify",
+      "en": { "title": "Everything worth your attention, in one bell.", "sub": "Needs you · Customers · Business — and the same alerts on your phone, with the Android app.",
+        "vo": "The bell at the top collects everything worth your attention, in three groups: what needs you, your customers, and your business. Tap one and it opens the exact chat or order. Turn on phone notifications and the same alerts reach you even when the dashboard is closed — a new order, a booking, a chat that needs you. There is an Android app, so it all lives on your phone." },
+      "bn": { "title": "নজর দেওয়ার মতো সবকিছু, এক বেলে।", "sub": "Needs you · Customers · Business — আর Android অ্যাপে একই সতর্কতা আপনার ফোনে।",
+        "vo": "উপরের বেলটা আপনার নজর দেওয়ার মতো সবকিছু তিন ভাগে জমা করে: যা আপনাকে দরকার, আপনার কাস্টমার, আর আপনার ব্যবসা। একটাতে চাপ দিলে ঠিক সেই চ্যাট বা অর্ডারটাই খোলে। ফোনের নোটিফিকেশন চালু করলে ড্যাশবোর্ড বন্ধ থাকলেও একই সতর্কতা আপনার কাছে পৌঁছায় — নতুন অর্ডার, বুকিং, আপনাকে দরকার এমন চ্যাট। একটা Android অ্যাপ আছে, তাই সবটাই আপনার ফোনে।" }
+    },
+    {
+      "id": "12-train", "template": "train",
+      "en": { "title": "It learns your business in minutes.", "sub": "Products or documents in, an AI-written profile out. Bring your own AI key if you like.",
+        "vo": "How does it know what to say? You teach it — in minutes. Import your products from your website or a spreadsheet, or upload your documents. Describe your business in your own words and the assistant writes a proper profile from it. It even reads your product photos and fills in the details. And if you want the AI usage on your own account, you can bring your own AI key." },
+      "bn": { "title": "কয়েক মিনিটেই আপনার ব্যবসা শিখে নেয়।", "sub": "পণ্য বা ডকুমেন্ট দিন, AI নিজেই প্রোফাইল লিখে দেয়। চাইলে নিজের AI key ব্যবহার করুন।",
+        "vo": "কী বলতে হবে সেটা বট জানে কীভাবে? আপনি শেখান — কয়েক মিনিটে। ওয়েবসাইট বা স্প্রেডশিট থেকে পণ্য ইমপোর্ট করুন, বা ডকুমেন্ট আপলোড করুন। নিজের ভাষায় ব্যবসার বর্ণনা দিন, সহকারী সেটা থেকে ঠিকঠাক প্রোফাইল লিখে ফেলে। এমনকি পণ্যের ছবি দেখে নিজেই বিবরণ ভরে দেয়। আর AI-এর খরচ নিজের অ্যাকাউন্টে রাখতে চাইলে নিজের AI key ব্যবহার করতে পারেন।" }
+    },
+    {
+      "id": "13-widget", "template": "widget",
+      "en": { "title": "Your website too — one line of code.", "sub": "The same bot, in a chat bubble on your own site.",
+        "vo": "The same assistant works on your own website. Paste one line of code and a chat bubble appears on your site, answering visitors with everything the bot already knows. Website chats land in the same inbox as everything else." },
+      "bn": { "title": "আপনার ওয়েবসাইটেও — এক লাইন কোড।", "sub": "একই বট, আপনার সাইটে একটা চ্যাট-বাবল হয়ে।",
+        "vo": "একই সহকারী আপনার নিজের ওয়েবসাইটেও কাজ করে। এক লাইন কোড বসান, সাইটে একটা চ্যাট-বাবল দেখা দেয়, আর বট যা জানে সব দিয়ে ভিজিটরদের উত্তর দেয়। ওয়েবসাইটের চ্যাটও বাকি সবকিছুর সাথে একই ইনবক্সে আসে।" }
+    },
+    {
+      "id": "14-analytics", "template": "analytics",
+      "en": { "title": "See what the bot is doing for you.", "sub": "Conversations, replies, orders, busiest hours — and broadcasts to people who wrote recently.",
+        "vo": "Analytics shows how much the bot is doing, how much you still do by hand, and when your customers actually write to you. And when you have an offer, Broadcast sends it to everyone who messaged you recently — inside Meta's rules, so your Page stays safe." },
+      "bn": { "title": "বট আপনার জন্য কী করছে, দেখুন।", "sub": "কথোপকথন, উত্তর, অর্ডার, ব্যস্ততম সময় — আর সম্প্রতি লেখা মানুষদের কাছে ব্রডকাস্ট।",
+        "vo": "অ্যানালিটিক্স দেখায় বট কতটা করছে, আপনি এখনো কতটা হাতে করছেন, আর কাস্টমাররা আসলে কখন লেখে। আর কোনো অফার থাকলে ব্রডকাস্ট সেটা পাঠায় যারা সম্প্রতি আপনাকে মেসেজ করেছে তাদের সবার কাছে — Meta-র নিয়মের ভেতরে থেকে, যাতে আপনার পেজ নিরাপদ থাকে।" }
+    },
+    {
+      "id": "15-pricing", "template": "pricing",
+      "en": { "title": "Start free. Grow when you are ready.", "sub": "3-day free trial, no card. Packages for shops and for services, from ৳1,500 a month. Pay with bKash or Nagad.",
+        "vo": "Getting started is free. A three-day trial, no card needed, with everything switched on. When you are ready, choose a package for a shop or for a service — from fifteen hundred taka a month — and pay with bKash or Nagad. You are charged for the replies the bot gives, never for the ones you type yourself." },
+      "bn": { "title": "ফ্রি-তে শুরু। তৈরি হলে বাড়ান।", "sub": "৩ দিনের ফ্রি ট্রায়াল, কার্ড লাগে না। দোকান ও সার্ভিসের প্যাকেজ, মাসে ৳১,৫০০ থেকে। bKash বা Nagad-এ পেমেন্ট।",
+        "vo": "শুরু করা ফ্রি। তিন দিনের ট্রায়াল, কার্ড লাগে না, সব ফিচার চালু। তৈরি হলে দোকান বা সার্ভিসের জন্য একটা প্যাকেজ বাছুন — মাসে দেড় হাজার টাকা থেকে — আর bKash বা Nagad-এ টাকা দিন। বট যে উত্তরগুলো দেয় শুধু সেগুলোর জন্য খরচ, আপনি নিজে যা লেখেন তার জন্য কখনো নয়।" }
+    },
+    {
+      "id": "16-outro", "template": "outro",
+      "en": { "title": "Let the assistant handle the questions. You handle the growth.", "sub": "getvoicium.com — start your free trial today.",
+        "vo": "You built your business to grow — not to answer the same question a hundred times a day. Let the assistant handle the questions, and you handle the growth. Start your free trial today at getvoicium dot com." },
+      "bn": { "title": "প্রশ্নগুলো সহকারী সামলাক। আপনি সামলান ব্যবসার বৃদ্ধি।", "sub": "getvoicium.com — আজই ফ্রি ট্রায়াল শুরু করুন।",
+        "vo": "ব্যবসাটা আপনি বানিয়েছেন বড় করার জন্য — দিনে একশোবার একই প্রশ্নের উত্তর দেওয়ার জন্য নয়। প্রশ্নগুলো সহকারী সামলাক, আর আপনি সামলান ব্যবসার বৃদ্ধি। আজই ফ্রি ট্রায়াল শুরু করুন getvoicium ডট কম-এ।" }
+    }
+  ]
+}
