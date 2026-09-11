@@ -38,6 +38,7 @@ export const UI = {
   contact: "Contact us",
   home: "Home",
   login: "Log in",
+  dashboard: "Open dashboard",   // shown instead of Log in to a signed-in client
   langOther: "বাং",
   groups: {
     start: "Start here",
@@ -56,6 +57,7 @@ export const UI = {
     "website-widget": "Website widget",
     "inbox": "Inbox",
     "comments": "Comments",
+    "notifications": "Notifications",
     "analytics": "Analytics",
     "broadcast": "Broadcast",
     "inventory": "Inventory & Knowledge Base",
@@ -246,6 +248,7 @@ export const DOCS = {
           rows: [
             ["A **green dot** and “Live — the bot is answering”", "Working normally"],
             ["A **grey dot** and “Paused — messages wait for you”", "The bot is off here; nothing is lost, messages simply sit in Conversations"],
+            ["A **red row** saying “Disconnected” with a **Reconnect** button", "Facebook stopped accepting our access — usually a changed password or a removed admin. The bot is silent on this Page until you press Reconnect (one click). You are told on the bell, on your phone and by email the day it happens"],
             ["The switch on the right", "Turns this one channel on or off"],
             ["The arrow at the end", "Opens the row's details"],
           ] } },
@@ -279,6 +282,8 @@ export const DOCS = {
             a: "Open the quiet Page's row and check its switch. Each channel has its own — turning the bot off in Inbox is a separate control again, covering every channel at once." },
           { q: "I disconnected by accident.",
             a: "Nothing is lost. Connect it again the same way; your conversations, orders and training all stay exactly as they were." },
+          { q: "I still answer some customers from the Messenger app, Business Suite or my phone's WhatsApp. Is that a problem?",
+            a: "No — those replies show up in the Inbox here as **You**, the customer counts as answered, and the bot remembers what you said. See the Inbox page." },
         ] },
     ],
   },
@@ -382,6 +387,7 @@ export const DOCS = {
         table: { head: ["What you see", "What it means"],
           rows: [
             ["The icon before the name", "Which channel this chat came in on"],
+            ["**Bold name, bold preview, a red dot**", "Unread — a customer wrote and you have not looked yet, the way Messenger shows it. Open the chat and it goes back to normal; the next message makes it bold again. A bot reply does not clear it — you have not seen it"],
             ["“2m”, “3h”, “5d”", "How long since the last message"],
             ["A green **bot** badge", "The bot is answering this person"],
             ["An amber **manual** badge", "You have taken over this chat"],
@@ -398,6 +404,18 @@ export const DOCS = {
         ] },
 
       { p: ["Your messages sit on the right in blue, the customer's on the left in grey. Anything you sent by hand is marked **You** underneath, so you can tell your words from the bot's at a glance."] },
+
+      { note: "The **Inbox** number on the sidebar is the count of unread chats — the same ones shown bold. Opening a chat, or **Mark all as read** in the bell at the top, clears it. It is remembered per device, so your phone and your computer each keep their own.",
+        kind: "tip" },
+
+      { h: "Replying from Messenger, Business Suite, WhatsApp or Instagram",
+        p: [
+          "You do not have to answer from this dashboard. A reply you type in the **Messenger app**, in **Meta Business Suite**, in the **WhatsApp Business app** on your own phone, or in **Instagram** lands in the chat here within seconds, marked **You** — exactly as if you had typed it in the box below.",
+          "That matters for two reasons. The customer's messages are then counted as answered, so switching the bot back on does not make it answer them a second time. And the bot **remembers** what you said: a price you quoted by hand is a price it will not contradict later.",
+        ] },
+
+      { note: "Meta's own **instant reply** (the automatic “Thanks for contacting us…” some Pages send) also shows up in the chat, because the customer did receive it — but it is not treated as your answer. The bot still replies, and that greeting is kept out of its memory.",
+        kind: "tip" },
 
       { h: "Sending more than text",
         table: { head: ["Button", "What it sends"],
@@ -443,6 +461,69 @@ export const DOCS = {
             a: "Facebook, Instagram and WhatsApp all close the door 24 hours after the customer's last message. After that you cannot write to them until they write to you again. This is Meta's rule and applies to every business tool, not only getvoicium." },
           { q: "The customer's real name is not showing.",
             a: "On Facebook, names need extra permission from Meta that has to be granted per app. Until then you see the account identifier instead of the name. It does not affect replies in any way." },
+          { q: "I answered someone from the Messenger app. Does the bot know?",
+            a: "Yes. The reply appears in that chat here as **You**, the customer counts as answered, and the bot carries what you said into its next reply. The same goes for Business Suite, the WhatsApp Business app on your phone, and Instagram." },
+          { q: "Everything is bold again after I marked all as read.",
+            a: "Only chats with a **new** customer message since then should be bold. If older ones came back, close the app fully and open it again — an app left open does not pick up the latest version until it is reopened." },
+        ] },
+    ],
+  },
+
+  "notifications": {
+    title: "Notifications",
+    lead: "The bell at the top of the dashboard, the notifications on your phone, and the emails — what each one tells you, and how to keep them quiet until something needs you.",
+    time: 5,
+    blocks: [
+      { h: "The bell",
+        p: [
+          "The bell in the top bar collects everything worth your attention, in three groups — the way Facebook arranges its own.",
+        ],
+        table: { head: ["Group", "What lands there"],
+          rows: [
+            ["**Needs you**", "A customer who asked for a person, a comment the bot could not answer, and alerts: your plan or message limit, your AI key, a channel that needs reconnecting, a payment decision"],
+            ["**Customers**", "Messages waiting for a reply, and new public comments on your posts"],
+            ["**Business**", "New orders and bookings, and quieter news such as a payment confirmed"],
+          ] } },
+
+      { p: ["Tap a notification and the dashboard opens **the exact thing it is about** — that customer's chat, that order — not just the tab. The number on the bell is how many are unread; a red badge means one of them is urgent."] },
+
+      { h: "Marking as read",
+        p: [
+          "Opening the bell does not clear anything — only tapping a notification, or **Mark all as read**, does. After Mark all, the bell shows nothing until something new arrives, and it also clears the bold rows and the Inbox number in the sidebar. Read state is kept per device.",
+        ] },
+
+      { h: "When a customer needs a person",
+        p: [
+          "If a customer asks to talk to a human, or asks something the bot is not allowed to decide, the bot says a person will follow up and raises a **needs you** notification — on the bell, on your phone, and by email. Answer from the chat and it clears; the bot's own replies never clear it.",
+        ] },
+
+      { h: "On your phone",
+        p: [
+          "In **Profile** there is one **Notifications** switch. On, this device gets a notification even when the dashboard is closed — a new order, a new booking, a chat that needs you, a channel that stopped working, and the bot pausing because your AI key failed.",
+          "In the getvoicium Android app the switch uses the phone's own notifications; the first time the app opens it asks for permission, along with the camera, microphone and location it uses. In a browser, the browser asks instead.",
+        ] },
+
+      { note: "On an iPhone, a browser tab cannot receive notifications. Add getvoicium to your Home Screen first, open it from there, and then turn the switch on.",
+        kind: "warn" },
+
+      { h: "Email",
+        p: ["Some things are also emailed to the address you signed up with, so a notification you swiped away is not lost."],
+        table: { head: ["What happened", "Email"],
+          rows: [
+            ["A new order or booking", "Yes — one email each"],
+            ["A customer asked for a person", "Yes"],
+            ["A channel stopped working and needs reconnecting", "Yes"],
+            ["A new customer message", "No — that is what the bell and the phone are for"],
+          ] } },
+
+      { h: "If something goes wrong",
+        faq: [
+          { q: "The switch is on but nothing arrives on my phone.",
+            a: "Check the phone's own settings: Settings → Apps → getvoicium → Notifications must be allowed. If you refused the first prompt, that is where to allow it, then reopen the app." },
+          { q: "I marked all as read and the Inbox number stayed.",
+            a: "The Inbox number counts unread chats, and Mark all clears it. If it stayed, the app was still running an older version — close it fully and open it again." },
+          { q: "I get too many.",
+            a: "Turn the phone switch off in Profile; the bell keeps working on its own. Emails only go out for orders, bookings, hand-offs and a broken channel — never for ordinary messages." },
         ] },
     ],
   },
@@ -1025,7 +1106,10 @@ export const DOCS = {
     time: 4,
     blocks: [
       { h: "Your current plan",
-        p: ["The card at the top shows which plan you are on and two counters: **Messages today** and **Messages this month**. On an unlimited plan it says so instead of counting."] },
+        p: [
+          "The card at the top shows which plan you are on and two counters: **Messages today** and **Messages this month**. On an unlimited plan it says so instead of counting.",
+          "A “message” here is **one bot reply to one customer message** — one, even when the answer comes as two or three bubbles. Replies you send yourself, from anywhere, are never counted, and nothing is counted while the bot is off.",
+        ] },
 
       { note: "These are the same limits the bot itself enforces. When you run out, the bot stops replying — so it is worth glancing at this card before a big campaign or a festival rush, not after.",
         kind: "warn" },
@@ -1097,7 +1181,7 @@ export const DOCS = {
 
       { h: "The free trial",
         p: [
-          "The same for everybody, because when you start you may not have chosen yet. It gives you **30 customer messages a day** on **one channel**, with everything switched on so you can see what the bot does with your own customers.",
+          "The same for everybody, because when you start you may not have chosen yet. It gives you **30 bot replies a day** on **one channel**, with everything switched on so you can see what the bot does with your own customers.",
           "It costs nothing and needs no card. When it ends the bot stops replying, but nothing is deleted — your products, documents and conversations wait for you.",
         ] },
 
@@ -1105,7 +1189,7 @@ export const DOCS = {
         p: ["Both sides climb the same three rungs, so a shop and a service on the same tier are the same size of business."] },
 
       { table: { head: ["", "Starter", "Growth", "Scale"], rows: [
-        ["Customer messages", "3,000 / month", "15,000 / month", "50,000 / month"],
+        ["Bot replies", "3,000 / month", "15,000 / month", "50,000 / month"],
         ["Channels", "1", "All 3", "All 3"],
         ["Voice messages", "—", "Yes", "Yes"],
         ["Comment automation", "—", "Yes", "Yes"],
@@ -1125,13 +1209,24 @@ export const DOCS = {
         ["Website imports / month", "20", "200", "Unlimited"],
       ] } },
 
-      { note: "Only messages your **customers** send count against the limit. The bot's own replies are free, and always have been.", kind: "tip" },
+      { h: "How a reply is counted",
+        p: ["The unit is **one bot reply to one customer message**. Everything else is free:"],
+        table: { head: ["What happens", "Counts as"],
+          rows: [
+            ["A customer writes, the bot answers", "**1** — even when the answer arrives as two or three bubbles"],
+            ["A customer sends three messages in a row, the bot answers once", "**1**"],
+            ["You answer yourself — from the dashboard, Messenger, Business Suite, WhatsApp or Instagram", "0"],
+            ["The bot is off, or that chat is on manual, and a customer writes", "0"],
+            ["A broadcast or a follow-up you send", "0"],
+          ] } },
+
+      { note: "So the number on your package is the number of customer questions the bot may answer for you. A long conversation with a bot that answers in short pieces costs no more than one that answers in one block.", kind: "tip" },
 
       { h: "What the features mean",
         p: ["The words on a package, in plain language."] },
 
       { table: { head: ["", "What it does"], rows: [
-        ["Customer messages", "How many messages your customers may send you in a month. When they run out the bot stops replying until the month turns or you move up."],
+        ["Bot replies", "How many customer messages the bot may answer in a month — one per answer, however many bubbles it takes. When they run out the bot stops replying until the month turns or you move up. Your own replies never count."],
         ["Channels", "How many Facebook Pages, Instagram accounts or WhatsApp numbers you may connect. The website chat widget is separate and does not use one."],
         ["Voice message understanding", "The bot listens to a voice note and answers it, instead of asking the customer to type."],
         ["Comment automation", "Replies to comments on your posts, and can carry the conversation into the inbox."],
@@ -1213,6 +1308,12 @@ export const DOCS = {
 
       { note: "**Google Calendar now connects in the Bookings tab**, next to the meetings it powers — connect, see the connected account, and disconnect all in one place. (Agency accounts only.)",
         kind: "tip" },
+
+      { h: "Notifications",
+        p: [
+          "One switch. On, **this device** gets a notification even when the dashboard is closed — a new order, a new booking, a chat that needs you, a channel that stopped working. Off, the bell in the top bar still works; only the phone stays quiet.",
+          "The first time you turn it on, the phone or browser asks for permission. If it is blocked, the row says so and tells you where to allow it. The full picture — the bell, the phone, the emails — is on the **Notifications** page of this manual.",
+        ] },
 
       { h: "If something goes wrong",
         faq: [

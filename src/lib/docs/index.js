@@ -29,6 +29,10 @@ export const PAGES = [
   // page state were built on it. next.config.js redirects the old URL.
   { slug: "inbox",           group: "daily",    icon: "ti-messages",          tab: "conversations", biz: "both" },
   { slug: "comments",        group: "daily",    icon: "ti-message-circle-2",  tab: "comments",      biz: "both" },
+  // tab: null — it explains the bell, the phone and the emails, which belong
+  // to no single tab (the phone switch lives in Profile, which keeps its own
+  // Read docs link).
+  { slug: "notifications",   group: "daily",    icon: "ti-bell",              tab: null,            biz: "both" },
   { slug: "analytics",       group: "daily",    icon: "ti-chart-bar",         tab: "analytics",     biz: "both" },
   { slug: "broadcast",       group: "outreach", icon: "ti-speakerphone",      tab: "broadcast",     biz: "both" },
   { slug: "inventory",       group: "business", icon: "ti-package",           tab: "inventory",     biz: "both" },

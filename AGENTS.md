@@ -75,6 +75,14 @@ Anything that cannot fill `VERIFIED` with real evidence is not done.
    rebuild"** in the handoff — web changes reach the app on their own.
    A real phone / the APK cannot be run from the dev machine: say what the
    owner must check there, never claim app behaviour that was only reasoned.
+6. **The customer manual is current.** Anything a client can see or do
+   differently — a new control, a changed rule, a renamed label, a new
+   notification — is written into `src/lib/docs/en.js` AND `bn.js` (same
+   section, same meaning) in the same piece of work, before the stage is
+   called finished. A new page is declared once in `src/lib/docs/index.js`
+   and named in both `names` maps. The manual is what clients read at
+   `/docs`; code that changes behaviour without changing the manual ships a
+   lie. Owner's standing rule, 2026-09-11.
 
 Fail any gate → fix before the next stage. Never stack unverified stages.
 Every finished stage is committed and pushed; nothing is left uncommitted.
