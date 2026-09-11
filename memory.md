@@ -414,6 +414,9 @@ again?"
     is declared later, TDZ). 44/44.
   - Likely part of 1(a) was the phone still running the previous bundle (an
     open WebView does not pick up a deploy until the app is closed/reopened).
+  - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
+    had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
+    fallback. lessons.md: a new admin page = NAV + render branch + titles.
 
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 

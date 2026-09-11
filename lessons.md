@@ -1354,3 +1354,19 @@ it; the app-level list had never been given `message_echoes`.
 - Keep such repairs in the product (an admin page that shows and fixes the
   app-level subscription) so the next Page or the next app does not depend on
   someone remembering a dashboard checkbox.
+
+## A new admin page needs THREE registrations, and I shipped two (2026-09-11)
+
+Adding "Meta webhooks" to the admin console meant a NAV entry, a render branch
+AND a `titles[page]` entry; the header does `titles[page][0]`, so the missing
+third one threw on open and the owner saw "Application error" instead of the
+page that was supposed to fix his real problem.
+
+**Rules:**
+- When adding a page/tab, grep for every place the existing ids appear
+  (`"ai"` found NAV, the render branch and `titles`) and register in all of them.
+- A lookup keyed by a route id must have a fallback; a typo or a new id must
+  degrade to a blank title, never to a blank screen.
+- Before telling the owner "open X and click Y", open X myself when the
+  environment allows; when it does not (login-only page), say so and check
+  the client-side code path end to end.
