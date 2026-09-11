@@ -458,6 +458,25 @@ again?"
     test", no paragraph; blocked/unsupported/unconfigured = same row, switch
     off + one line why. `/api/push/test` kept server-side, not in the UI.
     Native FCM path unchanged behind the switch. JSX parses; web + app.
+  - **Client manual updated (owner's standing rule: docs after every
+    change).** `src/lib/docs/en.js` + `bn.js`: new page `notifications`
+    (index.js, group daily, tab null; names in both maps); Inbox (unread
+    bold/dot row, sidebar count note, "Replying from Messenger / Business
+    Suite / WhatsApp / Instagram" section + instant-reply note, 2 FAQs);
+    Profile ("Notifications" switch section); Channels (red Disconnected +
+    Reconnect row, FAQ); Packages/Billing: **counting rule corrected** — the
+    manual said "only customer messages count, bot replies are free", the
+    OPPOSITE of the real rule. Now: unit = one bot reply per customer
+    message, bubbles don't multiply, owner's replies + bot-off = 0 (table
+    "How a reply is counted"); rows/trial renamed "Bot replies" /
+    "বট-উত্তর". AGENTS.md **gate 6**: any client-visible change updates
+    en.js AND bn.js in the same work. t-nav: 12 pages line up. 45/45.
+  - Docs header: `src/app/docs/auth-button.js` (client) shows "Open
+    dashboard" (`ui.dashboard`, EN/BN) to a signed-in client, "Log in" to a
+    visitor (server renders Log in; swapped after `auth.getSession()`).
+    Owner asked why a logged-in customer sees Log in on a public manual.
+  - Verified counting code unchanged today: `countBillableMessages` counts
+    only `role=bot AND reply_turn=true`; echo/agent rows never count.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
