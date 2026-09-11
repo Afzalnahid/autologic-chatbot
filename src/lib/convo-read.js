@@ -33,6 +33,24 @@ export function unreadConvoCount(convos, state) {
   return (Array.isArray(convos) ? convos : []).filter((c) => isUnreadConvo(c, state)).length;
 }
 
+// "Mark all as read": every chat is seen up to its newest customer message,
+// recorded per chat from the MESSAGE times, not the device clock — so a phone
+// whose clock runs behind the server can never see "all unread again" after
+// marking everything read. The watermark still moves, to the later of now
+// and the newest message seen, for chats not in the current list.
+export function markAllSeen(convos, state, now = Date.now()) {
+  const seen = { ...(state?.seen || {}) };
+  let newest = 0;
+  for (const c of Array.isArray(convos) ? convos : []) {
+    if (!c?.id) continue;
+    const at = lastCustomerAt(c);
+    if (!at) continue;
+    if (at > (Number(seen[String(c.id)]) || 0)) seen[String(c.id)] = at;
+    if (at > newest) newest = at;
+  }
+  return { seen, watermark: Math.max(Number(state?.watermark) || 0, Number(now) || 0, newest) };
+}
+
 // Newest N entries only, so the map never grows without bound.
 export function trimSeen(seen, cap = 500) {
   const entries = Object.entries(seen || {}).filter(([, v]) => Number(v) > 0)

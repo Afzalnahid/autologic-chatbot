@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { loadPure } from "./shim.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const { lastCustomerAt, isUnreadConvo, unreadConvoCount, trimSeen } =
+const { lastCustomerAt, isUnreadConvo, unreadConvoCount, trimSeen, markAllSeen } =
   await loadPure(join(here, "..", "src", "lib", "convo-read.js"), "tmp-convo-read.mjs");
 
 let pass = 0, fail = 0;
@@ -44,6 +44,21 @@ ok("counts only unread chats", unreadConvoCount(list, fresh) === 3);
 ok("opening one drops the count", unreadConvoCount(list, { seen: { a: T0 + 60000 }, watermark: 0 }) === 2);
 ok("mark-all zeroes it", unreadConvoCount(list, { seen: {}, watermark: T0 + 60 * 60000 }) === 0);
 ok("junk list → 0", unreadConvoCount(null, fresh) === 0);
+
+// ── markAllSeen: clock-independent "Mark all as read" ────────────────────────
+{
+  const phoneNow = T0 - 30 * 60000;                 // phone clock 30 min BEHIND the server
+  const s = markAllSeen(list, fresh, phoneNow);
+  ok("every listed chat is seen at its newest customer message", s.seen.a === T0 + 60000 && s.seen.b === T0 + 2 * 60000 && s.seen.d === T0 + 5 * 60000);
+  ok("a chat with no customer message gets no entry", s.seen.c === undefined);
+  ok("watermark = later of clock and newest message", s.watermark === T0 + 5 * 60000);
+  ok("after mark-all nothing is unread, even with a slow clock", unreadConvoCount(list, s) === 0);
+  ok("a NEW customer message after mark-all is unread again", unreadConvoCount([...list, convo("e", [cust(9)])], s) === 1);
+  ok("an older chat stays read after that new message", !isUnreadConvo(list[0], s));
+  ok("never lowers an existing seen mark", markAllSeen([convo("a", [cust(1)])], { seen: { a: T0 + 9 * 60000 }, watermark: 0 }, 0).seen.a === T0 + 9 * 60000);
+  ok("keeps a later existing watermark", markAllSeen([], { seen: {}, watermark: 5 }, 1).watermark === 5);
+  ok("junk in → clean state out", (() => { const r = markAllSeen(null, undefined, 7); return Object.keys(r.seen).length === 0 && r.watermark === 7; })());
+}
 
 // ── trimSeen ─────────────────────────────────────────────────────────────────
 const big = Object.fromEntries(Array.from({ length: 600 }, (_, i) => ["s" + i, 1000 + i]));

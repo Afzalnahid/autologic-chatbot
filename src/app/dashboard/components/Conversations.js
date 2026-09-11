@@ -118,6 +118,16 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   // different heights per device/state. Measure the list's own top instead and
   // fill from there to the bottom of the screen — correct on every device.
   const listRef=useRef(null);
+  // The inbox list's scroll position, kept across the list being unmounted
+  // while a chat is open on a phone (see the list markup below).
+  const listScrollRef=useRef(null);
+  const listScrollTop=useRef(0);
+  const listShown=!isMobile||!hasSel;               // same rule as showList below
+  useEffect(()=>{
+    if(!listShown) return;
+    const el=listScrollRef.current;
+    if(el && listScrollTop.current) el.scrollTop=listScrollTop.current;
+  },[listShown]); // eslint-disable-line
   const [fitH,setFitH]=useState(null);
   const [showEmoji,setShowEmoji]=useState(false);
   const [recording,setRecording]=useState(false);
@@ -284,7 +294,13 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   const Toggle=({on,onClick,label})=><Switch on={on} onClick={onClick} label={label} size="sm"/>;
 
   return <div ref={listRef} style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px minmax(0,1fr)",gap:16,height:isMobile?(hasSel?"100%":(fitH?fitH+"px":"calc(100dvh - 190px)")):"calc(100vh - 130px)"}}>
-    {showList&&<Card style={{overflow:"auto",padding:0,height:"100%"}}>
+    {/* On a phone the list is unmounted while a chat is open, so it used to
+        come back scrolled to the top — leaving a chat deep in the inbox
+        dropped you at the newest conversation. The list scrolls inside its
+        own div (not the Card), its position is remembered on every scroll
+        and put back the moment the list is shown again. */}
+    {showList&&<Card style={{overflow:"hidden",padding:0,height:"100%"}}>
+      <div ref={listScrollRef} onScroll={e=>{listScrollTop.current=e.currentTarget.scrollTop;}} style={{overflow:"auto",height:"100%"}}>
       <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
         {globalBot===null
@@ -386,6 +402,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
           </div>:null}
         </div>;
       })}
+      </div>
     </Card>}
     {showChat&&<Card style={{display:"flex",flexDirection:"column",padding:0,overflow:"hidden",height:"100%"}}>
       {/* The chat header, shaped the way a messaging app shapes it: who you

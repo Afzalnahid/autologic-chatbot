@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { isUnreadConvo, unreadConvoCount, lastCustomerAt, trimSeen } from "@/lib/convo-read.js";
+import { isUnreadConvo, unreadConvoCount, lastCustomerAt, trimSeen, markAllSeen } from "@/lib/convo-read.js";
 
 // Per-device read state for conversations (localStorage, like the bell's):
 // which chats this device has looked at, and the last "Mark all as read".
@@ -35,11 +35,10 @@ export function markConvoSeen(convo) {
   write(s);
 }
 
-// "Mark all as read": everything up to now is read, on this device.
-export function markAllConvosRead() {
-  const s = readState();
-  s.watermark = Date.now();
-  write(s);
+// "Mark all as read": every chat in the list is seen up to its newest customer
+// message (message times, not the device clock — see markAllSeen), on this device.
+export function markAllConvosRead(convos = []) {
+  write(markAllSeen(convos, readState(), Date.now()));
 }
 
 export function useConvoRead() {

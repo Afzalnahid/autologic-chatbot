@@ -100,9 +100,13 @@ export default function NotificationsBell({ convos = [], feed = [], isMobile, on
   useEffect(() => { setFirst(readFirst()); }, []);
   useEffect(() => {
     if (!items.length) return;
-    let changed = false; const next = { ...first }; const now = Date.now();
+    // Start from what is SAVED, not from the `first` state: on a mount where
+    // items are already loaded the mount effect above has not yet delivered
+    // the saved map, and building on `{}` re-stamped every key as first seen
+    // "now" — which made everything unread again after "Mark all as read".
+    let changed = false; const next = { ...readFirst(), ...first }; const now = Date.now();
     for (const it of items) if (!next[it.key]) { next[it.key] = now; changed = true; }
-    if (changed) { writeFirst(next); setFirst(next); }
+    if (changed || Object.keys(next).length !== Object.keys(first).length) { writeFirst(next); setFirst(next); }
   }, [items]); // eslint-disable-line
 
   const isUnread = (it) => Math.max(new Date(it.time).getTime() || 0, first[it.key] || 0) > seen && !readSet.has(it.key);
@@ -137,12 +141,14 @@ export default function NotificationsBell({ convos = [], feed = [], isMobile, on
   const toggle = () => setOpen((v) => !v);
 
   const markAll = () => {
-    const now = Date.now();
+    // The watermark is the later of the device clock and the newest item, so
+    // a phone whose clock runs behind the server still clears everything.
+    const now = items.reduce((t, it) => Math.max(t, new Date(it.time).getTime() || 0, first[it.key] || 0), Date.now());
     writeSeen(now); setSeen(now);
     const empty = new Set(); writeReadSet(empty); setReadSet(empty);
     // Also the inbox: every bold chat goes normal and the Inbox badge clears,
     // like Facebook — one "Mark all as read" means all of it.
-    markAllConvosRead();
+    markAllConvosRead(convos);
   };
 
   const go = (it) => {
