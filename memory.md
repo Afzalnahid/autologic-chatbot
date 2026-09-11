@@ -453,6 +453,11 @@ again?"
     `isAutomatedEcho` (≤20 s after newest customer msg AND no business reply
     in prior 10 min → automated: stored in thread, no Pending flip, no
     memory); `tests/t-echo-rules.mjs` (9). 45/45.
+  - **Profile "Phone notifications" card → one row** (owner's rule, same
+    day): bell + "Notifications" + a `Switch` (ui.js) on/off; no "Send a
+    test", no paragraph; blocked/unsupported/unconfigured = same row, switch
+    off + one line why. `/api/push/test` kept server-side, not in the UI.
+    Native FCM path unchanged behind the switch. JSX parses; web + app.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
