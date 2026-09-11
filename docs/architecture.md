@@ -70,7 +70,15 @@ Webhooks, `/{app-id}/subscriptions`) and each Page's (`/{page-id}/subscribed_app
 set at connect). The admin console's *Meta webhooks* page (`/api/admin/webhooks`,
 super admin + secret key to change) shows the app-level list and re-subscribes with
 the required fields (`messages, messaging_postbacks, message_echoes, feed`) when one
-is missing — server-side, the app secret and verify token never reach the browser. When the owner switches the bot
+is missing — server-side, the app secret and verify token never reach the browser.
+The same page covers **WhatsApp** (`whatsapp_business_account`: `messages,
+smb_message_echoes` — a reply the owner types in the WhatsApp Business app on their
+own phone arrives as a coexistence `smb_message_echoes` webhook; `parseWhatsAppEvent`
+returns it flagged `echo`, customer = `to`, and `handleIncoming` stores it as the
+business's turn exactly like a Messenger echo; `history` and `smb_app_state_sync` stay
+ignored) and **Instagram** (`instagram`: `messages, comments` on the Instagram app —
+Instagram has no echo field; the account's own outgoing messages, including hand-typed
+replies, ride `messages` with `is_echo`). When the owner switches the bot
 back ON for a conversation (`/api/contacts` PUT), if the last message is still an
 unanswered customer message the bot answers it then (`processConversation`, gated by the
 same `botAllowed` checks).

@@ -17,7 +17,7 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error("FAI
 // Our own Meta app ids, read by messenger.js at load — set BEFORE loading.
 process.env.FB_APP_ID = "771122";
 process.env.IG_APP_ID = "881133";
-const { parseMessengerEvent } = await loadPure(MSG, "tmp-echo.mjs");
+const { parseMessengerEvent, parseWhatsAppEvent } = await loadPure(MSG, "tmp-echo.mjs");
 
 const PAGE = "1122334455", CUST = "9988776655";
 const wrap = (messaging, object = "page") => ({ object, entry: [{ id: PAGE, messaging: [messaging] }] });
@@ -78,6 +78,31 @@ const ig = parseMessengerEvent(wrap({
   sender: { id: PAGE }, recipient: { id: CUST }, message: { mid: "m5", text: "hi", is_echo: true },
 }, "instagram"));
 ok("instagram echo is captured", ig && ig.echo === true && ig.platform === "instagram");
+
+// ── WhatsApp: a reply typed on the owner's own phone (coexistence echo) ──────
+const waWrap = (field, value) => ({ object: "whatsapp_business_account", entry: [{ id: "WABA1", changes: [{ field, value }] }] });
+const META = { display_phone_number: "8801700000000", phone_number_id: "PHONE1" };
+const waEcho = parseWhatsAppEvent(waWrap("smb_message_echoes", {
+  messaging_product: "whatsapp", metadata: META,
+  message_echoes: [{ from: "8801700000000", to: "8801911111111", id: "wamid.E1", timestamp: "1789120000", type: "text", text: { body: "500 tk e dite parbo" } }],
+}));
+ok("wa phone echo is captured", !!waEcho && waEcho.echo === true && waEcho.platform === "whatsapp");
+ok("wa echo customer is `to`", waEcho.senderId === "8801911111111");
+ok("wa echo number is the phone_number_id", waEcho.pageId === "PHONE1");
+ok("wa echo keeps text + id", waEcho.text === "500 tk e dite parbo" && waEcho.msgId === "wamid.E1");
+const waPhoto = parseWhatsAppEvent(waWrap("smb_message_echoes", {
+  messaging_product: "whatsapp", metadata: META,
+  message_echoes: [{ from: "8801700000000", to: "8801911111111", id: "wamid.E2", type: "image", image: { id: "MEDIA1", caption: "ei ta" } }],
+}));
+ok("wa photo echo keeps the caption and marks a photo", waPhoto.text === "ei ta" && waPhoto.images.length === 1 && !/^https?:/.test(waPhoto.images[0]));
+ok("wa echo with no `to` is dropped", parseWhatsAppEvent(waWrap("smb_message_echoes", { metadata: META, message_echoes: [{ from: "x", id: "wamid.E3", text: { body: "hi" } }] })) === null);
+// The other coexistence webhooks are still ignored — the bot must never
+// answer replayed history or contact syncs.
+ok("wa history replay is still dropped", parseWhatsAppEvent(waWrap("history", { metadata: META, messages: [{ from: "8801911111111", id: "wamid.H1", text: { body: "old" } }] })) === null);
+ok("wa app state sync is still dropped", parseWhatsAppEvent(waWrap("smb_app_state_sync", { metadata: META })) === null);
+// An ordinary customer message is unchanged.
+const waIn = parseWhatsAppEvent(waWrap("messages", { metadata: META, contacts: [{ profile: { name: "Rima" } }], messages: [{ from: "8801911111111", id: "wamid.M1", type: "text", text: { body: "dam koto?" } }] }));
+ok("wa customer message still parses", waIn && !waIn.echo && waIn.senderId === "8801911111111" && waIn.text === "dam koto?" && waIn.profileName === "Rima");
 
 // ── Junk never throws and never invents an event ─────────────────────────────
 ok("echo with no recipient is dropped", parseMessengerEvent(wrap({

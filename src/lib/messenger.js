@@ -315,8 +315,31 @@ export function parseWhatsAppEvent(body) {
   // bail on anything that is not a live customer message. Without this a
   // coexistence onboard could make the bot reply to months of history, or reply
   // to the owner's own outgoing messages.
-  if (change?.field && change.field !== "messages") return null;
   const value = change?.value;
+  // `smb_message_echoes` is the one coexistence webhook we DO want: a message
+  // the owner typed on their own phone (WhatsApp Business app) to a customer.
+  // Same reason as the Messenger echo: without it the owner's hand-typed
+  // reply reached neither the inbox nor the bot's memory, so the bot came
+  // back from "off" not knowing the customer had been answered. It is
+  // returned flagged `echo` so handleIncoming records it as the business's
+  // own turn and never generates a reply to it. The customer is `to`.
+  if (change?.field === "smb_message_echoes") {
+    const e = value?.message_echoes?.[0] || value?.messages?.[0];
+    if (!e?.to) return null;
+    const caption = e.image?.caption || e.video?.caption || e.document?.caption || "";
+    return {
+      platform: "whatsapp",
+      echo: true,
+      msgId: e.id || null,
+      senderId: String(e.to),
+      pageId: value?.metadata?.phone_number_id,
+      text: e.text?.body || e.button?.text || caption || "",
+      images: e.image ? ["📷"] : [],   // a photo was sent; the echo carries no fetchable url
+      audio: null,
+      video: false,
+    };
+  }
+  if (change?.field && change.field !== "messages") return null;
   const m = value?.messages?.[0];
   if (!m?.from) return null;
   return {

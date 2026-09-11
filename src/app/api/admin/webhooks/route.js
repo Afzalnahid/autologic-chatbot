@@ -3,92 +3,116 @@ export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { callerEmail, callerRole, CAN_DELETE, checkSuperKey } from "@/lib/admin-auth.js";
 
-// Meta webhook health — the APP-level subscription (App Dashboard → Webhooks →
-// Page). Two subscriptions must BOTH carry a field before Meta delivers it:
-// the app's (this one, set once per app) and each Page's (`subscribed_apps`,
-// set when a Page connects). `message_echoes` — the only way we learn that the
-// owner answered a customer by hand in Business Suite / Messenger — was on
-// every Page's list but missing from the app's, so no echo ever arrived
-// (2026-09-11: an hour of webhook logs held customer messages only, while
-// customers were visibly replying to the owner's answers). This route shows
-// the app's subscription and repairs it, server-side: the app secret never
-// leaves the server, and only a full-access admin holding the secret admin
-// key can change anything.
+// Meta webhook health — the APP-level subscriptions (App Dashboard → Webhooks).
+// Two subscriptions must BOTH carry a field before Meta delivers it: the
+// app's (this one, set once per app) and each Page's / account's / WABA's
+// (set when a channel connects). `message_echoes` — the only way we learn
+// that the owner answered a customer by hand in Business Suite / Messenger —
+// was on every Page's list but missing from the app's, so no echo ever
+// arrived (2026-09-11; repaired from the admin console the same day and
+// verified end to end). The WhatsApp twin is `smb_message_echoes` (a reply
+// typed on the owner's own phone); Instagram echoes ride the ordinary
+// `messages` field. This route shows each object's list and repairs it,
+// server-side: the app secrets never leave the server, and only a
+// full-access admin holding the secret admin key can change anything.
 
 const GRAPH = "https://graph.facebook.com/v24.0";
-// What the Page webhook must carry for the product to work at all.
-const PAGE_FIELDS = ["messages", "messaging_postbacks", "message_echoes", "feed"];   // not exported: a route file may only export handlers
-const CALLBACK = "https://www.getvoicium.com/api/messenger";
+const SITE = "https://www.getvoicium.com";
 
-function appCreds() {
-  const id = process.env.FB_APP_ID || "";
-  const secret = process.env.FB_APP_SECRET || process.env.FACEBOOK_APP_SECRET || "";
-  if (!id || !secret) return null;
-  return { id, token: `${id}|${secret}` };
+// object → which Meta app owns it, what it must carry, where Meta calls back.
+// Not exported: a route file may only export handlers.
+const OBJECTS = {
+  page: { app: "facebook", label: "Facebook Pages", required: ["messages", "messaging_postbacks", "message_echoes", "feed"], callback: `${SITE}/api/messenger` },
+  whatsapp_business_account: { app: "facebook", label: "WhatsApp", required: ["messages", "smb_message_echoes"], callback: `${SITE}/api/whatsapp` },
+  instagram: { app: "instagram", label: "Instagram", required: ["messages", "comments"], callback: `${SITE}/api/messenger` },
+};
+
+function apps() {
+  const out = {};
+  const fbId = process.env.FB_APP_ID || "", fbSecret = process.env.FB_APP_SECRET || process.env.FACEBOOK_APP_SECRET || "";
+  if (fbId && fbSecret) out.facebook = { id: fbId, token: `${fbId}|${fbSecret}` };
+  const igId = process.env.IG_APP_ID || "", igSecret = process.env.IG_APP_SECRET || "";
+  if (igId && igSecret) out.instagram = { id: igId, token: `${igId}|${igSecret}` };
+  return out;
 }
 
-async function readSubscriptions(creds) {
+async function readApp(creds) {
   const j = await fetch(`${GRAPH}/${creds.id}/subscriptions?access_token=${encodeURIComponent(creds.token)}`, { cache: "no-store" })
     .then((r) => r.json()).catch((e) => ({ error: { message: String(e?.message || e) } }));
   if (j.error) throw new Error(j.error.message || "Graph error");
-  const page = (j.data || []).find((s) => s.object === "page") || null;
-  const fields = (page?.fields || []).map((f) => (typeof f === "string" ? f : f?.name)).filter(Boolean);
-  return {
-    page: page ? { callback_url: page.callback_url || "", active: !!page.active, fields } : null,
-    missing: PAGE_FIELDS.filter((f) => !fields.includes(f)),
-  };
+  return j.data || [];
+}
+
+// One row per object we care about: what is on, what is missing, or why we
+// could not look (app not configured / Meta refused).
+async function status() {
+  const creds = apps();
+  const cache = {};
+  const rows = [];
+  for (const [object, def] of Object.entries(OBJECTS)) {
+    const c = creds[def.app];
+    if (!c) { rows.push({ object, label: def.label, app: def.app, error: `The server has no ${def.app === "facebook" ? "FB_APP_ID / FB_APP_SECRET" : "IG_APP_ID / IG_APP_SECRET"} configured.` , required: def.required, fields: [], missing: def.required }); continue; }
+    try {
+      if (!cache[def.app]) cache[def.app] = await readApp(c);
+      const sub = cache[def.app].find((s) => s.object === object) || null;
+      const fields = (sub?.fields || []).map((f) => (typeof f === "string" ? f : f?.name)).filter(Boolean);
+      rows.push({ object, label: def.label, app: def.app, subscribed: !!sub, callback_url: sub?.callback_url || "", active: !!sub?.active, required: def.required, fields, missing: def.required.filter((f) => !fields.includes(f)) });
+    } catch (e) {
+      rows.push({ object, label: def.label, app: def.app, error: "Could not read the app's subscription: " + String(e.message || e).slice(0, 160), required: def.required, fields: [], missing: def.required });
+    }
+  }
+  return rows;
 }
 
 async function guard(request) {
   const email = await callerEmail(request);
-  if (!email) return { err: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
+  if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const role = await callerRole(email);
-  if (!CAN_DELETE.includes(role)) return { err: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
-  const creds = appCreds();
-  if (!creds) return { err: NextResponse.json({ error: "The server has no FB_APP_ID / FB_APP_SECRET configured." }, { status: 500 }) };
-  return { creds };
+  if (!CAN_DELETE.includes(role)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  return null;
 }
 
 export async function GET(request) {
-  const g = await guard(request);
-  if (g.err) return g.err;
-  try {
-    const s = await readSubscriptions(g.creds);
-    return NextResponse.json({ ok: true, required: PAGE_FIELDS, ...s }, { headers: { "Cache-Control": "no-store" } });
-  } catch (e) {
-    return NextResponse.json({ error: "Could not read the app's webhook subscription: " + String(e.message || e).slice(0, 200) }, { status: 502 });
-  }
+  const err = await guard(request);
+  if (err) return err;
+  return NextResponse.json({ ok: true, objects: await status() }, { headers: { "Cache-Control": "no-store" } });
 }
 
-// Repair: re-subscribe the "page" object with the union of what it has and
-// what we need. Meta REPLACES the field list on this call, so the current
-// fields are kept on purpose. Meta verifies the callback with a GET
-// (hub.verify_token) before accepting — our /api/messenger answers it with
-// FACEBOOK_VERIFY_TOKEN, which must therefore be the token sent here.
+// Repair ONE object: re-subscribe with the union of what it has and what we
+// need. Meta REPLACES the field list on this call, so the current fields are
+// kept on purpose. Meta verifies the callback with a GET (hub.verify_token)
+// before accepting — our webhook routes answer it with FACEBOOK_VERIFY_TOKEN,
+// which must therefore be the token sent here.
 export async function POST(request) {
-  const g = await guard(request);
-  if (g.err) return g.err;
+  const err = await guard(request);
+  if (err) return err;
   const keyErr = checkSuperKey(request);
   if (keyErr) return NextResponse.json({ error: keyErr }, { status: 403 });
+  const body = await request.json().catch(() => ({}));
+  const object = String(body.object || "page");
+  const def = OBJECTS[object];
+  if (!def) return NextResponse.json({ error: "Unknown webhook object." }, { status: 400 });
+  const creds = apps()[def.app];
+  if (!creds) return NextResponse.json({ error: `The server has no ${def.app === "facebook" ? "FB_APP_ID / FB_APP_SECRET" : "IG_APP_ID / IG_APP_SECRET"} configured.` }, { status: 500 });
   const verify = process.env.FACEBOOK_VERIFY_TOKEN || "";
   if (!verify) return NextResponse.json({ error: "The server has no FACEBOOK_VERIFY_TOKEN configured." }, { status: 500 });
   try {
-    const before = await readSubscriptions(g.creds);
-    const fields = Array.from(new Set([...(before.page?.fields || []), ...PAGE_FIELDS]));
+    const before = (await readApp(creds)).find((s) => s.object === object) || null;
+    const have = (before?.fields || []).map((f) => (typeof f === "string" ? f : f?.name)).filter(Boolean);
+    const fields = Array.from(new Set([...have, ...def.required]));
     const form = new URLSearchParams({
-      object: "page",
-      callback_url: before.page?.callback_url || CALLBACK,
+      object,
+      callback_url: before?.callback_url || def.callback,
       fields: fields.join(","),
       verify_token: verify,
       include_values: "true",
-      access_token: g.creds.token,
+      access_token: creds.token,
     });
-    const j = await fetch(`${GRAPH}/${g.creds.id}/subscriptions`, { method: "POST", body: form, cache: "no-store" })
+    const j = await fetch(`${GRAPH}/${creds.id}/subscriptions`, { method: "POST", body: form, cache: "no-store" })
       .then((r) => r.json()).catch((e) => ({ error: { message: String(e?.message || e) } }));
     if (j.error) return NextResponse.json({ error: "Meta refused the change: " + String(j.error.message || "").slice(0, 200) }, { status: 502 });
-    const after = await readSubscriptions(g.creds);
-    console.log("[admin/webhooks] page fields set:", fields.join(","), "→ now:", (after.page?.fields || []).join(","));
-    return NextResponse.json({ ok: true, required: PAGE_FIELDS, ...after }, { headers: { "Cache-Control": "no-store" } });
+    console.log("[admin/webhooks]", object, "fields set:", fields.join(","));
+    return NextResponse.json({ ok: true, objects: await status() }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return NextResponse.json({ error: "Repair failed: " + String(e.message || e).slice(0, 200) }, { status: 502 });
   }

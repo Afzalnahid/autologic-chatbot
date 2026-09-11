@@ -1222,10 +1222,13 @@ export async function handleIncoming(event) {
       .eq("client_id", clientId).eq("sender_id", event.senderId).in("role", ["bot", "agent"])
       .eq("message_content", text).gte("created_at", since).limit(1);
     if (ours && ours.length) return;
+    // WhatsApp echoes carry no fetchable image url (only a marker), so nothing
+    // is stored as an attachment for them; the "📷 Photo" text says it all.
+    const urls = (event.images || []).filter((u) => /^https?:\/\//.test(String(u)));
     await bufferInsert({
       sender_id: event.senderId, client_id: clientId, role: "agent", status: "Replied",
       message_content: text,
-      attachments: event.images?.length ? event.images.join(",") : null,
+      attachments: urls.length ? urls.join(",") : null,
       platform: event.platform || channel.platform || "facebook",
       page_id: channel.page_id || null,
       wa_msg_id: event.msgId || null,
