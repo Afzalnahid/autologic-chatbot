@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { T, Card, Btn } from "./ui.js";
+import { T, Card, Switch } from "./ui.js";
 import { apiJson } from "./session.js";
 import { isNativeApp, initNativePush, nativePushState, enableNativePush, disableNativePush } from "./native-push.js";
 
@@ -25,7 +25,6 @@ export default function PushToggle() {
   const [state, setState] = useState("checking"); // checking|on|off|denied|unsupported|unconfigured
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [test, setTest] = useState(""); // last test-push result message
   // Inside the installed app, push goes through the native FCM path, not the
   // browser's PushManager (which the app's WebView does not support).
   const native = isNativeApp();
@@ -100,67 +99,43 @@ export default function PushToggle() {
     setBusy(false);
   };
 
-  // Fire the same push path a real order uses. The result tells the owner
-  // exactly where the chain stands: delivered, server-not-configured, or no
-  // device subscribed here.
-  const sendTest = async () => {
-    setBusy(true); setTest("");
-    const r = await apiJson("/api/push/test", { method: "POST" }).catch(() => null);
-    setBusy(false);
-    if (!r) { setTest("Could not reach the server — try again."); return; }
-    if (r.reason === "not_configured") { setTest("The server has no notification keys set yet — notifications can't be sent until that's fixed."); return; }
-    if (r.reason === "no_subscriptions") { setTest("This device isn't subscribed. Turn notifications off and on again."); return; }
-    if ((r.sent || 0) > 0) { setTest(`Sent to ${r.sent} device${r.sent > 1 ? "s" : ""} — check your phone/notification tray.`); return; }
-    setTest("Nothing was sent. " + (r.reason ? `(${r.reason})` : ""));
-  };
-
-  const Head = ({ children }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14.5, fontWeight: 700, marginBottom: 6 }}>
-      <i className="ti ti-bell-ringing" style={{ fontSize: 18, color: T.gold }} />{children}
-    </div>
+  // One row, like a phone's own settings: the bell, "Notifications", and a
+  // single on/off switch. The owner's rule (2026-09-11): no "Send a test"
+  // button — the switch is the whole control. When notifications cannot be
+  // turned on from here (blocked, unsupported, not configured) the row shows
+  // the switch off and one line saying why, instead of a different card.
+  const Row = ({ children, sub }) => (
+    <Card>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <i className="ti ti-bell-ringing" style={{ fontSize: 18, color: T.gold, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 700 }}>Notifications</div>
+        {children}
+      </div>
+      {sub && <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.6, marginTop: 8 }}>{sub}</div>}
+      {err && <div style={{ fontSize: 12, color: T.danger, marginTop: 8 }}>{err}</div>}
+    </Card>
   );
-  const Sub = ({ children }) => <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.6, marginBottom: 14 }}>{children}</div>;
 
   if (state === "checking") return null;
 
   if (state === "unsupported") return (
-    <Card><Head>Phone notifications</Head>
-      <Sub>This browser cannot show push notifications. On an iPhone, first add getvoicium to your Home Screen, then open it from there and turn this on.</Sub>
-    </Card>
+    <Row sub="This browser cannot show notifications. On an iPhone, first add getvoicium to your Home Screen, then open it from there and turn this on."><Switch on={false} disabled title="Not available here" /></Row>
   );
   if (state === "unconfigured") return (
-    <Card><Head>Phone notifications</Head>
-      <Sub>Notifications are not switched on for this site yet.</Sub>
-    </Card>
+    <Row sub="Notifications are not switched on for this site yet."><Switch on={false} disabled title="Not set up yet" /></Row>
   );
   if (state === "denied") return (
-    <Card><Head>Phone notifications</Head>
-      <Sub>Notifications are <strong>blocked</strong>. {native
-        ? "Allow them for getvoicium in your phone's Settings → Apps → getvoicium → Notifications, then reopen the app."
-        : "Allow them for getvoicium.com in your browser's site settings, then reload this page."}</Sub>
-    </Card>
+    <Row sub={native
+      ? "Blocked on this phone. Allow them in Settings → Apps → getvoicium → Notifications, then reopen the app."
+      : "Blocked in this browser. Allow them for getvoicium.com in the browser's site settings, then reload this page."}>
+      <Switch on={false} disabled title="Blocked" />
+    </Row>
   );
 
+  const on = state === "on";
   return (
-    <Card><Head>Phone notifications</Head>
-      <Sub>Get a notification on this device — even when the dashboard is closed — for a new order, a new booking, and a chat that needs you.</Sub>
-      {state === "on"
-        ? <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: T.success, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <i className="ti ti-circle-check-filled" />On for this device
-            </span>
-            <button onClick={sendTest} disabled={busy} className="ui-btn" style={{ background: T.bgAlt, boxShadow: T.nmIn, border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, fontSize: 12.5, fontWeight: 600, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit" }}>
-              {busy ? "Sending…" : "Send a test"}
-            </button>
-            <button onClick={disable} disabled={busy} className="ui-btn" style={{ background: "none", border: "none", color: T.textMuted, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
-              {busy ? "…" : "Turn off"}
-            </button>
-          </div>
-        : <Btn gold onClick={enable} disabled={busy}>
-            <i className="ti ti-bell" style={{ marginRight: 6 }} />{busy ? "Turning on…" : "Turn on notifications"}
-          </Btn>}
-      {test && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 10, background: T.bgAlt, boxShadow: T.nmIn, borderRadius: 10, padding: "8px 12px" }}>{test}</div>}
-      {err && <div style={{ fontSize: 12, color: T.danger, marginTop: 10 }}>{err}</div>}
-    </Card>
+    <Row sub={on ? "On for this device — a new order, a new booking, and a chat that needs you." : "Off. Turn on to get a notification on this device, even when the dashboard is closed."}>
+      <Switch on={on} disabled={busy} onClick={on ? disable : enable} title={on ? "Turn off" : "Turn on"} />
+    </Row>
   );
 }

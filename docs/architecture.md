@@ -175,7 +175,8 @@ anything is saved), `photo-group` (which pictures are the same product).
 
 **Web push** (owner's phone/browser alerts, live in production): `push/subscribe`
 (save/remove a device subscription), `push/test` (send a test to the caller's own
-devices). `src/lib/push.js` sends via VAPID (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` +
+devices — kept for diagnosis, no longer surfaced in the dashboard: the Profile card is
+one "Notifications" row with an on/off switch, owner's rule 2026-09-11). `src/lib/push.js` sends via VAPID (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` +
 `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT`) to every subscription in `push_subscriptions`;
 `public/sw.js` shows the notification and, on tap, opens the tab it is for. A push
 fires for a new order, a new booking and a conversation-start/handover — all
