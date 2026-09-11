@@ -232,7 +232,10 @@ export function AdminApp(props) {
   const [page, subTab, setWhere] = useWhere("overview", mayOpen);
   const go = (p, t = "") => { setWhere(p, t); if (isMobile) setNav(false); };
   const searchHits = useMemo(() => { const s = q.trim().toLowerCase(); if (!s) return []; return clients.filter((c) => [c.business_name, c.owner_email, c.phone, c.id].join(" ").toLowerCase().includes(s)).slice(0, 6); }, [q, clients]);
-  const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on getvoicium`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], packages: ["Packages & Costs", "What each package sells for, and what each client costs you"], ai: ["AI Engine", "The platform's own API key and models"], admins: ["Admins", "Who can open this console"] };
+  const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on getvoicium`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], packages: ["Packages & Costs", "What each package sells for, and what each client costs you"], ai: ["AI Engine", "The platform's own API key and models"], webhooks: ["Meta webhooks", "What Meta is subscribed to send this app"], admins: ["Admins", "Who can open this console"] };
+  // A page without a title entry must never take the whole console down
+  // (2026-09-11: the new "webhooks" page crashed the console on open).
+  const title = titles[page] || [page, ""];
   const badgeFor = { payments: pendingPay || undefined, overview: attention.filter((a) => a.level === "high").length || undefined };
 
   return <div style={{ display: "flex", height: isMobile ? "100dvh" : "100vh", overflow: "hidden", background: T.bg, color: T.text }}>
@@ -269,8 +272,8 @@ export function AdminApp(props) {
       <div style={{ margin: isMobile ? "10px 10px 0" : "14px 18px 0", padding: isMobile ? "8px 10px" : "9px 12px", background: T.card, borderRadius: isMobile ? 16 : 20, boxShadow: T.nmSm, display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, flexShrink: 0, position: "relative", zIndex: 30 }}>
         {!nav && <button onClick={() => setNav(true)} className="pbtn" aria-label="Menu" style={isMobile ? { width: 36, height: 36, borderRadius: 11 } : undefined}><i className="ti ti-menu-2" /></button>}
         <div style={{ minWidth: 0, flex: "0 1 auto" }}>
-          <div style={{ fontSize: isMobile ? 15.5 : 17.5, fontWeight: 700, letterSpacing: "-.02em", whiteSpace: "nowrap" }}>{titles[page][0]}</div>
-          {!isMobile && <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{titles[page][1]}</div>}
+          <div style={{ fontSize: isMobile ? 15.5 : 17.5, fontWeight: 700, letterSpacing: "-.02em", whiteSpace: "nowrap" }}>{title[0]}</div>
+          {!isMobile && <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title[1]}</div>}
         </div>
         {!isMobile && <div style={{ position: "relative", flex: 1, maxWidth: 420, marginLeft: 8 }}>
           <i className="ti ti-search" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: T.textDim, fontSize: 15 }} />
