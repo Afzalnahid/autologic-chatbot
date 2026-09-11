@@ -414,6 +414,14 @@ again?"
     is declared later, TDZ). 44/44.
   - Likely part of 1(a) was the phone still running the previous bundle (an
     open WebView does not pick up a deploy until the app is closed/reopened).
+  - **VERIFIED END TO END (10:01 UTC):** owner pressed Repair (page now shows
+    all 4 required fields on; also on: message_reads, message_deliveries;
+    callback is the old `autologic-chatbot.vercel.app/api/messenger`, still
+    served). Then a Business Suite reply arrived as `is_echo:true, app_id:
+    263902037430900` (Meta's Business Suite id — exactly the case 6d75069
+    keeps), was stored as `role=agent "২১-২২"` for sender 28452631517690440,
+    and that customer's Pending rows flipped to Replied. Human replies from
+    Business Suite / Messenger now reach the inbox and the bot's memory.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
