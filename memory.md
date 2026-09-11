@@ -384,6 +384,36 @@ again?"
   bell `markAll` also calls `markAllConvosRead()`. A bot reply never makes a
   chat read. Desktop auto-previews the top chat, so that one reads as seen.
   44/44. Verified by tests + parse only (no logged-in browser here).
+- **Owner's follow-up (same day): still no Business Suite reply captured; after
+  Mark-all a new message re-counted everything; leaving a chat lost the list
+  scroll.** Findings + fixes:
+  - **Echoes never ARRIVE.** DB: Broker's BD 09:25–09:41 UTC has only customer
+    rows, yet customers are answering the owner ("Arektu kom rakhen vaia");
+    Vercel logs (1 h): zero `is_echo`. Page-level `subscribed_apps` lists
+    `message_echoes` (all 3 pages) but the APP-level subscription
+    (`/{app-id}/subscriptions`, App Dashboard → Webhooks → Page) is what
+    delivers, and it was never given `message_echoes`. Can't read/fix it here
+    (needs FB_APP_SECRET, Vercel-only) → built `a2a4f9b`: `/api/admin/webhooks`
+    (GET lists app Page fields + `missing`; POST = super admin + `x-admin-key`
+    re-subscribes with union of current + `messages, messaging_postbacks,
+    message_echoes, feed`, callback kept or
+    `https://www.getvoicium.com/api/messenger`, verify_token =
+    FACEBOOK_VERIFY_TOKEN) + admin console page "Meta webhooks"
+    (`src/app/admin/Webhooks.js`, Platform group, superOnly): Check again /
+    Repair now. **OWNER MUST: admin → Meta webhooks → Repair now, then reply
+    once from Business Suite and check the chat.** lessons.md entry added.
+    The 6d75069 app_id fix stays needed once echoes flow.
+  - `8932304`: `markAllSeen(convos, state, now)` (pure, +9 tests → 29) marks
+    each chat seen at its newest customer message and watermark = max(clock,
+    newest) — clock-proof; bell `markAll` watermark = max(now, newest item /
+    first-seen) and calls `markAllConvosRead(convos)`; bell first-seen effect
+    merges `readFirst()` (saved) instead of the not-yet-loaded `first` state
+    (a mount with items loaded re-stamped every key "new" → all unread again);
+    inbox list scrolls in its own div, `listScrollTop` ref restored when the
+    list is shown again (`listShown` computed BEFORE the effect — `showList`
+    is declared later, TDZ). 44/44.
+  - Likely part of 1(a) was the phone still running the previous bundle (an
+    open WebView does not pick up a deploy until the app is closed/reopened).
 
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
