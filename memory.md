@@ -338,6 +338,40 @@ not work. Fix, two halves:
   needed — the permission prompts on first launch are the proof. Needs an APK
   rebuild. 42/42.
 
+### Human replies from Business Suite / Messenger app were being dropped (2026-09-11)
+
+Owner (three phone screenshots): (1) Comments card badges drew over the
+commenter's name; (2) wants Messenger-style bold for unanswered chats;
+(3) with the bot OFF, a reply he typed in Messenger / Business Suite never
+appeared in the inbox — "so how does the bot get the context when it is on
+again?"
+- **Diagnosis (verified, not assumed):** Graph `subscribed_apps` for all three
+  FB pages lists `message_echoes` (the 09-08 back-fill held), and the last
+  hour of Vercel logs shows echoes are the only path such a reply can take.
+  The one drop condition was `if (app_id) return null` in
+  `parseMessengerEvent` — but Meta's own Business Suite / Page Inbox /
+  Messenger app stamp THEIR app id on a human reply, so every reply typed
+  there was discarded as "our own send". The 09-08 test only covered
+  "no app_id". Lesson recorded in lessons.md.
+- `6d75069` — `messenger.js`: `OWN_APP_IDS` (FB_APP_ID / IG_APP_ID, same
+  public defaults as the login routes); an echo is dropped only when its
+  app_id is ours. `bot.js` echo branch: second guard — skip an echo whose
+  text the bot or dashboard already wrote to that thread in the last 5 min.
+  `tests/t-echo.mjs` +3 (foreign app_id captured, IG app id ours). docs.
+- `1713c94` — Conversations list: `waiting = cv.status==="active"` (newest
+  message is the customer's, nobody replied) → bold name + preview, dark
+  time, crimson dot, title "Waiting for a reply". Same set the sidebar Inbox
+  badge counts (`activeCount`), so number and bold rows agree — this also
+  answers the earlier "Inbox 10 after mark-all" confusion. Comments header:
+  row wraps, name `flex:1 1 180px`, badges `flex:0 1 auto` (no more
+  `flexShrink:0`). Verified with a static before/after render at 336px in
+  the preview pane (old = overlap reproduced, new = badges on own line).
+- 43/43 suites; JSX parses. Web-only, no APK rebuild.
+- **Not verified live:** a real Business Suite reply landing in the inbox
+  (needs the owner to reply from Business Suite once and check the thread;
+  Vercel logs keep only 1 h). Instagram's `subscribed_apps` has no
+  `message_echoes` entry (IG API lists echoes under `messages`) — untested.
+
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
 - `7597e39` — `AuthGate` defaults to **sign-in** (was sign-up on first visit, which
