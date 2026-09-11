@@ -371,6 +371,19 @@ again?"
   (needs the owner to reply from Business Suite once and check the thread;
   Vercel logs keep only 1 h). Instagram's `subscribed_apps` has no
   `message_echoes` entry (IG API lists echoes under `messages`) — untested.
+- **Owner then refined the rule (same day):** bold must mean UNREAD, not
+  "awaiting reply" — opening a chat makes it normal, and the bell's Mark-all
+  clears every bold row AND the Inbox badge. Built: `src/lib/convo-read.js`
+  (pure: `lastCustomerAt`, `isUnreadConvo`, `unreadConvoCount`, `trimSeen`;
+  `tests/t-convo-read.mjs`, 20) + `dashboard/components/convo-read.js`
+  (localStorage `gv-convo-seen` map + `gv-convo-seen-all` watermark,
+  `markConvoSeen`, `markAllConvosRead`, `useConvoRead()` hook re-rendering on
+  a `gv-convo-read` window event and cross-tab `storage`). Conversations.js
+  marks the on-screen chat seen on open and when a new customer message lands
+  while open; shell's `activeCount` (Inbox badge) = `convoRead.count(convos)`;
+  bell `markAll` also calls `markAllConvosRead()`. A bot reply never makes a
+  chat read. Desktop auto-previews the top chat, so that one reads as seen.
+  44/44. Verified by tests + parse only (no logged-in browser here).
 
 ## Earlier session (2026-09-10) — Auth polish, and admin-delete now removes the login
 
