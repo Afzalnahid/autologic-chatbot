@@ -74,6 +74,15 @@ export async function sendResponses(token, id, items, platform, pageId) {
   }
 }
 
+// The Meta app ids getvoicium itself sends through (Facebook app for Messenger
+// and WhatsApp, Instagram app for Instagram). Same defaults as the login
+// routes; these are public OAuth client ids, not secrets. Used to tell our own
+// echoed sends apart from a human's reply typed in Meta's own tools.
+const OWN_APP_IDS = new Set(
+  [process.env.FB_APP_ID || "914246304594380", process.env.IG_APP_ID || "1249182887184854"]
+    .filter(Boolean).map(String)
+);
+
 export function parseMessengerEvent(body) {
   const platform = body?.object === "instagram" ? "instagram" : "facebook";
   const m = body?.entry?.[0]?.messaging?.[0];
@@ -94,8 +103,16 @@ export function parseMessengerEvent(body) {
   //
   // In an echo the sender is the PAGE and the recipient is the CUSTOMER, so the
   // two ids are the other way round from an ordinary message.
+  //
+  // "Has an app_id" is NOT the same as "is ours". Meta's own Page Inbox /
+  // Business Suite and the Messenger app stamp THEIR app id on the owner's
+  // hand-typed replies, so the old `if (app_id) drop` threw away exactly the
+  // human replies this branch exists to keep (owner's report, 2026-09-11: a
+  // reply from Business Suite while the bot was off never reached the inbox,
+  // so the bot came back with no idea it had been answered). Only an echo
+  // carrying OUR app id is our own send; every other echo is a human.
   if (m.message.is_echo) {
-    if (m.message.app_id) return null;      // our own send, already stored
+    if (m.message.app_id && OWN_APP_IDS.has(String(m.message.app_id))) return null; // our own send, already stored
     if (!m.recipient?.id) return null;
     return {
       platform,

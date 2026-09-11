@@ -1313,3 +1313,23 @@ advice look right.
   minute; do that check before theorising about the APK.
 - Do not promise "it updates in place" about a mechanism you have not verified
   on the second install. The first install of anything succeeds.
+
+## "Has an app_id" is not "is ours" — Meta echoes (2026-09-11)
+
+A Page's outgoing messages come back to the webhook as `is_echo` events. The
+bot's own sends must be dropped (already stored) and a human's hand-typed
+replies must be kept (the inbox and the bot's memory need them). The 2026-09-08
+fix told them apart by `app_id` being present or absent — but Meta's own
+Business Suite / Page Inbox / Messenger app stamp THEIR app id on the owner's
+replies, so every reply typed there was dropped as if it were ours. The bot
+then came back from "off" with no idea the customer had been answered. The
+owner found it; the 2026-09-08 test passed because it only tried "no app_id".
+
+**Rules:**
+- Compare an id against OUR ids (`OWN_APP_IDS` in `messenger.js`); never treat
+  "some id is present" as "it is ours".
+- When a fix separates "ours" from "theirs", the test must include a "theirs
+  that LOOKS like ours" case (a foreign app_id), not only the empty case.
+- A webhook branch that affects what the bot remembers deserves a second guard
+  on content (same text already stored in the last minutes → skip), because
+  Meta's exact payload shape is documentation-plus-folklore, not a contract.

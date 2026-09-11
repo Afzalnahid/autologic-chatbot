@@ -1212,6 +1212,16 @@ export async function handleIncoming(event) {
   if (event.echo) {
     const text = (event.text || "").trim() || (event.images?.length ? "📷 Photo" : "");
     if (!text) return;
+    // Belt and braces: if this exact text was already written to this thread
+    // by the bot or the dashboard in the last few minutes, the echo is our own
+    // send coming back (an echo without our app_id, or a dashboard reply) —
+    // storing it again would show the reply twice and clear Pending rows the
+    // bot has not answered yet.
+    const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: ours } = await sb().from("message_buffer").select("id")
+      .eq("client_id", clientId).eq("sender_id", event.senderId).in("role", ["bot", "agent"])
+      .eq("message_content", text).gte("created_at", since).limit(1);
+    if (ours && ours.length) return;
     await bufferInsert({
       sender_id: event.senderId, client_id: clientId, role: "agent", status: "Replied",
       message_content: text,

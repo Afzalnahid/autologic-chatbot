@@ -58,8 +58,13 @@ returns the items to the browser. Every channel therefore shares one engine.
 the chat's "Live" toggle) or a whole channel (`channels.bot_enabled`). While off, an
 incoming message is still saved (`status: "Pending"`) and the owner is still notified,
 but no reply is generated. A human reply — from the dashboard box (`/api/send-message`)
-or typed in the Messenger app (an `is_echo` webhook) — marks that contact's Pending
-customer rows `Replied`, so the backlog cannot pile up. When the owner switches the bot
+or typed in the Messenger app / Business Suite / Page Inbox (an `is_echo` webhook) —
+marks that contact's Pending customer rows `Replied`, so the backlog cannot pile up.
+An echo is dropped only when its `app_id` is one of OUR Meta app ids (our own send,
+already stored); Meta's own tools stamp their app id on a human's reply, so "has an
+app_id" alone never means "ours" (`parseMessengerEvent`, `OWN_APP_IDS`). As a second
+guard, an echo whose text the bot or dashboard already wrote to that thread in the
+last 5 minutes is ignored (`handleIncoming`). When the owner switches the bot
 back ON for a conversation (`/api/contacts` PUT), if the last message is still an
 unanswered customer message the bot answers it then (`processConversation`, gated by the
 same `botAllowed` checks).

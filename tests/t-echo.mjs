@@ -14,6 +14,9 @@ const MSG = join(here, "..", "src", "lib", "messenger.js");
 let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error("FAIL:", name); } };
 
+// Our own Meta app ids, read by messenger.js at load — set BEFORE loading.
+process.env.FB_APP_ID = "771122";
+process.env.IG_APP_ID = "881133";
 const { parseMessengerEvent } = await loadPure(MSG, "tmp-echo.mjs");
 
 const PAGE = "1122334455", CUST = "9988776655";
@@ -34,7 +37,20 @@ ok("our own send (app_id) is dropped", parseMessengerEvent(wrap({
   message: { mid: "m2", text: "জি ভাইয়া, আছে", is_echo: true, app_id: 771122 },
 })) === null);
 
-// ── THE BUG: a human typing in Meta's inbox has NO app_id → must be captured ─
+// ── An echo stamped with META'S OWN app id (Business Suite / Page Inbox /
+// Messenger app) is a HUMAN reply → captured. "Has an app_id" ≠ "is ours". ──
+const suite = parseMessengerEvent(wrap({
+  sender: { id: PAGE }, recipient: { id: CUST },
+  message: { mid: "m2b", text: "Business Suite theke reply", is_echo: true, app_id: 263902037430900 },
+}));
+ok("Business Suite echo (foreign app_id) is captured", !!suite && suite.echo === true);
+ok("Business Suite echo keeps the text", suite && suite.text === "Business Suite theke reply");
+ok("our IG app id is also ours", parseMessengerEvent(wrap({
+  sender: { id: PAGE }, recipient: { id: CUST },
+  message: { mid: "m2c", text: "x", is_echo: true, app_id: "881133" },
+}, "instagram")) === null);
+
+// ── A human typing in Meta's inbox with NO app_id at all → must be captured ─
 const human = parseMessengerEvent(wrap({
   sender: { id: PAGE }, recipient: { id: CUST },
   message: { mid: "m3", text: "ভাইয়া ৩০০০ টাকা দিলেই হবে", is_echo: true },
