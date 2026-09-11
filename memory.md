@@ -422,6 +422,20 @@ again?"
     keeps), was stored as `role=agent "২১-২২"` for sender 28452631517690440,
     and that customer's Pending rows flipped to Replied. Human replies from
     Business Suite / Messenger now reach the inbox and the bot's memory.
+  - **Owner: "do the same for WhatsApp and check Instagram."** Built:
+    `parseWhatsAppEvent` keeps `smb_message_echoes` (coexistence: owner typed
+    on their own phone) as `echo:true`, senderId = `to`, pageId =
+    phone_number_id, text = body/button/caption, images = ["📷"] marker (no
+    url; bot.js echo branch stores only http(s) urls as attachments);
+    `history` + `smb_app_state_sync` still dropped. Admin "Meta webhooks"
+    page now per object: `page` (FB app), `whatsapp_business_account` (FB
+    app: messages, smb_message_echoes), `instagram` (IG app IG_APP_ID|
+    IG_APP_SECRET: messages, comments); POST `{object}` repairs one.
+    Instagram has NO echo field — echoes ride `messages` with `is_echo`
+    (ig/select comment). t-echo +9 (31). 44/44. **NOT yet verified live:**
+    owner must open Admin → Meta webhooks, repair WhatsApp/Instagram if
+    missing, then reply once from the WhatsApp Business app and once in
+    Instagram and check the chats; I can then confirm from logs/DB.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
