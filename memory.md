@@ -477,6 +477,26 @@ again?"
     Owner asked why a logged-in customer sees Log in on a public manual.
   - Verified counting code unchanged today: `countBillableMessages` counts
     only `role=bot AND reply_turn=true`; echo/agent rows never count.
+  - **2026-09-12 — marketing assets (no app change).** Owner is NOT sure the
+    name/domain "getvoicium" stays → logo is name-free: crimson app icon with
+    a white chat bubble + voice-wave bars (`marketing/logo/app-icon.svg`,
+    `logo-mark.svg`; a wordmark lockup `getvoicium-horizontal.svg` held back
+    until the name is final). PNGs were delivered via chat, not committed.
+    Not yet used as the real app icon/favicon (would need an APK rebuild).
+    **Explainer video** (owner wanted "HeyGen style" but has no HeyGen; no
+    talking avatar possible here): `marketing/explainer-video/` — 16-scene
+    script (EN + BN) → Edge neural TTS (`en-US-AndrewNeural`,
+    `bn-BD-PradeepNeural`, free) → Chrome/Playwright records animated
+    mock-dashboard scenes (`scene.html`) → ffmpeg mux + concat. Delivered
+    `getvoicium-explainer-en.mp4` (5:23, 27.8 MB) and `-bn.mp4` (5:51,
+    27.0 MB), 1080p30. Gotchas: Playwright needs its own ffmpeg at
+    `%LOCALAPPDATA%/ms-playwright/ffmpeg-1011/ffmpeg-win64.exe` (copied from
+    ffmpeg-static); local `.env.local` GEMINI_API_KEY is stale/invalid (so
+    Gemini TTS was not an option); `msedge-tts@1` cannot connect, `@2` works.
+    Also that day: LinkedIn post drafted (owner pastes a prompt into the
+    Claude Chrome extension; final "Post" click stays with the owner);
+    Google OAuth verification confirmed done (branding + data access), no
+    code change; Advanced-settings claims left unchecked on purpose.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
