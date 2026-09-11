@@ -436,6 +436,23 @@ again?"
     owner must open Admin → Meta webhooks, repair WhatsApp/Instagram if
     missing, then reply once from the WhatsApp Business app and once in
     Instagram and check the chats; I can then confirm from logs/DB.
+  - **VERIFIED (10:15–10:26 UTC):** owner repaired WhatsApp at app level
+    (log: `whatsapp_business_account fields set: messages,smb_message_echoes`;
+    Meta's verify GET on /api/whatsapp → 200). **No WhatsApp channel is
+    connected to any client yet**, so the phone-reply path is covered by
+    tests only until one connects. **Instagram works:** owner's hand-typed
+    IG DM "Hello" arrived as `object=instagram … is_echo:true` (no app_id)
+    and was stored as `role=agent` for @norayafzalnahid's customer
+    1986042089452132; screenshot shows it as "You" in the chat.
+  - **Bug found while verifying (fixed, own commit):** Meta's Business Suite
+    *instant reply* ("Hi, thanks for contacting us…") echoed 1.8 s after a
+    customer's message with the SAME app_id 263902037430900 and was treated
+    as a human reply → flipped Pending→Replied. With the bot ON that would
+    silence the bot for every new chat on a Page with instant replies on
+    (Broker's BD has bot OFF, so no harm today). `src/lib/echo-rules.js`
+    `isAutomatedEcho` (≤20 s after newest customer msg AND no business reply
+    in prior 10 min → automated: stored in thread, no Pending flip, no
+    memory); `tests/t-echo-rules.mjs` (9). 45/45.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
