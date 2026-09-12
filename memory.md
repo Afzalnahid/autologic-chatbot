@@ -519,6 +519,17 @@ again?"
       `getvoicium-bot-google-120.png` (120x120, no white edge needed).
     - Logo/video generators live in `scratchpad/` (not repo) except the sources
       already in `marketing/`.
+    - **`bbdf55b` — logo audit found the bolt/stale name in MORE places, all
+      fixed:** og cards `public/og.png` + `og-bn.png` (had the OLD name
+      "Autologic" + bolt → now bot + "getvoicium"; `scripts/make-og-images.mjs`
+      MARK+word updated), `public/logo.png` (PWA/manifest/PWABuilder store icon,
+      full-bleed bot), `src/app/favicon.ico` (regenerated from icon.svg via
+      sharp; `scripts/make-favicon.mjs` rewritten to rasterise the SVG),
+      `src/app/apple-icon.js` (iOS icon → bot), the channel-connect/OAuth
+      callback HTML pages (connect-page.js, fb & wa callbacks, wa embedded),
+      `ui.js` onboarding frame, dashboard sidebar no-logo fallback. Left on
+      purpose: Analytics "Bot resolved" stat icon + internal preview-dash (not
+      brand logos). Every brand mark is now the Friendly Bot. 45/45.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
