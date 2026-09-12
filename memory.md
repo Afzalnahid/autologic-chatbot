@@ -497,6 +497,28 @@ again?"
     Claude Chrome extension; final "Post" click stays with the owner);
     Google OAuth verification confirmed done (branding + data access), no
     code change; Advanced-settings claims left unchecked on purpose.
+  - **2026-09-12 (session 2) — cross-account push bug FIXED + Friendly Bot
+    logo shipped.**
+    - **Push bug (`04f3918`):** in the app, after switching accounts the
+      PREVIOUS account's notifications still came. Cause: FCM token
+      (`fcm_tokens`, unique on token) stayed bound to whoever registered it;
+      logout never removed it, new login never re-registered (permission asked
+      once per install). Fix: `rebindNativePush(clientId)` at end of `loadMe`
+      (re-registers onto current account, permission checked never requested),
+      `unbindNativePush()` on both logout paths; token mirrored to localStorage
+      `gv_fcm_token`. All `isNativeApp()`-guarded. No APK rebuild needed (web
+      code in WebView) — owner must close+reopen the app. lessons.md added.
+    - **Logo:** owner chose concept **C Friendly Bot** (chat-bubble robot
+      face). `src/lib/brand.js` `BotMark` (white body, cut-out face via mask,
+      works on any tile) replaces the old bolt + generic ti-robot in page.js,
+      site-shell.js, docs/shell.js, dashboard-client.js sign-in; favicon
+      `src/app/icon.svg` and `mobile/scripts/gen-assets.mjs` (app icon +
+      splash + notif) use it; `marketing/logo/*` updated (`5f386ad`). Dashboard
+      sidebar still shows each client's own logo (unchanged). App icon needs an
+      APK rebuild. Google Cloud Console logo delivered to owner:
+      `getvoicium-bot-google-120.png` (120x120, no white edge needed).
+    - Logo/video generators live in `scratchpad/` (not repo) except the sources
+      already in `marketing/`.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
