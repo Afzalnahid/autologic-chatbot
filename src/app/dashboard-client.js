@@ -906,7 +906,7 @@ export default function Dashboard() {
           display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
           {me?.client?.logo_url
             ?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-            :<i className="ti ti-bolt" style={{fontSize:21,color:T.gold}}/>}
+            :<span style={{width:44,height:44,borderRadius:14,background:T.accGrad,display:"flex",alignItems:"center",justifyContent:"center"}}><BotMark size={26}/></span>}
         </div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:15,fontWeight:700,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.01em"}}>{me?.client?.business_name||"getvoicium"}</div>

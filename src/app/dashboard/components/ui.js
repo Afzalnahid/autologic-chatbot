@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { BotMark } from "@/lib/brand.js";
 
 // Shared presentational building blocks. Each tab imports from here, so the
 // design tokens have exactly one definition.
@@ -96,7 +97,7 @@ export function OnboardFrame({icon,title,sub,step,of,width=460,scroll,children})
     <div className="ui-page" style={{width:"100%",maxWidth:width,background:T.card,borderRadius:26,border:`1px solid ${T.border}`,
       boxShadow:T.nmOut,padding:"clamp(22px, 4vw, 34px) clamp(18px, 4vw, 32px)",...(scroll?{maxHeight:"94dvh",overflowY:"auto"}:{})}}>
       <div style={{display:"inline-flex",alignItems:"center",gap:8,fontSize:13,fontWeight:700,color:T.text,marginBottom:18}}>
-        <span style={{width:26,height:26,borderRadius:8,background:T.accGrad,boxShadow:T.accGlow,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:14}}><i className="ti ti-bolt"/></span>
+        <span style={{width:26,height:26,borderRadius:8,background:T.accGrad,boxShadow:T.accGlow,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><BotMark size={16}/></span>
         getvoicium
       </div>
       <div style={{textAlign:"center",marginBottom:22}}>

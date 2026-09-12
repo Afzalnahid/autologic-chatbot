@@ -51,14 +51,17 @@ const C = {
   line: "#DFE3EC",
 };
 
-// icon.svg, inline, so the mark on the card is the same mark as the favicon.
+// icon.svg, inline, so the mark on the card is the same mark as the favicon —
+// the Friendly Bot: a chat-bubble-shaped robot face, white on the crimson tile.
 const MARK = `
-<svg width="SIZE" height="SIZE" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+<svg width="SIZE" height="SIZE" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="${C.acc}"/><stop offset="1" stop-color="${C.accDim}"/>
+    <stop offset="0" stop-color="#E12F3E"/><stop offset="1" stop-color="${C.accDim}"/>
   </linearGradient></defs>
-  <rect width="64" height="64" rx="15" fill="url(#g)"/>
-  <path transform="translate(5.5,5.4) scale(2.2)" d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11z" fill="#ffffff"/>
+  <rect width="512" height="512" rx="116" fill="url(#g)"/>
+  <g fill="#fff"><rect x="240" y="70" width="32" height="46" rx="16"/><circle cx="256" cy="66" r="22"/><path d="M176 118h160a76 76 0 0 1 76 76v112a76 76 0 0 1-76 76H222l-58 58c-9 9-24 3-24-10v-50a76 76 0 0 1-40-66V194a76 76 0 0 1 76-76z"/></g>
+  <g fill="#D92632"><rect x="186" y="190" width="42" height="66" rx="21"/><rect x="284" y="190" width="42" height="66" rx="21"/></g>
+  <path d="M204 300q52 46 104 0" stroke="#D92632" stroke-width="20" stroke-linecap="round" fill="none"/>
 </svg>`;
 
 // Both languages say the same thing the landing page's hero says, because that
@@ -137,7 +140,7 @@ function cardHtml(lang) {
 </style></head><body>
   <div class="m m1"></div><div class="m m2"></div><div class="m m3"></div><div class="m m4"></div>
   <div class="card">
-    <div class="brand">${MARK.replace(/SIZE/g, "62")}<div class="word">Autologic</div></div>
+    <div class="brand">${MARK.replace(/SIZE/g, "62")}<div class="word">getvoicium</div></div>
     <div>
       <h1>${t.head.join("<br>")}</h1>
       <div class="lead">${t.lead}</div>
@@ -151,8 +154,8 @@ function cardHtml(lang) {
 // so the SVG cannot be used directly here.
 const logoHtml = `<!doctype html><html><head><meta charset="utf-8"><style>
   *{margin:0;padding:0}
-  body{width:512px;height:512px;background:#fff;display:flex;align-items:center;justify-content:center}
-</style></head><body>${MARK.replace(/SIZE/g, "420")}</body></html>`;
+  body{width:512px;height:512px;display:flex;align-items:center;justify-content:center}
+</style></head><body>${MARK.replace(/SIZE/g, "512")}</body></html>`;
 
 function shoot(html, out, w, h) {
   const page = join(TMP, `${out.replace(/\.png$/, "")}.html`);
