@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { T, words, useIsMobile, Btn, Card, Inp, Motion, Theme, useTheme, ThemeToggle, Select, Segmented, OnboardFrame, SAMPLE_ECOM, SAMPLE_AGENCY } from "./dashboard/components/ui.js";
 import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 import { initNativeApp } from "./dashboard/components/native-back.js";
+import { rebindNativePush, unbindNativePush } from "./dashboard/components/native-push.js";
 import Broadcast from "./dashboard/components/Broadcast.js";
 import NotificationsBell from "./dashboard/components/NotificationsBell.js";
 import { useConvoRead } from "./dashboard/components/convo-read.js";
@@ -748,9 +749,11 @@ export default function Dashboard() {
       const d2=await api("/api/me").then(r=>r.json()).catch(()=>null);
       if(!d2||!d2.client){setStage("auth");return;}
       setMe(d2);
+      rebindNativePush(d2.client.id);   // tie this phone's notifications to THIS account
       setStage(d2.client.plan==="none"?"onboarding":"app");
       return;
     }
+    rebindNativePush(d.client.id);       // tie this phone's notifications to THIS account
     if(d.client.plan==="none") setStage("onboarding");
     else setStage("app");
   };
@@ -798,6 +801,7 @@ export default function Dashboard() {
     try{ window.history.pushState({signup:true},"",window.location.pathname); }catch{}
   },[inSignup]);
   useBackClose(inSignup, async()=>{
+    try{ await unbindNativePush(); }catch{}   // stop this phone getting the leaving account's pushes
     try{ await getSb().auth.signOut({scope:"local"}); }catch{}
     try{ localStorage.removeItem("gv_app_signed_in"); }catch{}
     setAuthToken(""); setMe(null); setStage("auth");
@@ -943,7 +947,7 @@ export default function Dashboard() {
             site. In an installed app, being thrown to the landing page read as
             leaving the app. reload() is what forces it, since navigating to
             /dashboard from /dashboard#tab would only drop the hash. */}
-        <button onClick={async()=>{try{await getSb().auth.signOut({scope:"local"});}catch{} try{localStorage.removeItem("gv_app_signed_in");}catch{} setAuthToken(""); window.location.reload();}}
+        <button onClick={async()=>{try{await unbindNativePush();}catch{} try{await getSb().auth.signOut({scope:"local"});}catch{} try{localStorage.removeItem("gv_app_signed_in");}catch{} setAuthToken(""); window.location.reload();}}
           className="ui-btn seg-item" style={{display:"flex",alignItems:"center",gap:9,flex:1,minWidth:0,
             padding:"10px 12px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",
             fontFamily:"inherit",fontSize:13.5,fontWeight:500,color:T.textMuted,textAlign:"left",whiteSpace:"nowrap"}}>

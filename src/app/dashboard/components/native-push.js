@@ -17,6 +17,10 @@ const plugin = () => {
 
 let _inited = false;
 let _lastToken = null;
+let _boundClient = null;               // which client this device's token is currently tied to
+const TOKEN_KEY = "gv_fcm_token";      // survives reloads so logout can still un-register
+
+const savedToken = () => { try { return _lastToken || localStorage.getItem(TOKEN_KEY); } catch { return _lastToken; } };
 
 // Save the token on the server. The registration endpoint needs a signed-in
 // client, and on first launch the permission is asked BEFORE the owner has
@@ -48,6 +52,9 @@ export function initNativePush() {
   try {
     PN.addListener("registration", async (t) => {
       _lastToken = t?.value || null;
+      // Persist it so we can still un-register this device after a reload (the
+      // module variable is lost then), e.g. when the owner logs out.
+      try { if (_lastToken) localStorage.setItem(TOKEN_KEY, _lastToken); } catch {}
       if (_lastToken) await postToken(_lastToken);
     });
     PN.addListener("registrationError", (e) => console.error("[native-push] registration error", e));
@@ -91,9 +98,38 @@ export async function enableNativePush() {
 // Stop notifications on this device: forget its token on the server. (The OS
 // permission stays granted; turning back on re-registers instantly.)
 export async function disableNativePush() {
-  if (!_lastToken) return;
+  const token = savedToken();
+  if (!token) return;
   await apiJson("/api/push/register-native", {
     method: "DELETE", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token: _lastToken }),
+    body: JSON.stringify({ token }),
   }).catch(() => {});
+}
+
+// Bind this device's FCM token to the account that is signed in NOW. Called
+// after every sign-in, because the token belongs to whoever last registered it:
+// without this, logging into account B on a phone that first ran account A left
+// the token tied to A, so A kept getting this phone's notifications. Registering
+// again re-fires the "registration" listener, which upserts the token onto the
+// current client (unique(token) → the old account's row is overwritten, not
+// duplicated). Permission is only checked, never requested, so a signed-in owner
+// is never prompted; a device that never turned notifications on stays silent.
+export async function rebindNativePush(clientId) {
+  if (!isNativeApp() || !clientId || _boundClient === clientId) return;
+  const PN = plugin(); if (!PN) return;
+  initNativePush();
+  try {
+    const p = await PN.checkPermissions().catch(() => null);
+    if (p?.receive !== "granted") return;   // notifications are off here — leave it off
+    _boundClient = clientId;
+    await PN.register();                     // → "registration" → postToken() under this account
+  } catch (e) { _boundClient = null; console.error("[native-push] rebind", e); }
+}
+
+// On logout: drop this device's token so the account just left stops pushing to
+// it at once, and forget the binding so the next sign-in re-registers cleanly.
+export async function unbindNativePush() {
+  _boundClient = null;
+  await disableNativePush();
+  try { localStorage.removeItem(TOKEN_KEY); } catch {}
 }

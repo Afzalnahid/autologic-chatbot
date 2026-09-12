@@ -277,6 +277,16 @@ PushNotifications plugin (injected into the remote page inside the app) to ask
 permission, register the token, and follow a tapped notification to its tab;
 `PushToggle` branches to it when `isNativeApp()`. Firebase config for the app
 lives in `mobile/google-services.json` (not a secret — it ships in every APK).
+A device's FCM token belongs to whoever registered it last (`unique(token)`
+upsert), so it must be re-bound on every account change: `rebindNativePush(clientId)`
+runs at the end of `loadMe` after each sign-in (permission checked, never
+requested — a silent device stays silent), re-registering the token onto the
+current account; `unbindNativePush()` runs on logout (both the menu button and
+the back-out-of-signup path), deleting the token so the account just left stops
+pushing to this phone. The token is mirrored to `localStorage` (`gv_fcm_token`)
+so logout can still un-register it after a reload. Without this, logging into a
+second account on a phone left the token tied to the first, and that first
+account kept receiving this phone's notifications.
 
 **Installable app (PWA).** getvoicium is a Progressive Web App: on a phone it can
 be installed to the home screen and opens full-screen, like a native app, and the

@@ -1370,3 +1370,21 @@ page that was supposed to fix his real problem.
 - Before telling the owner "open X and click Y", open X myself when the
   environment allows; when it does not (login-only page), say so and check
   the client-side code path end to end.
+
+## A device push token belongs to ONE account — rebind it on every login (2026-09-12)
+
+The installed app registers one FCM token per device (`fcm_tokens`, unique on
+the token). It was saved under whoever was signed in when the token first
+registered, and then never touched again: logout did not remove it, and a new
+login did not re-register it (the "ask permissions once per install" gate meant
+`register()` was not called again). So logging into account B on a phone that
+first ran account A left the token tied to A — and A kept getting that phone's
+notifications. The owner found it.
+
+**Rules:**
+- A per-device identifier tied to an account (push token, device id) must be
+  re-bound on every sign-in and removed on logout — not just registered once.
+- "Register once per install" is about the OS PERMISSION prompt, not about the
+  account binding; keep the two separate.
+- After a reload the module's in-memory token is gone; persist it (localStorage)
+  if logout still needs to un-register it server-side.
