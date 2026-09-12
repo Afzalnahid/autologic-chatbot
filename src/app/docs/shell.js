@@ -1,4 +1,5 @@
 import { P, THEME_CSS } from "@/lib/landing.js";
+import { BotMark } from "@/lib/brand.js";
 import { PAGES, GROUPS } from "@/lib/docs/index.js";
 import { docHref } from "./copy.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
@@ -201,7 +202,7 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
             textDecoration: "none", color: P.ink, minWidth: 0 }}>
             <div style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9, flexShrink: 0,
               boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <i className="ti ti-robot" style={{ fontSize: 15, color: P.onAccent }} />
+              <BotMark size={17} />
             </div>
             <span className="fr" style={{ fontSize: 19 }}>getvoicium</span>
             <span className="lbl brandtag" style={{ fontSize: 9, color: P.inkSoft, paddingTop: 3 }}>{ui.brand}</span>

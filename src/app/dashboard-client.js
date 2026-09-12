@@ -5,6 +5,7 @@ import { T, words, useIsMobile, Btn, Card, Inp, Motion, Theme, useTheme, ThemeTo
 import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 import { initNativeApp } from "./dashboard/components/native-back.js";
 import { rebindNativePush, unbindNativePush } from "./dashboard/components/native-push.js";
+import { BotMark } from "@/lib/brand.js";
 import Broadcast from "./dashboard/components/Broadcast.js";
 import NotificationsBell from "./dashboard/components/NotificationsBell.js";
 import { useConvoRead } from "./dashboard/components/convo-read.js";
@@ -136,7 +137,7 @@ function AuthGate({onReady}) {
       {/* The form half. */}
       <div className="auth-form">
         <div className="auth-brand">
-          <span className="auth-mark"><i className="ti ti-bolt"/></span> getvoicium
+          <span className="auth-mark"><BotMark size={18}/></span> getvoicium
         </div>
         <h1 className="auth-title">{signup?"Create account":"Welcome back"}</h1>
         <p className="auth-sub">{signup?"Sign up and begin your experience":"Sign in to your dashboard"}</p>

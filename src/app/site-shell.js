@@ -1,4 +1,5 @@
 import { P, THEME_CSS } from "@/lib/landing.js";
+import { BotMark } from "@/lib/brand.js";
 import { COMPANY, COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 
 // The frame the plain content pages sit in — contact, privacy, terms and the
@@ -139,7 +140,7 @@ export default function SiteShell({ eyebrow, title, lead, updated, children }) {
             <div style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9,
               flexShrink: 0, boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center",
               justifyContent: "center" }}>
-              <i className="ti ti-robot" style={{ fontSize: 15, color: P.onAccent }} />
+              <BotMark size={17} />
             </div>
             <span className="fr" style={{ fontSize: 19 }}>{COMPANY.name}</span>
           </a>

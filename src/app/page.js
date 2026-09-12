@@ -1,6 +1,7 @@
 import Script from "next/script";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
 import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
+import { BotMark } from "@/lib/brand.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 
@@ -127,7 +128,7 @@ function Flow({ lang }) {
               <div className="core-arc" /><div className="core-ring" /><div className="core-ring" />
               <div style={{ position: "absolute", inset: 7, borderRadius: "50%", background: P.blue,
                 display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <i className="ti ti-robot" style={{ fontSize: 23, color: P.onAccent }} />
+                <BotMark size={26} />
               </div>
             </div>
             <div style={{ textAlign: "center", width: "100%" }}>
@@ -440,7 +441,7 @@ export default function Home({ searchParams }) {
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0, minWidth: 0 }}>
             <div className="navmark" style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9, flexShrink: 0,
               boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <i className="ti ti-robot" style={{ fontSize: 15, color: P.onAccent }} />
+              <BotMark size={17} />
             </div>
             <span className="fr navword" style={{ fontSize: 19 }}>getvoicium</span>
           </a>

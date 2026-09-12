@@ -1,17 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="100 96 316 300" width="316" height="300" role="img" aria-label="getvoicium mark">
-  <defs>
-    <mask id="cut">
-      <rect x="116" y="110" width="280" height="210" rx="46" fill="#fff"/>
-      <path d="M160 312 L150 372 L208 315 Z" fill="#fff"/>
-      <rect x="152" y="185" width="24" height="60" rx="12" fill="#000"/>
-      <rect x="198" y="160" width="24" height="110" rx="12" fill="#000"/>
-      <rect x="244" y="140" width="24" height="150" rx="12" fill="#000"/>
-      <rect x="290" y="160" width="24" height="110" rx="12" fill="#000"/>
-      <rect x="336" y="185" width="24" height="60" rx="12" fill="#000"/>
-    </mask>
-  </defs>
-  <g mask="url(#cut)" fill="#D92632">
-    <rect x="116" y="110" width="280" height="210" rx="46"/>
-    <path d="M160 312 L150 372 L208 315 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="96 40 320 360" width="320" height="360" role="img" aria-label="getvoicium mark">
+  <g fill="#D92632">
+    <rect x="240" y="70" width="32" height="46" rx="16"/>
+    <circle cx="256" cy="66" r="22"/>
+    <path d="M176 118h160a76 76 0 0 1 76 76v112a76 76 0 0 1-76 76H222l-58 58c-9 9-24 3-24-10v-50a76 76 0 0 1-40-66V194a76 76 0 0 1 76-76z"/>
   </g>
+  <g fill="#FFFFFF">
+    <rect x="186" y="190" width="42" height="66" rx="21"/>
+    <rect x="284" y="190" width="42" height="66" rx="21"/>
+  </g>
+  <path d="M204 300q52 46 104 0" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" fill="none"/>
 </svg>
