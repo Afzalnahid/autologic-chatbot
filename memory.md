@@ -603,6 +603,28 @@ again?"
       deletion URLs, VAPID_SUBJECT, RESEND_FROM, SSLCommerz store URL.
       Open decision: support@ mailbox — recommend Google Workspace domain
       alias for tellmoreai.com.
+  - **2026-09-16 — Phase A progress.** Prompt 1 DONE: tellmoreai.com live
+    (A 216.198.79.1; apex 308 → www; www 200 "TellMore AI"). Meta prompt: A1
+    app domains + A2 FB Login for Business OAuth redirect URIs (tellmoreai
+    fb/wa callbacks, www + apex) + JS SDK domains SAVED. Webhooks read:
+    Page + Instagram → https://autologic-chatbot.vercel.app/api/messenger,
+    WABA → .../api/whatsapp (vercel.app host, works; move to
+    https://www.tellmoreai.com in Phase C — MUST be www, apex 308s and Meta
+    will not follow a redirect on POST). Privacy/Terms/Data-deletion/Site URL
+    all on apex https://getvoicium.com (308s). Contact email
+    afzalnahid021@gmail.com (Meta review mail goes there). Business
+    verification NORAY AFZAL NAHID Verified; Tech Provider access verification
+    Verified; Data Use Checkup complete; App mode Development. NOT done: IG
+    business-login redirect URIs, App Review statuses/rejection text — Meta
+    session got developers.facebook.com/sorry.php?msg=account after the
+    extension typed a guessed URL; owner to do these manually.
+    **Bug found (not fixed yet, owner to OK):** `src/app/api/fb/data-deletion`
+    POST returns 500 on an empty/malformed body (formData/split/
+    timingSafeEqual throw), and deletes message_buffer/contacts/chat_memory by
+    `sender_id = user_id` — but Meta's signed_request user_id is the
+    app-scoped id of the person who removed the app (the business owner), not
+    a customer PSID, so it deletes nothing relevant and never removes the
+    owner's channels/tokens that the GET page promises. Relevant to App Review.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
