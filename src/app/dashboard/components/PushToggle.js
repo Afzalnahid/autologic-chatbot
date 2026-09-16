@@ -119,14 +119,14 @@ export default function PushToggle() {
   if (state === "checking") return null;
 
   if (state === "unsupported") return (
-    <Row sub="This browser cannot show notifications. On an iPhone, first add getvoicium to your Home Screen, then open it from there and turn this on."><Switch on={false} disabled title="Not available here" /></Row>
+    <Row sub="This browser cannot show notifications. On an iPhone, first add TellMore AI to your Home Screen, then open it from there and turn this on."><Switch on={false} disabled title="Not available here" /></Row>
   );
   if (state === "unconfigured") return (
     <Row sub="Notifications are not switched on for this site yet."><Switch on={false} disabled title="Not set up yet" /></Row>
   );
   if (state === "denied") return (
     <Row sub={native
-      ? "Blocked on this phone. Allow them in Settings → Apps → getvoicium → Notifications, then reopen the app."
+      ? "Blocked on this phone. Allow them in Settings → Apps → TellMore AI → Notifications, then reopen the app."
       : "Blocked in this browser. Allow them for getvoicium.com in the browser's site settings, then reload this page."}>
       <Switch on={false} disabled title="Blocked" />
     </Row>

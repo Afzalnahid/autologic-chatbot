@@ -15,8 +15,10 @@
 // pointed here — changing it would lock the owner out of /admin.
 
 export const COMPANY = {
-  // The product, and the name on the site.
-  name: "getvoicium",
+  // The product, and the name on the site (renamed from getvoicium, 2026-09-16;
+  // the domain moves to tellmoreai.com once it is live on Vercel).
+  name: "TellMore AI",
+  tagline: "Conversations that convert",
 
   // The company that owns it, as registered, with its own site.
   legalName: "Autolinium",

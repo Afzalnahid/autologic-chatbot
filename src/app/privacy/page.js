@@ -3,8 +3,8 @@ import { COMPANY, ADDRESS_LINE } from "@/lib/company.js";
 import SiteShell, { Section, Note } from "../site-shell.js";
 
 export const metadata = pageMeta({
-  title: "Privacy Policy — getvoicium",
-  description: "How getvoicium collects, uses, stores and protects the data of the businesses on the platform and the customers who message them.",
+  title: "Privacy Policy — TellMore AI",
+  description: "How TellMore AI collects, uses, stores and protects the data of the businesses on the platform and the customers who message them.",
   path: "/privacy",
 });
 
@@ -18,7 +18,7 @@ export default function Privacy() {
     <SiteShell
       eyebrow="Legal"
       title="Privacy Policy"
-      lead={`getvoicium ("we", "our", "us") operates an AI-powered chatbot platform at getvoicium.com. This Privacy Policy explains how we collect, use, store, and protect data.`}
+      lead={`TellMore AI ("we", "our", "us") operates an AI-powered chatbot platform at getvoicium.com. This Privacy Policy explains how we collect, use, store, and protect data.`}
       updated="September 3, 2026"
     >
       <Section title="1. Information We Collect">
@@ -27,7 +27,7 @@ export default function Privacy() {
       </Section>
 
       <Section title="2. Google Calendar Data — Limited Use Disclosure">
-        <p>getvoicium's use of data obtained from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.</p>
+        <p>TellMore AI's use of data obtained from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.</p>
         <p>When a client connects Google Calendar, we use that access only to:</p>
         <ul>
           <li>Check the client's calendar availability (free/busy) when a customer requests a meeting.</li>
@@ -77,7 +77,7 @@ export default function Privacy() {
       </Section>
 
       <Note>
-        getvoicium's use of information received from Google APIs will adhere to the{" "}
+        TellMore AI's use of information received from Google APIs will adhere to the{" "}
         <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer"
           style={{ color: "var(--lp-acc)" }}>Google API Services User Data Policy</a>, including the Limited Use requirements.
       </Note>

@@ -40,7 +40,7 @@ export async function POST(request) {
       );
     }
 
-    // One WhatsApp number powers exactly one getvoicium account. Checked before
+    // One WhatsApp number powers exactly one TellMore AI account. Checked before
     // any Meta call so a taken number costs nothing.
     if (await ownedByAnotherClient("whatsapp", phoneId, clientId)) {
       return NextResponse.json({ error: ALREADY_CONNECTED.whatsapp }, { status: 409 });
@@ -130,7 +130,7 @@ export async function GET(request) {
   const name = String(searchParams.get("name") || "WhatsApp Business").slice(0, 80);
   const number = String(searchParams.get("number") || "").slice(0, 40);
   return connectedPage({ platform: "whatsapp", name, detail: number, rows: [
-    { ok: true, title: "WhatsApp replies are live", sub: "getvoicium answers every message this number receives, 24/7." },
+    { ok: true, title: "WhatsApp replies are live", sub: "TellMore AI answers every message this number receives, 24/7." },
     { ok: true, title: "Broadcasts and follow-ups ready", sub: "Reach people who messaged you in the last 24 hours from the Broadcast tab." },
   ] });
 }

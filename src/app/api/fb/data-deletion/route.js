@@ -39,7 +39,7 @@ export async function POST(request) {
 export async function GET() {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Data Deletion — getvoicium</title>
+<title>Data Deletion — TellMore AI</title>
 <style>
   body{background:#0A0D14;color:#E7EAF2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
        line-height:1.75;margin:0;padding:48px 24px}
@@ -54,7 +54,7 @@ export async function GET() {
   <div class="sub">${COMPANY.name} · ${ADDRESS_LINE} · ${COMPANY.madeBy}</div>
 
   <h2>Automatic deletion</h2>
-  <p>If you remove getvoicium from your Facebook or Instagram settings, Meta notifies
+  <p>If you remove TellMore AI from your Facebook or Instagram settings, Meta notifies
   this endpoint automatically and we delete the access tokens and channel data
   associated with your account within 24 hours.</p>
 

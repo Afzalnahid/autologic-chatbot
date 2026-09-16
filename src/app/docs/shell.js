@@ -204,7 +204,7 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
               boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <BotMark size={17} />
             </div>
-            <span className="fr" style={{ fontSize: 19 }}>getvoicium</span>
+            <span className="fr" style={{ fontSize: 19 }}>TellMore AI</span>
             <span className="lbl brandtag" style={{ fontSize: 9, color: P.inkSoft, paddingTop: 3 }}>{ui.brand}</span>
           </a>
 

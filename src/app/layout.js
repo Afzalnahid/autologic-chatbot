@@ -12,14 +12,14 @@ export const viewport = {
 export const metadata = {
   // The title here is the dashboard's — it is the one page that does not set
   // its own. Every public page overrides both of these through pageMeta().
-  title: "getvoicium Chatbot Dashboard",
+  title: "TellMore AI Chatbot Dashboard",
   description: "AI-powered chatbot management dashboard",
   // Without this Next cannot turn a relative share-image path into the absolute
   // URL that Facebook and WhatsApp require, and it warns on every build.
   metadataBase: new URL(SITE),
   // Makes iOS open the home-screen icon full-screen, like a native app, instead
   // of inside Safari's chrome (Android reads this from the manifest instead).
-  appleWebApp: { capable: true, title: "getvoicium", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "TellMore AI", statusBarStyle: "default" },
 };
 
 export default function RootLayout({ children }) {

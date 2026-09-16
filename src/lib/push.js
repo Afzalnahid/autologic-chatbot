@@ -69,7 +69,7 @@ export async function sendPush(clientId, payload = {}) {
     if (!subs || !subs.length) return { sent: 0, reason: "no_subscriptions" };
 
     const body = JSON.stringify({
-      title: String(payload.title || "getvoicium"),
+      title: String(payload.title || "TellMore AI"),
       body: String(payload.body || ""),
       url: String(payload.url || "/dashboard"),
       tag: payload.tag ? String(payload.tag) : undefined,

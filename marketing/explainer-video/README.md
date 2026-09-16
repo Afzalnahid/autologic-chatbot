@@ -23,7 +23,7 @@ and voices):
     node tts.mjs          # voices, ~2 min
     node render.mjs       # both languages, ~20 min; `node render.mjs en 04-inbox` renders one scene
 
-If the product name or domain changes: search-and-replace "getvoicium" in
+If the product name or domain changes: search-and-replace "TellMore AI" in
 `script.json` and `scene.html` (the logo mark itself is name-free), regenerate.
 Voices: `en-US-AndrewNeural` / `bn-BD-PradeepNeural` (female alternatives:
 `en-US-AvaNeural` / `bn-BD-NabanitaNeural`).

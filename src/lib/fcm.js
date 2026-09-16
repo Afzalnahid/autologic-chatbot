@@ -66,7 +66,7 @@ export async function sendFcm(clientId, payload = {}) {
     if (!at) return { sent: 0, reason: "no_token" };
 
     const url = `https://fcm.googleapis.com/v1/projects/${projectId()}/messages:send`;
-    const title = payload.title || "getvoicium";
+    const title = payload.title || "TellMore AI";
     const body = payload.body || "";
     const data = { url: String(payload.url || "/dashboard") };
     if (payload.tag) data.tag = String(payload.tag);

@@ -1,5 +1,5 @@
 // Web App Manifest. Next serves this at /manifest.webmanifest and injects the
-// <link rel="manifest"> automatically, so getvoicium becomes an installable app:
+// <link rel="manifest"> automatically, so TellMore AI becomes an installable app:
 //   - on a phone browser, "Add to Home Screen" gives it its own icon and opens
 //     it full-screen (no address bar), and
 //   - a store package (Play Store APK / App Store) is generated from this same
@@ -7,9 +7,9 @@
 // Colours follow the brand invariant: crimson #D92632 on the soft-white ground.
 export default function manifest() {
   return {
-    name: "getvoicium",
-    short_name: "getvoicium",
-    description: "Your shop's AI chatbot — orders, chats and inventory in one place.",
+    name: "TellMore AI",
+    short_name: "TellMore AI",
+    description: "Conversations that convert — the AI assistant that answers your customers on Messenger, Instagram, WhatsApp and your website.",
     // Owners live in the dashboard; open straight there. Not logged in? It sends
     // them to sign in first, then back, exactly like the website does.
     start_url: "/dashboard",

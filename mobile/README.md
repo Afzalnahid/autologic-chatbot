@@ -1,4 +1,4 @@
-# getvoicium — native mobile shell (Capacitor)
+# TellMore AI — native mobile shell (Capacitor)
 
 A thin native app that loads the live web app (`https://www.getvoicium.com`) in
 its **own** WebView. Unlike the earlier TWA, it does **not** depend on the
@@ -31,13 +31,13 @@ website keeps the app up to date too — only the app's name/icon/id need a rebu
 the current website in a WebView it controls. `www/index.html` is only a
 placeholder loading screen required by the build; it is not the real UI.
 
-App identity: id `com.getvoicium.app`, name **getvoicium** (separate from the old
+App identity: id `com.getvoicium.app`, name **TellMore AI** (separate from the old
 TWA `com.getvoicium.www.twa`, so both can coexist during testing).
 
 ## Follow-ups (not done yet)
 
 - **Branded app icon.** The first build uses Capacitor's default icon. Add the
-  getvoicium logo via `@capacitor/assets` (needs a 1024×1024 source) in a later
+  TellMore AI logo via `@capacitor/assets` (needs a 1024×1024 source) in a later
   pass.
 - **Release signing / Play Store.** For a store build, generate a release
   keystore, add it to repo **Settings → Secrets**, and switch the workflow to

@@ -2,7 +2,7 @@
   "name": "getvoicium-mobile",
   "version": "1.0.0",
   "private": true,
-  "description": "Native Android/iOS shell (Capacitor) that loads the live getvoicium web app in its own WebView, so it does not depend on the phone's default browser the way the TWA did. Isolated from the web app on purpose — nothing here is part of the Next.js/Vercel build.",
+  "description": "Native Android/iOS shell (Capacitor) that loads the live TellMore AI web app in its own WebView, so it does not depend on the phone's default browser the way the TWA did. Isolated from the web app on purpose — nothing here is part of the Next.js/Vercel build.",
   "dependencies": {
     "@capacitor/android": "^6.1.2",
     "@capacitor/app": "^6.0.2",

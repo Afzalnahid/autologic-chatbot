@@ -11,7 +11,7 @@ export function generateMetadata({ searchParams }) {
   const lang = pickLang(searchParams);
   const { UI } = copy(lang);
   return {
-    ...pageMeta({ title: `${UI.brand} — getvoicium`, description: UI.tagline, path: "/docs", lang }),
+    ...pageMeta({ title: `${UI.brand} — TellMore AI`, description: UI.tagline, path: "/docs", lang }),
     // Left exactly as it was. The manual has always pointed both languages at
     // one canonical address, and which URLs Google indexes is a decision on its
     // own — not something to change as a side effect of adding share cards.

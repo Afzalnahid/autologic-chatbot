@@ -10,14 +10,14 @@ import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 // written in English for both.
 const META = {
   en: {
-    title: "getvoicium — AI Chatbot for Facebook, Instagram & WhatsApp",
+    title: "TellMore AI — AI Chatbot for Facebook, Instagram & WhatsApp",
     description:
-      "getvoicium is an AI-powered customer service chatbot platform that connects to Facebook, Instagram, WhatsApp and your own website, and books meetings into Google Calendar.",
+      "TellMore AI is an AI-powered customer service chatbot platform that connects to Facebook, Instagram, WhatsApp and your own website, and books meetings into Google Calendar.",
   },
   bn: {
-    title: "getvoicium — ফেসবুক, ইনস্টাগ্রাম ও হোয়াটসঅ্যাপের জন্য এআই চ্যাটবট",
+    title: "TellMore AI — ফেসবুক, ইনস্টাগ্রাম ও হোয়াটসঅ্যাপের জন্য এআই চ্যাটবট",
     description:
-      "getvoicium একটি এআই চ্যাটবট, যা ফেসবুক, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর আপনার নিজের ওয়েবসাইটে যুক্ত হয়ে গ্রাহকদের বাংলা বা ইংরেজিতে উত্তর দেয়, আর মিটিং সরাসরি গুগল ক্যালেন্ডারে বুক করে।",
+      "TellMore AI একটি এআই চ্যাটবট, যা ফেসবুক, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর আপনার নিজের ওয়েবসাইটে যুক্ত হয়ে গ্রাহকদের বাংলা বা ইংরেজিতে উত্তর দেয়, আর মিটিং সরাসরি গুগল ক্যালেন্ডারে বুক করে।",
   },
 };
 
@@ -190,7 +190,7 @@ export default function Home({ searchParams }) {
     <div className={lang === "bn" ? "bn" : ""}
       style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
-      {/* What lets Google print "getvoicium" above a result instead of the bare
+      {/* What lets Google print "TellMore AI" above a result instead of the bare
           domain. It is data, not code — nothing runs it — so unlike the theme
           boot it works fine sitting here in the page. It still needs
           dangerouslySetInnerHTML: React escapes the text child of a script or
@@ -443,7 +443,7 @@ export default function Home({ searchParams }) {
               boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <BotMark size={17} />
             </div>
-            <span className="fr navword" style={{ fontSize: 19 }}>getvoicium</span>
+            <span className="fr navword" style={{ fontSize: 19 }}>TellMore AI</span>
           </a>
 
           {/* Four controls that stay controls: nothing wraps, nothing collides. */}
@@ -585,7 +585,7 @@ export default function Home({ searchParams }) {
           <div data-reveal="0" style={{ marginBottom: 30, maxWidth: 620 }}>
             <Label>{bn ? "যাঁরা ব্যবহার করছেন" : "In production"}</Label>
             <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>
-              {bn ? "যেসব ব্যবসা getvoicium-এ চলছে" : "Businesses running on getvoicium"}
+              {bn ? "যেসব ব্যবসা TellMore AI-এ চলছে" : "Businesses running on TellMore AI"}
             </h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 290px), 1fr))",

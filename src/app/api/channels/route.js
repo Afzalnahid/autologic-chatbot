@@ -53,9 +53,9 @@ export async function POST(request) {
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const { platform, page_id, access_token, name } = await request.json();
     if (!platform || !page_id || !access_token) return NextResponse.json({ error: "missing fields" }, { status: 400 });
-    // One page/account/number powers exactly one getvoicium account.
+    // One page/account/number powers exactly one TellMore AI account.
     if (await ownedByAnotherClient(platform, page_id, client.id)) {
-      return NextResponse.json({ error: ALREADY_CONNECTED[platform] || "This account is already connected to another getvoicium account." }, { status: 409 });
+      return NextResponse.json({ error: ALREADY_CONNECTED[platform] || "This account is already connected to another TellMore AI account." }, { status: 409 });
     }
     // How many channels the package allows. Reconnecting one already on this
     // account is not a new channel and is never refused.

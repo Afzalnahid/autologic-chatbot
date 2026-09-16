@@ -16,7 +16,7 @@ export async function POST(request) {
     const [pageId, encName, pageToken] = String(form.get("page") || "").split("|");
     if (!clientId || !pageId || !pageToken) return connectFailedPage({ platform: "facebook", status: 400, reason: "No Page was selected. Please go back and choose a Page." });
 
-    // One Page powers exactly one getvoicium account.
+    // One Page powers exactly one TellMore AI account.
     if (await ownedByAnotherClient("facebook", pageId, clientId)) {
       return connectFailedPage({ platform: "facebook", status: 409, reason: ALREADY_CONNECTED.facebook });
     }
@@ -63,7 +63,7 @@ export async function POST(request) {
     // Plain-language status — the owner reads what the bot will do, never a
     // permission name. Comment automation waits on Meta App Review.
     const rows = [
-      { ok: true, title: "Messenger replies are live", sub: "getvoicium answers every message this Page receives, 24/7." },
+      { ok: true, title: "Messenger replies are live", sub: "TellMore AI answers every message this Page receives, 24/7." },
       feedOk
         ? { ok: true, title: "Comment automation is on", sub: "Comments on your posts get a reply and a private message." }
         : { ok: false, title: "Comment automation is waiting for Meta", sub: "Messages work now; comment replies switch on once Meta approves the app." },

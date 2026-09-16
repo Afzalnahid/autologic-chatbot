@@ -137,7 +137,7 @@ function AuthGate({onReady}) {
       {/* The form half. */}
       <div className="auth-form">
         <div className="auth-brand">
-          <span className="auth-mark"><BotMark size={18}/></span> getvoicium
+          <span className="auth-mark"><BotMark size={18}/></span> TellMore AI
         </div>
         <h1 className="auth-title">{signup?"Create account":"Welcome back"}</h1>
         <p className="auth-sub">{signup?"Sign up and begin your experience":"Sign in to your dashboard"}</p>
@@ -327,7 +327,7 @@ function Onboarding({me,onTrial}) {
 
   if(step==="profile") return <OnboardFrame icon="ti-building-store" title="Set up your business profile"
     sub="This helps your AI assistant represent your business" step={1} of={3}>
-    <Inp emb label="Business name *" value={form.business_name} onChange={e=>setForm({...form,business_name:e.target.value})} placeholder="e.g. getvoicium Agency"/>
+    <Inp emb label="Business name *" value={form.business_name} onChange={e=>setForm({...form,business_name:e.target.value})} placeholder="e.g. TellMore AI Agency"/>
     <div style={{marginBottom:16}}>
       <Label>Business type *</Label>
       <Select wide value={form.business_type} options={BIZ} onChange={v=>setForm({...form,business_type:v})}
@@ -720,7 +720,7 @@ export default function Dashboard() {
   const [dashChannels,setDashChannels]=useState([]);
   const [orders,setOrders]=useState([]);
   const [bookingCount,setBookingCount]=useState(0);
-  const [settings,setSettings]=useState({botName:"getvoicium Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
+  const [settings,setSettings]=useState({botName:"TellMore AI Bot",businessName:"My Business",systemPrompt:"You are a helpful sales assistant.",greeting:"Hello! How can I help?"});
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [mode,toggleTheme]=useTheme();
   const [loading,setLoading]=useState(true);
@@ -909,7 +909,7 @@ export default function Dashboard() {
             :<span style={{width:44,height:44,borderRadius:14,background:T.accGrad,display:"flex",alignItems:"center",justifyContent:"center"}}><BotMark size={26}/></span>}
         </div>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:15,fontWeight:700,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.01em"}}>{me?.client?.business_name||"getvoicium"}</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.01em"}}>{me?.client?.business_name||"TellMore AI"}</div>
           <div style={{fontSize:9.5,color:T.textDim,textTransform:"uppercase",letterSpacing:"0.16em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:2}}>{settings?.botName||"chatbot"}</div>
         </div>
         <button onClick={()=>setSidebarOpen(false)} className="ui-btn" aria-label="Collapse menu"

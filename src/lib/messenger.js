@@ -74,7 +74,7 @@ export async function sendResponses(token, id, items, platform, pageId) {
   }
 }
 
-// The Meta app ids getvoicium itself sends through (Facebook app for Messenger
+// The Meta app ids TellMore AI itself sends through (Facebook app for Messenger
 // and WhatsApp, Instagram app for Instagram). Same defaults as the login
 // routes; these are public OAuth client ids, not secrets. Used to tell our own
 // echoed sends apart from a human's reply typed in Meta's own tools.

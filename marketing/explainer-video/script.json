@@ -19,9 +19,9 @@
     {
       "id": "03-solution", "template": "channels",
       "en": { "title": "One assistant. Every channel. One inbox.", "sub": "Connect a Page, an account or a number in a single click — no tokens, no code, no developer.",
-        "vo": "Meet getvoicium. One AI assistant, trained on your business, that answers on every channel from one simple dashboard. Connecting a Facebook Page, an Instagram account, a WhatsApp number or your website takes a single click — you log in with your own account, choose the Page, and the bot is live from that moment. No tokens, no code, no developer." },
+        "vo": "Meet TellMore AI. One AI assistant, trained on your business, that answers on every channel from one simple dashboard. Connecting a Facebook Page, an Instagram account, a WhatsApp number or your website takes a single click — you log in with your own account, choose the Page, and the bot is live from that moment. No tokens, no code, no developer." },
       "bn": { "title": "একটা সহকারী। সব চ্যানেল। একটা ইনবক্স।", "sub": "পেজ, অ্যাকাউন্ট বা নম্বর যুক্ত করুন এক ক্লিকে — টোকেন নেই, কোড নেই, ডেভেলপার লাগে না।",
-        "vo": "পরিচয় করিয়ে দিই getvoicium-এর সাথে। একটা AI সহকারী, আপনার ব্যবসা শিখে নিয়ে, একটা সহজ ড্যাশবোর্ড থেকে সব চ্যানেলে উত্তর দেয়। Facebook পেজ, Instagram অ্যাকাউন্ট, WhatsApp নম্বর বা ওয়েবসাইট যুক্ত করতে লাগে মাত্র এক ক্লিক — নিজের অ্যাকাউন্ট দিয়ে লগইন করুন, পেজটা বাছুন, সেই মুহূর্ত থেকে বট চালু। টোকেন নেই, কোড নেই, ডেভেলপার লাগে না।" }
+        "vo": "পরিচয় করিয়ে দিই TellMore AI-এর সাথে। একটা AI সহকারী, আপনার ব্যবসা শিখে নিয়ে, একটা সহজ ড্যাশবোর্ড থেকে সব চ্যানেলে উত্তর দেয়। Facebook পেজ, Instagram অ্যাকাউন্ট, WhatsApp নম্বর বা ওয়েবসাইট যুক্ত করতে লাগে মাত্র এক ক্লিক — নিজের অ্যাকাউন্ট দিয়ে লগইন করুন, পেজটা বাছুন, সেই মুহূর্ত থেকে বট চালু। টোকেন নেই, কোড নেই, ডেভেলপার লাগে না।" }
     },
     {
       "id": "04-inbox", "template": "inbox",
@@ -110,9 +110,9 @@
     {
       "id": "16-outro", "template": "outro",
       "en": { "title": "Let the assistant handle the questions. You handle the growth.", "sub": "getvoicium.com — start your free trial today.",
-        "vo": "You built your business to grow — not to answer the same question a hundred times a day. Let the assistant handle the questions, and you handle the growth. Start your free trial today at getvoicium dot com." },
+        "vo": "You built your business to grow — not to answer the same question a hundred times a day. Let the assistant handle the questions, and you handle the growth. Start your free trial today at TellMore AI dot com." },
       "bn": { "title": "প্রশ্নগুলো সহকারী সামলাক। আপনি সামলান ব্যবসার বৃদ্ধি।", "sub": "getvoicium.com — আজই ফ্রি ট্রায়াল শুরু করুন।",
-        "vo": "ব্যবসাটা আপনি বানিয়েছেন বড় করার জন্য — দিনে একশোবার একই প্রশ্নের উত্তর দেওয়ার জন্য নয়। প্রশ্নগুলো সহকারী সামলাক, আর আপনি সামলান ব্যবসার বৃদ্ধি। আজই ফ্রি ট্রায়াল শুরু করুন getvoicium ডট কম-এ।" }
+        "vo": "ব্যবসাটা আপনি বানিয়েছেন বড় করার জন্য — দিনে একশোবার একই প্রশ্নের উত্তর দেওয়ার জন্য নয়। প্রশ্নগুলো সহকারী সামলাক, আর আপনি সামলান ব্যবসার বৃদ্ধি। আজই ফ্রি ট্রায়াল শুরু করুন TellMore AI ডট কম-এ।" }
     }
   ]
 }

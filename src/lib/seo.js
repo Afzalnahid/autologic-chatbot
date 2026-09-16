@@ -3,7 +3,7 @@
 // Before this file existed the public pages carried a title and a description
 // and nothing else. Two things followed from that. Google had no name to print
 // above a result, so it printed the bare domain — "getvoicium.com" instead of
-// "getvoicium". And a link pasted into Messenger or WhatsApp — which is where
+// "TellMore AI". And a link pasted into Messenger or WhatsApp — which is where
 // this product's customers actually are — unfurled as an empty grey box, with
 // no picture, no headline and no sentence.
 //
@@ -13,7 +13,7 @@
 import { COMPANY } from "@/lib/company.js";
 
 export const SITE = "https://www.getvoicium.com";
-export const BRAND = "getvoicium";
+export const BRAND = "TellMore AI";
 
 // Built by scripts/make-og-images.mjs, one per language. A Bangla reader who is
 // sent the Bangla page should see a Bangla card.
@@ -62,7 +62,7 @@ export function pageMeta({ title, description, path = "/", lang = "en", robots }
 }
 
 /**
- * The structured data that lets Google print "getvoicium" above a result
+ * The structured data that lets Google print "TellMore AI" above a result
  * instead of the domain. It has to sit on the home page to count, so this is
  * used once, in src/app/page.js.
  *

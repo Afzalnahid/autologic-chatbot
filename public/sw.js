@@ -1,4 +1,4 @@
-/* getvoicium push service worker.
+/* TellMore AI push service worker.
    Shows a notification when the server sends a push (new order, new booking, a
    chat that needs a human) even while the dashboard is closed, and opens the
    right tab when the owner taps it. */
@@ -17,7 +17,7 @@ self.addEventListener("fetch", () => {});
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
-  const title = data.title || "getvoicium";
+  const title = data.title || "TellMore AI";
   const options = {
     body: data.body || "",
     icon: "/logo.png",

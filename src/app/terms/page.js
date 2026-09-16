@@ -3,8 +3,8 @@ import { COMPANY, ADDRESS_LINE } from "@/lib/company.js";
 import SiteShell, { Section } from "../site-shell.js";
 
 export const metadata = pageMeta({
-  title: "Terms of Service — getvoicium",
-  description: "The terms that govern the use of getvoicium, an AI customer service chatbot platform for businesses in Bangladesh.",
+  title: "Terms of Service — TellMore AI",
+  description: "The terms that govern the use of TellMore AI, an AI customer service chatbot platform for businesses in Bangladesh.",
   path: "/terms",
 });
 
@@ -15,11 +15,11 @@ export default function Terms() {
     <SiteShell
       eyebrow="Legal"
       title="Terms of Service"
-      lead={`These Terms of Service ("Terms") govern your use of getvoicium ("we", "our", "us"), an AI-powered customer service chatbot platform operated at getvoicium.com. By creating an account or using the platform, you agree to these Terms.`}
+      lead={`These Terms of Service ("Terms") govern your use of TellMore AI ("we", "our", "us"), an AI-powered customer service chatbot platform operated at getvoicium.com. By creating an account or using the platform, you agree to these Terms.`}
       updated="July 18, 2026"
     >
       <Section title="1. The Service">
-        <p>getvoicium provides an AI-powered chatbot platform that businesses ("clients") connect to their messaging channels (Facebook, Instagram, WhatsApp) and optionally their Google Calendar to automate customer service, meeting scheduling, and order management.</p>
+        <p>TellMore AI provides an AI-powered chatbot platform that businesses ("clients") connect to their messaging channels (Facebook, Instagram, WhatsApp) and optionally their Google Calendar to automate customer service, meeting scheduling, and order management.</p>
       </Section>
 
       <Section title="2. Account Registration">
@@ -31,7 +31,7 @@ export default function Terms() {
       </Section>
 
       <Section title="4. Google Calendar Integration">
-        <p>When you connect your Google Calendar, you authorize getvoicium to check your calendar availability and create meeting events with Google Meet links on your behalf. This access is used solely to automate meeting scheduling for your customers. You may disconnect your Google Calendar at any time from your profile settings, which will immediately revoke our access and delete your stored tokens.</p>
+        <p>When you connect your Google Calendar, you authorize TellMore AI to check your calendar availability and create meeting events with Google Meet links on your behalf. This access is used solely to automate meeting scheduling for your customers. You may disconnect your Google Calendar at any time from your profile settings, which will immediately revoke our access and delete your stored tokens.</p>
       </Section>
 
       <Section title="5. Trial and Paid Plans">
@@ -43,7 +43,7 @@ export default function Terms() {
       </Section>
 
       <Section title="7. Intellectual Property">
-        <p>getvoicium and its underlying technology remain our intellectual property. You are granted a limited, non-exclusive, non-transferable license to use the platform for your business purposes. You may not copy, reverse-engineer, or resell any part of the platform without written permission.</p>
+        <p>TellMore AI and its underlying technology remain our intellectual property. You are granted a limited, non-exclusive, non-transferable license to use the platform for your business purposes. You may not copy, reverse-engineer, or resell any part of the platform without written permission.</p>
       </Section>
 
       <Section title="8. Service Availability">

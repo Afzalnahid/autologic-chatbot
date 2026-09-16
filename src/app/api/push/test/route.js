@@ -19,7 +19,7 @@ export async function POST(request) {
   // Same path a real order/booking/message takes — both channels (browser Web
   // Push and the native app's FCM), so the test proves whichever the owner uses.
   const r = await notify(client.id, {
-    title: "🔔 getvoicium",
+    title: "🔔 TellMore AI",
     body: "Test notification — if you can see this, alerts are working.",
     url: "/dashboard",
     tag: "gv-test",

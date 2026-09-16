@@ -426,9 +426,9 @@ export default function Bookings({calConnected,clientId}) {
         <li><b style={{color:T.text}}>Choose the Google account</b> that owns the calendar you take meetings in.
           Use the business account, not a personal one you do not check.</li>
         <li><b style={{color:T.text}}>If Google warns that the app is not verified</b>, press
-          <i style={{color:T.text}}> Advanced</i> then <i style={{color:T.text}}>Go to getvoicium</i>.
+          <i style={{color:T.text}}> Advanced</i> then <i style={{color:T.text}}>Go to TellMore AI</i>.
           The warning appears because our Google review is still in progress. Nothing is wrong with your account.</li>
-        <li><b style={{color:T.text}}>Press Continue</b> on the permissions screen. getvoicium asks for two things
+        <li><b style={{color:T.text}}>Press Continue</b> on the permissions screen. TellMore AI asks for two things
           only: to see when you are free, and to create meetings for you.</li>
         <li><b style={{color:T.text}}>The window closes by itself.</b> This banner disappears and the bot starts
           offering real times to customers.</li>
@@ -439,7 +439,7 @@ export default function Bookings({calConnected,clientId}) {
         <ul style={{margin:0,paddingLeft:20,fontSize:13,lineHeight:1.8,color:T.textMuted}}>
           <li>Nothing happened — the pop-up was blocked. Allow pop-ups, or open this page on a computer.</li>
           <li>Wrong account connected — press Connect again and pick the right one. The old one is replaced.</li>
-          <li>You want to disconnect — remove getvoicium from your Google account at
+          <li>You want to disconnect — remove TellMore AI from your Google account at
             <span style={{color:T.gold}}> myaccount.google.com → Security → Third-party access</span>. Bookings keep
             working, but Meet links stop.</li>
         </ul>
@@ -447,7 +447,7 @@ export default function Bookings({calConnected,clientId}) {
 
       <div style={{marginTop:14,fontSize:12,color:T.textDim,lineHeight:1.7}}>
         <i className="ti ti-lock" style={{marginRight:5}}/>
-        getvoicium never reads what is in your meetings — only whether a slot is free, and it only writes
+        TellMore AI never reads what is in your meetings — only whether a slot is free, and it only writes
         the bookings your customers make. <a href="/google-calendar" target="_blank" rel="noopener"
         style={{color:T.gold}}>What we access and why</a>
       </div>

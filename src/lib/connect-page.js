@@ -68,7 +68,7 @@ export function connectedPage({ platform, name, detail, lead, rows = [], seconds
   const ch = CHANNELS[platform];
   const dest = `/dashboard?connected=${encodeURIComponent(platform)}&name=${encodeURIComponent(name || "")}#channels`;
   const body = `<main class="card" role="status" aria-live="polite">
-  <div class="brand"><svg width="26" height="26" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="border-radius:8px"><defs><linearGradient id="gvb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E12F3E"/><stop offset="1" stop-color="#B01824"/></linearGradient></defs><rect width="512" height="512" rx="116" fill="url(#gvb)"/><g fill="#fff"><rect x="240" y="70" width="32" height="46" rx="16"/><circle cx="256" cy="66" r="22"/><path d="M176 118h160a76 76 0 0 1 76 76v112a76 76 0 0 1-76 76H222l-58 58c-9 9-24 3-24-10v-50a76 76 0 0 1-40-66V194a76 76 0 0 1 76-76z"/></g><g fill="#D92632"><rect x="186" y="190" width="42" height="66" rx="21"/><rect x="284" y="190" width="42" height="66" rx="21"/></g><path d="M204 300q52 46 104 0" stroke="#D92632" stroke-width="20" stroke-linecap="round" fill="none"/></svg>getvoicium</div>
+  <div class="brand"><svg width="26" height="26" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="border-radius:8px"><defs><linearGradient id="gvb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E12F3E"/><stop offset="1" stop-color="#B01824"/></linearGradient></defs><rect width="512" height="512" rx="116" fill="url(#gvb)"/><g fill="#fff"><rect x="240" y="70" width="32" height="46" rx="16"/><circle cx="256" cy="66" r="22"/><path d="M176 118h160a76 76 0 0 1 76 76v112a76 76 0 0 1-76 76H222l-58 58c-9 9-24 3-24-10v-50a76 76 0 0 1-40-66V194a76 76 0 0 1 76-76z"/></g><g fill="#D92632"><rect x="186" y="190" width="42" height="66" rx="21"/><rect x="284" y="190" width="42" height="66" rx="21"/></g><path d="M204 300q52 46 104 0" stroke="#D92632" stroke-width="20" stroke-linecap="round" fill="none"/></svg>TellMore AI</div>
   <div class="hero">
     <div class="tile"><i class="ti ${ch.icon}" style="color:${ch.color}"></i><span class="tick"><i class="ti ti-check"></i></span></div>
     <div class="eyebrow">Connected</div>
@@ -92,7 +92,7 @@ export function connectedPage({ platform, name, detail, lead, rows = [], seconds
   var t=setInterval(function(){ n--; if(el) el.textContent=n; if(n<=0){ clearInterval(t); go(); } },1000);
 })();
 </script>`;
-  return new NextResponse(shell({ title: `${ch.label} connected — getvoicium`, body, script }), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new NextResponse(shell({ title: `${ch.label} connected — TellMore AI`, body, script }), { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
 
 // `title` overrides the default "… could not be connected" heading (e.g. the
@@ -105,7 +105,7 @@ export function connectFailedPage({ platform, reason, status = 500, title, eyebr
   const dest = "/dashboard#channels";
   const n = Number(seconds) || 0;
   const body = `<main class="card" role="alert">
-  <div class="brand"><svg width="26" height="26" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="border-radius:8px"><defs><linearGradient id="gvb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E12F3E"/><stop offset="1" stop-color="#B01824"/></linearGradient></defs><rect width="512" height="512" rx="116" fill="url(#gvb)"/><g fill="#fff"><rect x="240" y="70" width="32" height="46" rx="16"/><circle cx="256" cy="66" r="22"/><path d="M176 118h160a76 76 0 0 1 76 76v112a76 76 0 0 1-76 76H222l-58 58c-9 9-24 3-24-10v-50a76 76 0 0 1-40-66V194a76 76 0 0 1 76-76z"/></g><g fill="#D92632"><rect x="186" y="190" width="42" height="66" rx="21"/><rect x="284" y="190" width="42" height="66" rx="21"/></g><path d="M204 300q52 46 104 0" stroke="#D92632" stroke-width="20" stroke-linecap="round" fill="none"/></svg>getvoicium</div>
+  <div class="brand"><svg width="26" height="26" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="border-radius:8px"><defs><linearGradient id="gvb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E12F3E"/><stop offset="1" stop-color="#B01824"/></linearGradient></defs><rect width="512" height="512" rx="116" fill="url(#gvb)"/><g fill="#fff"><rect x="240" y="70" width="32" height="46" rx="16"/><circle cx="256" cy="66" r="22"/><path d="M176 118h160a76 76 0 0 1 76 76v112a76 76 0 0 1-76 76H222l-58 58c-9 9-24 3-24-10v-50a76 76 0 0 1-40-66V194a76 76 0 0 1 76-76z"/></g><g fill="#D92632"><rect x="186" y="190" width="42" height="66" rx="21"/><rect x="284" y="190" width="42" height="66" rx="21"/></g><path d="M204 300q52 46 104 0" stroke="#D92632" stroke-width="20" stroke-linecap="round" fill="none"/></svg>TellMore AI</div>
   <div class="hero">
     <div class="tile"><i class="ti ${ch.icon}" style="color:${ch.color}"></i><span class="tick bad"><i class="ti ti-x"></i></span></div>
     <div class="eyebrow">${esc(eyebrow)}</div>
@@ -124,5 +124,5 @@ export function connectFailedPage({ platform, reason, status = 500, title, eyebr
   if(n>0){ var el=document.getElementById("n"); var t=setInterval(function(){ n--; if(el) el.textContent=n; if(n<=0){ clearInterval(t); go(); } },1000); }
 })();
 </script>`;
-  return new NextResponse(shell({ title: `${esc(title || ch.label)} — getvoicium`, body, script }), { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new NextResponse(shell({ title: `${esc(title || ch.label)} — TellMore AI`, body, script }), { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
 }

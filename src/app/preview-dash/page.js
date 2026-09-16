@@ -2,7 +2,7 @@ import { D, FONT, mono, NAV, SAMPLE as S } from "./kit.js";
 import { TABS } from "./tabs.js";
 import { Btn } from "./parts.js";
 
-export const metadata = { title: "Dashboard preview — getvoicium", robots: { index: false, follow: false } };
+export const metadata = { title: "Dashboard preview — TellMore AI", robots: { index: false, follow: false } };
 
 // PREVIEW ONLY — a design proposal, not the working dashboard. Sample data, no
 // login, nothing here reads or writes the database. The live dashboard at
@@ -65,7 +65,7 @@ export default function PreviewDash({ searchParams }) {
               <i className="ti ti-robot" style={{ fontSize: 17, color: "#0A0D14" }} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 700, color: "#fff" }}>getvoicium</div>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: "#fff" }}>TellMore AI</div>
               <div className="brandsub" style={{ ...mono, fontSize: 8.5, color: D.railText, marginTop: 2 }}>
                 {S.business}
               </div>

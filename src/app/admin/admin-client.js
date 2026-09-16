@@ -178,7 +178,7 @@ export default function AdminClient() {
 
   if (session === undefined) return <><Theme /><Motion /><div style={{ minHeight: "100vh", background: T.bg }} /></>;
   if (!session) return <><Theme /><Motion />
-    <OnboardFrame icon="ti-shield-lock" title={<>getvoicium <span style={{ color: T.gold }}>Admin</span></>} sub={mode === "signup" ? "Create an admin account — the super admin approves it" : "Sign in to the platform console. This login is separate from any client dashboard."} width={420}>
+    <OnboardFrame icon="ti-shield-lock" title={<>TellMore AI <span style={{ color: T.gold }}>Admin</span></>} sub={mode === "signup" ? "Create an admin account — the super admin approves it" : "Sign in to the platform console. This login is separate from any client dashboard."} width={420}>
       <Inp emb type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" />
       <PwInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" onEnter={auth} style={{ marginBottom: 14 }} />
       {authMsg && <div style={{ fontSize: 12.5, color: authMsg.includes("created") ? T.success : T.danger, marginBottom: 12, display: "flex", gap: 6 }}><i className={`ti ${authMsg.includes("created") ? "ti-check" : "ti-alert-circle"}`} />{authMsg}</div>}
@@ -232,7 +232,7 @@ export function AdminApp(props) {
   const [page, subTab, setWhere] = useWhere("overview", mayOpen);
   const go = (p, t = "") => { setWhere(p, t); if (isMobile) setNav(false); };
   const searchHits = useMemo(() => { const s = q.trim().toLowerCase(); if (!s) return []; return clients.filter((c) => [c.business_name, c.owner_email, c.phone, c.id].join(" ").toLowerCase().includes(s)).slice(0, 6); }, [q, clients]);
-  const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on getvoicium`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], packages: ["Packages & Costs", "What each package sells for, and what each client costs you"], ai: ["AI Engine", "The platform's own API key and models"], webhooks: ["Meta webhooks", "What Meta is subscribed to send this app"], admins: ["Admins", "Who can open this console"] };
+  const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on TellMore AI`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], packages: ["Packages & Costs", "What each package sells for, and what each client costs you"], ai: ["AI Engine", "The platform's own API key and models"], webhooks: ["Meta webhooks", "What Meta is subscribed to send this app"], admins: ["Admins", "Who can open this console"] };
   // A page without a title entry must never take the whole console down
   // (2026-09-11: the new "webhooks" page crashed the console on open).
   const title = titles[page] || [page, ""];
@@ -246,7 +246,7 @@ export function AdminApp(props) {
       transform: nav ? "translateX(0)" : "translateX(calc(-100% - 60px))", visibility: nav ? "visible" : "hidden", transition: nav ? "transform .28s cubic-bezier(.22,.61,.36,1), visibility 0s" : "transform .28s cubic-bezier(.22,.61,.36,1), visibility 0s .28s" }}>
       <div style={{ padding: "20px 18px 14px", display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 44, height: 44, borderRadius: 14, background: T.accGrad, boxShadow: T.accGlow, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21 }}><i className="ti ti-shield-lock" /></div>
-        <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-.01em" }}>getvoicium Admin</div><div style={{ fontSize: 9.5, color: T.textDim, textTransform: "uppercase", letterSpacing: ".16em", marginTop: 2 }}>platform console</div></div>
+        <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-.01em" }}>TellMore AI Admin</div><div style={{ fontSize: 9.5, color: T.textDim, textTransform: "uppercase", letterSpacing: ".16em", marginTop: 2 }}>platform console</div></div>
         {isMobile && <button onClick={() => setNav(false)} aria-label="Close menu" style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 18 }}><i className="ti ti-x" /></button>}
       </div>
       <nav style={{ flex: 1, padding: "4px 12px", overflowY: "auto" }}>

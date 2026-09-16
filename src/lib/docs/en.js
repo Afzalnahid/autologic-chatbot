@@ -18,7 +18,7 @@
 
 export const UI = {
   brand: "Documentation",
-  tagline: "Everything getvoicium does, and how to use it",
+  tagline: "Everything TellMore AI does, and how to use it",
   search: "Search the docs",
   searchEmpty: "Nothing matches that.",
   onThisPage: "On this page",
@@ -77,9 +77,9 @@ export const DOCS = {
     lead: "From signing up to your bot answering its first real customer. About fifteen minutes, and you never need to find an ID or paste a token.",
     time: 6,
     blocks: [
-      { h: "What getvoicium actually does",
+      { h: "What TellMore AI actually does",
         p: [
-          "getvoicium is one AI assistant that answers your customers on **Facebook Messenger**, **Instagram**, **WhatsApp** and **your own website** — in the language the customer wrote in.",
+          "TellMore AI is one AI assistant that answers your customers on **Facebook Messenger**, **Instagram**, **WhatsApp** and **your own website** — in the language the customer wrote in.",
           "It learns your business from what you tell it, then replies on its own. You watch every conversation from one dashboard, and you can take over from the bot at any moment.",
         ] },
 
@@ -216,7 +216,7 @@ export const DOCS = {
       { h: "What a channel is",
         p: [
           "A channel is one place customers can write to you: a Facebook Page, an Instagram Business account, a WhatsApp Business number, or your own website.",
-          "You can connect as many as you like. **Each Page, account or number can belong to only one getvoicium account** — so if a Page is already connected somewhere else, disconnect it there first.",
+          "You can connect as many as you like. **Each Page, account or number can belong to only one TellMore AI account** — so if a Page is already connected somewhere else, disconnect it there first.",
         ] },
 
       { shot: "channels", cap: "Two Facebook Pages, an Instagram account, a WhatsApp number and a website widget — one of the Pages paused." },
@@ -277,7 +277,7 @@ export const DOCS = {
           { q: "My Page is not in the list I get to choose from.",
             a: "You must be an **admin** of that Page on Facebook, not an editor or moderator. Check your role in Facebook's Page settings, then connect again." },
           { q: "It says the Page is already connected.",
-            a: "A Page can power only one getvoicium account. If you connected it under a different email, log in there and disconnect it first. If that account is not yours, write to us." },
+            a: "A Page can power only one TellMore AI account. If you connected it under a different email, log in there and disconnect it first. If that account is not yours, write to us." },
           { q: "The bot answers on one Page but not the other.",
             a: "Open the quiet Page's row and check its switch. Each channel has its own — turning the bot off in Inbox is a separate control again, covering every channel at once." },
           { q: "I disconnected by accident.",
@@ -458,7 +458,7 @@ export const DOCS = {
           { q: "I turned a switch off and it came back on a few seconds later.",
             a: "That was a bug and it is fixed. If you still see it, your save is failing — you would also get a message saying the switch could not be saved. Check your connection and try again." },
           { q: "My message would not send.",
-            a: "Facebook, Instagram and WhatsApp all close the door 24 hours after the customer's last message. After that you cannot write to them until they write to you again. This is Meta's rule and applies to every business tool, not only getvoicium." },
+            a: "Facebook, Instagram and WhatsApp all close the door 24 hours after the customer's last message. After that you cannot write to them until they write to you again. This is Meta's rule and applies to every business tool, not only TellMore AI." },
           { q: "The customer's real name is not showing.",
             a: "On Facebook, names need extra permission from Meta that has to be granted per app. Until then you see the account identifier instead of the name. It does not affect replies in any way." },
           { q: "I answered someone from the Messenger app. Does the bot know?",
@@ -500,10 +500,10 @@ export const DOCS = {
       { h: "On your phone",
         p: [
           "In **Profile** there is one **Notifications** switch. On, this device gets a notification even when the dashboard is closed — a new order, a new booking, a chat that needs you, a channel that stopped working, and the bot pausing because your AI key failed.",
-          "In the getvoicium Android app the switch uses the phone's own notifications; the first time the app opens it asks for permission, along with the camera, microphone and location it uses. In a browser, the browser asks instead.",
+          "In the TellMore AI Android app the switch uses the phone's own notifications; the first time the app opens it asks for permission, along with the camera, microphone and location it uses. In a browser, the browser asks instead.",
         ] },
 
-      { note: "On an iPhone, a browser tab cannot receive notifications. Add getvoicium to your Home Screen first, open it from there, and then turn the switch on.",
+      { note: "On an iPhone, a browser tab cannot receive notifications. Add TellMore AI to your Home Screen first, open it from there, and then turn the switch on.",
         kind: "warn" },
 
       { h: "Email",
@@ -519,7 +519,7 @@ export const DOCS = {
       { h: "If something goes wrong",
         faq: [
           { q: "The switch is on but nothing arrives on my phone.",
-            a: "Check the phone's own settings: Settings → Apps → getvoicium → Notifications must be allowed. If you refused the first prompt, that is where to allow it, then reopen the app." },
+            a: "Check the phone's own settings: Settings → Apps → TellMore AI → Notifications must be allowed. If you refused the first prompt, that is where to allow it, then reopen the app." },
           { q: "I marked all as read and the Inbox number stayed.",
             a: "The Inbox number counts unread chats, and Mark all clears it. If it stayed, the app was still running an older version — close it fully and open it again." },
           { q: "I get too many.",
@@ -603,7 +603,7 @@ export const DOCS = {
           { q: "Revenue looks too low.",
             a: "Only **confirmed** orders count. Anything still Pending is not in the figure. Check the status breakdown at the bottom of the tab." },
           { q: "The numbers differ from what Facebook shows me.",
-            a: "They count different things. Meta counts everything on your Page including comments and reactions; getvoicium counts the conversations it actually handled. Some difference is expected." },
+            a: "They count different things. Meta counts everything on your Page including comments and reactions; TellMore AI counts the conversations it actually handled. Some difference is expected." },
           { q: "Why Bangladesh time?",
             a: "Because your customers are there. Fixing the clock to one place means the peak hour means the same thing whether you check it from Dhaka or from abroad." },
         ] },
@@ -618,7 +618,7 @@ export const DOCS = {
       { h: "The one rule that governs everything here",
         p: [
           "You may only message someone who wrote to you **in the last 24 hours**.",
-          "This is Meta's rule, not ours, and it applies to every tool that sends on Facebook, Instagram or WhatsApp. getvoicium enforces it because sending outside the window is what gets Pages restricted and blocked.",
+          "This is Meta's rule, not ours, and it applies to every tool that sends on Facebook, Instagram or WhatsApp. TellMore AI enforces it because sending outside the window is what gets Pages restricted and blocked.",
         ] },
 
       { note: "So a broadcast is not a newsletter. It is a way to reach people **who are already talking to you today** — a flash offer, a stock update, an apology for a delay. Plan it around your peak hour in **Analytics**.",
@@ -761,7 +761,7 @@ export const DOCS = {
       { h: "Uploading documents",
         p: [
           "An agency's bot answers from your own documents rather than a price list. Press **Upload document** and pick a **PDF**, **Word (DOCX)** or plain text file.",
-          "getvoicium reads the file, breaks it into pieces and indexes them. The card then shows how many pieces were indexed — that number is only a progress signal; a bigger document simply makes more.",
+          "TellMore AI reads the file, breaks it into pieces and indexes them. The card then shows how many pieces were indexed — that number is only a progress signal; a bigger document simply makes more.",
         ],
         biz: "agency" },
 
@@ -859,7 +859,7 @@ export const DOCS = {
       { h: "Connect Google Calendar first",
         p: [
           "Bookings only work once your calendar is connected — and this is where you connect it. If it is not connected, the tab says so and shows you the button.",
-          "It takes about a minute, there is nothing to install, and you log in with your own Google account. getvoicium only uses it to check when you are free and to create the meetings — nothing else in your calendar is read or touched.",
+          "It takes about a minute, there is nothing to install, and you log in with your own Google account. TellMore AI only uses it to check when you are free and to create the meetings — nothing else in your calendar is read or touched.",
           "Once connected, the top of the tab shows which Google account is linked, with a **Disconnect** button right there. Disconnecting removes our access at once; bookings already made stay listed, but the bot stops taking new ones.",
         ],
         biz: "agency" },
@@ -1039,7 +1039,7 @@ export const DOCS = {
     blocks: [
       { h: "You probably do not need this tab",
         p: [
-          "Out of the box your bot runs on **getvoicium's AI**. Nothing to set up, nothing extra to pay, it is part of your plan. Most owners never open this tab, and that is fine.",
+          "Out of the box your bot runs on **TellMore AI's AI**. Nothing to set up, nothing extra to pay, it is part of your plan. Most owners never open this tab, and that is fine.",
           "It exists for businesses that want the AI usage billed to their own account instead of ours.",
         ] },
 
@@ -1069,7 +1069,7 @@ export const DOCS = {
       { h: "What happens if your key stops working",
         p: [
           "If your key runs out of quota, is revoked, or stops working for any reason, the tab says **Not working — bot paused** and your bot stops replying, politely.",
-          "It does **not** fall back to getvoicium's AI.",
+          "It does **not** fall back to TellMore AI's AI.",
         ] },
 
       { note: "That is deliberate, and it is the point of the whole feature: on your own key you run **only** on your own key. Silently routing you back to our AI would hand you an invisible bill you never agreed to. So the bot pauses and tells you, and you fix the key.",
@@ -1363,14 +1363,14 @@ export const DOCS = {
       { h: "About the 24-hour rule",
         p: [
           "Facebook, Instagram and WhatsApp all close the messaging window **24 hours** after the customer's last message. After that you cannot write to them until they write to you again.",
-          "This is Meta's rule and it applies to every business tool, not only getvoicium. It explains three things people often ask about: why a broadcast reaches fewer people than expected, why the follow-up message caps at 23 hours, and why some private replies to comments fail.",
+          "This is Meta's rule and it applies to every business tool, not only TellMore AI. It explains three things people often ask about: why a broadcast reaches fewer people than expected, why the follow-up message caps at 23 hours, and why some private replies to comments fail.",
         ] },
 
       { h: "About your customers' privacy",
         faq: [
           { q: "Who can see my conversations?",
-            a: "You, and anyone you give your login to. Every tenant's data is isolated at the database level — no other business on getvoicium can reach yours." },
-          { q: "Does getvoicium post on my Page?",
+            a: "You, and anyone you give your login to. Every tenant's data is isolated at the database level — no other business on TellMore AI can reach yours." },
+          { q: "Does TellMore AI post on my Page?",
             a: "Only what you have switched on: replies to messages, and public replies to comments if comment automation is on. It never writes a post." },
           { q: "What happens if I disconnect a channel?",
             a: "All processing for that channel stops at once. Your history stays in the dashboard until you delete it." },
@@ -1400,7 +1400,7 @@ export const DOCS = {
     blocks: [
       { h: "What this tab is for",
         p: [
-          "A comment on a post is a customer raising their hand in public. getvoicium answers it twice: a **public reply** underneath the comment so everyone reading the post sees an answer, and a **private message** to that person so a real conversation can start in your inbox.",
+          "A comment on a post is a customer raising their hand in public. TellMore AI answers it twice: a **public reply** underneath the comment so everyone reading the post sees an answer, and a **private message** to that person so a real conversation can start in your inbox.",
           "This tab is the record of both. It does not send anything itself — it shows you what already happened, and tells you plainly when something did not work.",
         ] },
 
@@ -1482,7 +1482,7 @@ export const DOCS = {
           { q: "I do not want the bot replying in public at all.",
             a: "Turn off **Auto-reply to comments** for that channel and leave **Send to inbox** on. The bot will quietly message anyone who comments without posting anything publicly." },
           { q: "I deleted a comment here — why is it still on Facebook?",
-            a: "Because deleting here only tidies your dashboard. getvoicium never deletes anything from your Page or your Instagram account. Delete it on the post itself if you want it gone from public view." },
+            a: "Because deleting here only tidies your dashboard. TellMore AI never deletes anything from your Page or your Instagram account. Delete it on the post itself if you want it gone from public view." },
           { q: "One comment got two replies.",
             a: "That happens if someone edits their comment, which both platforms report as new activity. It is rare. If you see it repeatedly, contact us with the post link." },
         ] },

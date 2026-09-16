@@ -1,4 +1,4 @@
-// The getvoicium brand mark — the "Friendly Bot": a chat-bubble-shaped robot
+// The TellMore AI brand mark — the "Friendly Bot": a chat-bubble-shaped robot
 // face (owner's pick, 2026-09-12). One component so every header, footer and
 // sign-in screen shows the SAME mark and they can never drift apart.
 //

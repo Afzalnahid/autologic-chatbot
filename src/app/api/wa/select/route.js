@@ -49,7 +49,7 @@ export async function POST(request) {
       ({ phoneId, displayNumber, verifiedName, token } = selected);
     }
 
-    // One WhatsApp number powers exactly one getvoicium account.
+    // One WhatsApp number powers exactly one TellMore AI account.
     if (await ownedByAnotherClient("whatsapp", phoneId, clientId)) {
       return fail(ALREADY_CONNECTED.whatsapp, 409);
     }
@@ -81,7 +81,7 @@ export async function POST(request) {
     if (error) return fail("We could not save the connection: " + error.message, 500);
 
     const rows = [
-      { ok: true, title: "WhatsApp replies are live", sub: "getvoicium answers every message this number receives, 24/7." },
+      { ok: true, title: "WhatsApp replies are live", sub: "TellMore AI answers every message this number receives, 24/7." },
       { ok: true, title: "Broadcasts and follow-ups ready", sub: "Reach people who messaged you in the last 24 hours from the Broadcast tab." },
     ];
     if (sub.error) rows.push({ ok: false, title: "Updates could not be registered", sub: "Disconnect and connect the number again. If it repeats, tell us: " + sub.error.message });

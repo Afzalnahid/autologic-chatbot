@@ -193,11 +193,11 @@ const tl = (n, lead = 1.6, tail = 2.2) => Array.from({ length: n }, (_, i) => le
 
 const NAV = (on) => ["AI Assistant","Channels","Inbox","Comments","Orders","Inventory","Analytics","Broadcast","Bot Training","AI Engine","Billing","Profile"]
   .map(n => `<div class="nav ${n===on?"on":""}">${n}${n==="Inbox"?'<b id="inboxBadge">3</b>':""}</div>`).join("");
-const dash = (title, body, on) => `<div class="dash"><div class="side"><div class="lg"><i></i>getvoicium</div>${NAV(on)}</div>
+const dash = (title, body, on) => `<div class="dash"><div class="side"><div class="lg"><i></i>TellMore AI</div>${NAV(on)}</div>
   <div class="main"><div class="hdr"><span class="t">${title}</span><span class="r"><span class="bell">🔔<em id="bellN">1</em></span><span class="av">BB</span></span></div><div class="body">${body}</div></div></div>`;
 const laptop = (inner) => `<div class="right"><div class="laptop"><div class="screen"><div class="inner">${inner}</div></div><div class="base"></div></div></div>`;
 const phone = (inner) => `<div class="right"><div class="phone"><div class="inner"><div class="notch"></div>${inner}</div></div></div>`;
-const left = (t, s) => `<div class="brand"><span class="ic">${LOGO}</span><span class="name">getvoicium</span></div>
+const left = (t, s) => `<div class="brand"><span class="ic">${LOGO}</span><span class="name">TellMore AI</span></div>
   <div class="left"><div class="accent"></div><div class="title">${t.split(" ").map(w=>`<span class="w">${w}</span>`).join(" ")}</div><div class="sub">${s}</div></div>`;
 const bub = (kind, text, id = "", extra = "") => `<div class="bub ${kind}" ${id ? `id="${id}"` : ""}>${text}${extra}</div>`;
 const list = (rows, selIdx) => `<div class="list">${rows.map((r,i)=>`<div class="row ${i===selIdx?"sel":""} ${r.u?"unread":""}" id="r${i}"><div class="n"><span>${r.n}</span><span style="display:flex;gap:6px;align-items:center"><span style="font-size:10px;color:#8A90A0">${r.t}</span><span class="badge ${r.m?"warn":""}">${r.m?"manual":"bot"}</span><span class="dot"></span></span></div><div class="m">${r.p}</div></div>`).join("")}</div>`;
@@ -259,7 +259,7 @@ const S = {
   order(sc) {
     const seq = [["c",D.c2],["b",D.b2],["c",D.c3],["b",D.b3],["c",D.c4],["b",D.b4]];
     return { html: left(sc.title, sc.sub) + laptop(dash("Inbox", list(ROWS,0) + chatFrame("Rafi Ahmed", seq.map((m,i)=>bub(m[0],m[1],"o"+i)).join("")) +
-      `<div style="width:250px;border-left:1px solid #DDE1EA;background:#F7F8FB;padding:12px"><div style="font-weight:800;font-size:12px;margin-bottom:8px">Orders</div><div class="card slide" id="oc"><h4>GV-1042 <span class="badge red" style="margin-left:6px">New</span></h4><div class="kv"><span>${T("Item","পণ্য")}</span><b>Black Baggy Denim · 34</b></div><div class="kv"><span>${T("Customer","কাস্টমার")}</span><b>Rafi Ahmed</b></div><div class="kv"><span>${T("Phone","ফোন")}</span><b>01711-XXXXXX</b></div><div class="kv"><span>${T("Total","মোট")}</span><b>৳1,370</b></div></div><div class="push" id="po" style="margin:12px 0 0"><div class="ico"></div><div class="tx"><b>getvoicium</b><span>🛒 ${D.order}</span></div></div></div>`, "Inbox")),
+      `<div style="width:250px;border-left:1px solid #DDE1EA;background:#F7F8FB;padding:12px"><div style="font-weight:800;font-size:12px;margin-bottom:8px">Orders</div><div class="card slide" id="oc"><h4>GV-1042 <span class="badge red" style="margin-left:6px">New</span></h4><div class="kv"><span>${T("Item","পণ্য")}</span><b>Black Baggy Denim · 34</b></div><div class="kv"><span>${T("Customer","কাস্টমার")}</span><b>Rafi Ahmed</b></div><div class="kv"><span>${T("Phone","ফোন")}</span><b>01711-XXXXXX</b></div><div class="kv"><span>${T("Total","মোট")}</span><b>৳1,370</b></div></div><div class="push" id="po" style="margin:12px 0 0"><div class="ico"></div><div class="tx"><b>TellMore AI</b><span>🛒 ${D.order}</span></div></div></div>`, "Inbox")),
       run() { intro(); const t = tl(seq.length, 2.2, 4.2); seq.forEach((_,i)=>show("#o"+i, t[i])); show("#oc", DUR-3.6); show("#po", DUR-2.6); at(DUR-2.6,()=>document.getElementById("bellN").classList.add("show")); } };
   },
   booking(sc) {

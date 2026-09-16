@@ -288,7 +288,7 @@ so logout can still un-register it after a reload. Without this, logging into a
 second account on a phone left the token tied to the first, and that first
 account kept receiving this phone's notifications.
 
-**Installable app (PWA).** getvoicium is a Progressive Web App: on a phone it can
+**Installable app (PWA).** TellMore AI is a Progressive Web App: on a phone it can
 be installed to the home screen and opens full-screen, like a native app, and the
 *same* web app is packaged into a Play Store / App Store build with no separate
 mobile codebase. Three pieces make that work:

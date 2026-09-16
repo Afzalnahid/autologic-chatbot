@@ -140,7 +140,7 @@ function cardHtml(lang) {
 </style></head><body>
   <div class="m m1"></div><div class="m m2"></div><div class="m m3"></div><div class="m m4"></div>
   <div class="card">
-    <div class="brand">${MARK.replace(/SIZE/g, "62")}<div class="word">getvoicium</div></div>
+    <div class="brand">${MARK.replace(/SIZE/g, "62")}<div class="word">TellMore AI</div></div>
     <div>
       <h1>${t.head.join("<br>")}</h1>
       <div class="lead">${t.lead}</div>

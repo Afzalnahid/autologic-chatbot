@@ -27,7 +27,7 @@ export function initNativeBack() {
     if (!Dialog) return;
     try {
       const { value } = await Dialog.confirm({
-        title: "Exit getvoicium",
+        title: "Exit TellMore AI",
         message: "Do you want to exit the app?",
         okButtonTitle: "Exit",
         cancelButtonTitle: "Cancel",

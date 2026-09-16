@@ -4,7 +4,7 @@
 import { formatDhakaDate } from "@/lib/time.js";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM = process.env.RESEND_FROM || "getvoicium <onboarding@resend.dev>";
+const FROM = process.env.RESEND_FROM || "TellMore AI <onboarding@resend.dev>";
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
 async function send({ to, subject, html }) {
@@ -30,16 +30,16 @@ async function send({ to, subject, html }) {
 
 function wrap(title, body) {
   return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0d1529;border-radius:12px;padding:28px;color:#e8e8ec">
-    <div style="font-size:20px;font-weight:700;margin-bottom:4px">getvoicium <span style="color:#D92632">Admin</span></div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:4px">TellMore AI <span style="color:#D92632">Admin</span></div>
     <div style="height:1px;background:#1a2744;margin:16px 0"></div>
     <div style="font-size:17px;font-weight:600;margin-bottom:12px">${title}</div>
     <div style="font-size:14px;line-height:1.7;color:#c9d3e6">${body}</div>
     <div style="height:1px;background:#1a2744;margin:20px 0"></div>
-    <div style="font-size:12px;color:#8b9cbd">This is an automated message from the getvoicium admin system.</div>
+    <div style="font-size:12px;color:#8b9cbd">This is an automated message from the TellMore AI admin system.</div>
   </div>`;
 }
 
-// The customer-facing wrapper. Same polished dark card, but branded "getvoicium"
+// The customer-facing wrapper. Same polished dark card, but branded "TellMore AI"
 // (never "Admin") with a footer that speaks to a business owner, not an operator —
 // a real reply-to and support address, and why they're getting the email. Client
 // notifications (payment, trial/plan expiry, key/bot problems) use this; the
@@ -51,7 +51,7 @@ function clientWrap(title, body) {
     <div style="font-size:17px;font-weight:600;margin-bottom:12px">${title}</div>
     <div style="font-size:14px;line-height:1.7;color:#c9d3e6">${body}</div>
     <div style="height:1px;background:#1a2744;margin:22px 0"></div>
-    <div style="font-size:12px;color:#8b9cbd;line-height:1.7">You're receiving this because you use getvoicium at <a href="https://www.getvoicium.com" style="color:#D92632;text-decoration:none">getvoicium.com</a>.<br/>Questions? Just reply to this email, or write to <a href="mailto:support@getvoicium.com" style="color:#D92632;text-decoration:none">support@getvoicium.com</a>.</div>
+    <div style="font-size:12px;color:#8b9cbd;line-height:1.7">You're receiving this because you use TellMore AI at <a href="https://www.getvoicium.com" style="color:#D92632;text-decoration:none">getvoicium.com</a>.<br/>Questions? Just reply to this email, or write to <a href="mailto:support@getvoicium.com" style="color:#D92632;text-decoration:none">support@getvoicium.com</a>.</div>
   </div>`;
 }
 
@@ -59,7 +59,7 @@ function clientWrap(title, body) {
 export async function notifyNewAdminSignup(newEmail) {
   return send({
     to: SUPER_ADMIN,
-    subject: "New admin access request — getvoicium",
+    subject: "New admin access request — TellMore AI",
     html: wrap(
       "New admin access request",
       `<strong style="color:#D92632">${newEmail}</strong> has signed up and is awaiting approval.
@@ -74,9 +74,9 @@ export async function notifyAdminApproved(adminEmail, role) {
   const labels = { full: "Full Access", editor: "Editor", viewer: "Viewer" };
   return send({
     to: adminEmail,
-    subject: "You've been approved as an admin — getvoicium",
+    subject: "You've been approved as an admin — TellMore AI",
     html: wrap(
-      "🎉 Welcome to the getvoicium admin team",
+      "🎉 Welcome to the TellMore AI admin team",
       `Your admin access has been approved with the role
        <strong style="color:#22c55e">${labels[role] || role}</strong>.
        <br/><br/>You can now sign in at the
@@ -110,7 +110,7 @@ export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
   const until = expiresAt ? formatDhakaDate(new Date(expiresAt)) : null;
   return send({
     to: clientEmail,
-    subject: `Your ${planName} plan is active — getvoicium`,
+    subject: `Your ${planName} plan is active — TellMore AI`,
     html: clientWrap(
       "\u{1F389} Payment confirmed",
       `Your payment has been verified and your <strong style="color:#22c55e">${planName}</strong> plan is now active.
@@ -162,7 +162,7 @@ export async function notifyNewBooking(clientEmail, { customer, service, date, t
 export async function notifyNeedsHuman(clientEmail, { customer, preview, platform }) {
   return send({
     to: clientEmail,
-    subject: `${customer || "A customer"} is waiting for you — getvoicium`,
+    subject: `${customer || "A customer"} is waiting for you — TellMore AI`,
     html: clientWrap(
       "\u{1F64B} A customer needs a person",
       `<strong>${esc(customer || "A customer")}</strong>${platform ? ` on ${esc(platform)}` : ""} asked to talk to someone, and the bot has told them a team member will help.
@@ -178,7 +178,7 @@ export async function notifyChannelExpired(clientEmail, { business, platform, na
   const label = { facebook: "Facebook Page", instagram: "Instagram account", whatsapp: "WhatsApp number" }[platform] || platform;
   return send({
     to: clientEmail,
-    subject: `Your ${label} needs reconnecting — getvoicium`,
+    subject: `Your ${label} needs reconnecting — TellMore AI`,
     html: clientWrap(
       "⚠️ A channel disconnected",
       `The connection to your ${label}${name ? ` <strong>${esc(name)}</strong>` : ""} for <strong>${esc(business || "your business")}</strong> has expired, so the bot cannot answer customers there right now.
@@ -191,7 +191,7 @@ export async function notifyChannelExpired(clientEmail, { business, platform, na
 export async function notifyPaymentRejected(clientEmail, reason) {
   return send({
     to: clientEmail,
-    subject: "We could not verify your payment — getvoicium",
+    subject: "We could not verify your payment — TellMore AI",
     html: clientWrap(
       "Payment not verified",
       `We could not verify your recent payment.${reason ? `<br/><br/>Reason: <strong>${reason}</strong>` : ""}

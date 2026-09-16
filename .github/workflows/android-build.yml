@@ -1,4 +1,4 @@
-# Builds the getvoicium Android app (a Capacitor WebView shell that loads the
+# Builds the TellMore AI Android app (a Capacitor WebView shell that loads the
 # live web app) in the cloud, for free, and hands back an installable APK as a
 # downloadable artifact. Manual trigger only ("Run workflow" button), so it does
 # NOT run on ordinary pushes and never touches the Vercel web deploy.
