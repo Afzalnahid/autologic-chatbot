@@ -12,7 +12,7 @@ Files
   one template per scene, driven by `?id=&lang=&dur=`.
 - `tts.mjs` — voiceover MP3 per scene per language + `durations.json`.
 - `render.mjs` — records each scene to the narration's length, muxes the
-  audio, concatenates → `getvoicium-explainer-<lang>.mp4`.
+  audio, concatenates → `tellmoreai-explainer-<lang>.mp4`.
 
 Run (in this folder, needs Node 20+, Chrome installed, internet for fonts
 and voices):

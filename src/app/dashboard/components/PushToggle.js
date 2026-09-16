@@ -127,7 +127,7 @@ export default function PushToggle() {
   if (state === "denied") return (
     <Row sub={native
       ? "Blocked on this phone. Allow them in Settings → Apps → TellMore AI → Notifications, then reopen the app."
-      : "Blocked in this browser. Allow them for getvoicium.com in the browser's site settings, then reload this page."}>
+      : "Blocked in this browser. Allow them for tellmoreai.com in the browser's site settings, then reload this page."}>
       <Switch on={false} disabled title="Blocked" />
     </Row>
   );

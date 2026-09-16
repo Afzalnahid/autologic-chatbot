@@ -8,10 +8,11 @@
 import webpush from "web-push";
 import { supabase } from "@/lib/supabase.js";
 import { sendFcm } from "@/lib/fcm.js";
+import { COMPANY } from "@/lib/company.js";
 
 const PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 const PRIVATE = process.env.VAPID_PRIVATE_KEY || "";
-const SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@getvoicium.com";
+const SUBJECT = process.env.VAPID_SUBJECT || `mailto:${COMPANY.email}`;
 
 let configured = false;
 function configure() {

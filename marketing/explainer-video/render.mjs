@@ -55,7 +55,7 @@ for (const lang of langs) {
   if (only) continue;   // a test render of a few scenes: no final concat
   const listFile = path.join("clips", lang, "list.txt");
   fs.writeFileSync(listFile, parts.map((p) => `file '${path.resolve(p).replace(/\\/g, "/")}'`).join("\n"));
-  const out = `getvoicium-explainer-${lang}.mp4`;
+  const out = `tellmoreai-explainer-${lang}.mp4`;
   ff(["-y", "-f", "concat", "-safe", "0", "-i", listFile, "-c", "copy", "-movflags", "+faststart", out]);
   console.log("WROTE", out, (fs.statSync(out).size / 1e6).toFixed(1) + " MB");
 }

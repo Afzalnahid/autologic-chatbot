@@ -18,7 +18,7 @@ export default function Privacy() {
     <SiteShell
       eyebrow="Legal"
       title="Privacy Policy"
-      lead={`TellMore AI ("we", "our", "us") operates an AI-powered chatbot platform at getvoicium.com. This Privacy Policy explains how we collect, use, store, and protect data.`}
+      lead={`TellMore AI ("we", "our", "us") operates an AI-powered chatbot platform at tellmoreai.com. This Privacy Policy explains how we collect, use, store, and protect data.`}
       updated="September 3, 2026"
     >
       <Section title="1. Information We Collect">

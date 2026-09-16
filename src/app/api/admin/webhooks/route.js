@@ -17,7 +17,7 @@ import { callerEmail, callerRole, CAN_DELETE, checkSuperKey } from "@/lib/admin-
 // full-access admin holding the secret admin key can change anything.
 
 const GRAPH = "https://graph.facebook.com/v24.0";
-const SITE = "https://www.getvoicium.com";
+const SITE = "https://www.tellmoreai.com";
 
 // object → which Meta app owns it, what it must carry, where Meta calls back.
 // Not exported: a route file may only export handlers.

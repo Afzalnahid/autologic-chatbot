@@ -1,6 +1,6 @@
 # TellMore AI — native mobile shell (Capacitor)
 
-A thin native app that loads the live web app (`https://www.getvoicium.com`) in
+A thin native app that loads the live web app (`https://www.tellmoreai.com`) in
 its **own** WebView. Unlike the earlier TWA, it does **not** depend on the
 phone's default browser being Chrome, so it no longer gets stuck on the splash
 screen on phones where another browser is the default.
@@ -16,7 +16,7 @@ Building happens on GitHub Actions, not on anyone's machine:
 1. On GitHub, open the repo → **Actions** tab → **Build Android APK** →
    **Run workflow**.
 2. Wait ~5–10 minutes for it to finish (green tick).
-3. Open the finished run → **Artifacts** → download **getvoicium-android-apk**
+3. Open the finished run → **Artifacts** → download **tellmoreai-android-apk**
    (a `.zip` containing `app-debug.apk`).
 4. Unzip, send the `app-debug.apk` to any phone (WhatsApp, Drive, link). On the
    phone, allow "install unknown apps" and tap to install.

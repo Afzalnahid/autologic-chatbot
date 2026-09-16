@@ -3,7 +3,7 @@
 Autologic is a multi-tenant SaaS AI chatbot platform. One deployment serves every
 business ("client"); all data is separated by `client_id`.
 
-Live: https://www.getvoicium.com
+Live: https://www.tellmoreai.com
 
 ---
 
@@ -326,7 +326,7 @@ Two shell behaviours matter once it runs as a full-screen app:
   passing `""` there would strip it and send every reload to Analytics.
 
 Store packaging is done with **PWABuilder** (pwabuilder.com): point it at
-`https://getvoicium.com`, it reads this manifest and produces a signed Android
+`https://www.tellmoreai.com`, it reads this manifest and produces a signed Android
 `.apk`/`.aab` (a Trusted Web Activity wrapping the live site) and an iOS package —
 no Android Studio or Mac build tooling on the developer's machine. The Android
 package needs Digital Asset Links (`/.well-known/assetlinks.json`) to hide the URL

@@ -763,7 +763,7 @@ export default function Dashboard() {
     (async()=>{
       const { data:{ session } }=await getSb().auth.getSession();
       // Installed as an app, it must have a login of its OWN. A Trusted Web
-      // Activity shares getvoicium.com's cookies with the phone's Chrome, so
+      // Activity shares tellmoreai.com's cookies with the phone's Chrome, so
       // someone already signed in there would otherwise land straight in the
       // dashboard without ever signing into the app — which does not read as a
       // real app. So in app mode we ignore that shared session until the owner

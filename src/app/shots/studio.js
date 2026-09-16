@@ -153,7 +153,7 @@ export default function Studio({ tab, theme }) {
       const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       for (let n = w.nextNode(); n; n = w.nextNode()) {
         if (n.nodeValue.includes("localhost:3000")) {
-          n.nodeValue = n.nodeValue.replace(/https?:\/\/localhost:3000/g, "https://getvoicium.com");
+          n.nodeValue = n.nodeValue.replace(/https?:\/\/localhost:3000/g, "https://www.tellmoreai.com");
         }
       }
     };

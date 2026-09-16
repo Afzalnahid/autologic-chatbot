@@ -1,4 +1,4 @@
-// Sitemap for getvoicium.com — the list of public pages we want Google to find
+// Sitemap for tellmoreai.com — the list of public pages we want Google to find
 // and index. Next.js App Router serves this automatically at /sitemap.xml.
 // Canonical host is www (the apex 308-redirects to it).
 import { PAGES } from "@/lib/docs/index.js";

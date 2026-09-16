@@ -2,7 +2,7 @@
 //
 // Before this file existed the public pages carried a title and a description
 // and nothing else. Two things followed from that. Google had no name to print
-// above a result, so it printed the bare domain — "getvoicium.com" instead of
+// above a result, so it printed the bare domain — "tellmoreai.com" instead of
 // "TellMore AI". And a link pasted into Messenger or WhatsApp — which is where
 // this product's customers actually are — unfurled as an empty grey box, with
 // no picture, no headline and no sentence.
@@ -12,7 +12,7 @@
 
 import { COMPANY } from "@/lib/company.js";
 
-export const SITE = "https://www.getvoicium.com";
+export const SITE = "https://www.tellmoreai.com";
 export const BRAND = "TellMore AI";
 
 // Built by scripts/make-og-images.mjs, one per language. A Bangla reader who is

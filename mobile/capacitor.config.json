@@ -4,7 +4,7 @@
   "webDir": "www",
   "backgroundColor": "#EEF0F5",
   "server": {
-    "url": "https://www.getvoicium.com/dashboard",
+    "url": "https://www.tellmoreai.com/dashboard",
     "cleartext": false
   },
   "android": {

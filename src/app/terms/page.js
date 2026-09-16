@@ -15,7 +15,7 @@ export default function Terms() {
     <SiteShell
       eyebrow="Legal"
       title="Terms of Service"
-      lead={`These Terms of Service ("Terms") govern your use of TellMore AI ("we", "our", "us"), an AI-powered customer service chatbot platform operated at getvoicium.com. By creating an account or using the platform, you agree to these Terms.`}
+      lead={`These Terms of Service ("Terms") govern your use of TellMore AI ("we", "our", "us"), an AI-powered customer service chatbot platform operated at tellmoreai.com. By creating an account or using the platform, you agree to these Terms.`}
       updated="July 18, 2026"
     >
       <Section title="1. The Service">

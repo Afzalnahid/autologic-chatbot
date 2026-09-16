@@ -1,4 +1,4 @@
-// Builds the pictures that show up when someone shares a getvoicium.com link in
+// Builds the pictures that show up when someone shares a tellmoreai.com link in
 // Messenger, WhatsApp or anywhere else that reads Open Graph tags:
 //
 //   public/og.png      1200x630, English
@@ -145,7 +145,7 @@ function cardHtml(lang) {
       <h1>${t.head.join("<br>")}</h1>
       <div class="lead">${t.lead}</div>
     </div>
-    <div class="foot"><div class="url">getvoicium.com</div><div class="tag">${t.foot}</div></div>
+    <div class="foot"><div class="url">tellmoreai.com</div><div class="tag">${t.foot}</div></div>
   </div>
 </body></html>`;
 }

@@ -1,5 +1,5 @@
 {
-  "brand": { "site": "getvoicium.com", "crimson": "#D92632", "deep": "#B01824", "mint": "#2ED3A7" },
+  "brand": { "site": "tellmoreai.com", "crimson": "#D92632", "deep": "#B01824", "mint": "#2ED3A7" },
   "voices": { "en": "en-US-AndrewNeural", "bn": "bn-BD-PradeepNeural" },
   "scenes": [
     {
@@ -109,9 +109,9 @@
     },
     {
       "id": "16-outro", "template": "outro",
-      "en": { "title": "Let the assistant handle the questions. You handle the growth.", "sub": "getvoicium.com — start your free trial today.",
+      "en": { "title": "Let the assistant handle the questions. You handle the growth.", "sub": "tellmoreai.com — start your free trial today.",
         "vo": "You built your business to grow — not to answer the same question a hundred times a day. Let the assistant handle the questions, and you handle the growth. Start your free trial today at TellMore AI dot com." },
-      "bn": { "title": "প্রশ্নগুলো সহকারী সামলাক। আপনি সামলান ব্যবসার বৃদ্ধি।", "sub": "getvoicium.com — আজই ফ্রি ট্রায়াল শুরু করুন।",
+      "bn": { "title": "প্রশ্নগুলো সহকারী সামলাক। আপনি সামলান ব্যবসার বৃদ্ধি।", "sub": "tellmoreai.com — আজই ফ্রি ট্রায়াল শুরু করুন।",
         "vo": "ব্যবসাটা আপনি বানিয়েছেন বড় করার জন্য — দিনে একশোবার একই প্রশ্নের উত্তর দেওয়ার জন্য নয়। প্রশ্নগুলো সহকারী সামলাক, আর আপনি সামলান ব্যবসার বৃদ্ধি। আজই ফ্রি ট্রায়াল শুরু করুন TellMore AI ডট কম-এ।" }
     }
   ]

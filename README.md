@@ -2,7 +2,7 @@
 
 AI-powered multi-channel chatbot SaaS platform built with Next.js, Supabase, and Google Gemini.
 
-**Live:** https://www.getvoicium.com
+**Live:** https://www.tellmoreai.com
 
 ## Features
 - E-commerce bot (inventory + product image matching + orders)

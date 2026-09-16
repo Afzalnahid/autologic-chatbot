@@ -303,7 +303,7 @@ const S = {
   widget(sc) {
     return { html: left(sc.title, sc.sub) + laptop(`<div class="web"><div class="nav2"><span style="font-family:Fraunces,Georgia,serif;font-size:15px">Broker's BD</span><span style="color:#5B6070">${T("Shop · New · Sale · Contact","শপ · নতুন · সেল · যোগাযোগ")}</span></div><div class="hero"><div style="flex:1"><h1>${T("Streetwear that fits Dhaka.","ঢাকার মাপের স্ট্রিটওয়্যার।")}</h1><p>${T("Baggy denims, jerseys and hoodies — delivered anywhere in Bangladesh.","Baggy denim, jersey আর hoodie — বাংলাদেশের যেকোনো জায়গায় ডেলিভারি।")}</p></div><div style="width:260px;height:150px;border-radius:14px;background:linear-gradient(135deg,#2F3340,#151821)"></div></div><div class="grid"><div></div><div></div><div></div></div>
       <div class="wchat grow" id="wc"><div class="wh">Broker's BD · ${T("Chat with us","আমাদের সাথে চ্যাট")}</div><div class="msgs" style="justify-content:flex-start;padding:10px"><div class="bub b show" style="font-size:12px">${T("Hi! Ask me about sizes, prices or delivery.","হাই! সাইজ, দাম বা ডেলিভারি নিয়ে জিজ্ঞেস করুন।")}</div><div class="bub c" id="w1" style="font-size:12px">${T("Do you ship outside Dhaka?","ঢাকার বাইরে পাঠান?")}</div><div class="bub b" id="w2" style="font-size:12px">${T("Yes — anywhere in Bangladesh, ৳130 outside Dhaka, 2–4 days.","জি — সারা বাংলাদেশে, ঢাকার বাইরে ৳১৩০, ২–৪ দিনে।")}</div></div></div><div class="wbub grow" id="wb">${LOGO.replace('viewBox','width="30" height="30" viewBox')}</div></div>`) +
-      `<div class="card slide" id="cd" style="position:absolute;left:96px;top:760px;width:700px"><h4>${T("Paste one line into your site","আপনার সাইটে এক লাইন বসান")}</h4><div class="code">&lt;script src="<em>https://www.getvoicium.com/widget.js</em>" data-key="gv_…"&gt;&lt;/script&gt;</div></div>`,
+      `<div class="card slide" id="cd" style="position:absolute;left:96px;top:760px;width:700px"><h4>${T("Paste one line into your site","আপনার সাইটে এক লাইন বসান")}</h4><div class="code">&lt;script src="<em>https://www.tellmoreai.com/widget.js</em>" data-key="gv_…"&gt;&lt;/script&gt;</div></div>`,
       run() { intro(); show("#cd", 2.0); show("#wb", 3.4); show("#wc", 4.6); show("#w1", 6.2); show("#w2", 7.8); } };
   },
   analytics(sc) {
@@ -319,7 +319,7 @@ const S = {
       run() { intro(); show("#tr", 2.2); show("#pl0", 3.4); show("#pl1", 4.0); show("#pl2", 4.6); show("#pay", DUR*.6); } };
   },
   outro(sc) {
-    return { html: `<div class="center"><div class="biglogo">${LOGO}</div><div class="title">${sc.title.split(" ").map(w=>`<span class="w">${w}</span>`).join(" ")}</div><div class="site grow">getvoicium.com</div><div class="cta grow">${T("Start your free trial","ফ্রি ট্রায়াল শুরু করুন")} →</div></div>`,
+    return { html: `<div class="center"><div class="biglogo">${LOGO}</div><div class="title">${sc.title.split(" ").map(w=>`<span class="w">${w}</span>`).join(" ")}</div><div class="site grow">tellmoreai.com</div><div class="cta grow">${T("Start your free trial","ফ্রি ট্রায়াল শুরু করুন")} →</div></div>`,
       run() { show(".biglogo", .3); words(1.0); show(".site", DUR*.45); show(".cta", DUR*.55); } };
   },
 };

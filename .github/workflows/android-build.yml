@@ -99,11 +99,11 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Name the file
-        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk mobile/android/app/build/outputs/apk/debug/getvoicium.apk
+        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk mobile/android/app/build/outputs/apk/debug/tellmoreai.apk
 
       - name: Upload the APK
         uses: actions/upload-artifact@v4
         with:
-          name: getvoicium-android-apk
-          path: mobile/android/app/build/outputs/apk/debug/getvoicium.apk
+          name: tellmoreai-android-apk
+          path: mobile/android/app/build/outputs/apk/debug/tellmoreai.apk
           if-no-files-found: error
