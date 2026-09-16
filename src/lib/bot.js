@@ -1301,7 +1301,20 @@ export async function handleIncoming(event) {
     } catch (e) { console.error("contact name:", e.message); }
   }
 
+  // The canned replies below (a video, a voice note we could not hear) are the
+  // bot talking — so they obey the same switch as every other reply. They used
+  // to be sent BEFORE botAllowed ran, so a customer on a paused channel, a chat
+  // set to manual, or an expired plan still got "sorry, I couldn't hear that"
+  // (owner's screenshot, 2026-09-16). When the bot may not answer, the message
+  // is saved for the owner and nothing is sent.
+  const cannedAllowed = async () => (await botAllowed(channel, event.senderId)).allowed;
+  const saveForOwner = async (text) => {
+    const row = await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Pending", message_content: text, platform: event.platform || channel.platform || "facebook", wa_msg_id: event.msgId || null, page_id: channel.page_id || null });
+    notifyIncomingMessage(clientId, event.senderId, text, row?.created_at).catch(() => {});
+  };
+
   if (event.video) {
+    if (!(await cannedAllowed())) { await saveForOwner("🎥 Video"); return; }
     const { sendTextMessage } = await import("@/lib/messenger.js");
     const msg = "দুঃখিত, আমরা ভিডিও মেসেজ প্রসেস করতে পারি না। পণ্যের ছবি বা কোড পাঠান।";
     const isWa = (event.platform || channel.platform) === "whatsapp";
@@ -1373,6 +1386,7 @@ export async function handleIncoming(event) {
   // A voice note we could not make out: say so, ask for a repeat or text, and
   // stop — better than guessing at an order from noise.
   if (!content && voiceUnclear) {
+    if (!(await cannedAllowed())) { await saveForOwner("🎤 (voice message — unclear)"); return; }
     const { sendTextMessage } = await import("@/lib/messenger.js");
     const isWa = (event.platform || channel.platform) === "whatsapp";
     const msg = "দুঃখিত, আপনার ভয়েস মেসেজটি স্পষ্ট শোনা যায়নি। একটু কাছ থেকে আবার বলুন, অথবা লিখে পাঠান। 🙏\nSorry, I couldn't hear that voice message clearly — please record again a little closer, or type it.";
