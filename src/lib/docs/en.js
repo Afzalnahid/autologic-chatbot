@@ -1191,7 +1191,7 @@ export const DOCS = {
       { table: { head: ["", "Starter", "Growth", "Scale"], rows: [
         ["Bot replies", "3,000 / month", "15,000 / month", "50,000 / month"],
         ["Channels", "1", "All 3", "All 3"],
-        ["Voice messages", "—", "Yes", "Yes"],
+        ["Voice messages", "Yes", "Yes", "Yes"],
         ["Comment automation", "—", "Yes", "Yes"],
         ["Your own AI key", "—", "—", "Yes"],
         ["Priority support", "—", "—", "Yes"],

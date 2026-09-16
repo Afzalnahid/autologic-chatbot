@@ -31,7 +31,7 @@ const COMPARE = [
   { label: "Analytics dashboard", trial: false, starter: true, growth: true, scale: true },
   { label: "Website chat widget", trial: true, starter: true, growth: true, scale: true },
   { label: "Broadcasts & follow-ups", trial: true, starter: true, growth: true, scale: true },
-  { label: "Voice message understanding", trial: true, starter: false, growth: true, scale: true },
+  { label: "Voice message understanding", trial: true, starter: true, growth: true, scale: true },
   { label: "Comment automation", trial: false, starter: false, growth: true, scale: true },
   { label: "Use your own AI key (lower price)", trial: false, starter: true, growth: true, scale: true },
   { label: "Priority support", trial: false, starter: false, growth: false, scale: true },
