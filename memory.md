@@ -656,6 +656,30 @@ again?"
     tellmoreai, IG deauth/data-deletion URLs, contact email; Google branding
     home/privacy/terms (restarts Google verification — do after redirect);
     SSLCommerz store URL.
+  - **2026-09-17 — owner: drop getvoicium.com ENTIRELY ("no customer on
+    getvoicium.com"). Checked: EzPz website channel (ezpzbd.com) — no widget
+    script on its homepage, nothing breaks. Bots of Broker's BD (shop_growth,
+    expires 2026-09-19), EzPz (svc_starter), mahadihasan5272 (trial) and the
+    owner's pages run on Meta webhooks (vercel.app host), unaffected by the
+    domain; those users only need the new login address.** `db12309` (live):
+    admin Meta-webhooks Repair now always re-subscribes on
+    https://www.tellmoreai.com/api/messenger | /api/whatsapp and flags any
+    other callback (no one types the verify token); TWA assetlinks.json
+    removed; CI dname text TellMore AI. Cutover order given to owner:
+    1 Resend Verify → 2 Vercel env RESEND_FROM "TellMore AI
+    <notifications@tellmoreai.com>", VAPID_SUBJECT mailto:office@autolinium.com,
+    SITE_URL + NEXT_PUBLIC_SITE_URL https://www.tellmoreai.com + redeploy →
+    3 admin Repair ×3 → 4 Meta Basic/Login/IG URLs to tellmoreai, remove
+    getvoicium + vercel.app entries → 5 Google Search Console verify
+    tellmoreai.com + branding links (restarts Google review) + remove old
+    origins/redirects → 6 Supabase remove old redirect URLs → 7 Firebase add
+    Android app com.tellmoreai.app, save google-services.json to Downloads
+    (then ME: appId → com.tellmoreai.app, copy json, APK; users uninstall old
+    app) → 8 SSLCommerz store/IPN URL → 9 tell Broker's BD/EzPz/trial the new
+    login URL → 10 remove getvoicium domains from Vercel + Resend.
+    Firebase project id "getvoicium" cannot be renamed (Google rule, invisible).
+    IG app data-deletion pointed at /api/fb/data-deletion will fail signature
+    (FB_APP_SECRET) — part of the still-unfixed data-deletion bug.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
