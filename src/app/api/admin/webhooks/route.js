@@ -56,7 +56,11 @@ async function status() {
       if (!cache[def.app]) cache[def.app] = await readApp(c);
       const sub = cache[def.app].find((s) => s.object === object) || null;
       const fields = (sub?.fields || []).map((f) => (typeof f === "string" ? f : f?.name)).filter(Boolean);
-      rows.push({ object, label: def.label, app: def.app, subscribed: !!sub, callback_url: sub?.callback_url || "", active: !!sub?.active, required: def.required, fields, missing: def.required.filter((f) => !fields.includes(f)) });
+      rows.push({ object, label: def.label, app: def.app, subscribed: !!sub, callback_url: sub?.callback_url || "", active: !!sub?.active, required: def.required, fields, missing: def.required.filter((f) => !fields.includes(f)),
+        // The callback must be this site's canonical address. An old host (the
+        // retired getvoicium.com, the vercel.app alias) is flagged so the
+        // repair moves it; a redirecting host would silently drop every POST.
+        expected_callback: def.callback, callback_ok: (sub?.callback_url || "") === def.callback });
     } catch (e) {
       rows.push({ object, label: def.label, app: def.app, error: "Could not read the app's subscription: " + String(e.message || e).slice(0, 160), required: def.required, fields: [], missing: def.required });
     }
@@ -79,8 +83,10 @@ export async function GET(request) {
 }
 
 // Repair ONE object: re-subscribe with the union of what it has and what we
-// need. Meta REPLACES the field list on this call, so the current fields are
-// kept on purpose. Meta verifies the callback with a GET (hub.verify_token)
+// need, on this site's canonical callback address (www.tellmoreai.com) — an
+// object still pointing at an old host is moved here by the same click. Meta
+// REPLACES the field list on this call, so the current fields are kept on
+// purpose. Meta verifies the callback with a GET (hub.verify_token)
 // before accepting — our webhook routes answer it with FACEBOOK_VERIFY_TOKEN,
 // which must therefore be the token sent here.
 export async function POST(request) {
@@ -102,7 +108,7 @@ export async function POST(request) {
     const fields = Array.from(new Set([...have, ...def.required]));
     const form = new URLSearchParams({
       object,
-      callback_url: before?.callback_url || def.callback,
+      callback_url: def.callback,
       fields: fields.join(","),
       verify_token: verify,
       include_values: "true",
@@ -111,7 +117,7 @@ export async function POST(request) {
     const j = await fetch(`${GRAPH}/${creds.id}/subscriptions`, { method: "POST", body: form, cache: "no-store" })
       .then((r) => r.json()).catch((e) => ({ error: { message: String(e?.message || e) } }));
     if (j.error) return NextResponse.json({ error: "Meta refused the change: " + String(j.error.message || "").slice(0, 200) }, { status: 502 });
-    console.log("[admin/webhooks]", object, "fields set:", fields.join(","));
+    console.log("[admin/webhooks]", object, "callback:", def.callback, "fields set:", fields.join(","));
     return NextResponse.json({ ok: true, objects: await status() }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return NextResponse.json({ error: "Repair failed: " + String(e.message || e).slice(0, 200) }, { status: 502 });

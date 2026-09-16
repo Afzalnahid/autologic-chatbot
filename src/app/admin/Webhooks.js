@@ -51,11 +51,13 @@ export default function Webhooks({ token, superKey, setSuperKey }) {
     const row = (r.objects || []).find((o) => o.object === object);
     setMsg(row?.missing?.length
       ? { ok: false, text: `Meta accepted the change for ${label} but still reports missing: ${row.missing.join(", ")}` }
-      : { ok: true, text: `${label} repaired. Every required field is on.` });
+      : row && !row.callback_ok
+      ? { ok: false, text: `Meta accepted the change for ${label} but the callback still reads ${row.callback_url || "nothing"}.` }
+      : { ok: true, text: `${label} repaired. Every required field is on and Meta sends to ${row?.expected_callback || "this site"}.` });
   };
 
   const inp = { width: "100%", background: T.bgAlt, boxShadow: T.nmIn, border: `1px solid ${T.border}`, borderRadius: 14, padding: "12px 14px", color: T.text, fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
-  const anyMissing = !!rows?.some((o) => o.missing?.length);
+  const anyMissing = !!rows?.some((o) => !o.error && (o.missing?.length || !o.callback_ok));
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 760 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -68,17 +70,18 @@ export default function Webhooks({ token, superKey, setSuperKey }) {
     {!rows && <Card style={{ color: T.textDim, fontSize: 13 }}>Checking Meta…</Card>}
 
     {rows?.map((o) => {
-      const ok = !o.error && !o.missing?.length;
+      const ok = !o.error && !o.missing?.length && o.callback_ok;
       return <Card key={o.object}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ width: 44, height: 44, borderRadius: 14, background: ok ? `color-mix(in srgb, ${T.success} 15%, transparent)` : T.goldBg, color: ok ? T.success : T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
             <i className={`ti ${o.object === "whatsapp_business_account" ? "ti-brand-whatsapp" : o.object === "instagram" ? "ti-brand-instagram" : "ti-brand-messenger"}`} /></span>
           <div style={{ flex: "1 1 220px", minWidth: 0 }}>
             <div style={{ fontSize: 14.5, fontWeight: 700 }}>
-              {o.label} — {o.error ? "could not check" : ok ? "all required fields are on" : o.subscribed ? `missing: ${o.missing.join(", ")}` : "not subscribed at the app level"}
+              {o.label} — {o.error ? "could not check" : ok ? "all required fields are on" : !o.subscribed ? "not subscribed at the app level" : o.missing.length ? `missing: ${o.missing.join(", ")}` : "callback points to an old address"}
             </div>
             <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3, lineHeight: 1.55, overflowWrap: "anywhere" }}>
               {o.error ? o.error : o.callback_url ? <>callback <span style={{ fontFamily: "monospace" }}>{o.callback_url}</span></> : "Meta has no callback for this object yet."}
+              {!o.error && !o.callback_ok && <><br/>should be <span style={{ fontFamily: "monospace", color: T.text }}>{o.expected_callback}</span> — Repair moves it</>}
             </div>
           </div>
         </div>
@@ -103,7 +106,7 @@ export default function Webhooks({ token, superKey, setSuperKey }) {
     {anyMissing && <Card>
       <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 6 }}>Secret admin key</div>
       <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.6, marginBottom: 10 }}>
-        A repair re-subscribes that object with its current fields plus the missing ones; nothing already on is removed. Meta verifies the callback URL during the change.
+        A repair re-subscribes that object on this site's address with its current fields plus the missing ones; nothing already on is removed. Meta verifies the callback URL during the change.
       </div>
       <input type="password" value={superKey || ""} onChange={(e) => setSuperKey(e.target.value)} placeholder="Required to repair" style={inp} />
     </Card>}

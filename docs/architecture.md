@@ -328,9 +328,9 @@ Two shell behaviours matter once it runs as a full-screen app:
 Store packaging is done with **PWABuilder** (pwabuilder.com): point it at
 `https://www.tellmoreai.com`, it reads this manifest and produces a signed Android
 `.apk`/`.aab` (a Trusted Web Activity wrapping the live site) and an iOS package —
-no Android Studio or Mac build tooling on the developer's machine. The Android
-package needs Digital Asset Links (`/.well-known/assetlinks.json`) to hide the URL
-bar; PWABuilder supplies the file and the exact contents to host.
+no Android Studio or Mac build tooling on the developer's machine. (The Android
+TWA this produced is retired — the app is now the Capacitor shell in `mobile/` —
+so its Digital Asset Links file was removed with the move to tellmoreai.com.)
 
 ---
 
