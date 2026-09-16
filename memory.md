@@ -705,6 +705,24 @@ again?"
     receiving MX pending — NOT needed (app only sends; reply_to is
     office@autolinium.com; tellmoreai.com has no MX) → told owner to delete
     getvoicium.com in Resend and NOT add the MX.
+  - Step 4 DONE 2026-09-17 by extension (Meta app 914246304594380): Basic
+    privacy/terms/data-deletion/site URL on www.tellmoreai.com, app domains
+    tellmoreai only; FB Login for Business redirect URIs = www+apex
+    /api/fb/callback + /api/wa/callback, JS SDK domains tellmoreai only; IG
+    business login redirects www+apex /api/ig/callback (+ vercel.app one still
+    there — remove), deauth /api/ig/deauth, data deletion /api/fb/data-deletion.
+    Webhooks read: Page + WhatsApp on www.tellmoreai.com; INSTAGRAM STILL
+    https://autologic-chatbot.vercel.app/api/messenger → owner must run admin
+    Meta webhooks → Repair Instagram. App Review (Sept 2 submission): only
+    pages_read_engagement NOT approved (rejected Jul 28, Aug 15, Aug 24 feedback:
+    "Screencast Not Aligned with Use Case Details", Policy 1.6 — needs a new
+    English screencast showing full Meta login, the grant, and the end-to-end
+    use). instagram_business_manage_comments approved Sept 2; rest renewed.
+  - SECURITY BUG FOUND (not fixed, owner approval pending): /api/ig/deauth POST
+    has NO signature check and reads JSON user_id — anyone can POST
+    {"user_id":"<ig id>"} and disconnect a client's Instagram (tokens nulled).
+    Meta actually sends form-encoded signed_request, so the real callback never
+    matches either. Fix together with the /api/fb/data-deletion bug.
   - NEW LOGO 2026-09-17 (owner's final artwork: plum robot head whose face is a
     speech bubble, "TellMore AI" with "Tell" in ink, tagline). Owner's rule: the
     LOGO is plum #722B4D (+ ink #1E1A1D); the product UI stays crimson — no other
