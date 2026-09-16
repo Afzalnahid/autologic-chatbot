@@ -698,6 +698,13 @@ again?"
     package ids, one API key) copied to mobile/; capacitor appId →
     com.tellmoreai.app. New APK = a separate app on phones: users uninstall the
     old one once. Old app's push tokens prune themselves (UNREGISTERED).
+    Step 10 (partly, done EARLY before the new APK was installed): Vercel
+    getvoicium.com + www removed (getvoicium.com now 404 — the OLD app is dead,
+    everyone must install the new APK). Left: tellmoreai.com, www,
+    autologic-chatbot.vercel.app. Resend: tellmoreai.com sending verified,
+    receiving MX pending — NOT needed (app only sends; reply_to is
+    office@autolinium.com; tellmoreai.com has no MX) → told owner to delete
+    getvoicium.com in Resend and NOT add the MX.
     IG app data-deletion pointed at /api/fb/data-deletion will fail signature
     (FB_APP_SECRET) — part of the still-unfixed data-deletion bug.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
