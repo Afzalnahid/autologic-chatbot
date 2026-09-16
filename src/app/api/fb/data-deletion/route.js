@@ -3,40 +3,59 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabase } from "@/lib/supabase.js";
 import { COMPANY, ADDRESS_LINE } from "@/lib/company.js";
+import { readSignedRequest, verifySignedRequest } from "@/lib/meta-signed-request.js";
 
-const APP_SECRET = process.env.FB_APP_SECRET;
-
-function parseSignedRequest(signedRequest) {
-  if (!APP_SECRET) return null;
-  const [encodedSig, payload] = signedRequest.split(".");
-  const sig = Buffer.from(encodedSig.replace(/-/g, "+").replace(/_/g, "/"), "base64");
-  const data = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
-  const expected = crypto.createHmac("sha256", APP_SECRET).update(payload).digest();
-  if (!crypto.timingSafeEqual(sig, expected)) return null;
-  return data;
-}
-
+// Data-deletion callback for BOTH Meta apps — the Facebook app and the
+// Instagram-login app point here. Meta posts a form field `signed_request`
+// signed with that app's secret; only a request that verifies is acted on, and
+// a malformed one gets a 400 (it used to throw and return a 500).
+//
+// What is deleted for the verified user_id:
+// - Instagram: that account's channel token is cleared and the channel marked
+//   disconnected (looked up first, then updated by id AND client_id so the
+//   write stays tenant-scoped). channels.page_id holds the professional-account
+//   id; an unmatched id is logged so the mapping can be confirmed.
+// - Both apps: messages, contact and chat memory stored under that id as a
+//   sender (a person who chatted with a connected business).
+// A Facebook user_id is app-scoped to the person who logged in; we do not
+// store it against a channel, so a business owner's Pages are removed by
+// disconnecting in the dashboard or by email (see the GET page).
 export async function POST(request) {
+  const signed = await readSignedRequest(request);
+  const v = verifySignedRequest(signed, { facebook: process.env.FB_APP_SECRET, instagram: process.env.IG_APP_SECRET });
+  if (!v) return NextResponse.json({ error: "invalid signed_request" }, { status: 400 });
+
+  const code = "del_" + crypto.randomBytes(8).toString("hex");
   try {
-    const form = await request.formData();
-    const data = parseSignedRequest(String(form.get("signed_request") || ""));
-    if (!data) return NextResponse.json({ error: "invalid signature" }, { status: 400 });
-    const userId = data.user_id;
-    const code = "del_" + crypto.randomBytes(8).toString("hex");
-    await supabase.from("message_buffer").delete().eq("sender_id", userId);
-    await supabase.from("contacts").delete().eq("sender_id", userId);
-    await supabase.from("chat_memory").delete().eq("session_id", userId);
-    const origin = new URL(request.url).origin;
-    return NextResponse.json({ url: `${origin}/privacy`, confirmation_code: code });
+    let channels = 0;
+    if (v.app === "instagram") {
+      const { data: rows } = await supabase.from("channels").select("id, client_id")
+        .eq("platform", "instagram").eq("page_id", v.userId);
+      for (const r of rows || []) {
+        await supabase.from("channels").update({ status: "disconnected", access_token: null })
+          .eq("id", r.id).eq("client_id", r.client_id);
+      }
+      channels = (rows || []).length;
+    }
+    await supabase.from("message_buffer").delete().eq("sender_id", v.userId);
+    await supabase.from("contacts").delete().eq("sender_id", v.userId);
+    await supabase.from("chat_memory").delete().eq("session_id", v.userId);
+    console.log("[data-deletion] app=", v.app, "user_id=", v.userId, "code=", code, "channels disconnected=", channels);
   } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error("[data-deletion]", code, e?.message || e);
   }
+  const origin = new URL(request.url).origin;
+  return NextResponse.json({ url: `${origin}/api/fb/data-deletion?code=${code}`, confirmation_code: code });
 }
 
 // Meta posts a signed_request here, but a reviewer will often just open the URL
 // in a browser. Returning 405 to that looks like a broken endpoint, so serve a
 // short human-readable page explaining how deletion works.
-export async function GET() {
+export async function GET(request) {
+  const code = new URL(request.url).searchParams.get("code") || "";
+  const status = /^del_[0-9a-f]{16}$/.test(code)
+    ? `<h2>Request ${code}</h2><p>Your deletion request was received and processed automatically. Keep this code if you contact us about it.</p>`
+    : "";
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Data Deletion — TellMore AI</title>
@@ -52,6 +71,7 @@ export async function GET() {
 </style></head><body><div class="w">
   <h1>Data Deletion</h1>
   <div class="sub">${COMPANY.name} · ${ADDRESS_LINE} · ${COMPANY.madeBy}</div>
+  ${status}
 
   <h2>Automatic deletion</h2>
   <p>If you remove TellMore AI from your Facebook or Instagram settings, Meta notifies

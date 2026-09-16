@@ -120,8 +120,15 @@ Meta calls `GET /api/messenger` and `/api/whatsapp` with `hub.verify_token`. The
 handler compares it against `FACEBOOK_VERIFY_TOKEN` from the environment — there is
 no hardcoded fallback. A mismatch returns 403 and Meta refuses to subscribe.
 
-Facebook's data-deletion callback verifies the HMAC signature of the signed request
-using `FB_APP_SECRET` before deleting anything.
+Meta's account callbacks — `/api/fb/data-deletion` (both apps) and
+`/api/ig/deauth` (Instagram) — act only on a `signed_request` whose HMAC-SHA256
+signature verifies with `FB_APP_SECRET` or `IG_APP_SECRET`
+(`src/lib/meta-signed-request.js`, covered by `tests/t-meta-signed-request.mjs`).
+Anything else gets a 400 and changes nothing; malformed input never throws.
+Until 2026-09-17 the Instagram deauth route read a plain JSON `user_id` with no
+check, so anyone knowing an account id could disconnect a client's Instagram.
+A verified Instagram request clears that account's token and marks the channel
+disconnected — looked up first, then updated by `id` and `client_id`.
 
 ---
 

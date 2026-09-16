@@ -718,11 +718,18 @@ again?"
     "Screencast Not Aligned with Use Case Details", Policy 1.6 — needs a new
     English screencast showing full Meta login, the grant, and the end-to-end
     use). instagram_business_manage_comments approved Sept 2; rest renewed.
-  - SECURITY BUG FOUND (not fixed, owner approval pending): /api/ig/deauth POST
+  - SECURITY BUG FIXED 2026-09-17 (owner approved; was: /api/ig/deauth POST
     has NO signature check and reads JSON user_id — anyone can POST
     {"user_id":"<ig id>"} and disconnect a client's Instagram (tokens nulled).
     Meta actually sends form-encoded signed_request, so the real callback never
-    matches either. Fix together with the /api/fb/data-deletion bug.
+    matches either). FIX: src/lib/meta-signed-request.js verifies signed_request
+    (FB or IG secret, never throws; tests/t-meta-signed-request.mjs 25 checks);
+    ig/deauth + fb/data-deletion refuse unsigned with 400; verified IG user_id
+    disconnects channels by id+client_id; data-deletion returns a status URL
+    ?code=del_… shown on the GET page. UNVERIFIED: whether Meta's IG user_id
+    equals channels.page_id (professional-account id) — routes log unmatched ids,
+    check Vercel logs after a real deauth. FB owner user_id still maps to no
+    channel (not stored).
   - NEW LOGO 2026-09-17 (owner's final artwork: plum robot head whose face is a
     speech bubble, "TellMore AI" with "Tell" in ink, tagline). Owner's rule: the
     LOGO is plum #722B4D (+ ink #1E1A1D); the product UI stays crimson — no other
