@@ -3,7 +3,7 @@
 //
 //   public/og.png      1200x630, English
 //   public/og-bn.png   1200x630, Bangla
-//   public/logo.png    512x512, the brand mark on white (for search engines)
+//   public/logo.png    512x512, the logo mark on white (search engines, app icon)
 //
 // Why a browser and not a drawing library: the card is set in the same faces the
 // landing page uses — Fraunces for the headline, IBM Plex Mono for the small
@@ -51,17 +51,14 @@ const C = {
   line: "#DFE3EC",
 };
 
-// icon.svg, inline, so the mark on the card is the same mark as the favicon —
-// the Friendly Bot: a chat-bubble-shaped robot face, white on the crimson tile.
+// The logo mark, inline, so the mark on the card is the same mark as the favicon —
+// the TellMore AI robot-bubble (owner's final logo, 2026-09-17), plum on a white
+// tile. Copied from src/lib/brand-mark.js (this script runs outside the Next
+// build) — keep the two in sync.
 const MARK = `
-<svg width="SIZE" height="SIZE" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#E12F3E"/><stop offset="1" stop-color="${C.accDim}"/>
-  </linearGradient></defs>
-  <rect width="512" height="512" rx="116" fill="url(#g)"/>
-  <g fill="#fff"><rect x="240" y="70" width="32" height="46" rx="16"/><circle cx="256" cy="66" r="22"/><path d="M176 118h160a76 76 0 0 1 76 76v112a76 76 0 0 1-76 76H222l-58 58c-9 9-24 3-24-10v-50a76 76 0 0 1-40-66V194a76 76 0 0 1 76-76z"/></g>
-  <g fill="#D92632"><rect x="186" y="190" width="42" height="66" rx="21"/><rect x="284" y="190" width="42" height="66" rx="21"/></g>
-  <path d="M204 300q52 46 104 0" stroke="#D92632" stroke-width="20" stroke-linecap="round" fill="none"/>
+<svg width="SIZE" height="SIZE" viewBox="192 184 640 640" xmlns="http://www.w3.org/2000/svg">
+  <rect x="192" y="184" width="640" height="640" rx="144" fill="#fff"/>
+  <path fill="#722B4D" d="M330 522V517A115 115 0 0 1 445 402H580A115 115 0 0 1 695 517V522H632.6A74 74 0 0 0 559 456H466A74 74 0 0 0 392.4 522Z"/><path fill="#722B4D" d="M330 538V545A115 115 0 0 0 375 636V674L446 660H580A115 115 0 0 0 695 545V538H632.6A74 74 0 0 1 559 604H466A74 74 0 0 1 392.4 538Z"/><path fill="#722B4D" d="M322 458A47 67 0 0 0 322 592Z"/><path fill="#722B4D" d="M703 458A47 67 0 0 1 703 592Z"/><rect x="510" y="362" width="4" height="42" fill="#1E1A1D"/><circle cx="512" cy="350" r="14" fill="#1E1A1D"/><path d="M424 514Q447 481 470 514M554 514Q577 481 600 514" stroke="#1E1A1D" stroke-width="13" stroke-linecap="round" fill="none"/>
 </svg>`;
 
 // Both languages say the same thing the landing page's hero says, because that
@@ -119,6 +116,7 @@ function cardHtml(lang) {
           display:flex; flex-direction:column; justify-content:space-between;
           box-shadow: 16px 16px 44px rgba(166,173,192,.5), -16px -16px 44px rgba(255,255,255,.95) }
   .brand { display:flex; align-items:center; gap:18px }
+  .brand svg { border-radius:14px; box-shadow:0 2px 10px rgba(22,24,31,.14) }
   .word { font-size:38px; font-weight:600; letter-spacing:-.02em }
   h1 { font-size:${t.size}px; line-height:${t.lh}; font-weight:600; letter-spacing:-.025em;
        max-width:960px }

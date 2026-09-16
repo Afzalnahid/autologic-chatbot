@@ -137,10 +137,10 @@ export default function SiteShell({ eyebrow, title, lead, updated, children }) {
           padding: "11px clamp(16px,4vw,26px)", gap: 12 }}>
           <a href="/" className="brandlink" style={{ display: "flex", alignItems: "center", gap: 9,
             textDecoration: "none", color: P.ink, minWidth: 0 }}>
-            <div style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9,
-              flexShrink: 0, boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center",
+            <div style={{ width: 28, height: 28, background: "#fff", borderRadius: 9,
+              flexShrink: 0, boxShadow: "0 1px 4px rgba(22,24,31,.16)", display: "flex", alignItems: "center",
               justifyContent: "center" }}>
-              <BotMark size={17} />
+              <BotMark size={24} />
             </div>
             <span className="fr" style={{ fontSize: 19 }}>{COMPANY.name}</span>
           </a>

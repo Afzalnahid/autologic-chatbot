@@ -705,6 +705,20 @@ again?"
     receiving MX pending — NOT needed (app only sends; reply_to is
     office@autolinium.com; tellmoreai.com has no MX) → told owner to delete
     getvoicium.com in Resend and NOT add the MX.
+  - NEW LOGO 2026-09-17 (owner's final artwork: plum robot head whose face is a
+    speech bubble, "TellMore AI" with "Tell" in ink, tagline). Owner's rule: the
+    LOGO is plum #722B4D (+ ink #1E1A1D); the product UI stays crimson — no other
+    design change. Redrawn as vector in src/lib/brand-mark.js (markInner /
+    markSvg, 1024 canvas, centre 512,504) — the one source; copies in
+    scripts/make-og-images.mjs and mobile/scripts/gen-assets.mjs. Logo tiles
+    (nav, docs, auth, sidebar, admin header, OAuth connect pages) are now WHITE
+    with the plum mark (was crimson tile + white bot). icon.svg, favicon.ico,
+    apple-icon, logo.png, og.png/og-bn.png regenerated. Android: adaptive icon
+    white bg + plum mark, white splash, notif icon = white silhouette (needs APK
+    rebuild). Manual-upload pack in Downloads\TellMore AI logo pack (Meta app
+    icon 1024, Google OAuth 120, FB/IG profile 1080, WhatsApp 640, FB cover
+    1640x624, lockups, SVGs). Local `next build` fails only on the missing local
+    google-auth-library (pre-existing, Vercel installs it).
     IG app data-deletion pointed at /api/fb/data-deletion will fail signature
     (FB_APP_SECRET) — part of the still-unfixed data-deletion bug.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`

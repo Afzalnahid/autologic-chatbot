@@ -128,7 +128,7 @@ function Flow({ lang }) {
               <div className="core-arc" /><div className="core-ring" /><div className="core-ring" />
               <div style={{ position: "absolute", inset: 7, borderRadius: "50%", background: P.blue,
                 display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <BotMark size={26} />
+                <BotMark size={30} color="#fff" ink="#fff" />
               </div>
             </div>
             <div style={{ textAlign: "center", width: "100%" }}>
@@ -439,9 +439,9 @@ export default function Home({ searchParams }) {
         <div className="navwrap" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0, minWidth: 0 }}>
-            <div className="navmark" style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9, flexShrink: 0,
-              boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <BotMark size={17} />
+            <div className="navmark" style={{ width: 28, height: 28, background: "#fff", borderRadius: 9, flexShrink: 0,
+              boxShadow: "0 1px 4px rgba(22,24,31,.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <BotMark size={24} />
             </div>
             <span className="fr navword" style={{ fontSize: 19 }}>TellMore AI</span>
           </a>

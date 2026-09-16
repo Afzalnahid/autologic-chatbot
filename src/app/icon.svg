@@ -1,19 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#E12F3E"/>
-      <stop offset="1" stop-color="#B01824"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="116" fill="url(#g)"/>
-  <g fill="#FFFFFF">
-    <rect x="240" y="70" width="32" height="46" rx="16"/>
-    <circle cx="256" cy="66" r="22"/>
-    <path d="M176 118h160a76 76 0 0 1 76 76v112a76 76 0 0 1-76 76H222l-58 58c-9 9-24 3-24-10v-50a76 76 0 0 1-40-66V194a76 76 0 0 1 76-76z"/>
-  </g>
-  <g fill="#D92632">
-    <rect x="186" y="190" width="42" height="66" rx="21"/>
-    <rect x="284" y="190" width="42" height="66" rx="21"/>
-  </g>
-  <path d="M204 300q52 46 104 0" stroke="#D92632" stroke-width="20" stroke-linecap="round" fill="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="192 184 640 640">
+  <!-- TellMore AI logo mark on a white tile. Drawing: src/lib/brand-mark.js (keep in sync). -->
+  <rect x="192" y="184" width="640" height="640" rx="144" fill="#fff"/>
+  <path fill="#722B4D" d="M330 522V517A115 115 0 0 1 445 402H580A115 115 0 0 1 695 517V522H632.6A74 74 0 0 0 559 456H466A74 74 0 0 0 392.4 522Z"/>
+  <path fill="#722B4D" d="M330 538V545A115 115 0 0 0 375 636V674L446 660H580A115 115 0 0 0 695 545V538H632.6A74 74 0 0 1 559 604H466A74 74 0 0 1 392.4 538Z"/>
+  <path fill="#722B4D" d="M322 458A47 67 0 0 0 322 592Z"/>
+  <path fill="#722B4D" d="M703 458A47 67 0 0 1 703 592Z"/>
+  <rect x="510" y="362" width="4" height="42" fill="#1E1A1D"/>
+  <circle cx="512" cy="350" r="14" fill="#1E1A1D"/>
+  <path d="M424 514Q447 481 470 514M554 514Q577 481 600 514" stroke="#1E1A1D" stroke-width="13" stroke-linecap="round" fill="none"/>
 </svg>

@@ -137,7 +137,7 @@ function AuthGate({onReady}) {
       {/* The form half. */}
       <div className="auth-form">
         <div className="auth-brand">
-          <span className="auth-mark"><BotMark size={18}/></span> TellMore AI
+          <span className="auth-mark"><BotMark size={24}/></span> TellMore AI
         </div>
         <h1 className="auth-title">{signup?"Create account":"Welcome back"}</h1>
         <p className="auth-sub">{signup?"Sign up and begin your experience":"Sign in to your dashboard"}</p>
@@ -194,7 +194,7 @@ function AuthGate({onReady}) {
       .auth-form { padding: 44px 40px; text-align: center }
       .auth-brand { display: inline-flex; align-items: center; gap: 9px; font-size: 15px;
         font-weight: 700; color: ${T.text}; margin-bottom: 22px }
-      .auth-mark { width: 28px; height: 28px; border-radius: 9px; background: ${T.accGrad}; box-shadow: ${T.accGlow};
+      .auth-mark { width: 28px; height: 28px; border-radius: 9px; background: #fff; box-shadow: 0 1px 4px rgba(22,24,31,.16);
         color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 16px }
       .auth-title { margin: 0 0 6px; font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: ${T.text} }
       .auth-sub { margin: 0 0 26px; font-size: 13.5px; color: ${T.textMuted} }
@@ -906,7 +906,7 @@ export default function Dashboard() {
           display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
           {me?.client?.logo_url
             ?<img src={me.client.logo_url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-            :<span style={{width:44,height:44,borderRadius:14,background:T.accGrad,display:"flex",alignItems:"center",justifyContent:"center"}}><BotMark size={26}/></span>}
+            :<span style={{width:44,height:44,borderRadius:14,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><BotMark size={38}/></span>}
         </div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:15,fontWeight:700,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",letterSpacing:"-0.01em"}}>{me?.client?.business_name||"TellMore AI"}</div>

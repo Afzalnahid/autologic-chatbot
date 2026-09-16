@@ -200,9 +200,9 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <a href={docHref("", lang)} className="brandlink" style={{ display: "flex", alignItems: "center", gap: 9,
             textDecoration: "none", color: P.ink, minWidth: 0 }}>
-            <div style={{ width: 28, height: 28, background: "var(--lp-grad)", borderRadius: 9, flexShrink: 0,
-              boxShadow: "var(--lp-glow)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <BotMark size={17} />
+            <div style={{ width: 28, height: 28, background: "#fff", borderRadius: 9, flexShrink: 0,
+              boxShadow: "0 1px 4px rgba(22,24,31,.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <BotMark size={24} />
             </div>
             <span className="fr" style={{ fontSize: 19 }}>TellMore AI</span>
             <span className="lbl brandtag" style={{ fontSize: 9, color: P.inkSoft, paddingTop: 3 }}>{ui.brand}</span>

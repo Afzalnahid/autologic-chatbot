@@ -1,6 +1,6 @@
 // Builds src/app/favicon.ico from the same brand mark that src/app/icon.svg
-// draws — the Friendly Bot (a chat-bubble-shaped robot face), owner's pick
-// 2026-09-12.
+// draws — the TellMore AI logo mark (plum robot-bubble, owner's final logo
+// 2026-09-17).
 //
 // Why this exists: modern browsers take the SVG favicon (icon.svg), but Google,
 // Bing and every link-preview scraper still ask for /favicon.ico at the site
