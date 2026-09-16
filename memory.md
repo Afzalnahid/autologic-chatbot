@@ -736,8 +736,8 @@ again?"
     asks /{page}?fields=access_token for tokenless ones, lists tokenless Pages
     greyed with a reason; picker adds "Connect again" hint (Pages not ticked in
     the Facebook dialog can only be fixed by the owner re-choosing).
-    tests/t-fb-pages.mjs 13 checks. UNVERIFIED with a real multi-Page account —
-    Vercel log line "[fb-callback] pages found=" shows counts.
+    tests/t-fb-pages.mjs 13 checks. VERIFIED by owner 2026-09-17 on his real
+    account: "now all pages show". Vercel log "[fb-callback] pages found=".
   - NEW LOGO 2026-09-17 (owner's final artwork: plum robot head whose face is a
     speech bubble, "TellMore AI" with "Tell" in ink, tagline). Owner's rule: the
     LOGO is plum #722B4D (+ ink #1E1A1D); the product UI stays crimson — no other
