@@ -625,6 +625,37 @@ again?"
     app-scoped id of the person who removed the app (the business owner), not
     a customer PSID, so it deletes nothing relevant and never removes the
     owner's channels/tokens that the GET page promises. Relevant to App Review.
+  - **2026-09-17 — Phase B DONE (`73128a5`), verified live.** Owner ran all
+    5 extension prompts. Resend: tellmoreai.com added (Tokyo), DNS records
+    in Hostinger resolve (DKIM TXT, CNAME send + rsend → forge.rmta.net,
+    _dmarc p=none) — Verify button in Resend NOT yet clicked. Supabase /
+    Google / IG redirect registration could not be proven from here (a curl
+    negative control showed the check was blind) → prove by a real Calendar /
+    Instagram connect from www.tellmoreai.com. Code: SITE/robots/sitemap/
+    canonical/og:url/og:image → https://www.tellmoreai.com (live-checked);
+    email links → tellmoreai; email footer support address + reply_to +
+    VAPID default → COMPANY.email (office@autolinium.com); Capacitor
+    server.url → https://www.tellmoreai.com/dashboard (needs APK rebuild);
+    APK file tellmoreai.apk; og/logo regenerated. Kept: appId
+    com.getvoicium.app, Firebase ids, TWA assetlinks, keystore dname.
+    **Phase C cautions (do NOT use Vercel's domain-level redirect for
+    getvoicium):** it redirects every path. (1) `public/widget.js` sets its
+    API host from its own script src, and a cross-origin redirect makes the
+    browser send Origin: null → our origin check 403s → a client's installed
+    widget would die; (2) Meta webhooks (still on
+    autologic-chatbot.vercel.app, fine) and the data-deletion callback are
+    POSTs Meta will not follow through a redirect; (3) the installed APK
+    loads getvoicium.com/dashboard and Capacitor opens a redirect to another
+    host in the external browser. So: get every phone on the new APK first,
+    then add a host-conditional redirect in next.config.js for
+    getvoicium.com / www.getvoicium.com that EXCLUDES /api/:path* and
+    /widget.js. Still owner-side: Vercel env RESEND_FROM (→ TellMore AI
+    sender on tellmoreai.com after Resend verifies) + VAPID_SUBJECT; Meta
+    webhook callbacks → https://www.tellmoreai.com/api/messenger and
+    /api/whatsapp (www only), Privacy/Terms/Site URL/data deletion → www
+    tellmoreai, IG deauth/data-deletion URLs, contact email; Google branding
+    home/privacy/terms (restarts Google verification — do after redirect);
+    SSLCommerz store URL.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
