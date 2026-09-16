@@ -34,8 +34,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # setup-android installs "tools platform-tools" by default, but the
+      # runner's newer sdkmanager (cmdline-tools 16) no longer has a package
+      # called "tools", so the step failed with "Failed to find package 'tools'"
+      # (run #6, 2026-09-17). Gradle fetches the platforms it needs itself.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       # Android only installs a new build OVER an existing one when both carry
       # the SAME signature. A fresh build machine mints a new throwaway debug key
@@ -78,11 +84,11 @@ jobs:
         working-directory: mobile
         run: node scripts/patch-manifest.mjs
 
-      - name: Apply the app icon and splash (crimson bolt, no border)
+      - name: Apply the app icon and splash (TellMore AI logo on white)
         working-directory: mobile
         run: npx capacitor-assets generate --android
 
-      - name: Add the notification small icon (white bolt silhouette)
+      - name: Add the notification small icon (white logo silhouette)
         working-directory: mobile
         run: |
           mkdir -p android/app/src/main/res/drawable

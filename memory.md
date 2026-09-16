@@ -730,6 +730,9 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - APK build run #6 FAILED 2026-09-17 at "Set up Android SDK": setup-android@v3
+    default packages "tools platform-tools"; runner's cmdline-tools 16 has no
+    "tools" package → sdkmanager exit 1. Fixed: with: packages: platform-tools.
   - FB PAGE PICKER shows ALL Pages (2026-09-17, owner report "not showing all
     the pages"): src/lib/fb-pages.js fetchAllPages follows /me/accounts paging
     (limit 100) + /me/businesses → owned_pages + client_pages, merges by id,
