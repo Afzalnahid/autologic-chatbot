@@ -711,9 +711,9 @@ again?"
     /api/fb/callback + /api/wa/callback, JS SDK domains tellmoreai only; IG
     business login redirects www+apex /api/ig/callback (+ vercel.app one still
     there — remove), deauth /api/ig/deauth, data deletion /api/fb/data-deletion.
-    Webhooks read: Page + WhatsApp on www.tellmoreai.com; INSTAGRAM STILL
-    https://autologic-chatbot.vercel.app/api/messenger → owner must run admin
-    Meta webhooks → Repair Instagram. App Review (Sept 2 submission): only
+    Webhooks read: Page + WhatsApp on www.tellmoreai.com; Instagram REPAIRED by owner
+    2026-09-17 via admin → callback https://www.tellmoreai.com/api/messenger,
+    messages+comments on (screenshot). App Review (Sept 2 submission): only
     pages_read_engagement NOT approved (rejected Jul 28, Aug 15, Aug 24 feedback:
     "Screencast Not Aligned with Use Case Details", Policy 1.6 — needs a new
     English screencast showing full Meta login, the grant, and the end-to-end
