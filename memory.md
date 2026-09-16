@@ -557,6 +557,15 @@ again?"
     reinstall), APK rebuild.
     Note: CI commit `53ac46f` added `mobile/debug.keystore` — owner's APK build
     ran; the stable key now exists.
+  - **2026-09-16 — voice fixes.** `8ac1e90`: in `handleIncoming` the canned
+    "couldn't hear that voice message" and video replies were sent BEFORE
+    `botAllowed` → bot OFF / manual chat / expired plan still replied (owner
+    screenshot). Now `cannedAllowed()` gates both; blocked → saved Pending +
+    owner notified, nothing sent. `ab66c26`: voice understanding in EVERY
+    package — runtime never gated it; fixed the catalogue: plans table
+    `voice=true` for shop_starter/svc_starter/starter (applied in prod, all
+    10 plans now true; `docs/sql/2026-09-16-voice-all-plans.sql`), Starter
+    bullets in plans.js, pricing table, manual EN+BN package rows. 45/45.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
