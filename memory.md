@@ -692,8 +692,12 @@ again?"
     Step 6 DONE by extension: Supabase auth Site URL https://www.tellmoreai.com;
     redirect URLs only https://www.tellmoreai.com/** + https://tellmoreai.com/**
     (getvoicium x2 + vercel.app x2 removed). Password reset uses
-    window.location.origin/reset, so it matches. Step 7 (Firebase) NOT done yet —
-    no new google-services.json in Downloads as of 2026-09-17.
+    window.location.origin/reset, so it matches.
+    Step 7 DONE: Firebase project renamed "TellMore AI" (id stays getvoicium);
+    Android app com.tellmoreai.app registered; new google-services.json (both
+    package ids, one API key) copied to mobile/; capacitor appId →
+    com.tellmoreai.app. New APK = a separate app on phones: users uninstall the
+    old one once. Old app's push tokens prune themselves (UNREGISTERED).
     IG app data-deletion pointed at /api/fb/data-deletion will fail signature
     (FB_APP_SECRET) — part of the still-unfixed data-deletion bug.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`

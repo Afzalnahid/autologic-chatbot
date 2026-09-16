@@ -31,8 +31,12 @@ website keeps the app up to date too — only the app's name/icon/id need a rebu
 the current website in a WebView it controls. `www/index.html` is only a
 placeholder loading screen required by the build; it is not the real UI.
 
-App identity: id `com.getvoicium.app`, name **TellMore AI** (separate from the old
-TWA `com.getvoicium.www.twa`, so both can coexist during testing).
+App identity: id `com.tellmoreai.app`, name **TellMore AI** (changed from
+`com.getvoicium.app` on 2026-09-17 with the move to tellmoreai.com). Android
+treats a new id as a different app: it installs NEXT TO the old one, so users
+uninstall the old "getvoicium" app once. `google-services.json` holds both ids
+(same Firebase project `getvoicium`, whose id Google never lets us rename);
+the build picks the entry that matches `appId`.
 
 ## Follow-ups (not done yet)
 
