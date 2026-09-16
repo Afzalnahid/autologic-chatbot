@@ -24,7 +24,12 @@ const SITE = "https://www.tellmoreai.com";
 const OBJECTS = {
   page: { app: "facebook", label: "Facebook Pages", required: ["messages", "messaging_postbacks", "message_echoes", "feed"], callback: `${SITE}/api/messenger` },
   whatsapp_business_account: { app: "facebook", label: "WhatsApp", required: ["messages", "smb_message_echoes"], callback: `${SITE}/api/whatsapp` },
-  instagram: { app: "instagram", label: "Instagram", required: ["messages", "comments"], callback: `${SITE}/api/messenger` },
+  // Instagram's webhook subscription lives on the parent Facebook app (App
+  // Dashboard → Webhooks → Instagram), not on the Instagram-login app id —
+  // reading it with IG_APP_ID|IG_APP_SECRET fails with "Error validating
+  // application" (seen 2026-09-17), and the audit showed the instagram object
+  // listed under app 914246304594380.
+  instagram: { app: "facebook", label: "Instagram", required: ["messages", "comments"], callback: `${SITE}/api/messenger` },
 };
 
 function apps() {
