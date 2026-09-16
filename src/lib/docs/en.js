@@ -230,6 +230,9 @@ export const DOCS = {
           "The window closes and a green card confirms it. The bot is answering from that moment.",
         ] },
 
+      { note: "The list shows **every** Page you can reach — Pages you manage yourself and Pages in your Business Portfolio. A Page missing from it was not ticked when Facebook asked which Pages to share: press **Connect again** under the list, edit that choice and tick every Page. A greyed-out Page is one your role cannot send messages from; ask its admin for full control.",
+        kind: "tip" },
+
       { note: "You never have to find an ID or copy a token. If a page ever asks you for one, something has gone wrong — write to us rather than hunting for it.",
         kind: "tip" },
 

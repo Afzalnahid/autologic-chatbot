@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { connectFailedPage } from "@/lib/connect-page.js";
 import { markSvg } from "@/lib/brand-mark.js";
+import { fetchAllPages } from "@/lib/fb-pages.js";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -28,9 +29,12 @@ export async function GET(request) {
     const longRes = await fetch(`https://graph.facebook.com/v24.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${APP_ID}&client_secret=${APP_SECRET}&fb_exchange_token=${tokRes.access_token}`).then(r => r.json());
     const userToken = longRes.access_token || tokRes.access_token;
 
-    const pages = await fetch(`https://graph.facebook.com/v24.0/me/accounts?fields=id,name,access_token&access_token=${userToken}`).then(r => r.json());
-    if (pages.error) return fail("We could not read your Facebook Pages: " + pages.error.message);
-    const list = pages.data || [];
+    // Every Page: all result pages of /me/accounts plus Pages reached through a
+    // Business Portfolio (src/lib/fb-pages.js explains why one call missed some).
+    const probe = await fetch(`https://graph.facebook.com/v24.0/me?fields=id&access_token=${encodeURIComponent(userToken)}`).then(r => r.json()).catch(() => ({}));
+    if (probe.error) return fail("We could not read your Facebook Pages: " + probe.error.message);
+    const list = await fetchAllPages(userToken, (u) => fetch(u).then(r => r.json()));
+    console.log("[fb-callback] pages found=", list.length, "with token=", list.filter(p => p.access_token).length);
     // No Page on this Facebook account. This is not an error the owner can fix
     // here — TellMore AI connects to a Facebook Page, and there simply isn't one
     // yet. Say so plainly and glide back to the dashboard on its own.
@@ -44,7 +48,16 @@ export async function GET(request) {
 
     const options = list.map(p => {
       const initials = String(p.name).trim().slice(0, 1).toUpperCase();
-      const safeName = String(p.name).replace(/</g, "&lt;");
+      const safeName = String(p.name).replace(/[<>"&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", '"': "&quot;", "&": "&amp;" }[c]));
+      // A Page the person can see but not message from (no task that gives a
+      // Page token) is still listed, greyed out, with the reason — never hidden.
+      if (!p.access_token) {
+        return `<label class="row off" data-name="${safeName.toLowerCase()}">
+      <input type="radio" name="page" disabled>
+      <span class="av">${initials}</span>
+      <span class="txt"><span class="nm">${safeName}</span><small>Your access to this Page does not allow messaging. Ask its admin for full control, then connect again.</small></span>
+    </label>`;
+      }
       return `<label class="row" data-name="${safeName.toLowerCase()}">
       <input type="radio" name="page" value="${p.id}|${encodeURIComponent(p.name)}|${p.access_token}" required>
       <span class="av">${initials}</span>
@@ -82,6 +95,12 @@ form{display:flex;flex-direction:column;min-height:0}
 .row{display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;cursor:pointer;transition:background .12s}
 .row:hover{background:var(--card)}
 .row.hide{display:none}
+.row.off{cursor:default;opacity:.62}
+.row.off:hover{background:transparent}
+.txt{display:flex;flex-direction:column;min-width:0}
+.txt small{font-size:11.5px;color:var(--dim);line-height:1.45;margin-top:2px;white-space:normal}
+.hint{font-size:12px;color:var(--muted);line-height:1.55;margin-top:12px;text-align:center}
+.hint a{color:var(--acc);font-weight:600;text-decoration:none}
 .row input{accent-color:var(--acc);width:15px;height:15px;flex-shrink:0}
 .av{width:32px;height:32px;border-radius:10px;background:var(--card);box-shadow:2px 2px 5px var(--shd),-2px -2px 5px var(--shl);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted);flex-shrink:0}
 .nm{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -100,6 +119,7 @@ button:hover{transform:translateY(-1px);filter:brightness(1.05)}
     <div class="list" id="list">${options}<div class="empty" id="empty">No Page matches that name.</div></div>
     <div class="bar"><button type="submit">Connect</button></div>
   </form>
+  <div class="hint">Missing a Page? Facebook only shares the Pages you ticked when you signed in. <a href="/api/fb/login?client_id=${encodeURIComponent(clientId)}">Connect again</a>, and when Facebook shows your earlier choice, edit it and tick <b>every Page</b>.</div>
   </main>
 <script>
   var q=document.getElementById('q');
