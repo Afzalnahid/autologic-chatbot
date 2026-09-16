@@ -733,6 +733,10 @@ again?"
   - APK build run #6 FAILED 2026-09-17 at "Set up Android SDK": setup-android@v3
     default packages "tools platform-tools"; runner's cmdline-tools 16 has no
     "tools" package → sdkmanager exit 1. Fixed: with: packages: platform-tools.
+    Next run SUCCEEDED; owner downloaded tellmoreai.apk (7.3 MB). APK inspected
+    here: manifest package com.tellmoreai.app, app name TellMore AI, server.url
+    https://www.tellmoreai.com/dashboard, launcher foreground = new plum logo.
+    On-phone install/login/push still to be confirmed by owner.
   - FB PAGE PICKER shows ALL Pages (2026-09-17, owner report "not showing all
     the pages"): src/lib/fb-pages.js fetchAllPages follows /me/accounts paging
     (limit 100) + /me/businesses → owned_pages + client_pages, merges by id,
