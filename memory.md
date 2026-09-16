@@ -530,6 +530,33 @@ again?"
       `ui.js` onboarding frame, dashboard sidebar no-logo fallback. Left on
       purpose: Analytics "Bot resolved" stat icon + internal preview-dash (not
       brand logos). Every brand mark is now the Friendly Bot. 45/45.
+  - **2026-09-16 — REBRAND to "TellMore AI" / tellmoreai.com (step 1 of 2
+    done, `5e0fa3c`).** Owner finalised domain tellmoreai.com; chose display
+    name "TellMore AI"; tagline "Conversations that convert" (from a mockup
+    he sent — its icon/maroon colour NOT adopted; Friendly Bot + crimson stay
+    unless he asks). Display-name rename done in 60 files (script with
+    negative lookahead; identifiers protected). **STILL getvoicium:** every
+    `getvoicium.com` URL (seo.js SITE, email.js links + support@, push.js
+    VAPID subject, connect pages, admin webhooks callbacks, widget snippet in
+    docs, `mobile/capacitor.config.json` server.url, sw.js?), Android appId
+    `com.getvoicium.app` + `mobile/package.json` name + Firebase project id
+    `getvoicium` (fcm.js default, google-services.json) + APK artifact/keystore
+    dname + `public/.well-known/assetlinks.json` (old TWA). og cards/videos
+    still show getvoicium.com.
+    **Step 2 (after owner puts the domain on Vercel):** tellmoreai.com parks
+    at Hostinger (2.57.91.91, "hcdn"). Owner must: Vercel → project → Domains
+    → add tellmoreai.com + www; Hostinger DNS: A @ → 76.76.21.21, CNAME www →
+    cname.vercel-dns.com. Then me: global `getvoicium.com`→`tellmoreai.com`
+    in code, permanent redirect old→new (vercel.json), Capacitor server.url,
+    regenerate og (`scripts/make-og-images.mjs` url line) + favicon ok,
+    re-render videos, then owner-side: Meta app domains/OAuth redirect/
+    webhook URL/privacy links (+ webhooks re-verify via admin page), Google
+    OAuth authorized domain + redirect URI (may need re-verification), Resend
+    domain (SPF/DKIM) + RESEND_FROM env + support@ mailbox, Firebase new
+    Android app if appId changes (decide before Play Store; sideloaders
+    reinstall), APK rebuild.
+    Note: CI commit `53ac46f` added `mobile/debug.keystore` — owner's APK build
+    ran; the stable key now exists.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
