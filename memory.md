@@ -566,6 +566,43 @@ again?"
     `voice=true` for shop_starter/svc_starter/starter (applied in prod, all
     10 plans now true; `docs/sql/2026-09-16-voice-all-plans.sql`), Starter
     bullets in plans.js, pricing table, manual EN+BN package rows. 45/45.
+  - **2026-09-16 — domain audit (partial, via Claude Chrome extension; §1–3
+    only, extension timed out on Meta).** Findings:
+    - tellmoreai.com (Hostinger DNS, ns aster/helios.dns-parking.com): only
+      A @ 2.57.91.91 (parking) + CNAME www→tellmoreai.com. NOT on Vercel.
+    - getvoicium.com (Hostinger, expires 2027-03-08): A @ 216.198.79.1 + CNAME
+      www 66621ef0cf81622a.vercel-dns-017.com (Vercel's NEW per-project values —
+      use what Vercel shows, not 76.76.21.21); Resend sending domain (send,
+      rsend, resend._domainkey); **Google Workspace mail** (MX SMTP.GOOGLE.COM,
+      google DKIM, SPF google); DMARC p=reject; CNAME inst→itrackly (owner's
+      outreach tool, not ours). Other old-name domains: voiciumteam.com,
+      usevoicium.com, voicium.live.
+    - Vercel: domains getvoicium.com (308→www), www.getvoicium.com,
+      autologic-chatbot.vercel.app. Env VAPID_SUBJECT=mailto:support@getvoicium.com;
+      RESEND_FROM/FB_APP_ID/IG_APP_ID/WA_CONFIG_ID/GOOGLE_CLIENT_ID stored as
+      Sensitive; SITE_URL, NEXT_PUBLIC_SITE_URL, FB_CONFIG_ID, WA_LOGIN_CONFIG_ID,
+      SSLCZ_MODE absent (code falls back to request origin / defaults).
+    - Supabase Auth: Site URL https://autologic-chatbot.vercel.app, redirect
+      allow-list ONLY https://autologic-chatbot.vercel.app/reset → reset links
+      requested from www.getvoicium.com are not allow-listed (Supabase falls
+      back to Site URL). Fix with the TellMore allow-list. No custom SMTP.
+    - Meta app 914246304594380 already named "Tellmore AI", **App mode:
+      Development**, products FB Login for Business, Webhooks, Messenger,
+      WhatsApp, Instagram. Rest of Meta, Google Cloud, Firebase, Resend,
+      SSLCommerz, GitHub not audited.
+    - All OAuth redirect_uri are built from the request origin
+      (/api/fb/callback, /api/wa/callback, /api/ig/callback, /api/gcal/callback;
+      SSLCommerz /api/billing/callback + /api/billing/ipn), so the new domain's
+      URIs must be ADDED to Meta/Google before anyone uses tellmoreai.com.
+    - Plan: Phase A (owner via extension, additive only, getvoicium keeps
+      working): Vercel domains + Hostinger DNS → Supabase URLs → Meta add
+      redirect URIs/app domains + read App Review → Google add authorized
+      domain/origins/redirects → Resend add tellmoreai.com. Phase B (me): code
+      getvoicium.com→tellmoreai.com, og/videos, Capacitor server.url, APK.
+      Phase C: getvoicium→tellmoreai 308, webhooks callbacks, privacy/terms/
+      deletion URLs, VAPID_SUBJECT, RESEND_FROM, SSLCommerz store URL.
+      Open decision: support@ mailbox — recommend Google Workspace domain
+      alias for tellmoreai.com.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
     had no "webhooks" entry (header reads `titles[page][0]`). Added + safe
     fallback. lessons.md: a new admin page = NAV + render branch + titles.
