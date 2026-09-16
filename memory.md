@@ -678,6 +678,17 @@ again?"
     app) → 8 SSLCommerz store/IPN URL → 9 tell Broker's BD/EzPz/trial the new
     login URL → 10 remove getvoicium domains from Vercel + Resend.
     Firebase project id "getvoicium" cannot be renamed (Google rule, invisible).
+    PROGRESS 2026-09-17: steps 1–3 done (FB Pages + WhatsApp webhooks on
+    www.tellmoreai.com; Instagram read fixed in 91c599c — owner to Repair).
+    Step 5 DONE by extension: Search Console Domain property tellmoreai.com
+    verified (Hostinger TXT google-site-verification=k5ESb1…, TTL 60 — must
+    stay; resolved via 8.8.8.8). Google project my-project-483713 branding =
+    TellMore AI / www.tellmoreai.com / privacy / terms; authorized domains
+    tellmoreai.com + autologic-chatbot.vercel.app (getvoicium removed). Web
+    client 1: origins https://www.tellmoreai.com, https://tellmoreai.com;
+    redirects only the two tellmoreai /api/gcal/callback. Branding
+    verification not shown to users (optional). Calendar connect test by
+    owner still UNVERIFIED.
     IG app data-deletion pointed at /api/fb/data-deletion will fail signature
     (FB_APP_SECRET) — part of the still-unfixed data-deletion bug.
   - `51cbd4e`: the new admin page crashed the console on open — `titles[page]`
