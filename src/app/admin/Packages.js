@@ -1377,7 +1377,7 @@ function PlanForm({ plan, onSave, onCancel, busy, trialDays }) {
         into, a service has no catalogue to match a photo against. */}
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>Sold to
       <Select value={p.biz || "both"} onChange={(v) => set("biz", v)}
-        items={[{ value: "both", label: "Everyone (the free trial)" }, { value: "ecommerce", label: "Shops — catalogue, orders, photo matching" }, { value: "agency", label: "Services — documents, bookings, calendar" }]}
+        options={[{ value: "both", label: "Everyone (the free trial)" }, { value: "ecommerce", label: "Shops — catalogue, orders, photo matching" }, { value: "agency", label: "Services — documents, bookings, calendar" }]}
         style={{ marginTop: 4 }} />
     </label>
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>Tagline

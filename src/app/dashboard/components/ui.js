@@ -255,7 +255,10 @@ export const SAMPLE_AGENCY=[
 // A dropdown that behaves like one: opens with a short spring, closes on Escape,
 // on outside click, and on choosing. Native <select> could not be styled to match
 // the rest of the surface, and this is used in enough places to be worth owning.
-export function Select({ value, options, onChange, placeholder = "Select", style, wide }) {
+// `options` defaults to an empty list: a caller that misspells the prop (it
+// happened — the package editor passed `items` and every Edit click blanked the
+// whole admin console) gets an empty dropdown, not a dead page.
+export function Select({ value, options = [], onChange, placeholder = "Select", style, wide }) {
   const [open, setOpen] = useState(false);
   const box = useRef(null);
   useEffect(() => {

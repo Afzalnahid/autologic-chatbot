@@ -1396,3 +1396,14 @@ JavaScript into a real newline. The syntax check I ran in the same command
 printed ok because the check ran before the write landed. Rule: never carry
 backslash escapes through a heredoc — build them with String.fromCharCode(92),
 or use the Edit tool, and run `node --check` as a separate command afterwards.
+
+## 2026-09-18 — "verified" meant the list rendered, not that Edit worked
+The admin package editor had crashed on every Edit click since 2026-08-31: the
+"Sold to" dropdown passed `items=` to a Select that reads `options`, so the
+first press blanked the whole console ("Application error: a client-side
+exception"). Nobody pressed it for 18 days, and I reported the panel as done
+after checking only the list and the API. Rule: a UI change is verified when
+every state it can be put into has been rendered — the offline harness
+(scratchpad render/ with next/dist/build/swc) renders each component with real
+database rows in seconds; tests/t-select-props.mjs now catches this prop name
+statically. A prop name is not something React checks.
