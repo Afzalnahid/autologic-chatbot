@@ -323,3 +323,87 @@ if (args.has("--levers")) {
   console.log(`  with the router too:  ${d(routed)} (৳${(routed * USD_BDT).toFixed(2)}) — ${Math.round((1 - routed / base) * 100)}% off`);
   console.log(`\n  Growth at its limit would fall from ৳13,772 to about ৳${Math.round(13772 * routed / base).toLocaleString("en-IN")} a month.\n`);
 }
+
+
+// ── Before and after the 2026-09-18 changes ────────────────────────────────
+//   node scripts/ai-cost-model.mjs --after
+//
+// Three profiles, so a decision can be made on the range rather than one
+// hopeful number:
+//   before    what the reply cost until 2026-09-18
+//   trimmed   the product trim alone — certain, it is just fewer characters
+//   cached    the trim plus Gemini reusing the fixed prefix at a tenth of the
+//             rate. NOT yet confirmed in production: implicit caching needs
+//             similar requests close together, and a quiet account may miss it.
+//             usage_daily.tokens_cached will say (it was added the same day).
+//
+// The chat call is the only line that changes; everything else — vision, voice,
+// tagging, the catalogue, the owner's tools — is untouched.
+export const PROFILES = {
+  before:  { chatIn: 7718, cached: 0,    note: "as measured before the change" },
+  trimmed: { chatIn: 5702, cached: 0,    note: "product rows trimmed (3,888 → ~1,200 chars each, 3 per reply)" },
+  cached:  { chatIn: 5702, cached: 3000, note: "trimmed, and Gemini reusing the ~3,000-token fixed prefix at 10%" },
+};
+
+// Cost of the chat call under one profile, at the flash rate.
+function chatCost(profile, rate = "gemini-3.6-flash") {
+  const p = PRICES[rate], s = SITES.find((x) => x.id === "bot.chat");
+  const fresh = Math.max(0, profile.chatIn - profile.cached);
+  return (fresh / 1e6) * p.in + (profile.cached / 1e6) * p.in * 0.10 + (s.out / 1e6) * p.out;
+}
+
+function profileMessage(profile, rate = "gemini-3.6-flash") {
+  const reply = chatCost(profile, rate) + cost("bot.embed", rate)
+    + site("bot.tag").rate * cost("bot.tag", rate)
+    + site("bot.language").rate * cost("bot.language", rate);
+  return { text: reply, photo: reply + cost("bot.vision", rate), voice: reply + cost("bot.voice", rate),
+    comment: cost("bot.comment", rate) + cost("bot.embed", rate),
+    offPhoto: cost("bot.vision", rate), offVoice: cost("bot.voice", rate), offText: 0 };
+}
+
+// The whole monthly bill for a package at its limit, under one profile.
+function profilePackage(pkg, profile, mix = "real", rate = "gemini-3.6-flash") {
+  const m = profileMessage(profile, rate);
+  const per = m.text + MIXES[mix].photo * (m.photo - m.text) + MIXES[mix].voice * (m.voice - m.text);
+  const messages = pkg.messages * per;
+  const comments = pkg.messages * COMMENT_RATE * m.comment;
+  const botOff = pkg.messages * OFF_SHARE * (MIXES[mix].photo * m.offPhoto + MIXES[mix].voice * m.offVoice);
+  const owner = OWNER_MONTH.assistant * cost("product.assistant", rate)
+    + OWNER_MONTH.prompt * cost("platform.prompt", rate) + OWNER_MONTH.offer * cost("platform.offer", rate);
+  const products = pkg.products ? pkg.products * perProduct(rate).byPhoto : 0;
+  const knowledge = pkg.kbFiles ? pkg.kbFiles * CHUNKS_PER_FILE * cost("knowledge.embed", rate) : 0;
+  return { per, messages, comments, botOff, owner, monthly: messages + comments + botOff + owner,
+    setup: products + knowledge };
+}
+
+if (args.has("--after")) {
+  const rate = "gemini-3.6-flash";
+  console.log(`
+BEFORE AND AFTER — ${rate} · $1 = ৳${USD_BDT}
+`);
+  console.log("ONE REPLY (text)");
+  for (const [k, pr] of Object.entries(PROFILES)) {
+    const m = profileMessage(pr, rate);
+    console.log(`  ${pad(k, 9)} ${pad(d(m.text), 10)} ${pad(bdt(m.text), 9)} ${pr.note}`);
+  }
+
+  for (const mix of ["real", "worst"]) {
+    console.log(`
+A PACKAGE AT ITS LIMIT — ${mix === "real" ? "real mix (13% photos, 3% voice)" : "worst case (every message a photo AND a voice note)"}`);
+    console.log(`  ${pad("package", 16)} ${pad("price", 8)} ${pad("replies", 8)} ${pad("before", 11)} ${pad("trimmed", 11)} ${pad("cached", 11)} ${pad("margin now", 12)} one-off`);
+    for (const p of PACKAGES) {
+      const b = profilePackage(p, PROFILES.before, mix), t = profilePackage(p, PROFILES.trimmed, mix), c = profilePackage(p, PROFILES.cached, mix);
+      const margin = p.price - t.monthly * USD_BDT;
+      console.log(`  ${pad(p.name, 16)} ${pad("৳" + p.price, 8)} ${pad(p.messages, 8)} ${pad(bdt(b.monthly), 11)} ${pad(bdt(t.monthly), 11)} ${pad(bdt(c.monthly), 11)} ${pad((margin >= 0 ? "+" : "−") + "৳" + Math.abs(Math.round(margin)).toLocaleString("en-IN"), 12)} ${t.setup > 0 ? bdt(t.setup) : "—"}`);
+    }
+  }
+
+  console.log("\nWHAT A PACKAGE COULD CARRY AND STILL EARN HALF ITS PRICE");
+  console.log(`  ${pad("package", 16)} ${pad("price", 8)} ${pad("trimmed", 12)} ${pad("cached", 12)} today's cap`);
+  for (const p of PACKAGES.filter((x) => x.price > 0)) {
+    const t = profilePackage(p, PROFILES.trimmed, "real"), c = profilePackage(p, PROFILES.cached, "real");
+    const cap = (prof) => Math.round((p.price / 2) / (prof.per * USD_BDT));
+    console.log(`  ${pad(p.name, 16)} ${pad("৳" + p.price, 8)} ${pad(cap(t).toLocaleString("en-IN") + " replies", 12)} ${pad(cap(c).toLocaleString("en-IN") + " replies", 12)} ${p.messages.toLocaleString("en-IN")}`);
+  }
+  console.log("");
+}
