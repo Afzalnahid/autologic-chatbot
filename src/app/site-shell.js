@@ -43,13 +43,18 @@ const CSS = `
      size, with taller ascenders. Without this the lead paragraph re-flowed when
      Inter arrived and pushed everything under it down (0.15 on a solution
      page, measured 2026-09-18). */
+  /* And for the small mono labels and buttons: IBM Plex Mono sets 82% as wide
+     as the system monospace, so the nav and the eyebrow labels changed width —
+     and the nav's height with them — when it arrived. */
+  @font-face { font-family: "Plex Mono Fallback"; src: local("Consolas"), local("Menlo"), local("DejaVu Sans Mono"), local("Courier New");
+    size-adjust: 82%; ascent-override: 108.5%; descent-override: 26.8%; line-gap-override: 0% }
   @font-face { font-family: "Inter Fallback"; src: local("Arial"), local("Helvetica"), local("Liberation Sans");
     size-adjust: 100.6%; ascent-override: 96.4%; descent-override: 23.9%; line-gap-override: 0% }
   @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
     size-adjust: 77%; ascent-override: 127%; descent-override: 34%; line-gap-override: 0% }
   .fr { font-family: 'Fraunces', 'Fraunces Fallback', Georgia, serif; font-weight: 700; letter-spacing: -0.02em;
     overflow-wrap: normal; hyphens: none }
-  .lbl { font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .09em;
+  .lbl { font-family: 'IBM Plex Mono', 'Plex Mono Fallback', ui-monospace, monospace; letter-spacing: .09em;
     text-transform: uppercase }
 
   .navbtn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 9px;

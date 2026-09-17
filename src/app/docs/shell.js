@@ -41,6 +41,11 @@ const CSS = `
      size, with taller ascenders. Without this the lead paragraph re-flowed when
      Inter arrived and pushed everything under it down (0.15 on a solution
      page, measured 2026-09-18). */
+  /* And for the small mono labels and buttons: IBM Plex Mono sets 82% as wide
+     as the system monospace, so the nav and the eyebrow labels changed width —
+     and the nav's height with them — when it arrived. */
+  @font-face { font-family: "Plex Mono Fallback"; src: local("Consolas"), local("Menlo"), local("DejaVu Sans Mono"), local("Courier New");
+    size-adjust: 82%; ascent-override: 108.5%; descent-override: 26.8%; line-gap-override: 0% }
   @font-face { font-family: "Inter Fallback"; src: local("Arial"), local("Helvetica"), local("Liberation Sans");
     size-adjust: 100.6%; ascent-override: 96.4%; descent-override: 23.9%; line-gap-override: 0% }
   @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
@@ -65,7 +70,7 @@ const CSS = `
      CSS rather than inline styles precisely so the .bn class can override it.
      (No backticks anywhere in here — this whole block is a template literal,
      and one backtick ends the string. It has bitten this codebase before.) */
-  .lbl { font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .09em; text-transform: uppercase }
+  .lbl { font-family: 'IBM Plex Mono', 'Plex Mono Fallback', ui-monospace, monospace; letter-spacing: .09em; text-transform: uppercase }
   /* 9.5px works for Latin small caps and does not work for Bangla, whose
      conjuncts need the height. The size is set inline for the Latin case, so
      overriding it takes !important — which is the point of the rule, not a

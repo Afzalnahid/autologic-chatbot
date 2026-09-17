@@ -28,7 +28,7 @@ export function generateMetadata({ searchParams }) {
   return pageMeta({ ...META[lang], path: "/", lang });
 }
 
-const mono = { fontFamily: "'IBM Plex Mono', ui-monospace, monospace", fontSize: 10.5,
+const mono = { fontFamily: "'IBM Plex Mono', 'Plex Mono Fallback', ui-monospace, monospace", fontSize: 10.5,
   letterSpacing: "0.13em", textTransform: "uppercase" };
 const wrap = { maxWidth: 1240, margin: "0 auto", padding: "0 clamp(16px, 4vw, 26px)" };
 
@@ -235,6 +235,11 @@ export default function Home({ searchParams }) {
      size, with taller ascenders. Without this the lead paragraph re-flowed when
      Inter arrived and pushed everything under it down (0.15 on a solution
      page, measured 2026-09-18). */
+  /* And for the small mono labels and buttons: IBM Plex Mono sets 82% as wide
+     as the system monospace, so the nav and the eyebrow labels changed width —
+     and the nav's height with them — when it arrived. */
+  @font-face { font-family: "Plex Mono Fallback"; src: local("Consolas"), local("Menlo"), local("DejaVu Sans Mono"), local("Courier New");
+    size-adjust: 82%; ascent-override: 108.5%; descent-override: 26.8%; line-gap-override: 0% }
   @font-face { font-family: "Inter Fallback"; src: local("Arial"), local("Helvetica"), local("Liberation Sans");
     size-adjust: 100.6%; ascent-override: 96.4%; descent-override: 23.9%; line-gap-override: 0% }
   @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
@@ -290,7 +295,7 @@ export default function Home({ searchParams }) {
         .al-obs { opacity: 0; transform: translateY(22px) }
         .al-obs.al-in { opacity: 1; transform: none; transition: opacity .5s ease-out, transform .65s cubic-bezier(.22,.61,.36,1) }
 
-        .navbtn { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .09em;
+        .navbtn { font-family: 'IBM Plex Mono', 'Plex Mono Fallback', monospace; font-size: 10.5px; letter-spacing: .09em;
           text-transform: uppercase; text-decoration: none; color: ${P.ink}; border: 1px solid ${P.line};
           background: ${P.paper2}; border-radius: 11px; box-shadow: var(--lp-nm-sm);
           padding: 8px 11px; white-space: nowrap; line-height: 1; cursor: pointer;
@@ -334,7 +339,7 @@ export default function Home({ searchParams }) {
         @media (max-width: 420px) { .bn .navbtn { font-size: 11.5px } }
         @media (max-width: 340px) { .bn .navbtn { font-size: 11px } }
 
-        .flink { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .1em;
+        .flink { font-family: 'IBM Plex Mono', 'Plex Mono Fallback', monospace; font-size: 10.5px; letter-spacing: .1em;
           text-transform: uppercase; color: ${P.inkSoft}; text-decoration: none; transition: color .15s ease-out }
         .bn .flink { font-family: 'Anek Bangla', sans-serif; letter-spacing: 0; text-transform: none;
           font-size: 12px }
