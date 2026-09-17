@@ -191,7 +191,7 @@ export default function Home({ searchParams }) {
     // own — a different typeface from the words underneath it.
     <div className={lang === "bn" ? "bn" : ""}
       style={{ background: P.paper, minHeight: "100vh", color: P.ink,
-      fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
+      fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, 'Inter Fallback', system-ui, sans-serif" }}>
       {/* What lets Google print "TellMore AI" above a result instead of the bare
           domain. It is data, not code — nothing runs it — so unlike the theme
           boot it works fine sitting here in the page. It still needs
@@ -231,6 +231,12 @@ export default function Home({ searchParams }) {
      space before the real face arrives and nothing below it jumps. The numbers
      were measured in Chrome on 2026-09-18 (Fraunces 600 is 77% of Georgia's
      width at the same size): a solution page shifted 0.15 without this. */
+  /* Same trick for the body face: Inter is 100.6% of Arial's width at the same
+     size, with taller ascenders. Without this the lead paragraph re-flowed when
+     Inter arrived and pushed everything under it down (0.15 on a solution
+     page, measured 2026-09-18). */
+  @font-face { font-family: "Inter Fallback"; src: local("Arial"), local("Helvetica"), local("Liberation Sans");
+    size-adjust: 100.6%; ascent-override: 96.4%; descent-override: 23.9%; line-gap-override: 0% }
   @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
     size-adjust: 77%; ascent-override: 127%; descent-override: 34%; line-gap-override: 0% }
   .fr { font-family: 'Fraunces', 'Fraunces Fallback', Georgia, serif; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: normal; hyphens: none }
