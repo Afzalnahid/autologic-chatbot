@@ -161,7 +161,11 @@ export function summarise(rows, prices) {
   let calls = 0, tokensIn = 0, tokensOut = 0, tokensCached = 0, platformCost = 0, clientKeyCost = 0;
   const byKind = {}, byFeature = {}, byArea = {}, byModel = {}, byChannel = {};
   const bucket = (map, key) => {
-    if (!map[key]) map[key] = { calls: 0, tokensIn: 0, tokensOut: 0, tokens: 0, cost: 0, ownKeyCost: 0 };
+    // tokensCached rides in every bucket, not just the grand total: the
+    // per-model table exists so the arithmetic can be checked against the
+    // provider bill, and cached input is charged at a tenth — a table without
+    // it stops adding up the moment caching starts working.
+    if (!map[key]) map[key] = { calls: 0, tokensIn: 0, tokensOut: 0, tokensCached: 0, tokens: 0, cost: 0, ownKeyCost: 0 };
     return map[key];
   };
   for (const r of rows || []) {
@@ -174,13 +178,13 @@ export function summarise(rows, prices) {
 
     const feature = r.feature || "legacy";
     for (const b of [bucket(byKind, r.kind || "other"), bucket(byFeature, feature), bucket(byArea, areaOf(feature)), bucket(byChannel, r.page_id || "")]) {
-      b.calls += n; b.tokensIn += tin; b.tokensOut += tout; b.tokens += tin + tout;
+      b.calls += n; b.tokensIn += tin; b.tokensOut += tout; b.tokensCached += tcached; b.tokens += tin + tout;
       if (r.own_key) b.ownKeyCost += c; else b.cost += c;
     }
 
     const mk = `${r.provider}/${r.model}`;
     const m = bucket(byModel, mk);
-    m.calls += n; m.tokensIn += tin; m.tokensOut += tout; m.tokens += tin + tout;
+    m.calls += n; m.tokensIn += tin; m.tokensOut += tout; m.tokensCached += tcached; m.tokens += tin + tout;
     if (r.own_key) m.ownKeyCost += c; else m.cost += c;
     m.provider = r.provider; m.model = r.model;
     m.priced = isPriced(prices, r.provider, r.model);

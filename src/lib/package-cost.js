@@ -96,6 +96,45 @@ export function messageCosts(rates = {}) {
 
 const clampShare = (n) => Math.min(1, Math.max(0, Number(n) || 0));
 
+// What the BOT costs, per reply, out of the measured book.
+//
+// The admin panel used to work this out from `by_kind`, and that is the wrong
+// bucket: kind "chat" is every call that sends text, so a real customer reply
+// (~7,400 tokens of catalogue and history) was averaged with auto-tagging
+// (~90 tokens), the language rewrite, the batch photo namer and the assistant.
+// On the 2026-09-18 book that read $0.0035 a reply against a true $0.0063 —
+// the planner and the price floor under it were both about 45% short.
+//
+// `byFeature` is summarise().byFeature. Returns nulls, never zeroes, for what
+// has not been measured: a cost of zero and a cost nobody has seen are
+// different answers and a screen must not confuse them.
+export function replyRates(byFeature = {}) {
+  const rates = perCallRates(byFeature);
+  const m = messageCosts(rates);
+  const calls = (id) => Number(byFeature?.[id]?.calls) || 0;
+  return {
+    ...m,
+    // The reply itself, without the search — what "one more reply" costs.
+    chat: m.parts.chat,
+    // How many photos the bot read per reply it wrote. Above 1 this is the
+    // number that decides a photo-heavy shop's bill, and it is measured, not
+    // assumed: on Broker's BD it has been running near 2.
+    photosPerReply: calls("bot.chat") > 0 ? calls("bot.vision") / calls("bot.chat") : null,
+    replies: calls("bot.chat"),
+  };
+}
+
+// Average tokens of one real customer reply, for the "per 1,000 replies" line
+// on the rate card. Null until a reply has actually been measured — the card
+// used to assume 3,000 in / 250 out, and a real reply carries the catalogue
+// and the history, so it was running at about 7,400 in.
+export function replyTokens(byFeature = {}) {
+  const b = byFeature?.["bot.chat"];
+  const calls = Number(b?.calls) || 0;
+  if (!calls) return null;
+  return { in: (Number(b.tokensIn) || 0) / calls, out: (Number(b.tokensOut) || 0) / calls, calls };
+}
+
 // ── One package ────────────────────────────────────────────────────────────
 //
 // pkg is a row from the plans table (snake_case). Returns null costs rather

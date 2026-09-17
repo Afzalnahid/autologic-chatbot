@@ -47,7 +47,7 @@ is("and how much of the spend named one is reported", Math.round(s.channelMeasur
 // The client's own key is their money, and it must stay separated per channel
 // exactly as it is in every other total.
 const own = U.summarise([row({ page_id: "P", own_key: true, tokens_in: 7 })], PRICES);
-is("a BYOK channel's cost is theirs, not ours", own.byChannel.P, { calls: 1, tokensIn: 7, tokensOut: 0, tokens: 7, cost: 0, ownKeyCost: 7 });
+is("a BYOK channel's cost is theirs, not ours", own.byChannel.P, { calls: 1, tokensIn: 7, tokensOut: 0, tokensCached: 0, tokens: 7, cost: 0, ownKeyCost: 7 });
 is("and it still counts as having named a channel", own.channelMeasured, 1);
 
 // Rows written before the migration have no page_id at all.

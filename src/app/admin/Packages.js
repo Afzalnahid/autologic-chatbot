@@ -7,7 +7,7 @@ import { AREAS, FEATURES as USAGE_FEATURES, featureLabel } from "@/lib/usage-fea
 import { limitConflicts, limitMeaning, trialTotal, trialTextMismatch } from "@/lib/limit-conflicts.js";
 import { clampTrialDays, MIN_TRIAL_DAYS, MAX_TRIAL_DAYS } from "@/lib/plans.js";
 import { FEATURE_DEFS, AREA_LABELS } from "@/lib/features.js";
-import { perCallRates, packageCost, floorPrice, marginAt } from "@/lib/package-cost.js";
+import { perCallRates, packageCost, floorPrice, marginAt, replyRates, replyTokens } from "@/lib/package-cost.js";
 
 // The package list, in two parts. A shop and a service buy different things, so
 // reading them as one list means holding both in your head at once.
@@ -267,18 +267,59 @@ function Money({ d, rate, revenue, aiCostBdt, fixedBdt, profit, margin, isMobile
       </div>}
     </Card>
 
-    <Card>
-      <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 6 }}>What one customer message costs you</div>
-      <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7 }}>
-        {t.messages > 0 && t.ai_cost_usd > 0
-          ? <>Across the last {d.days} days, blended across every message type actually sent: <b style={{ color: T.text }}>{bdt((t.ai_cost_usd * rate) / t.messages)}</b> per customer message
-              ({usd(t.ai_cost_usd / t.messages)}). This already includes the image and voice messages in the mix.</>
-          : <>Not enough metered usage yet to work this out. Once customers have messaged the bots for a few days, this line shows the real per-message cost — automatically blended across text, image and voice.</>}
-      </div>
-    </Card>
+    <PerReplyCost d={d} rate={rate} />
 
     <CostPlanner d={d} rate={rate} />
   </div>;
+}
+
+// What one REPLY costs — the number a package is priced against.
+//
+// This card used to divide the WHOLE AI bill by the customer's messages, and
+// both halves of that were wrong. The top carried the catalogue and the
+// assistant, which a package charges once rather than per message. The bottom
+// counted every message a customer sent, including the ones a human answered
+// and the ones that arrived while the bot was off — on the 2026-09-18 book that
+// was 1,433 messages against 99 replies, so the figure came out about twelve
+// times under. A package sells REPLIES (message-usage.js), so that is the unit
+// here: the bot's own cost over the replies it actually wrote.
+function PerReplyCost({ d, rate }) {
+  const t = d.totals || {};
+  const r = replyRates(t.by_feature || {});
+  const botCost = Number(t.by_area?.bot?.cost || 0) + Number(t.by_area?.bot?.ownKeyCost || 0);
+  const replies = r.replies;
+  const measured = replies > 0 && r.parts.chat !== null;
+  const blended = measured ? botCost / replies : null;
+
+  const Row = ({ k, v, note }) => <div style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "6px 0", borderTop: `1px solid ${T.border}` }}>
+    <span style={{ fontSize: 12, color: T.textMuted, flex: "1 1 auto", minWidth: 0 }}>{k}
+      {note && <span style={{ display: "block", fontSize: 10.5, color: T.textDim, marginTop: 1 }}>{note}</span>}</span>
+    <span style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{v}</span>
+  </div>;
+
+  return <Card>
+    <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 6 }}>What one bot reply costs you</div>
+    {!measured
+      ? <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7 }}>
+          No replies metered in this window, so there is nothing to average. The figure appears once the bots have answered customers for a day or two.
+        </div>
+      : <>
+        <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7, marginBottom: 8 }}>
+          Everything the bot spent over the last {d.days} days, divided by the replies it wrote:
+          {" "}<b style={{ color: T.text }}>{bdtFine(blended * rate)}</b> a reply ({usdFine(blended)}), across {num(replies)} replies.
+          This is the number a package price has to cover — it already carries the photos and voice notes in the mix.
+        </div>
+        <Row k="The answer itself" v={bdtFine((r.parts.chat || 0) * rate)} note="one call, whatever the customer asked" />
+        <Row k="Finding it in the catalogue" v={bdtFine((r.parts.embed || 0) * rate)} note="every reply searches" />
+        <Row k="Reading a photo" v={r.parts.vision === null ? "—" : `+ ${bdtFine(r.parts.vision * rate)} each`}
+          note={r.photosPerReply ? `${r.photosPerReply.toFixed(1)} photos read per reply in this window` : null} />
+        <Row k="A voice note" v={r.parts.voice === null ? "—" : `+ ${bdtFine(r.parts.voice * rate)}`} note="transcribing it" />
+        <div style={{ fontSize: 11.5, color: T.textDim, marginTop: 9, lineHeight: 1.6 }}>
+          <i className="ti ti-info-circle" style={{ marginRight: 5 }} />
+          The catalogue and the AI Assistant are not in this figure. They are paid once per product or per press, not per reply — see <b style={{ color: T.textMuted }}>Where the money actually goes</b>.
+        </div>
+      </>}
+  </Card>;
 }
 
 // A "what if" planner: enter a volume and a message mix, get the estimated
@@ -291,30 +332,48 @@ function CostPlanner({ d, rate }) {
   const [mix, setMix] = useState({ text: 80, image: 15, voice: 5 });
   const t = d.totals || {};
 
-  // Measured average USD cost of one call of a kind, or null if never used yet.
-  const perCall = (k) => { const b = t.by_kind?.[k]; return b && b.calls ? b.cost / b.calls : null; };
+  // Measured cost per call, BY FEATURE — not by kind.
+  //
+  // It read `by_kind` until 2026-09-18, and kind "chat" holds every call that
+  // sends text: a customer reply carrying the catalogue sat in the same average
+  // as auto-tagging at ninety tokens. The planner came out about 45% under, and
+  // so did the price floor printed beneath it.
+  const r = replyRates(t.by_feature || {});
 
-  // Default text-reply cost from the price book (a typical reply: ~3,000 tokens
-  // in, ~250 out) when there is no measured data yet.
-  const flash = (d.prices || []).find((p) => p.provider === "google" && /flash/i.test(p.model)) || { input_per_1m: 0.3, output_per_1m: 2.5 };
-  const textDefault = (3000 / 1e6) * Number(flash.input_per_1m) + (250 / 1e6) * Number(flash.output_per_1m);
+  // Fallbacks, for a platform that has not answered a customer yet. The model
+  // is the one the packages actually run on, read off the platform's own chain
+  // — the old lookup took the first id matching /flash/, which is the CHEAPEST
+  // 2.5 row rather than the 3.6 the bot runs, and under-priced by 2.2×.
+  const runs = String(d.platform_model_chain || "").split(",")[0].trim();
+  const book = (d.prices || []).find((p) => p.model === runs)
+    || (d.prices || []).find((p) => p.model === "__default__")
+    || { input_per_1m: 0.3, output_per_1m: 2.5 };
+  // A measured reply is ~7,400 tokens in (catalogue + history), not the 3,000
+  // this once assumed. Use what has been measured; fall back to the measured
+  // shape, not to an optimistic one.
+  const shape = replyTokens(t.by_feature || {}) || { in: 7400, out: 250 };
+  const textDefault = (shape.in / 1e6) * Number(book.input_per_1m) + (shape.out / 1e6) * Number(book.output_per_1m);
 
-  const chat = perCall("chat") ?? textDefault;
-  const vision = perCall("vision") ?? textDefault * 0.9;   // an image call, on top of the reply
-  const voice = perCall("voice") ?? textDefault * 0.6;     // a transcription, on top of the reply
+  const chat = r.parts.chat ?? textDefault;
+  const search = r.parts.embed ?? 0;                        // every message searches
+  const vision = r.parts.vision ?? textDefault * 0.9;       // reading one photo
+  const voice = r.parts.voice ?? textDefault * 0.6;         // one transcription
 
-  // One customer message of each type, in USD. Image and voice each trigger an
-  // extra AI call (describe / transcribe) plus the reply itself.
-  const costText = chat;
-  const costImage = vision + chat;
-  const costVoice = voice + chat;
+  // One customer message of each type, in USD. Every message pays for the
+  // search as well as the answer; a photo and a voice note each add their own
+  // call on top. `photosPerReply` is measured — a shop whose customers send
+  // three pictures at a time pays three vision calls for one reply.
+  const perPhoto = Math.max(1, Number(r.photosPerReply) || 1);
+  const costText = chat + search;
+  const costImage = costText + vision * perPhoto;
+  const costVoice = costText + voice;
 
   const sum = Math.max(1, Number(mix.text) + Number(mix.image) + Number(mix.voice));
   const w = { text: Number(mix.text) / sum, image: Number(mix.image) / sum, voice: Number(mix.voice) / sum };
   const perMsgUsd = w.text * costText + w.image * costImage + w.voice * costVoice;
   const monthlyBdt = perMsgUsd * Number(vol || 0) * rate;
 
-  const measured = ["chat", "vision", "voice"].some((k) => perCall(k) !== null);
+  const measured = ["chat", "vision", "voice"].some((k) => r.parts[k] !== null);
   const setM = (k, v) => setMix((m) => ({ ...m, [k]: Math.max(0, Number(v) || 0) }));
   const box = { width: 70, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 9px", color: T.text, fontSize: 13, fontFamily: "inherit" };
   const row = (k, label, hint) => <label key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: T.textMuted }}>
@@ -337,19 +396,19 @@ function CostPlanner({ d, rate }) {
 
     <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
       <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-        <label style={{ display: "block", fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Messages / month</label>
+        <label style={{ display: "block", fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Bot replies / month</label>
         <input type="number" min="0" value={vol} onChange={(e) => setVol(Math.max(0, Number(e.target.value) || 0))} style={{ ...box, width: 140, fontSize: 15 }} />
         <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Message mix</div>
-          {row("text", "text", "1 reply")}
-          {row("image", "image", "~2× — match + reply")}
-          {row("voice", "voice", "~1.8× — transcribe + reply")}
+          <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Reply mix</div>
+          {row("text", "text", "reply + search")}
+          {row("image", "image", `+ ${perPhoto.toFixed(1)} photo read${perPhoto >= 1.95 ? "s" : ""} — measured`)}
+          {row("voice", "voice", "+ transcribe")}
         </div>
       </div>
 
       <div style={{ flex: "1 1 240px", minWidth: 0, background: T.bgAlt, borderRadius: 14, padding: "14px 16px" }}>
         <Line label={`Per message (blended)`} value={bdt(perMsgUsd * rate)} />
-        <Line label={`AI cost for ${Number(vol).toLocaleString()} msgs`} value={bdt(monthlyBdt)} strong color={T.warn} />
+        <Line label={`AI cost for ${Number(vol).toLocaleString()} replies`} value={bdt(monthlyBdt)} strong color={T.warn} />
         <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
         <div style={{ fontSize: 11, color: T.textDim, marginBottom: 4 }}>Suggested minimum price — to keep AI at…</div>
         <Line label="30% of the price" value={bdt(monthlyBdt / 0.30)} />
@@ -976,13 +1035,13 @@ function ModelAudit({ byModel }) {
   return <div style={{ background: T.card, borderRadius: 13, padding: "11px 13px" }}>
     <div style={{ fontSize: 13, fontWeight: 700 }}>Check the arithmetic</div>
     <div style={{ fontSize: 11.5, color: T.textDim, margin: "3px 0 8px", lineHeight: 1.55 }}>
-      Tokens × the rate you set = the cost. Every model this client ran on, so the total can be checked against the provider&apos;s own bill.
+      Tokens × the rate you set = the cost. <b>Cached</b> is the part of <b>In</b> that Gemini reused, charged at a tenth of the rate. Every model this client ran on, so the total can be checked against the provider&apos;s own bill.
     </div>
     <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", minWidth: 470, borderCollapse: "collapse" }}>
+      <table style={{ width: "100%", minWidth: 540, borderCollapse: "collapse" }}>
         <thead><tr>
           <th style={{ ...th, textAlign: "left", padding: "0 0 6px 0" }}>Model</th>
-          <th style={th}>Calls</th><th style={th}>In</th><th style={th}>Out</th>
+          <th style={th}>Calls</th><th style={th}>In</th><th style={th}>Cached</th><th style={th}>Out</th>
           <th style={th}>Rate / 1M</th><th style={th}>Cost</th>
         </tr></thead>
         <tbody>
@@ -994,6 +1053,7 @@ function ModelAudit({ byModel }) {
             </td>
             <td style={td}>{num(m.calls)}</td>
             <td style={td}>{num(m.tokensIn)}</td>
+            <td style={{ ...td, color: m.tokensCached ? T.success : T.textDim }}>{m.tokensCached ? num(m.tokensCached) : "—"}</td>
             <td style={td}>{num(m.tokensOut)}</td>
             <td style={{ ...td, color: m.priced ? T.textMuted : T.warn }}>${Number(m.input_per_1m).toFixed(2)} / ${Number(m.output_per_1m).toFixed(2)}</td>
             <td style={{ ...td, fontWeight: 700 }}>{usdFine(m.cost + (m.ownKeyCost || 0))}</td>
@@ -1578,6 +1638,15 @@ function Rates({ d, post, busy, rate }) {
 
   const upd = (arr, set, i, k, v) => { const n = [...arr]; n[i] = { ...n[i], [k]: v }; set(n); };
   const box = { background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit", width: 100 };
+  // The measured size of one reply, so the "per 1,000 replies" headline below
+  // is this platform's replies and not a textbook one. The fallback is the
+  // measured shape too, not the old optimistic 3,000.
+  const shapeM = replyTokens(d.totals?.by_feature || {});
+  const shape = shapeM || { in: 7400, out: 250 };
+  // One search, for the embedding rows. Measured the same way; the fallback is
+  // the observed size of a customer's question, not a reply's.
+  const se = d.totals?.by_feature?.["bot.embed"];
+  const searchShape = { in: Number(se?.calls) > 0 ? (Number(se.tokensIn) || 0) / se.calls : 35 };
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
     <ExchangeRate d={d} post={post} busy={busy} rate={rate} />
@@ -1593,10 +1662,22 @@ function Rates({ d, post, busy, rate }) {
       {prices.map((p, i) => {
         // The rates themselves are per-million-token prices from the provider,
         // which mean nothing to a business owner. So the headline is what those
-        // rates work out to in taka for 1,000 replies (a typical reply is about
-        // 3,000 tokens of question + product context in, 250 tokens out), and
-        // the raw numbers hide behind "Edit rate".
-        const per1000 = ((3000 / 1e6) * (Number(p.input_per_1m) || 0) + (250 / 1e6) * (Number(p.output_per_1m) || 0)) * 1000 * rate;
+        // rates work out to in taka for 1,000 replies, and the raw numbers hide
+        // behind "Edit rate".
+        //
+        // The size of a reply is MEASURED, not assumed. It was written here as
+        // 3,000 tokens in / 250 out; a real reply carries the catalogue and the
+        // history and has been running at about 7,400 in, so this line read
+        // roughly half of what the same 1,000 replies actually cost.
+        //
+        // An embedding model writes nothing back, so "1,000 replies" is not a
+        // thing it can do. It is priced per SEARCH instead, at the measured
+        // size of one — about 34 tokens, not a reply's seven thousand, which
+        // is a 200× difference in the headline.
+        const isEmbed = !Number(p.output_per_1m) && p.model !== "__default__";
+        const sizeIn = isEmbed ? searchShape.in : shape.in;
+        const sizeOut = isEmbed ? 0 : shape.out;
+        const per1000 = ((sizeIn / 1e6) * (Number(p.input_per_1m) || 0) + (sizeOut / 1e6) * (Number(p.output_per_1m) || 0)) * 1000 * rate;
         const isDefault = p.model === "__default__";
         const open = editing === `${p.provider}/${p.model}`;
         return <div key={`${p.provider}/${p.model}`} style={{ padding: "11px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
@@ -1611,7 +1692,12 @@ function Rates({ d, post, busy, rate }) {
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 15, fontWeight: 700 }}>{bdt(per1000)}</div>
-              <div style={{ fontSize: 10.5, color: T.textDim }}>per 1,000 replies</div>
+              <div style={{ fontSize: 10.5, color: T.textDim }}>per 1,000 {isEmbed ? "searches" : "replies"}</div>
+              <div style={{ fontSize: 10, color: T.textDim }}>
+                {isEmbed
+                  ? `at ${Math.round(sizeIn).toLocaleString()} tokens a search`
+                  : shapeM ? `at your measured ${Math.round(sizeIn).toLocaleString()} in / ${Math.round(sizeOut)} out` : "estimated reply size"}
+              </div>
             </div>
             <button onClick={() => setEditing(open ? null : `${p.provider}/${p.model}`)}
               style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 9, padding: "6px 11px", color: T.textMuted, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}>
