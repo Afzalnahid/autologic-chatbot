@@ -730,6 +730,23 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - ADMIN "EDIT PACKAGE" CRASH FIXED (2026-09-18, owner sent a screenshot of
+    /admin#packages/packages showing "Application error: a client-side
+    exception"). NOT caused by the feature work: since 2026-08-31 (4f47288) the
+    package form's "Sold to" dropdown passed `items=` to Select, which reads
+    `options` — the first Edit click read undefined.find and blanked the console.
+    Nobody had pressed Edit for 18 days. Fixed in 8b60d34 (prop name; Select
+    defaults options=[]; tests/t-select-props.mjs scans every <Select> in src/)
+    and 10bc903 (PlanEditor's trial-length save failure called a setMsg it did
+    not have — now passed down). HOW IT WAS FOUND: an offline render harness —
+    scratchpad render/{register,loader,render}.mjs uses next/dist/build/swc to
+    compile src/ JSX on the fly, appends exports for the inner components of
+    Packages.js, and renderToString()s PlanEditor / every PlanCard / every
+    PlanForm / every ClientPanel / PerClient / Money / ApiUsage / Rates with the
+    real plans + clients rows (saved as JSON; the Bash sandbox has no network).
+    All 32 render after the fix. The admin needs the secret key to log in, so
+    this harness is THE way to verify admin UI states from here — rebuild it
+    from the description above when needed (scratchpad is per session). 52/52.
   - PER-CLIENT FEATURE EXCEPTIONS, and the DB round-trip verified (2026-09-18,
     owner: "all package modifications should be workable for database?"). Checked:
     the admin package form writes every column it edits (plans table has all
