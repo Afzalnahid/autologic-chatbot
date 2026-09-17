@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Hind+Siliguri:wght@400;500;600&display=swap');
+/* The app's faces (Geist, Geist Mono, Hind Siliguri) used to be imported here,
+   which meant every marketing visitor opened a connection to Google Fonts for
+   three families their page never uses — this file is the ROOT stylesheet.
+   They are now requested by the layouts that actually need them (dashboard,
+   admin, reset, /shots, /preview-dash) through <AppChrome />. */
 
 @tailwind base;
 @tailwind components;
