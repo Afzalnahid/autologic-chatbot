@@ -730,6 +730,17 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - FULL AI AUDIT (2026-09-18): every call site found in code and listed in
+    scripts/ai-cost-model.mjs SITES (18: 7 bot, 7 catalogue, 4 platform incl. the
+    free model listing). Report published as an Artifact for the owner:
+    https://claude.ai/artifact/MzXMn1NngMvuzUeFu9M833 (Bangla).
+    Holes found: bot.js:805 language-rewrite fallback calls Gemini WITHOUT a
+    meter; 4 sites never used in production so their tokens are estimated from
+    the prompt (product.scrape, knowledge.embed, platform.prompt, platform.offer);
+    model-chain retries double-charge and are not modelled. Dead imports of
+    generateEmbedding in bot.js/knowledge.js/products.js.
+    Break-even replies: Starter 1,608 of 3,000 · Growth 3,812 of 15,000 ·
+    Scale 6,553 of 50,000. 2027 Gemini price doubles → Growth max ৳27,534.
   - AI COST MODEL (2026-09-18, owner asked what a package costs at MAX use).
     scripts/ai-cost-model.mjs holds the measured per-call tokens (from
     usage_daily, mostly Broker's BD) and prints cost per message/product/package.
