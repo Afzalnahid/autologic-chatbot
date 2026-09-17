@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { PLANS, PLAN_ORDER, formatMoney, yearlySavingMonths } from "@/lib/plans.js";
 import { THEME_CSS } from "@/lib/landing.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
@@ -277,6 +278,9 @@ export default function PricingClient() {
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, padding: "24px 20px", fontSize: 13, color: T.muted }}>
           <div>{COPYRIGHT} · {ADDRESS_SHORT}</div>
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+            {FOOTER_LINKS.en.map(([slug, label]) => (
+              <a key={slug} href={solutionHref(slug, "en")} style={{ color: T.muted, textDecoration: "none" }}>{label}</a>
+            ))}
             <a href="/google-calendar" style={{ color: T.muted, textDecoration: "none" }}>Google Calendar</a>
             <a href="/privacy" style={{ color: T.muted, textDecoration: "none" }}>Privacy Policy</a>
             <a href="/terms" style={{ color: T.muted, textDecoration: "none" }}>Terms of Service</a>
