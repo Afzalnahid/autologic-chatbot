@@ -41,7 +41,19 @@ export default function RootLayout({ children }) {
 
             The real headers come from Next and from next.config.js, which is
             where a change of mind about caching belongs. */}
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css" />
+        {/* Icons. The public pages get a subset built from the same font —
+            about fifty icons, 10 KB, from our own domain — because the CDN build
+            is 803 KB of glyphs a visitor never sees and it cost every first
+            view a second connection and most of its page weight (Lighthouse,
+            2026-09-18). The dashboard, admin, /shots and /preview-dash pull the
+            full font in their own layout. Rebuild the subset with
+            scripts/make-icon-font.mjs after adding an icon to a public page. */}
+        <link rel="stylesheet" href="/fonts/tabler-subset.css" />
+        {/* The marketing pages' faces come from Google Fonts through an @import
+            inside the page CSS, which the browser can only find after that CSS
+            has arrived. Opening the connections early saves a round trip. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Runs while the HTML is still parsing, before first paint, so the page
             never flashes the wrong palette. Bare <script> in the root layout's
             <head> is the one place an inline script is guaranteed to execute in
