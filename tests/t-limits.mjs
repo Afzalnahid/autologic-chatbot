@@ -22,11 +22,11 @@ const has = (name, list, needle) => ok(name, list.some((s) => s.includes(needle)
 // ── the trial speaks in days, not months ───────────────────────────────────
 is("the trial length is a shared constant, not a magic number", P.TRIAL_DAYS, 3);
 
-is("a trial has no monthly channel box", limitMeaning("messages_per_channel", "trial").label, "Messages / channel / trial");
+is("a trial has no monthly channel box", limitMeaning("messages_per_channel", "trial").label, "Bot replies / channel / trial");
 is("nor a monthly scrape box", limitMeaning("max_scrapes_per_month", "trial").label, "Website scrapes / trial");
 is("nor monthly broadcasts", limitMeaning("max_broadcasts_per_month", "trial").label, "Broadcasts / trial");
 is("a paid package keeps its months", limitMeaning("max_scrapes_per_month", "pro").label, "Website scrapes / month");
-is("and its monthly channel cap", limitMeaning("messages_per_channel", "pro").label, "Messages / channel / month");
+is("and its monthly channel cap", limitMeaning("messages_per_channel", "pro").label, "Bot replies / channel / month");
 ok("the trial's scrape note says which window", limitMeaning("max_scrapes_per_month", "trial").note.includes("3 days"));
 is("a paid package's scrape box needs no note", limitMeaning("max_scrapes_per_month", "pro").note, null);
 // The trial length flows into the wording rather than being written twice.

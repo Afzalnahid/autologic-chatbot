@@ -63,8 +63,8 @@ export function limitConflicts(limits = {}, planId = "", trialDays = TRIAL_DAYS)
     const chText = `${fmt(channels)} channel${channels === 1 ? "" : "s"}`;
     if (headline !== null && ceiling < headline) {
       out.push(byDay
-        ? `“Messages / channel / trial” (${fmt(perCh)}) × ${chText} allows ${fmt(ceiling)} for the whole trial — below the ${fmt(headline)} that ${fmt(day)} a day over ${fmt(days)} days allows. That ${fmt(ceiling)} is the real ceiling. Clear the box to remove it.`
-        : `“Messages / channel / month” (${fmt(perCh)}) × ${chText} allows ${fmt(ceiling)} a month — below the ${fmt(headline)} a month set above. That ${fmt(ceiling)} is the real ceiling. Clear the box to remove it.`);
+        ? `“Bot replies / channel / trial” (${fmt(perCh)}) × ${chText} allows ${fmt(ceiling)} for the whole trial — below the ${fmt(headline)} that ${fmt(day)} a day over ${fmt(days)} days allows. That ${fmt(ceiling)} is the real ceiling. Clear the box to remove it.`
+        : `“Bot replies / channel / month” (${fmt(perCh)}) × ${chText} allows ${fmt(ceiling)} a month — below the ${fmt(headline)} a month set above. That ${fmt(ceiling)} is the real ceiling. Clear the box to remove it.`);
     }
   }
 
@@ -92,18 +92,18 @@ export function limitMeaning(key, planId, trialDays = TRIAL_DAYS) {
 
   switch (key) {
     case "messages_per_day":
-      return { label: "Messages / day",
+      return { label: "Bot replies / day",
         note: byDay ? null : "Not used — a package is counted by the month." };
 
     case "messages_per_month":
-      return { label: "Messages / month",
+      return { label: "Bot replies / month",
         note: byDay ? `Not used — a trial is counted by the day, and runs ${days}.` : null };
 
     // Both of these are real windows, and for a trial the window is the trial.
     case "messages_per_channel":
       return byDay
-        ? { label: "Messages / channel / trial", note: `Counted over the ${days}, per channel.` }
-        : { label: "Messages / channel / month", note: null };
+        ? { label: "Bot replies / channel / trial", note: `Counted over the ${days}, per channel.` }
+        : { label: "Bot replies / channel / month", note: null };
 
     case "max_scrapes_per_month":
       return byDay
@@ -157,5 +157,5 @@ export function trialTotal(limits = {}, planId = "", trialDays = TRIAL_DAYS) {
   const d = num(trialDays);
   if (day === null || d === null) return null;
   return { days: d, perDay: day, total: day * d,
-    text: `${fmt(d)} day${d === 1 ? "" : "s"} × ${fmt(day)} a day = ${fmt(day * d)} customer messages for the whole trial.` };
+    text: `${fmt(d)} day${d === 1 ? "" : "s"} × ${fmt(day)} a day = ${fmt(day * d)} bot replies for the whole trial.` };
 }

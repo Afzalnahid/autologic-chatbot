@@ -50,7 +50,11 @@ export async function usageMeters(client, limits) {
     ? scrapeRows.reduce((n, r) => n + (r.calls || 0), 0) : null;
 
   const meters = [
-    shapeMeter("messages", "Customer messages", messages, trial ? limits.messagesPerDay : limits.messagesPerMonth),
+    // "Bot replies", not "Customer messages": countBillableMessages counts BOT
+    // REPLIES (message-usage.js, the owner's 2026-09-08 rule). The old label
+    // said the meter was filling with the customer's own messages, which is a
+    // different — and larger — number than the one being spent.
+    shapeMeter("messages", "Bot replies", messages, trial ? limits.messagesPerDay : limits.messagesPerMonth),
   ];
   if (biz === "ecommerce") meters.push(shapeMeter("products", "Products", products, limits.maxProducts));
   if (biz === "agency") meters.push(shapeMeter("documents", "Knowledge documents", documents, limits.maxKbFiles));

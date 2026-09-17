@@ -1110,7 +1110,7 @@ export const DOCS = {
     blocks: [
       { h: "Your current plan",
         p: [
-          "The card at the top shows which plan you are on and two counters: **Messages today** and **Messages this month**. On an unlimited plan it says so instead of counting.",
+          "The card at the top shows which plan you are on and two counters: **Bot replies today** and **Bot replies this month**. On an unlimited plan it says so instead of counting.",
           "A “message” here is **one bot reply to one customer message** — one, even when the answer comes as two or three bubbles. Replies you send yourself, from anywhere, are never counted, and nothing is counted while the bot is off.",
         ] },
 
@@ -1231,6 +1231,8 @@ export const DOCS = {
 
       { note: "So the number on your package is the number of customer questions the bot may answer for you. A long conversation with a bot that answers in short pieces costs no more than one that answers in one block.", kind: "tip" },
 
+      { note: "**It is not a count of customers.** One customer usually asks five or six things — the price, the size, the delivery, and so on — and each answer is one. So 3,000 a month is roughly 600 customers, and the trial's 30 a day is about five or six customers a day. Read your package's number that way when you are deciding which one you need.", kind: "warn" },
+
       { h: "What the features mean",
         p: ["The words on a package, in plain language."] },
 
@@ -1313,7 +1315,7 @@ export const DOCS = {
         p: ["A count of what your bot has to work with — your products, or your knowledge files. A quick way to notice that an import did not land, or that a document you thought you uploaded is not actually there."] },
 
       { h: "Your package",
-        p: ["The same figures as the Billing tab, repeated here so you can see them without leaving your profile: messages today, messages this month, and what your plan includes. The button takes you to **Billing** to change it."] },
+        p: ["The same figures as the Billing tab, repeated here so you can see them without leaving your profile: bot replies today, bot replies this month, and what your plan includes. The button takes you to **Billing** to change it."] },
 
       { note: "**Google Calendar now connects in the Bookings tab**, next to the meetings it powers — connect, see the connected account, and disconnect all in one place. (Agency accounts only.)",
         kind: "tip" },

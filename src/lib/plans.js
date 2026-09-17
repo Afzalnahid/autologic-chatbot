@@ -63,7 +63,7 @@ export const PLANS = {
     highlight: false,
     features: [
       "Full access, no card needed",
-      "30 customer messages per day",
+      "30 bot replies a day (about 5-6 customers)",
       "1 channel (Facebook, Instagram or WhatsApp)",
       "AI replies in Bangla & English",
       "Live conversation inbox",
@@ -85,7 +85,7 @@ export const PLANS = {
     channels: 1,
     highlight: false,
     features: [
-      "3,000 customer messages / month",
+      "3,000 bot replies / month",
       "1 channel of your choice",
       "Product catalogue & order collection",
       "AI replies in Bangla & English",
@@ -108,7 +108,7 @@ export const PLANS = {
     channels: 3,
     highlight: true,
     features: [
-      "15,000 customer messages / month",
+      "15,000 bot replies / month",
       "All 3 channels — Facebook, Instagram, WhatsApp",
       "Photo product matching (Vision AI)",
       "Voice message understanding",
@@ -130,7 +130,7 @@ export const PLANS = {
     channels: 3,
     highlight: false,
     features: [
-      "50,000 customer messages / month",
+      "50,000 bot replies / month",
       "Unlimited products",
       "Comment automation on your posts",
       "Use your own AI key",
@@ -154,7 +154,7 @@ export const PLANS = {
     channels: 1,
     highlight: false,
     features: [
-      "3,000 customer messages / month",
+      "3,000 bot replies / month",
       "1 channel of your choice",
       "Knowledge Base — upload your documents",
       "AI replies in Bangla & English",
@@ -177,7 +177,7 @@ export const PLANS = {
     channels: 3,
     highlight: true,
     features: [
-      "15,000 customer messages / month",
+      "15,000 bot replies / month",
       "All 3 channels — Facebook, Instagram, WhatsApp",
       "Google Calendar booking with Meet links",
       "Voice message understanding",
@@ -199,7 +199,7 @@ export const PLANS = {
     channels: 3,
     highlight: false,
     features: [
-      "50,000 customer messages / month",
+      "50,000 bot replies / month",
       "Unlimited Knowledge Base documents",
       "Comment automation on your posts",
       "Use your own AI key",

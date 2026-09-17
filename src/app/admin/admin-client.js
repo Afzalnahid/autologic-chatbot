@@ -493,7 +493,7 @@ function Subscription({ s, isMobile }) {
         Using this {s.usage.period}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "10px 22px" }}>
-        <Meter label="Customer messages" used={s.usage.messages.used} limit={s.usage.messages.limit} />
+        <Meter label="Bot replies" used={s.usage.messages.used} limit={s.usage.messages.limit} />
         <Meter label="Channels" used={s.usage.channels.used} limit={s.usage.channels.limit} />
         {/* A shop has no knowledge base and a service has no catalogue, so the
             one that does not apply is left out rather than shown as 0 / 0 —

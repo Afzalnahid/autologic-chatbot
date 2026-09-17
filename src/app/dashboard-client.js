@@ -998,7 +998,7 @@ export default function Dashboard() {
           {!isMobile&&<div style={{fontSize:11.5,color:T.textDim,marginTop:1,overflow:"hidden",
             textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {me?.client?.business_name} · {me?.client?.plan==='trial'
-              ?`Trial — ${me?.usage?.today??0}/30 messages today`
+              ?`Trial — ${me?.usage?.today??0}/30 bot replies today`
               :`${products.length} ${words(bt).item.toLowerCase()}s`}
           </div>}
         </div>

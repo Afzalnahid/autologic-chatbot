@@ -127,7 +127,7 @@ export default function Billing({initialPlan,initialCycle}) {
 
       {limit&&<div style={{marginTop:18}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:6}}>
-          <span style={{color:T.textMuted}}>{u.daily_limit?"Messages today":"Messages this month"}</span>
+          <span style={{color:T.textMuted}}>{u.daily_limit?"Bot replies today":"Bot replies this month"}</span>
           {/* null means the count could not be read. Showing 0 there would tell
               somebody at their limit that they have used nothing. */}
           <span><strong>{usedNow===null||usedNow===undefined?"—":usedNow}</strong> <span style={{color:T.textDim}}>/ {limit.toLocaleString("en-IN")}</span></span>

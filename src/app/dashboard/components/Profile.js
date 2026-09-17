@@ -191,8 +191,8 @@ export default function Profile() {
             </div>)}
           </div>
         </>:<>
-          <Row k="Messages today" v={`${bill.usage?.today??0}${bill.usage?.daily_limit?` / ${bill.usage.daily_limit}`:""}`}/>
-          <Row k="Messages this month" v={`${bill.usage?.month??0}${bill.usage?.monthly_limit?` / ${bill.usage.monthly_limit}`:" · unlimited"}`}/>
+          <Row k="Bot replies today" v={`${bill.usage?.today??0}${bill.usage?.daily_limit?` / ${bill.usage.daily_limit}`:""}`}/>
+          <Row k="Bot replies this month" v={`${bill.usage?.month??0}${bill.usage?.monthly_limit?` / ${bill.usage.monthly_limit}`:" · unlimited"}`}/>
           {features.length>0&&<>
             <div style={{fontSize:12.5,fontWeight:600,margin:"14px 0 8px"}}>What's included</div>
             <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4}}>

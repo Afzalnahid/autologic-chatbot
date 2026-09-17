@@ -25,7 +25,7 @@ const T = {
 const tierOf = (id) => (id === "trial" ? "trial" : String(id).split("_")[1] || "");
 
 const COMPARE = [
-  { label: "Customer messages", trial: "30 / day", starter: "3,000 / mo", growth: "15,000 / mo", scale: "50,000 / mo" },
+  { label: "Bot replies", trial: "30 / day", starter: "3,000 / mo", growth: "15,000 / mo", scale: "50,000 / mo" },
   { label: "Channels", trial: "1", starter: "1", growth: "All 3", scale: "All 3" },
   { label: "AI replies (Bangla & English)", trial: true, starter: true, growth: true, scale: true },
   { label: "Live conversation inbox", trial: true, starter: true, growth: true, scale: true },
@@ -46,22 +46,27 @@ const COMPARE = [
   { only: "agency", label: "Google Calendar booking", trial: true, starter: false, growth: true, scale: true },
 ];
 
-// A plain-language reach line per tier, so "3,000 messages" means something to a
-// buyer. Rough on purpose (hence "≈" / "~"): assumes about 5 customer messages per
-// conversation, and that one human agent handles on the order of 5,000 customer
-// messages a month. Keyed by tier like the comparison table, so an admin re-pricing
+// A plain-language reach line per tier, so "3,000 replies" means something to a
+// buyer. Rough on purpose (hence "≈" / "~"): assumes about 5 bot replies per
+// conversation, and that one human agent handles on the order of 5,000 replies
+// a month. Keyed by tier like the comparison table, so an admin re-pricing
 // a package does not strand the copy.
+//
+// The trial line is per DAY on purpose: the trial's length is set in the admin
+// panel and this copy is static, so a total here would go stale the moment the
+// owner changed it. It read "~180 chats" until 2026-09-18 — from when the trial
+// was costed as a month; three days at 30 replies is 90 replies, about 18 chats.
 const REACH = {
-  trial:   "≈ ~180 customer chats to try it out",
+  trial:   "≈ ~6 customer chats a day to try it out",
   starter: "≈ ~600 customers a month — like adding ~1 agent",
   growth:  "≈ ~3,000 customers a month — like ~3 agents",
   scale:   "≈ ~10,000 customers a month — like ~8+ agents",
 };
 
 const FAQ = [
-  { q: "How does the free trial work?", a: "You get full access for a few days with 30 customer messages per day. No payment details needed to start — just sign up and connect a channel." },
+  { q: "How does the free trial work?", a: "You get full access for a few days with 30 bot replies a day — about 5 or 6 customers, since one customer usually asks several questions. No payment details needed to start — just sign up and connect a channel." },
   { q: "How do I pay?", a: "Send the amount by bKash, Nagad or Rocket to the number shown in your dashboard, then submit the transaction ID. We verify it and your plan activates, usually within a few hours." },
-  { q: "What counts as a message?", a: "Only messages your customers send. The bot's own replies are never counted against your limit." },
+  { q: "What counts against my limit?", a: "One bot reply to one customer counts as one, however many bubbles it takes to say it. Replies you type yourself are never counted, and nothing is counted while the bot is off. So a plan's number is how many customer questions the bot may answer for you — one customer asking five questions uses five." },
   { q: "Can I change plan later?", a: "Yes. Upgrade any time from your dashboard — the new plan starts as soon as your payment is verified." },
   { q: "What happens when my plan expires?", a: "The bot stops replying to new customers, but nothing is deleted. Your products, knowledge base and conversation history stay safe until you renew." },
   { q: "Do you offer a yearly discount?", a: "Yes — pay yearly and you get two months free on every paid plan." },

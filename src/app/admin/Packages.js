@@ -96,9 +96,9 @@ const FEATURE_AREAS = Object.keys(AREA_LABELS).map((area) => ({
 }));
 
 const LIMITS = [
-  ["messages_per_day", "Messages / day"],
-  ["messages_per_month", "Messages / month"],
-  ["messages_per_channel", "Messages / channel / month"],
+  ["messages_per_day", "Bot replies / day"],
+  ["messages_per_month", "Bot replies / month"],
+  ["messages_per_channel", "Bot replies / channel / month"],
   ["channels", "Channels allowed"],
   ["max_products", "Products"],
   ["max_kb_files", "Knowledge files"],
