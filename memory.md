@@ -730,6 +730,21 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - SPEED (2026-09-18, owner asked for speed before blogs). Lighthouse mobile,
+    home page: 68 → 82 (LCP 7.8s → 3.6s, weight 4.2MB → ~280KB). Pricing 100,
+    docs 91, solution pages 92. Fixes: (1) the 3.1MB film no longer autoplays —
+    poster jpg cut with ffmpeg, file fetched on press; (2) Tabler icon font was
+    803KB from a CDN on EVERY page → scripts/make-icon-font.mjs subsets the 50
+    icons public pages use into public/fonts/tabler-subset.{css,woff2} (10.4KB,
+    same class names); dashboard/admin/shots/preview-dash/reset keep the full
+    CDN font via src/app/app-chrome.js in their own layout; (3) Geist/Hind
+    Siliguri @import left globals.css (they were loading on marketing pages);
+    (4) public faces load as <link> (src/app/public-fonts.js) not @import;
+    (5) metric-matched fallback @font-face for Fraunces/Inter/IBM Plex Mono.
+    STILL OPEN: solution pages CLS 0.122 (home 0.018, others ~0.02) — the shift
+    lands at ~2.0s when the page's inline <style> + fallback faces apply; the
+    page CSS being a big inline <style> in the body is the likely cause.
+    Lighthouse runs from scratchpad/lh (run.mjs, detail.mjs, shift2.mjs).
   - SEO PHASE 2 (2026-09-18): six keyword landing pages at /solutions/<slug> —
     facebook-messenger-chatbot, whatsapp-chatbot, instagram-dm-automation,
     website-chatbot, ecommerce-chatbot, bangla-chatbot — full copy in EN + BN
