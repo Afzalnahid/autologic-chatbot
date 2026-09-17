@@ -24,3 +24,28 @@ export const bySlug = (slug) => SOLUTIONS.find((s) => s.slug === slug) || null;
 
 /** A page counts as written when it has a title and at least one section. */
 export const isWritten = (page) => !!(page && page.title && page.sections?.length);
+
+// Short labels for the footer link rows, in both languages. Kept here so the
+// two footers (landing page and site shell) cannot drift apart, and so a new
+// solution page is linked from the whole site the moment it is declared.
+export const FOOTER_LINKS = {
+  en: [
+    ["facebook-messenger-chatbot", "Messenger chatbot"],
+    ["whatsapp-chatbot", "WhatsApp chatbot"],
+    ["instagram-dm-automation", "Instagram DM automation"],
+    ["website-chatbot", "Website chatbot"],
+    ["ecommerce-chatbot", "E-commerce chatbot"],
+    ["bangla-chatbot", "Bangla chatbot"],
+  ],
+  bn: [
+    ["facebook-messenger-chatbot", "মেসেঞ্জার চ্যাটবট"],
+    ["whatsapp-chatbot", "হোয়াটসঅ্যাপ চ্যাটবট"],
+    ["instagram-dm-automation", "ইনস্টাগ্রাম অটোমেশন"],
+    ["website-chatbot", "ওয়েবসাইট চ্যাটবট"],
+    ["ecommerce-chatbot", "ই-কমার্স চ্যাটবট"],
+    ["bangla-chatbot", "বাংলা চ্যাটবট"],
+  ],
+};
+
+/** The href for one solution page, carrying the reader's language forward. */
+export const solutionHref = (slug, lang) => `/solutions/${slug}${lang === "bn" ? "?lang=bn" : ""}`;

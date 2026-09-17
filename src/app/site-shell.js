@@ -1,5 +1,6 @@
 import { P, THEME_CSS } from "@/lib/landing.js";
 import { BotMark } from "@/lib/brand.js";
+import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { COMPANY, COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 
 // The frame the plain content pages sit in — contact, privacy, terms and the
@@ -171,6 +172,11 @@ export default function SiteShell({ eyebrow, title, lead, updated, children }) {
         <div style={{ ...WRAP, padding: "26px clamp(16px,4vw,26px) 30px" }}>
           {/* Meta's review needs the privacy and terms URLs reachable from the
               site, and they went missing from a footer once already. */}
+          <div style={{ display: "flex", gap: "14px 26px", flexWrap: "wrap", marginBottom: 18 }}>
+            {FOOTER_LINKS.en.map(([slug, label]) => (
+              <a key={slug} href={solutionHref(slug, "en")} className="flink">{label}</a>
+            ))}
+          </div>
           <div style={{ display: "flex", gap: "14px 26px", flexWrap: "wrap", marginBottom: 18 }}>
             <a href="/" className="flink">Home</a>
             <a href="/pricing" className="flink">Pricing</a>

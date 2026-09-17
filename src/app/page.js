@@ -3,6 +3,7 @@ import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@
 import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
 import { BotMark } from "@/lib/brand.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
+import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 
 // Google indexes the Bangla home page separately from the English one, so both
@@ -620,6 +621,13 @@ export default function Home({ searchParams }) {
           {/* These are not decoration: Meta's review requires the privacy and terms
               URLs to be reachable, and dropping them once already nearly cost a
               submission. */}
+          {/* The solution pages, linked from every page: a reader finds the one
+              that matches what they came for, and a crawler finds all of them. */}
+          <div style={{ display: "flex", gap: "12px 22px", flexWrap: "wrap", marginBottom: 14 }}>
+            {FOOTER_LINKS[bn ? "bn" : "en"].map(([slug, label]) => (
+              <a key={slug} href={solutionHref(slug, bn ? "bn" : "en")} className="flink">{label}</a>
+            ))}
+          </div>
           <div style={{ display: "flex", gap: "14px 26px", flexWrap: "wrap", marginBottom: 18 }}>
             <a href="/pricing" className="flink">{bn ? "দাম" : "Pricing"}</a>
             <a href="/google-calendar" className="flink">Google Calendar</a>
