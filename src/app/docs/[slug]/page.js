@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { P } from "@/lib/landing.js";
 import { PAGES, bySlug, neighbours, isWritten } from "@/lib/docs/index.js";
 import { pickLang, copy, docHref, num, writtenSet } from "../copy.js";
-import { pageMeta, SITE } from "@/lib/seo.js";
+import { pageMeta, SITE, faqJsonLd, breadcrumbJsonLd, jsonLdProps } from "@/lib/seo.js";
 import DocsShell from "../shell.js";
 import Blocks, { headings } from "../blocks.js";
 
@@ -36,6 +36,14 @@ export function generateMetadata({ params, searchParams }) {
   };
 }
 
+// The questions a manual page already answers, flattened out of its blocks and
+// stripped of the markdown emphasis the page renders — Google wants the plain
+// sentence. A page with none simply gets no FAQ markup.
+function faqPairs(blocks = []) {
+  const plain = (t) => String(t).replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/\s+/g, " ").trim();
+  return blocks.flatMap((b) => (b?.faq || []).map(({ q, a }) => ({ q: plain(q), a: plain(a) })));
+}
+
 export default function DocPage({ params, searchParams }) {
   const page = bySlug(params.slug);
   if (!page) notFound();
@@ -48,8 +56,18 @@ export default function DocPage({ params, searchParams }) {
   const { prev, next } = neighbours(params.slug);
   const toc = written ? headings(doc.blocks) : [];
 
+  const faq = written ? faqJsonLd(faqPairs(doc.blocks)) : null;
+
   return (
     <DocsShell lang={lang} slug={params.slug} ui={UI} written={writtenSet(lang)}>
+      {/* Structured data: the trail above the result, and — where the page has
+          them — the questions, which can open straight in Google's results. */}
+      <script {...jsonLdProps(breadcrumbJsonLd([
+        { name: "TellMore AI", path: "/" },
+        { name: UI.brand, path: "/docs" },
+        { name: written ? doc.title : name, path: `/docs/${params.slug}` },
+      ]))} />
+      {faq && <script {...jsonLdProps(faq)} />}
       {/* 680px, down from 760. At 760 a line of body text ran to 86 characters;
           the eye starts losing its place on the way back to the left margin
           past about 75, and this is a manual people read end to end. The

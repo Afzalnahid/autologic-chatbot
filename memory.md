@@ -730,6 +730,15 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - SEO WORK STARTED 2026-09-18 (owner: "rank tellmoreai.com"). Phase 1 shipped:
+    seo.js gained productJsonLd (SoftwareApplication + AggregateOffer in BDT, fed
+    by PLANS so prices can't go stale), faqJsonLd, breadcrumbJsonLd, jsonLdProps
+    (escapes "<"); pricing page and every manual page now emit them
+    (docs faq blocks → FAQPage). tests/t-seo-jsonld.mjs 16 checks. Site already
+    had: canonical/og/twitter per page, sitemap (24 urls, bn via ?lang=bn),
+    robots, WebSite+Organization on home. NOT DONE: keyword-targeted content
+    pages, Bangla landing content, Core Web Vitals check, off-site (Google
+    Business Profile, backlinks, directories).
   - EMAIL still said the old brand until 2026-09-18 (owner saw it in a client
     mail): src/lib/email.js clientWrap header was "get" + a coloured span, so the
     rename's search never matched. Header now renders BRAND_HTML, derived from
