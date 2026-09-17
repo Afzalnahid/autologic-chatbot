@@ -58,6 +58,20 @@ ok("featureOn: false is off", featureOn({ x: false }, "x") === false);
 ok("featureOn: true, undefined and null are on", featureOn({ x: true }, "x") && featureOn({}, "x") && featureOn({ x: null }, "x"));
 ok("featureOn: a string 'false' is truthy and therefore ON — the admin saves booleans", featureOn({ x: "false" }, "x") === true);
 
+// ── Per-client exceptions: only what differs from the package is stored ──────
+{
+  const { cleanFeatureOverrides } = await import(pathToFileURL(join(ROOT, "src", "lib", "features.js")).href + "?v=" + Date.now() + "b");
+  const plan = { vision: false, comments: false, voice: true };
+  const kept = cleanFeatureOverrides(plan, { vision: true, comments: false, voice: "package", assistant: false, byok: null, made_up: true });
+  ok("a switch turned ON against a package that says off is kept", kept.vision === true);
+  ok("a switch that merely repeats the package is dropped", !("comments" in kept));
+  ok("'package' means nothing to store", !("voice" in kept));
+  ok("an unset package key defaults on, so forcing it OFF is an exception", kept.assistant === false);
+  ok("null is not a decision", !("byok" in kept));
+  ok("keys outside the registry never reach the database", !("made_up" in kept));
+  ok("nothing requested → nothing stored", Object.keys(cleanFeatureOverrides(plan, {})).length === 0 && Object.keys(cleanFeatureOverrides(plan, undefined)).length === 0);
+}
+
 // ── The dashboard list carries the new switches on the right side ────────────
 const shop = featureList({}, "ecommerce").map((f) => f.key);
 const svc = featureList({}, "agency").map((f) => f.key);

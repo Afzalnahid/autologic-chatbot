@@ -1060,6 +1060,21 @@ function ClientPanel({ c, rate, post, busy, d }) {
   const [chain, setChain] = useState(c.model_chain || "");
   const [chLimits, setChLimits] = useState(() => Object.fromEntries((c.channels || []).map((x) => [x.id, x.msg_limit_monthly ?? ""])));
 
+  // Feature exceptions: the switches that mean something for this client's
+  // kind of business, each following the package unless the owner has said
+  // otherwise. "package" is the resting state; true/false is an exception.
+  const relevantFeatures = FEATURE_DEFS.filter((f) => f.biz === "both" || f.biz === (c.business_type || "ecommerce"));
+  const planFeatureOn = (k) => (plan?.features?.[k] !== false);
+  const [fx, setFx] = useState(() => {
+    const o = {};
+    const own = (c.limit_overrides && c.limit_overrides.features) || {};
+    for (const f of relevantFeatures) o[f.key] = own[f.key] === true || own[f.key] === false ? own[f.key] : "package";
+    return o;
+  });
+  const fxExceptions = relevantFeatures.filter((f) => fx[f.key] !== "package" && fx[f.key] !== planFeatureOn(f.key)).length;
+  // Only true/false travel to the server; "package" means "nothing to store".
+  const fxToSend = Object.fromEntries(Object.entries(fx).filter(([, v]) => v === true || v === false));
+
   const set = (k, v) => setOv((o) => ({ ...o, [k]: v }));
   // A box counts as an exception only while it differs from the package. The
   // server applies the same test before storing, so what is marked here and
@@ -1141,6 +1156,37 @@ function ClientPanel({ c, rate, post, busy, d }) {
       })}
     </div>
     <LimitWarnings limits={ov} planId={c.plan} days={tDays} />
+
+    {/* Feature exceptions, pre-set to the package */}
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", margin: "16px 0 4px" }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700 }}>Features for this client</div>
+      {fxExceptions > 0 && <Badge color={T.gold}>{fxExceptions} changed from {planLabel}</Badge>}
+    </div>
+    <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 9, lineHeight: 1.6 }}>
+      Each one follows the <b style={{ color: T.textMuted }}>{planLabel}</b> package unless you set it here. An exception is enforced the same way the package switch is — the bot and the dashboard read the merged result.
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 8 }}>
+      {relevantFeatures.map((f) => {
+        const inPlan = planFeatureOn(f.key);
+        const v = fx[f.key];
+        const custom = v !== "package" && v !== inPlan;
+        return <div key={f.key} style={{ padding: "8px 10px", borderRadius: 11, background: T.card, border: `1px solid ${custom ? T.gold : T.border}`,
+          boxShadow: custom ? `0 0 0 3px color-mix(in srgb, ${T.gold} 12%, transparent)` : "none" }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600 }}>{f.label}</div>
+          <select value={v === true ? "on" : v === false ? "off" : "package"}
+            onChange={(e) => setFx((s) => ({ ...s, [f.key]: e.target.value === "on" ? true : e.target.value === "off" ? false : "package" }))}
+            style={{ width: "100%", marginTop: 6, background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 9px", color: T.text, fontSize: 12, fontFamily: "inherit" }}>
+            <option value="package">Follow {planLabel} — {inPlan ? "on" : "off"}</option>
+            <option value="on">On for this client</option>
+            <option value="off">Off for this client</option>
+          </select>
+          <span style={{ display: "block", fontSize: 10.5, color: custom ? T.gold : T.textDim, marginTop: 4, lineHeight: 1.45 }}>
+            {custom ? `Exception — ${planLabel} says ${inPlan ? "on" : "off"}.` : f.what}
+          </span>
+        </div>;
+      })}
+    </div>
+
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 10 }}>
       AI models for this client <span style={{ color: T.textDim }}>(main,fallback — empty follows the package)</span>
       <input value={chain} onChange={(e) => setChain(e.target.value)} placeholder={chainFromPlan || "gemini-2.5-flash,gemini-3-flash-preview"}
@@ -1150,7 +1196,7 @@ function ClientPanel({ c, rate, post, busy, d }) {
       </span>
     </label>
     <div style={{ marginTop: 11 }}>
-      <Btn gold small disabled={busy} onClick={() => post({ action: "save_overrides", client_id: c.client_id, overrides: ov, model_chain: chain })}>Save limits</Btn>
+      <Btn gold small disabled={busy} onClick={() => post({ action: "save_overrides", client_id: c.client_id, overrides: ov, model_chain: chain, features: fxToSend })}>Save limits &amp; features</Btn>
     </div>
   </div>;
 }

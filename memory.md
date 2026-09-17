@@ -730,6 +730,18 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - PER-CLIENT FEATURE EXCEPTIONS, and the DB round-trip verified (2026-09-18,
+    owner: "all package modifications should be workable for database?"). Checked:
+    the admin package form writes every column it edits (plans table has all
+    24), upsert → invalidatePlans() → limitsFor reads the DB, so a save applies
+    without a deploy. ONE GAP FOUND: save_overrides rewrote clients.limit_overrides
+    whole, so saving a client's message limit would have silently wiped the
+    features exception set by SQL. Fixed: features.js cleanFeatureOverrides
+    (pure; keeps only booleans that differ from the package), the route merges
+    body.features or preserves the existing ones, and Admin → Packages → client
+    panel now has "Features for this client" — every relevant switch as
+    Follow package / On / Off — saved by the same button. EzPz + mahadihasan
+    overrides are now visible and editable there. tests/t-feature-gates 37.
   - PACKAGE FEATURE SWITCHES ARE NOW ENFORCED (2026-09-18, owner: "make the
     feature switch live and connected"). Audit found can() in plan-limits.js was
     never called: all 9 switches were display-only, and checkKbQuota (the file

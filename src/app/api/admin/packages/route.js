@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase.js";
 import { callerEmail, callerRole, CAN_EDIT, CAN_DELETE } from "@/lib/admin-auth.js";
 import { loadPrices, summarise, dhakaDay } from "@/lib/usage.js";
 import { invalidatePlans, loadPlans } from "@/lib/plan-limits.js";
+import { cleanFeatureOverrides } from "@/lib/features.js";
 import { getPlatformAI } from "@/lib/platform-ai.js";
 import { fetchUsdBdt, rateFrom, isStale } from "@/lib/fx.js";
 import { listBillableModels } from "@/lib/model-catalog.js";
@@ -396,7 +397,7 @@ export async function POST(request) {
     // DIFFERS from the package — an override should mean an exception, nothing
     // else. This is decided here rather than in the browser because it is the
     // rule that protects the data, not a display choice.
-    const { data: cl } = await supabase.from("clients").select("plan").eq("id", client_id).maybeSingle();
+    const { data: cl } = await supabase.from("clients").select("plan, limit_overrides").eq("id", client_id).maybeSingle();
     const plan = (await loadPlans())[cl?.plan] || {};
     const clean = {};
     for (const k of ["messages_per_day", "messages_per_month", "messages_per_channel", "channels",
@@ -408,6 +409,16 @@ export async function POST(request) {
       if (fromPlan !== null && fromPlan !== undefined && Number(fromPlan) === v) continue;
       clean[k] = v;
     }
+    // Feature exceptions live beside the numeric ones, under `features`, and
+    // follow the same rule: only a switch that differs from the package is
+    // kept (cleanFeatureOverrides). A save that does not mention features —
+    // an older panel, a script — leaves whatever exceptions were there, so
+    // saving a message limit can never silently strip a feature exception.
+    const existing = (cl?.limit_overrides && cl.limit_overrides.features) || {};
+    const features = body.features && typeof body.features === "object"
+      ? cleanFeatureOverrides(plan.features || {}, body.features)
+      : existing;
+    if (Object.keys(features).length) clean.features = features;
     const { error } = await supabase.from("clients").update({
       limit_overrides: Object.keys(clean).length ? clean : null,
       model_chain: model_chain ? String(model_chain).slice(0, 120) : null,

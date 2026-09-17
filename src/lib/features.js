@@ -86,6 +86,23 @@ export function gateMessage(limits, key) {
   };
 }
 
+// A client's feature EXCEPTIONS, as they should be stored. The admin panel
+// sends every switch it shows ("package" / true / false); only a boolean that
+// actually differs from what the package already gives is kept. Storing a
+// value equal to the package would be a quiet trap — the client would stop
+// following the package, and turning the feature on for the package later
+// would skip everyone whose panel had once been saved. Pure, so it is tested.
+export function cleanFeatureOverrides(planFeatures = {}, requested = {}) {
+  const out = {};
+  for (const d of FEATURE_DEFS) {
+    const v = requested?.[d.key];
+    if (v !== true && v !== false) continue;            // "package", null, undefined → follow the package
+    if (v === featureOn(planFeatures, d.key)) continue;  // same as the package → not an exception
+    out[d.key] = v;
+  }
+  return out;
+}
+
 // The capability list for a client: each feature that applies to their business
 // type, with whether their package grants it.
 //
