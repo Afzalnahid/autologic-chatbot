@@ -730,6 +730,35 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - THE UNIT IS "BOT REPLIES", SAID SO EVERYWHERE (2026-09-18, owner asked of
+    the trial bullet: "30 customer per day or 30 replies per day?"). It is 30
+    BOT REPLIES — message-usage.js counts role=bot AND reply_turn=true, one per
+    answer however many bubbles, never a customer row and never an agent reply.
+    But every place a customer READ the number said "customer messages", and the
+    pricing page twice said outright that the bot's replies are never counted —
+    the opposite of the code. A shop buying "3,000 customer messages" budgeted
+    for 3,000 customers and gets ~600 (about 5-6 questions each).
+    Fixed in d0a2737 + c45d566: plans.js bullets, docs/sql seed, the TEN rows in
+    production (`plans.feature_list`, incl. retired starter/pro/agency), ui.js
+    fallback cards, the pricing comparison row + both FAQ answers + the footnote
+    under the table, entitlements.js meter label, admin-client drawer meter,
+    Billing + Profile counters, the trial badge, the 3 admin limit-box labels
+    (limit-conflicts.js limitMeaning + Packages.js LIMITS) and trialTotal's
+    sentence. The trial REACH line said "~180 chats" (from when the trial was
+    costed as a month) → now per-day so it cannot go stale.
+    Both manuals already said "bot replies"; each now also carries the warn note
+    "It is not a count of customers… 3,000 a month is roughly 600 customers".
+    tests/t-allowance-wording.mjs (19) checks the four surfaces AGAINST the
+    counter, and bans the SHAPE of the backwards claim — the first version of
+    that test matched the FAQ's exact words and missed the footnote saying the
+    same thing differently.
+    ADMIN LABELS NOW: "Bot replies / day", "/ month", "/ channel / month".
+  - TRIAL DAILY ALLOWANCE NO LONGER TYPED IN (2026-09-18, 9229c13, found while
+    renaming). /api/me returned `limit: plan === "trial" ? 30`, the header badge
+    printed "/30" and the welcome screen said "3-day free trial · 30 messages a
+    day" — all literals, so changing the trial in the admin panel moved what the
+    bot enforced and nothing the owner was shown. Now limitsFor().messagesPerDay
+    + TRIAL_DAYS/PLANS.trial.
   - ADMIN "EDIT PACKAGE" CRASH FIXED (2026-09-18, owner sent a screenshot of
     /admin#packages/packages showing "Application error: a client-side
     exception"). NOT caused by the feature work: since 2026-08-31 (4f47288) the

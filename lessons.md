@@ -1407,3 +1407,15 @@ every state it can be put into has been rendered — the offline harness
 (scratchpad render/ with next/dist/build/swc) renders each component with real
 database rows in seconds; tests/t-select-props.mjs now catches this prop name
 statically. A prop name is not something React checks.
+
+## 2026-09-18 — the unit was right in the code and wrong in every sentence
+Usage counts BOT REPLIES (the owner's 2026-09-08 rule, enforced and tested), but
+every customer-facing surface called it "customer messages", and the pricing page
+said twice that the bot's replies are never counted — the opposite of what the
+code does. It had been live for weeks; the owner caught it by reading a bullet.
+Two rules from it. First: when a rule about what a number MEANS changes, grep the
+copy as well as the code — a meter, a bullet, a FAQ and a manual are four places
+one decision has to reach. Second: a guard written against the exact words of the
+bug it just fixed is half a guard. My first test banned the FAQ's sentence and
+missed a footnote three lines away saying the same thing in different words; the
+test now bans the shape of the claim.
