@@ -407,3 +407,100 @@ A PACKAGE AT ITS LIMIT — ${mix === "real" ? "real mix (13% photos, 3% voice)" 
   }
   console.log("");
 }
+
+// ── EVERYTHING, at the maximum a package allows ────────────────────────────
+//   node scripts/ai-cost-model.mjs --max
+//
+// The tables above answer "what do the customer conversations cost?". This one
+// answers the owner's real question: if ONE client pushes EVERY part of the
+// product to the limit of their package for a whole month — the chats, the
+// catalogue, the knowledge base, the AI assistant, the buttons — what is the
+// bill? Nothing is left out, and every assumption is named on the line it
+// belongs to, because that is where a decision gets made or lost.
+//
+// Two columns, because they are different questions:
+//   FIRST MONTH — they also fill the catalogue and the knowledge base from
+//                 empty, the dearest way (by chat, with photos).
+//   EVERY MONTH — the chats, plus the churn of a working shop (a fifth of the
+//                 catalogue re-photographed or re-priced each month; a re-saved
+//                 product is re-indexed and its new photo re-read).
+const MAX_USE = {
+  commentShare: 0.20,   // one public comment answered per five replies
+  offShare: 0.20,       // a fifth of the traffic arrives while the bot is off
+  assistantPerDay: 50,  // the owner leaning on the AI assistant hard, every day
+  promptWrites: 20,     // re-writing the bot profile
+  offerPolishes: 30,    // polishing offers
+  churn: 0.20,          // share of the catalogue re-saved each month
+  photosPerProduct: 3,  // a front, a back and a detail
+  variantsPerProduct: 4,
+  interviewQuestions: 6,
+  productsPerImportPage: 20,
+  chunksPerFile: CHUNKS_PER_FILE,
+};
+
+export function maxUse(pkg, profile = PROFILES.trimmed, rate = "gemini-3.6-flash") {
+  const m = profileMessage(profile, rate);
+  const U = MAX_USE;
+  // Every message the worst it can be: a photo AND a voice note on each.
+  const replies = pkg.messages * m.photo + pkg.messages * cost("bot.voice", rate);
+  const comments = pkg.messages * U.commentShare * m.comment;
+  const botOff = pkg.messages * U.offShare * (m.offPhoto + m.offVoice);
+  const assistant = U.assistantPerDay * 30 * cost("product.assistant", rate);
+  const buttons = U.promptWrites * cost("platform.prompt", rate) + U.offerPolishes * cost("platform.offer", rate);
+
+  // One product, added the dearest way: the chat interview, a photo read for
+  // every picture, and an index entry for every variant.
+  const perProductChat = U.interviewQuestions * cost("product.interview", rate)
+    + U.photosPerProduct * cost("product.vision", rate)
+    + U.variantsPerProduct * cost("product.embed", rate);
+  const products = (pkg.products || 0) * perProductChat;
+  const imports = pkg.products ? Math.ceil(pkg.products / U.productsPerImportPage) * cost("product.scrape", rate) : 0;
+  const knowledge = (pkg.kbFiles || 0) * U.chunksPerFile * cost("knowledge.embed", rate);
+  const churn = products * U.churn;
+
+  const chat = replies + comments + botOff;
+  const owner = assistant + buttons;
+  return {
+    replies, comments, botOff, assistant, buttons, products, imports, knowledge, churn,
+    chat, owner,
+    firstMonth: chat + owner + products + imports + knowledge,
+    everyMonth: chat + owner + churn,
+  };
+}
+
+if (args.has("--max")) {
+  const rate = "gemini-3.6-flash";
+  const profiles = [["as it was", PROFILES.before], ["after the trim", PROFILES.trimmed], ["if caching lands", PROFILES.cached]];
+  console.log(`\nEVERYTHING AT THE MAXIMUM — one client pushing every part of a package to its limit`);
+  console.log(`${rate} · $1 = ৳${USD_BDT}\n`);
+
+  for (const [label, profile] of profiles) {
+    console.log(`  ── ${label}`);
+    console.log(`  ${pad("package", 16)} ${pad("price", 8)} ${pad("first month", 13)} ${pad("every month", 13)} margin/month`);
+    for (const p of PACKAGES) {
+      const x = maxUse(p, profile, rate);
+      const margin = p.price - x.everyMonth * USD_BDT;
+      console.log(`  ${pad(p.name, 16)} ${pad("৳" + p.price, 8)} ${pad(bdt(x.firstMonth), 13)} ${pad(bdt(x.everyMonth), 13)} ${(margin >= 0 ? "+" : "−")}৳${Math.abs(Math.round(margin)).toLocaleString("en-IN")}`);
+    }
+    console.log("");
+  }
+
+  console.log("  WHERE IT ALL GOES — Shop Growth at the maximum, after the trim");
+  const g = maxUse(PACKAGES.find((p) => p.id === "shop_growth"), PROFILES.trimmed, rate);
+  const rows = [
+    ["customer replies (15,000, each with a photo and a voice note)", g.replies],
+    ["public comments answered (3,000)", g.comments],
+    ["photos and voice read while the bot is off (3,000)", g.botOff],
+    ["AI assistant (1,500 owner messages)", g.assistant],
+    ["bot-profile writes and offer polishes (50)", g.buttons],
+    ["catalogue re-saved through the month (600 products)", g.churn],
+  ];
+  for (const [k, v] of rows) console.log(`  ${pad(k, 58)} ${pad(bdt(v), 11)} ${((v / g.everyMonth) * 100).toFixed(0)}%`);
+  console.log(`  ${pad("EVERY MONTH", 58)} ${bdt(g.everyMonth)}`);
+  console.log(`  ${pad("first month also: 3,000 products by chat + 150 website pages", 58)} ${bdt(g.products + g.imports + g.knowledge)}`);
+  console.log(`  ${pad("FIRST MONTH", 58)} ${bdt(g.firstMonth)}`);
+
+  console.log(`\n  ASSUMPTIONS: every message carries a photo and a voice note · one comment per five replies ·`);
+  console.log(`  a fifth of traffic arrives with the bot off · the assistant used ${MAX_USE.assistantPerDay}× a day · ${MAX_USE.promptWrites} profile writes and ${MAX_USE.offerPolishes} offer polishes ·`);
+  console.log(`  each product ${MAX_USE.photosPerProduct} photos, ${MAX_USE.variantsPerProduct} variants, added through the ${MAX_USE.interviewQuestions}-question chat · ${MAX_USE.churn * 100}% of the catalogue re-saved monthly.\n`);
+}
