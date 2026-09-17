@@ -730,6 +730,23 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - AI COST MODEL (2026-09-18, owner asked what a package costs at MAX use).
+    scripts/ai-cost-model.mjs holds the measured per-call tokens (from
+    usage_daily, mostly Broker's BD) and prints cost per message/product/package.
+    Measured: reply = chat 7718 in/248 out + embed 34 in, tag on 23% of replies,
+    language rewrite on 30%; photo +1230/123 each; voice +437/38; comment
+    4723/36; product photo 1226/142, product embed 321 in, interview 936/48.
+    At gemini-3.6-flash ($0.75/$3.75) one text reply = $0.0068 (~৳0.84).
+    MAX USE IS A LOSS on every paid package: Starter ৳1,500 vs ~৳2,600 of AI,
+    Growth ৳3,500 vs ~৳13,000, Scale ৳6,000 vs ~৳43,000 (real-mix column).
+    Real use is nowhere near max — Broker's BD burned $1.55 in three weeks.
+    FIXED: model_prices had NO row for gemini-3.6-flash, so the admin panel
+    priced it at the __default__ 0.30/2.50 and under-reported by ~2.2×; row
+    inserted in production (docs/sql/2026-09-18-model-price-gemini-3-6-flash.sql).
+    Biggest lever = the 7.7k input tokens per reply (system prompt + catalogue +
+    history): Gemini context caching reads cached input at $0.075/1M.
+    STILL TO DO: the AI assistant and the other platform tools (owner will ask),
+    and the admin panel's own cost page is still the messy one he complained of.
   - SPEED (2026-09-18, owner asked for speed before blogs). Lighthouse mobile,
     home page: 68 → 82 (LCP 7.8s → 3.6s, weight 4.2MB → ~280KB). Pricing 100,
     docs 91, solution pages 92. Fixes: (1) the 3.1MB film no longer autoplays —
