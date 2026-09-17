@@ -5,7 +5,7 @@ import { requireClient, trialActive } from "@/lib/auth.js";
 import { warnIfExpiringSoon } from "@/lib/expiry.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka } from "@/lib/time.js";
-import { trialDays } from "@/lib/plan-limits.js";
+import { trialDays, limitsFor } from "@/lib/plan-limits.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 
 export const GET = withErrors(async (request) => {
@@ -29,7 +29,11 @@ export const GET = withErrors(async (request) => {
     client: { id: client.id, business_name: client.business_name, plan: client.plan, trial_end: client.trial_end, business_type: client.business_type || "ecommerce", item_label: client.item_label || "", logo_url: client.logo_url || "" },
     email,
     active: trialActive(client),
-    usage: { today: used, limit: client.plan === "trial" ? 30 : null },
+    // The daily ceiling comes from the package (and any per-client override),
+    // the same merge the bot enforces. It was written here as a literal 30,
+    // so raising the trial's daily allowance in the admin panel changed what
+    // the bot allowed and not what the header told the owner they had.
+    usage: { today: used, limit: (await limitsFor(client)).messagesPerDay ?? null },
   });
 }, "me");
 

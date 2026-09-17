@@ -6,6 +6,12 @@ import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 import { initNativeApp } from "./dashboard/components/native-back.js";
 import { rebindNativePush, unbindNativePush } from "./dashboard/components/native-push.js";
 import { BotMark } from "@/lib/brand.js";
+// The trial's shape is written in one place, not typed into the welcome screen:
+// it used to read "3-day free trial · 30 messages a day" as literals, so the
+// admin panel could change either and this screen would keep promising the old
+// one. (The catalogue here is the built-in fallback; the packages table is what
+// the bot enforces, and the two are kept the same.)
+import { TRIAL_DAYS, PLANS } from "@/lib/plans.js";
 import Broadcast from "./dashboard/components/Broadcast.js";
 import NotificationsBell from "./dashboard/components/NotificationsBell.js";
 import { useConvoRead } from "./dashboard/components/convo-read.js";
@@ -413,7 +419,7 @@ function Onboarding({me,onTrial}) {
   return <OnboardFrame icon="ti-rocket" title={`Welcome, ${form.business_name||c.business_name||"there"}`}
     sub="You are ready to go live" step={3} of={3}>
     <div style={{padding:"16px 16px 6px",borderRadius:16,background:T.bgAlt,boxShadow:T.nmIn,marginBottom:18}}>
-      <div style={{fontSize:13.5,fontWeight:700,marginBottom:10,color:T.text}}>3-day free trial · 30 messages a day · no card</div>
+      <div style={{fontSize:13.5,fontWeight:700,marginBottom:10,color:T.text}}>{TRIAL_DAYS}-day free trial · {PLANS.trial?.messagesPerDay??30} bot replies a day · no card</div>
       {perks.map(p=><div key={p} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:12.5,color:T.textMuted,marginBottom:10,lineHeight:1.5}}>
         <span style={{width:20,height:20,borderRadius:7,background:T.accGrad,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12}}><i className="ti ti-check"/></span>{p}
       </div>)}
@@ -998,7 +1004,7 @@ export default function Dashboard() {
           {!isMobile&&<div style={{fontSize:11.5,color:T.textDim,marginTop:1,overflow:"hidden",
             textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {me?.client?.business_name} · {me?.client?.plan==='trial'
-              ?`Trial — ${me?.usage?.today??0}/30 bot replies today`
+              ?`Trial — ${me?.usage?.today??0}${me?.usage?.limit?`/${me.usage.limit}`:""} bot replies today`
               :`${products.length} ${words(bt).item.toLowerCase()}s`}
           </div>}
         </div>
