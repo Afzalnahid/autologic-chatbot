@@ -254,7 +254,7 @@ export default function PricingClient() {
           </table>
         </div>
         <div style={{ fontSize: 11.5, color: T.dim, marginTop: 10, textAlign: "center" }}>
-          Only messages sent by your customers count towards the limit — the bot's replies are free.
+          One bot reply counts as one, however many bubbles it takes. Replies you type yourself are free, and nothing counts while the bot is off.
         </div>
       </section>
 

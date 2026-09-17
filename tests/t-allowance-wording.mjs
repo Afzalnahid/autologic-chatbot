@@ -55,9 +55,18 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error("FAI
 {
   const pricing = read("src", "app", "pricing", "pricing-client.js");
   ok("the comparison table's allowance row says Bot replies", /label: "Bot replies"/.test(pricing));
-  // The sentence that was not merely vague but backwards.
-  ok("the page never claims the bot's replies are uncounted",
-    !/bot's own replies are never counted/i.test(pricing));
+  // The sentences that were not merely vague but backwards. There were TWO —
+  // the FAQ answer and a footnote under the comparison table — and a check
+  // written against the exact words of the first one missed the second. So the
+  // shape of the claim is banned, not one phrasing of it.
+  const backwards = [
+    /bot'?s( own)? replies are (never counted|free)/i,
+    /only messages (your customers send|sent by your customers)/i,
+    /customer messages/i,
+  ];
+  for (const re of backwards) {
+    ok(`the page never says ${re.source.slice(0, 40)}`, !re.test(pricing));
+  }
   ok("it says a bot reply is what counts", /one bot reply/i.test(pricing));
   ok("it says the owner's own replies do not count", /type yourself are never counted/i.test(pricing));
 }
