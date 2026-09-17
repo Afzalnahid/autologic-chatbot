@@ -516,3 +516,97 @@ if (args.has("--max")) {
   console.log(`  a fifth of traffic arrives with the bot off · the assistant used ${MAX_USE.assistantPerDay}× a day · ${MAX_USE.promptWrites} profile writes and ${MAX_USE.offerPolishes} offer polishes ·`);
   console.log(`  each product ${MAX_USE.photosPerProduct} photos, ${MAX_USE.variantsPerProduct} variants, added through the ${MAX_USE.interviewQuestions}-question chat · ${MAX_USE.churn * 100}% of the catalogue re-saved monthly.\n`);
 }
+
+// ── How to bring the maximum down ──────────────────────────────────────────
+//   node scripts/ai-cost-model.mjs --reduce
+//
+// The max-use number is 81% customer replies, so anything that does not touch
+// a reply barely moves it. These are ordered by what they actually save on
+// Shop Growth at its limit, each one applied on top of the ones above it, with
+// the risk to quality stated — a saving that costs an answer is not a saving.
+const REDUCE = [
+  { id: "cached", label: "Gemini reuses the fixed prefix (already shipped — needs confirming)",
+    apply: (s) => ({ ...s, chat: PROFILES.cached }),
+    risk: "none — the model sees the same prompt", state: "shipped 2026-09-18, waiting on live data" },
+
+  { id: "output", label: "Ask for a tighter reply (248 → 150 output tokens)",
+    apply: (s) => ({ ...s, out: 150 }),
+    risk: "low — shorter answers, same facts; output is billed at 5× the input rate", state: "prompt change, half a day" },
+
+  { id: "comment", label: "A comment reply does not need the whole catalogue (4,723 → 1,500 in)",
+    apply: (s) => ({ ...s, commentIn: 1500 }),
+    risk: "low — a public comment is answered in one line and moves to DM", state: "one prompt, half a day" },
+
+  { id: "router", label: "Simple questions on the small model (40% of replies)",
+    apply: (s) => ({ ...s, routerShare: 0.40 }),
+    risk: "medium — photos, orders, bookings and haggling must stay on the big model", state: "2 days with tests" },
+
+  { id: "vision", label: "Never read the same photo twice (20% are repeats)",
+    apply: (s) => ({ ...s, visionRepeat: 0.20 }),
+    risk: "none — a hash lookup, the same description reused", state: "1 day" },
+
+  { id: "lang", label: "Stop the language rewrite firing (30% → 10% of replies)",
+    apply: (s) => ({ ...s, langRate: 0.10 }),
+    risk: "low — a firmer language instruction; the rewrite stays as the safety net", state: "prompt change + tests" },
+
+  { id: "batch", label: "Index the catalogue on the Batch API (half price, not instant)",
+    apply: (s) => ({ ...s, batch: 0.5 }),
+    risk: "none for the customer — nobody is waiting on a product being indexed", state: "1-2 days" },
+];
+
+// Shop Growth at the maximum, under a set of switches.
+function reducedMonthly(sw, rate = "gemini-3.6-flash") {
+  const p = PRICES[rate], lite = PRICES["gemini-2.5-flash-lite"] || { in: 0.10, out: 0.40 };
+  const pkg = PACKAGES.find((x) => x.id === "shop_growth");
+  const U = MAX_USE, days = DAYS;
+
+  // One reply, with whatever switches are on.
+  const chatIn = sw.chat.chatIn, cached = sw.chat.cached, out = sw.out;
+  const big = ((chatIn - cached) / 1e6) * p.in + (cached / 1e6) * p.in * 0.10 + (out / 1e6) * p.out;
+  const small = ((chatIn - cached) / 1e6) * lite.in + (cached / 1e6) * lite.in * 0.10 + (out / 1e6) * lite.out;
+  const chat = (1 - sw.routerShare) * big + sw.routerShare * small;
+  const reply = chat + cost("bot.embed", rate) + site("bot.tag").rate * cost("bot.tag", rate) + sw.langRate * cost("bot.language", rate);
+
+  const vision = cost("bot.vision", rate) * (1 - sw.visionRepeat);
+  const voice = cost("bot.voice", rate);
+  const comment = ((sw.commentIn / 1e6) * p.in + (site("bot.comment").out / 1e6) * p.out) + cost("bot.embed", rate);
+
+  const replies = pkg.messages * (reply + vision + voice);
+  const comments = pkg.messages * U.commentShare * comment;
+  const botOff = pkg.messages * U.offShare * (vision + voice);
+  const assistant = U.assistantPerDay * days * cost("product.assistant", rate);
+  const buttons = U.promptWrites * cost("platform.prompt", rate) + U.offerPolishes * cost("platform.offer", rate);
+  const perProductChat = (U.interviewQuestions * cost("product.interview", rate)
+    + U.photosPerProduct * cost("product.vision", rate)
+    + U.variantsPerProduct * cost("product.embed", rate)) * sw.batch;
+  const churn = (pkg.products || 0) * U.churn * perProductChat;
+  return replies + comments + botOff + assistant + buttons + churn;
+}
+
+if (args.has("--reduce")) {
+  const rate = "gemini-3.6-flash";
+  const pkg = PACKAGES.find((x) => x.id === "shop_growth");
+  let sw = { chat: PROFILES.trimmed, out: site("bot.chat").out, commentIn: site("bot.comment").in,
+    routerShare: 0, visionRepeat: 0, langRate: site("bot.language").rate, batch: 1 };
+  const start = reducedMonthly(sw, rate);
+  console.log(`\nBRINGING THE MAXIMUM DOWN — Shop Growth at its limit, ৳3,500 a month`);
+  console.log(`starting point after the product trim: ${bdt(start)} a month\n`);
+  console.log(`  ${pad("step", 62)} ${pad("saves", 10)} ${pad("left", 11)} risk`);
+  let prev = start;
+  for (const step of REDUCE) {
+    sw = step.apply(sw);
+    const now = reducedMonthly(sw, rate);
+    console.log(`  ${pad(step.label, 62)} ${pad("−" + bdt(prev - now), 10)} ${pad(bdt(now), 11)} ${step.risk.split(" —")[0]}`);
+    prev = now;
+  }
+  console.log(`\n  all of them together: ${bdt(prev)} a month at the limit — ${Math.round((1 - prev / start) * 100)}% off, against a ৳3,500 package`);
+
+  // What is left is a product decision, not an engineering one.
+  const perReply = prev / pkg.messages;
+  console.log(`\n  THE REST IS THE CAP ITSELF. At ${bdt(perReply)} per reply:`);
+  for (const share of [1, 0.5, 0.35]) {
+    const cap = Math.round((pkg.price * share) / (perReply * USD_BDT));
+    console.log(`  ${pad(share === 1 ? "break even" : `keep ${Math.round((1 - share) * 100)}% of the price`, 28)} ${cap.toLocaleString("en-IN")} replies a month`);
+  }
+  console.log(`  ${pad("today's cap", 28)} ${pkg.messages.toLocaleString("en-IN")} replies a month\n`);
+}

@@ -730,6 +730,13 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - REDUCTION PLAN (node scripts/ai-cost-model.mjs --reduce). Shop Growth at its
+    limit after the product trim = ৳16,410/mo. Steps, each on top of the last:
+    caching ৳12,670 · shorter output 248→150 ৳11,992 · comment prompt 4,723→1,500
+    ৳11,099 · flash-lite router on 40% ৳9,286 · photo dedupe (20% repeats) ৳8,673
+    · language rewrite 30%→10% ৳8,566 · catalogue on the Batch API ৳8,203.
+    Half the cost, none of it removing a feature. After all of it the cap is the
+    remaining lever: break-even 6,400 replies, 50% margin at 3,200 (today 15,000).
   - MAX-USE MODEL corrected 2026-09-18 (owner): the TRIAL is 3 days × 30/day =
     90 replies, not 900 — it was being costed as a month. Month length is now
     explicit too (DAYS env, default 30): the message allowances are monthly so
