@@ -216,7 +216,7 @@ export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
     {tab === "money" && <Money d={d} rate={rate} revenue={revenue} aiCostBdt={aiCostBdt} fixedBdt={fixedBdt} profit={profit} margin={margin} isMobile={isMobile} />}
     {tab === "usage" && <ApiUsage d={d} rate={rate} isMobile={isMobile} />}
     {tab === "clients" && <PerClient d={d} rate={rate} post={post} busy={busy} isMobile={isMobile} />}
-    {tab === "packages" && <PlanEditor d={d} post={post} busy={busy} isSuper={isSuper} rate={rate} />}
+    {tab === "packages" && <PlanEditor d={d} post={post} busy={busy} isSuper={isSuper} rate={rate} setMsg={setMsg} />}
     {tab === "rates" && <Rates d={d} post={post} busy={busy} rate={rate} />}
   </div>;
 }
@@ -1202,7 +1202,9 @@ function ClientPanel({ c, rate, post, busy, d }) {
 }
 
 // ── Packages ────────────────────────────────────────────────────────────────
-function PlanEditor({ d, post, busy, isSuper, rate }) {
+// `setMsg` is the page's own message line: a failed trial-length save has to
+// be SAID, and this component has no message line of its own.
+function PlanEditor({ d, post, busy, isSuper, rate, setMsg }) {
   const [editing, setEditing] = useState(null);
   const blank = { id: "", name: "", tagline: "", monthly: 0, yearly: 0, channels: 1, features: {}, feature_list: [], active: true, public: true, sort: (d.plans?.length || 0) + 1 };
 
