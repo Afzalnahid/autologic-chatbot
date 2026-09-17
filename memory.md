@@ -730,6 +730,13 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - MAX-USE MODEL corrected 2026-09-18 (owner): the TRIAL is 3 days × 30/day =
+    90 replies, not 900 — it was being costed as a month. Month length is now
+    explicit too (DAYS env, default 30): the message allowances are monthly so
+    they do not move, only per-day things (the assistant) do — 28 vs 31 days
+    shifts a package total by ~0.3%. `--max` totals after the trim, every month:
+    trial ৳132 · Starter ৳3,528 · Growth ৳16,410 · Scale ৳53,768 (first month
+    with the catalogue built from empty: ৳157 / ৳3,836 / ৳19,484 / ৳64,014).
   - COST FIXES SHIPPED 2026-09-18 (cca3adb, deploy dpl_77Lkjr READY):
     (1) usage_daily.tokens_cached + record_ai_usage param (migration
     usage_daily_tokens_cached, copy in docs/sql/2026-09-18-usage-tokens-cached.sql);

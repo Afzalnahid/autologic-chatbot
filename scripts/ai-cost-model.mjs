@@ -163,8 +163,17 @@ export function perProduct(rate, { photos = 2, variants = 3, questions = 4 } = {
 // messages: plans.messages_per_month (the trial's 30/day → 900).
 // products / kbFiles: plans.max_products / max_kb_files; null is uncapped, so a
 // working ceiling is used and marked.
+const TRIAL_DAYS = 3;              // plans.js TRIAL_DAYS
+// A month is 28, 30 or 31 days, and anything charged per DAY changes with it.
+// The monthly message allowances do not — plans.messages_per_month is a month,
+// whatever its length — so only the daily things move. Run with DAYS=31 to see
+// the long month.
+const DAYS = Number(process.env.DAYS) || 30;
+
 const PACKAGES = [
-  { id: "trial",        name: "Free Trial",      price: 0,    messages: 900,   products: 20,    kbFiles: 2 },
+  // The trial is THREE DAYS at 30 messages a day — not a month. Treating it as
+  // a month overstated it by a factor of ten (owner, 2026-09-18).
+  { id: "trial",        name: "Free Trial (3 days)", price: 0, messages: TRIAL_DAYS * 30, products: 20, kbFiles: 2, days: TRIAL_DAYS },
   { id: "shop_starter", name: "Shop Starter",    price: 1500, messages: 3000,  products: 300,   kbFiles: 0 },
   { id: "svc_starter",  name: "Service Starter", price: 1500, messages: 3000,  products: 0,     kbFiles: 10 },
   { id: "shop_growth",  name: "Shop Growth",     price: 3500, messages: 15000, products: 3000,  kbFiles: 0 },
@@ -445,8 +454,11 @@ export function maxUse(pkg, profile = PROFILES.trimmed, rate = "gemini-3.6-flash
   const replies = pkg.messages * m.photo + pkg.messages * cost("bot.voice", rate);
   const comments = pkg.messages * U.commentShare * m.comment;
   const botOff = pkg.messages * U.offShare * (m.offPhoto + m.offVoice);
-  const assistant = U.assistantPerDay * 30 * cost("product.assistant", rate);
-  const buttons = U.promptWrites * cost("platform.prompt", rate) + U.offerPolishes * cost("platform.offer", rate);
+  // Per-day use follows the real length of the month (or of the trial).
+  const days = pkg.days || DAYS;
+  const assistant = U.assistantPerDay * days * cost("product.assistant", rate);
+  const monthShare = days / 30;   // the buttons are quoted per 30-day month
+  const buttons = (U.promptWrites * cost("platform.prompt", rate) + U.offerPolishes * cost("platform.offer", rate)) * monthShare;
 
   // One product, added the dearest way: the chat interview, a photo read for
   // every picture, and an index entry for every variant.
@@ -456,7 +468,7 @@ export function maxUse(pkg, profile = PROFILES.trimmed, rate = "gemini-3.6-flash
   const products = (pkg.products || 0) * perProductChat;
   const imports = pkg.products ? Math.ceil(pkg.products / U.productsPerImportPage) * cost("product.scrape", rate) : 0;
   const knowledge = (pkg.kbFiles || 0) * U.chunksPerFile * cost("knowledge.embed", rate);
-  const churn = products * U.churn;
+  const churn = products * U.churn * monthShare;
 
   const chat = replies + comments + botOff;
   const owner = assistant + buttons;
