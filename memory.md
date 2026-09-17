@@ -730,6 +730,24 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - COST FIXES SHIPPED 2026-09-18 (cca3adb, deploy dpl_77Lkjr READY):
+    (1) usage_daily.tokens_cached + record_ai_usage param (migration
+    usage_daily_tokens_cached, copy in docs/sql/2026-09-18-usage-tokens-cached.sql);
+    geminiTokens reads cachedContentTokenCount; rowCost charges cached at 10%
+    (CACHED_RATE) and summarise exposes cacheHitRate.
+    (2) composeReply prompt re-ordered: systemInstruction = systemPrompt + rules
+    (fixed per client); context + who + timeLine + lock + customer message moved
+    to the USER turn, so Gemini's implicit cache can reuse the ~2,900-token
+    prefix. currentTimeLine() deliberately moved out of the prefix.
+    (3) src/lib/prompt-parts.js productForPrompt/productsBlock trims each product
+    from ~3,900 chars to ~1,200 (drops visuals/client_id/photo_key/timestamps,
+    caps description 300 / visual 160, keeps code, name, both prices, variants,
+    options, stock, images, tags, match_score). tests/t-prompt-parts.mjs 25 checks.
+    (4) bot.js meteredRewrite closes the unmetered language-rewrite hole.
+    .env.example documents USD_BDT (t-env.mjs). 50/50 suites.
+    UNVERIFIED IN PRODUCTION: reply quality after the re-order, and whether
+    tokens_cached comes back > 0 — check usage_daily after the owner sends a
+    test message (bot.chat tokens_in should fall from ~7,718).
   - PRICING + COST PLAN (2026-09-18): artifact for the owner
     https://claude.ai/artifact/6q7SVPW9kezxGnUSeQCbwg (Bangla). Levers modelled in
     scripts/ai-cost-model.mjs --levers: reply ৳0.84 → ৳0.60 (implicit caching of
