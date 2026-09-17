@@ -8,6 +8,14 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM = process.env.RESEND_FROM || "TellMore AI <onboarding@resend.dev>";
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
+// The product name as it appears at the top of an email, with the second word
+// in the brand red — derived from COMPANY.name so a future rename carries here
+// too. "TellMore AI" → "Tell" + "More AI" in red.
+const BRAND_HTML = (() => {
+  const m = COMPANY.name.match(/^(\w+?)(More\b.*|\s.*)$/i);
+  return m ? `${m[1]}<span style="color:#D92632">${m[2]}</span>` : COMPANY.name;
+})();
+
 async function send({ to, subject, html }) {
   if (!RESEND_API_KEY) return { ok: false, error: "RESEND_API_KEY not set" };
   try {
@@ -49,7 +57,12 @@ function wrap(title, body) {
 // internal admin ones above keep wrap().
 function clientWrap(title, body) {
   return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0d1529;border-radius:12px;padding:28px;color:#e8e8ec">
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px;color:#ffffff">get<span style="color:#D92632">voicium</span></div>
+    <!-- The name comes from COMPANY.name and is never typed here. The old brand
+         survived a day past the rename in this one spot because it was written
+         as two tags — a plain half and a coloured half — so searching for the
+         name found nothing while clients kept receiving it (owner, 2026-09-18).
+         tests/t-brand-name.mjs now fails on any surviving mention. -->
+    <div style="font-size:22px;font-weight:800;margin-bottom:4px;color:#ffffff">${BRAND_HTML}</div>
     <div style="height:1px;background:#1a2744;margin:16px 0"></div>
     <div style="font-size:17px;font-weight:600;margin-bottom:12px">${title}</div>
     <div style="font-size:14px;line-height:1.7;color:#c9d3e6">${body}</div>

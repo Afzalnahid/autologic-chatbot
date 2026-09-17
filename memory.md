@@ -730,6 +730,14 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - EMAIL still said the old brand until 2026-09-18 (owner saw it in a client
+    mail): src/lib/email.js clientWrap header was "get" + a coloured span, so the
+    rename's search never matched. Header now renders BRAND_HTML, derived from
+    COMPANY.name. NEW GUARD tests/t-brand-name.mjs walks src/ and fails on any
+    mention of the old name (allow-list: fcm.js project id, company.js comment,
+    admin/webhooks comment). DB scanned: plans/clients/knowledge_base/products
+    carry no mention. Supabase Auth's own emails (confirm/reset) are templates in
+    the Supabase dashboard — owner must check those separately.
   - APK build run #6 FAILED 2026-09-17 at "Set up Android SDK": setup-android@v3
     default packages "tools platform-tools"; runner's cmdline-tools 16 has no
     "tools" package → sdkmanager exit 1. Fixed: with: packages: platform-tools.
