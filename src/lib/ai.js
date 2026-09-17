@@ -124,6 +124,8 @@ function build(clientId, cfg, platformChain, platformApiKey, feature, pageId = "
         ownKey,
         tokensIn: t.tokensIn,
         tokensOut: t.tokensOut,
+        // The part Gemini served from its own cache, billed at a tenth.
+        tokensCached: t.tokensCached,
         // "" for anything that is not a customer message on a channel.
         pageId,
       });

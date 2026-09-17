@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
-import { chatWithGemini, generateEmbedding, UNCLEAR_AUDIO } from "@/lib/gemini.js";
+import { chatWithGemini, UNCLEAR_AUDIO } from "@/lib/gemini.js";
+import { productsBlock } from "@/lib/prompt-parts.js";
 import { limitsFor, messageAllowance, quotaWindowStart } from "@/lib/plan-limits.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
@@ -11,6 +12,7 @@ import { notify } from "@/lib/push.js";
 import { extractHandoff, wantsHuman } from "@/lib/handoff.js";
 import { isAutomatedEcho } from "@/lib/echo-rules.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
+import { recordUsage, geminiTokens } from "@/lib/usage.js";
 // The SAME words that described the product when it was added. A customer's
 // photo and the catalogue photo are both put through this and the two
 // descriptions are embedded and compared, so a second wording here — however
@@ -797,12 +799,28 @@ export function languageLock(lang) {
 // answers an English question in Bangla anyway. So the reply is checked, and
 // rewritten when it came back in the wrong language. A failed rewrite keeps the
 // original — a reply in the wrong language still beats no reply at all.
+// Last-resort rewrite on the platform key, still counted under bot.language.
+// Reached only when the client's AI config cannot be read at all. It used to be
+// a bare chatWithGemini — a real call that reported nothing, so the cost report
+// had a hole in the very place it claims to measure (found in the 2026-09-18
+// audit). Metered the same way tags.js meters its fallback.
+function meteredRewrite(clientId) {
+  return (system, msgs) => chatWithGemini(system, msgs, undefined, {
+    onUsage: (kind, model, response) => {
+      if (!clientId) return;
+      const t = geminiTokens(response);
+      recordUsage({ clientId, kind, feature: "bot.language", provider: "google", model, ownKey: false,
+        tokensIn: t.tokensIn, tokensOut: t.tokensOut, tokensCached: t.tokensCached });
+    },
+  });
+}
+
 async function enforceLanguage(items, lang, clientId) {
   // Its own AI handle, so the rewrite lands under "bot.language" in the cost
   // report instead of hiding inside the reply's own line. It is the retry loop
   // nobody can see, so it is the one that most needs its own number.
   const langAI = clientId ? await getClientAI(clientId, "bot.language").catch(() => null) : null;
-  const rewrite = langAI ? langAI.chat : chatWithGemini;
+  const rewrite = langAI ? langAI.chat : meteredRewrite(clientId);
   const hasBengali = (t) => /[\u0980-\u09FF]/.test(String(t || ""));
   const misfit = (t) =>
     lang === "Bangla" ? !hasBengali(t)
@@ -877,7 +895,11 @@ export async function composeReply({ clientId, client, bType, senderId, combined
       ]);
       context = products.length
         ? "\n\nSEARCH RESULTS (source of truth, pick from these only; each has match_score 0-1 — if the best match_score is below 0.5, do NOT guess: tell the customer you couldn't find that exact item and ask for a clearer photo or more details):\n" +
-          products.map(p => JSON.stringify({ ...(p.metadata || {}), match_score: typeof p.similarity === "number" ? Number(p.similarity.toFixed(2)) : undefined })).join("\n")
+          // Trimmed to the fields a reply is made of — src/lib/prompt-parts.js
+          // explains why. The whole metadata row was ~970 tokens per product,
+          // three or four of them on every reply, most of it the photo
+          // description that had already done its job building the vector.
+          productsBlock(products)
         : "\n\nSEARCH RESULTS: none found.";
     }
   } catch (e) {
@@ -903,7 +925,11 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     // WhatsApp via processConversation(), and the website widget, which calls
     // composeReply() directly. Both business types get it — ecommerce replies
     // previously carried no time awareness at all.
-    const rules = (isAgency ? bookingRule() : orderRule) + currentTimeLine();
+    // The clock moves every minute, so it cannot sit in the part of the prompt
+    // Gemini reuses between calls (see the note on the chat call below); it
+    // goes on the user turn with everything else that changes.
+    const rules = isAgency ? bookingRule() : orderRule;
+    const timeLine = currentTimeLine();
     const lang = forcedLang || detectLanguage(combined);
     const lock = languageLock(lang);
     // The customer's name, so the reply can address them correctly and pick the
@@ -912,8 +938,24 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     // Also on the user turn. A system instruction loses to the visible pattern of
     // the conversation: with a history of Bangla replies the model simply copies
     // the previous answer, whatever the system prompt says.
-    raw = await aiFor.chat(systemPrompt + context + who + rules + lock,
-      [...history, { role: "user", content: combined + `\n\n[Reply in ${lang} only.]` }]);
+    // WHAT GOES WHERE, AND WHY IT SHOWS UP ON THE BILL
+    // Gemini charges a repeated prompt PREFIX at a tenth of the input rate,
+    // but only while that prefix stays identical from one call to the next.
+    // This used to read systemPrompt + context + who + rules + lock, so the
+    // search results (different every message), the customer's name and the
+    // clock all sat inside the instruction — nothing after the first block
+    // could be reused, and most of a 7,700-token prompt was billed fresh every
+    // time.
+    //
+    // The instruction now carries only what does not change for this client:
+    // their profile and business facts, then the order or booking rule.
+    // Everything that varies rides the user turn, where the model reads it just
+    // as well — the language lock was already proven to work better there.
+    // Measured on a real catalogue the stable part is ~2,900 tokens, past
+    // Gemini's 2,048-token minimum for caching.
+    const turn = context + who + timeLine + lock +
+      "\n\n[CUSTOMER MESSAGE]\n" + combined + `\n\n[Reply in ${lang} only.]`;
+    raw = await aiFor.chat(systemPrompt + rules, [...history, { role: "user", content: turn }]);
   } catch (e) {
     console.error("gemini chat:", e.message);
     raw = "";

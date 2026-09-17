@@ -40,10 +40,15 @@ let channelColumn = true;
 const NO_COLUMN = /page_id|could not find the function|schema cache|does not exist/i;
 
 // Fire-and-forget. Never throws, never awaited by a reply path.
-export function recordUsage({ clientId, kind, feature, provider, model, ownKey = false, tokensIn = 0, tokensOut = 0, calls = 1, pageId = "" }) {
+export function recordUsage({ clientId, kind, feature, provider, model, ownKey = false, tokensIn = 0, tokensOut = 0, tokensCached = 0, calls = 1, pageId = "" }) {
   if (!clientId || !kind) return;
   const tin = Math.max(0, Math.round(Number(tokensIn) || 0));
   const tout = Math.max(0, Math.round(Number(tokensOut) || 0));
+  // Gemini bills a repeated prompt prefix at a tenth of the input rate
+  // (implicit caching). Those tokens are INCLUDED in promptTokenCount, so
+  // without recording them separately every report charged them in full and
+  // nobody could tell whether caching was working. Never more than tokens_in.
+  const tcache = Math.min(tin, Math.max(0, Math.round(Number(tokensCached) || 0)));
   const args = {
     p_client_id: clientId,
     p_day: dhakaDay(),
@@ -55,6 +60,7 @@ export function recordUsage({ clientId, kind, feature, provider, model, ownKey =
     p_calls: calls,
     p_tokens_in: tin,
     p_tokens_out: tout,
+    p_tokens_cached: tcache,
   };
   // "" is the honest value for a call that had no channel — an embedding for a
   // product, the owner pressing a button — and it groups where NULL vanishes.
@@ -80,7 +86,13 @@ export function recordUsage({ clientId, kind, feature, provider, model, ownKey =
 // missing count is recorded as zero rather than guessed.
 export function geminiTokens(response) {
   const u = response?.usageMetadata || {};
-  return { tokensIn: u.promptTokenCount || 0, tokensOut: u.candidatesTokenCount || 0 };
+  return {
+    tokensIn: u.promptTokenCount || 0,
+    tokensOut: u.candidatesTokenCount || 0,
+    // How much of that input Gemini served from its own cache, at 10% of the
+    // price. Absent on a miss, and on models that do not cache.
+    tokensCached: u.cachedContentTokenCount || 0,
+  };
 }
 
 // Ready-made opts for the direct gemini.js callers that do not go through
@@ -91,7 +103,7 @@ export function embedMeter(clientId, feature = "product") {
   return {
     onUsage: (kind, model, response) => {
       const t = geminiTokens(response);
-      recordUsage({ clientId, kind, feature, provider: "google", model, ownKey: false, tokensIn: t.tokensIn, tokensOut: t.tokensOut });
+      recordUsage({ clientId, kind, feature, provider: "google", model, ownKey: false, tokensIn: t.tokensIn, tokensOut: t.tokensOut, tokensCached: t.tokensCached });
     },
   };
 }
@@ -112,10 +124,17 @@ export function rateFor(prices, provider, model) {
   return prices[`${provider}/${model}`] || prices[`${provider}/__default__`] || { in: 0, out: 0 };
 }
 
-// USD cost of one usage_daily row.
+// The share of the input rate a cached token costs. Gemini's implicit cache
+// bills the repeated prefix at a tenth of the fresh rate.
+export const CACHED_RATE = 0.10;
+
+// USD cost of one usage_daily row. tokens_cached is a SUBSET of tokens_in, so
+// the fresh part is the difference — charging both in full would double-count.
 export function rowCost(prices, row) {
   const r = rateFor(prices, row.provider, row.model);
-  return (Number(row.tokens_in) / 1e6) * r.in + (Number(row.tokens_out) / 1e6) * r.out;
+  const tin = Number(row.tokens_in) || 0;
+  const cached = Math.min(tin, Number(row.tokens_cached) || 0);
+  return ((tin - cached) / 1e6) * r.in + (cached / 1e6) * r.in * CACHED_RATE + ((Number(row.tokens_out) || 0) / 1e6) * r.out;
 }
 
 // Whether a row's model has its own line in the price book. A model that falls
@@ -139,7 +158,7 @@ export function isPriced(prices, provider, model) {
 // spend actually named one, so a reader is never shown an apportioned figure
 // dressed up as a reading.
 export function summarise(rows, prices) {
-  let calls = 0, tokensIn = 0, tokensOut = 0, platformCost = 0, clientKeyCost = 0;
+  let calls = 0, tokensIn = 0, tokensOut = 0, tokensCached = 0, platformCost = 0, clientKeyCost = 0;
   const byKind = {}, byFeature = {}, byArea = {}, byModel = {}, byChannel = {};
   const bucket = (map, key) => {
     if (!map[key]) map[key] = { calls: 0, tokensIn: 0, tokensOut: 0, tokens: 0, cost: 0, ownKeyCost: 0 };
@@ -148,8 +167,9 @@ export function summarise(rows, prices) {
   for (const r of rows || []) {
     const c = rowCost(prices, r);
     const tin = Number(r.tokens_in) || 0, tout = Number(r.tokens_out) || 0;
+    const tcached = Math.min(tin, Number(r.tokens_cached) || 0);
     const n = r.calls || 0;
-    calls += n; tokensIn += tin; tokensOut += tout;
+    calls += n; tokensIn += tin; tokensOut += tout; tokensCached += tcached;
     if (r.own_key) clientKeyCost += c; else platformCost += c;
 
     const feature = r.feature || "legacy";
@@ -174,7 +194,11 @@ export function summarise(rows, prices) {
   const allCost = platformCost + clientKeyCost;
 
   return {
-    calls, tokensIn, tokensOut, tokens: tokensIn + tokensOut,
+    calls, tokensIn, tokensOut, tokensCached, tokens: tokensIn + tokensOut,
+    // What share of the input arrived from Gemini's cache at a tenth of the
+    // price. 0 means the repeated part of our prompt is not being reused —
+    // which is a prompt-shape problem, not a billing one.
+    cacheHitRate: tokensIn > 0 ? tokensCached / tokensIn : 0,
     platformCost, clientKeyCost, byKind, byFeature, byArea, byModel, byChannel,
     // 0 before the migration, 1 once every call carries its channel.
     channelMeasured: allCost > 0 ? named / allCost : 0,
