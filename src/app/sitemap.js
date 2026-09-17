@@ -2,6 +2,8 @@
 // and index. Next.js App Router serves this automatically at /sitemap.xml.
 // Canonical host is www (the apex 308-redirects to it).
 import { PAGES } from "@/lib/docs/index.js";
+import { SOLUTIONS } from "@/lib/solutions/index.js";
+import * as SOL_BN from "@/lib/solutions/bn.js";
 import { writtenSet } from "./docs/copy.js";
 import { SITE as BASE } from "@/lib/seo.js";
 
@@ -36,7 +38,16 @@ export default function sitemap() {
     bn: bn.has(p.slug),
   }));
 
-  return [...pages, ...docs].map((p) => ({
+  // The solution pages — one per search someone types. Both languages are
+  // written, so each is declared with its Bangla alternate.
+  const solutions = SOLUTIONS.map((s) => ({
+    path: `/solutions/${s.slug}`,
+    priority: 0.9,
+    changeFrequency: "monthly",
+    bn: !!SOL_BN.PAGES[s.slug],
+  }));
+
+  return [...pages, ...solutions, ...docs].map((p) => ({
     url: `${BASE}${p.path}`,
     lastModified: now,
     changeFrequency: p.changeFrequency,

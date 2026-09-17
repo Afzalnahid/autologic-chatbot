@@ -730,6 +730,14 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - SEO PHASE 2 (2026-09-18): six keyword landing pages at /solutions/<slug> —
+    facebook-messenger-chatbot, whatsapp-chatbot, instagram-dm-automation,
+    website-chatbot, ecommerce-chatbot, bangla-chatbot — full copy in EN + BN
+    (src/lib/solutions/{index,en,bn}.js, route src/app/solutions/[slug]),
+    FAQ+breadcrumb JSON-LD, internal links, in sitemap (priority .9, bn
+    alternates). Owner's scope: global market too, plus speed work and blogs
+    later. Local `next build` now runs (google-auth-library installed with
+    --no-save); only /apple-icon fails locally, the known Windows next/og fault.
   - SEO WORK STARTED 2026-09-18 (owner: "rank tellmoreai.com"). Phase 1 shipped:
     seo.js gained productJsonLd (SoftwareApplication + AggregateOffer in BDT, fed
     by PLANS so prices can't go stale), faqJsonLd, breadcrumbJsonLd, jsonLdProps
