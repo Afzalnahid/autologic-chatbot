@@ -730,6 +730,21 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - PRICING + COST PLAN (2026-09-18): artifact for the owner
+    https://claude.ai/artifact/6q7SVPW9kezxGnUSeQCbwg (Bangla). Levers modelled in
+    scripts/ai-cost-model.mjs --levers: reply ৳0.84 → ৳0.60 (implicit caching of
+    the ~2,900 fixed tokens, 90% discount, needs cachedContentTokenCount
+    recorded) → ৳0.54 (move search results/name OUT of systemInstruction; today
+    composeReply builds systemPrompt+context+who+rules+lock, so the variable part
+    sits mid-prefix and shortens the cache) → ৳0.48 (trim product JSON) → ৳0.47
+    (6 memory turns) → ৳0.31 (flash-lite router for simple questions).
+    Fixed stack/month: Vercel Pro $20 + Supabase Pro $25 + domain $1 = ~৳5,663;
+    Resend free <3k; storage inside Supabase (100GB ≈ 350 shops); WhatsApp is
+    Meta's charge on the CLIENT. Competitors (Sep 2026): Zaman IT ৳1,999+,
+    Digivate ৳2,500+৳2,500 setup, BotSailor $10.99+, PowerinAI $49, ManyChat
+    $14-139. VERDICT: prices are fine, the CAPS are not — recommended caps
+    2,000/5,000/9,000 replies at the same prices, ৳1 per extra reply, heavy users
+    to BYOK. Break-even ~5 Growth clients (9-10 with video+marketing amortised).
   - FULL AI AUDIT (2026-09-18): every call site found in code and listed in
     scripts/ai-cost-model.mjs SITES (18: 7 bot, 7 catalogue, 4 platform incl. the
     free model listing). Report published as an Artifact for the owner:

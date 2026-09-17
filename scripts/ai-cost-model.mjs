@@ -266,3 +266,60 @@ for (const [k, v] of [["replies (15,000)", g.messages], ["comment replies", g.co
 console.log(`  ${pad("TOTAL", 34)} ${bdt(g.monthly)}   against a ৳3,500 package`);
 
 console.log(`\nASSUMPTIONS: comments = ${COMMENT_RATE * 100}% of replies · ${OFF_SHARE * 100}% of traffic arrives while the bot is off · owner: ${OWNER_MONTH.assistant} assistant messages, ${OWNER_MONTH.prompt} profile writes, ${OWNER_MONTH.offer} offer polishes a month · a knowledge file = ${CHUNKS_PER_FILE} chunks.\n`);
+
+// ── Levers: what each change to the prompt saves, and what it risks ─────────
+// Run: node scripts/ai-cost-model.mjs --levers
+//
+// The reply call is 7,718 input tokens. Measured composition for Broker's BD
+// (the one account with a month of traffic):
+//   FIXED_BASE + FIXED_ECOM          8,636 chars ≈ 2,159 tokens — identical on every call, for every shop
+//   business profile + greeting      1,877 chars ≈   470 tokens — identical for that client until they edit it
+//   order/booking rule + time + lock ~1,100 chars ≈   275 tokens — fixed text, but it sits AFTER the variable part today
+//   search results (3–4 products)                  ≈ 1,200–1,600 — changes every message
+//   history (10 turns × ~104 chars)                ≈   260       — changes every message
+//   the rest (product metadata JSON, category overview)          — changes every message
+// So ~2,900 tokens (38%) are the same on call after call.
+export const LEVERS = [
+  { id: "cache", name: "Let Gemini cache the fixed part",
+    how: "Gemini discounts a repeated prompt PREFIX by 90% on its own (implicit caching, 2.5+ models, minimum 2,048 tokens). Ours qualifies on size, but the fixed text must come first and stay byte-identical.",
+    saves: 0.90 * 2900, unit: "input tokens", risk: "none — the model sees exactly the same prompt",
+    work: "measure it first: record cachedContentTokenCount (usageMetadata) so the report shows whether a call hit the cache" },
+
+  { id: "order", name: "Put the variable part last",
+    how: "The system instruction is built systemPrompt + context + who + rules + lock — search results (different every message) sit in the middle of otherwise fixed text, which cuts the cacheable prefix short. Moving the search results and the customer's name to the user turn makes the whole fixed block one stable prefix.",
+    saves: 0.90 * 750, unit: "input tokens", risk: "low — same words, different slot; needs a side-by-side reply check before it ships",
+    work: "one change in composeReply, plus the reply tests" },
+
+  { id: "products", name: "Send the product fields the bot needs",
+    how: "Each search result goes in as its whole metadata JSON (~390 tokens each). Name, code, price, variants, stock and image are what the reply uses; long descriptions and internal fields are not.",
+    saves: 600, unit: "input tokens", risk: "low — a shorter product block, same facts; watch that photo-matching answers stay as good",
+    work: "trim the JSON in composeReply's context builder" },
+
+  { id: "history", name: "Carry six turns instead of ten",
+    how: "getMemory() reads the last 10 turns. Six covers the ordinary back-and-forth; the order and booking rules carry the rest.",
+    saves: 105, unit: "input tokens", risk: "medium — a long haggling conversation could lose an early detail. Worth testing on real transcripts before changing.",
+    work: "one number in getMemory, and a read of real conversations first" },
+
+  { id: "router", name: "A cheaper model for the simple questions",
+    how: "\"দাম কত\", \"স্টকে আছে?\", \"ডেলিভারি চার্জ?\" are most messages and need no reasoning. gemini-2.5-flash-lite is $0.10/$0.40 against $0.75/$3.75.",
+    saves: 0, unit: "—", risk: "medium — the router must never send a real conversation to the small model; keep photos, orders and bookings on the big one",
+    work: "a router in composeReply plus tests; do this last, after the free wins" },
+];
+
+if (args.has("--levers")) {
+  const base = perMessage("gemini-3.6-flash").text;
+  const p = PRICES["gemini-3.6-flash"];
+  let input = SITES.find((s) => s.id === "bot.chat").in;
+  console.log(`\nCOST LEVERS — one reply starts at ${d(base)} (৳${(base * USD_BDT).toFixed(2)}), ${input} input tokens\n`);
+  let running = base;
+  for (const l of LEVERS) {
+    const saved = (l.saves / 1e6) * p.in;
+    running -= saved;
+    console.log(`  ${pad(l.name, 42)} −${pad(l.saves ? Math.round(l.saves) + " tok" : "model swap", 14)} → ${pad(d(running), 10)} ৳${(running * USD_BDT).toFixed(2)}`);
+    console.log(`     risk: ${l.risk}`);
+  }
+  const routed = running * 0.6 + (running * 0.4) * (0.10 / 0.75);
+  console.log(`\n  after the first four: ${d(running)} (৳${(running * USD_BDT).toFixed(2)}) — ${Math.round((1 - running / base) * 100)}% off`);
+  console.log(`  with the router too:  ${d(routed)} (৳${(routed * USD_BDT).toFixed(2)}) — ${Math.round((1 - routed / base) * 100)}% off`);
+  console.log(`\n  Growth at its limit would fall from ৳13,772 to about ৳${Math.round(13772 * routed / base).toLocaleString("en-IN")} a month.\n`);
+}
