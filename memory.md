@@ -739,6 +739,12 @@ again?"
     (fixed per client); context + who + timeLine + lock + customer message moved
     to the USER turn, so Gemini's implicit cache can reuse the ~2,900-token
     prefix. currentTimeLine() deliberately moved out of the prefix.
+    (3a) PHOTO TURNS keep each product's FULL `visual` description (owner asked
+    whether trimming hurts photo matching): retrieval is a vector search over
+    products.content, which already contains the photo description, so matching
+    is untouched — but the model still has to pick between the 3-4 rows handed
+    to it, and that detail is the tie-breaker. bot.js passes
+    { photo: combined.includes("--- ITEM") }.
     (3) src/lib/prompt-parts.js productForPrompt/productsBlock trims each product
     from ~3,900 chars to ~1,200 (drops visuals/client_id/photo_key/timestamps,
     caps description 300 / visual 160, keeps code, name, both prices, variants,

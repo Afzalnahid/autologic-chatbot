@@ -63,5 +63,23 @@ ok("the block is one product per line", block.split("\n").length === 2);
 ok("each line is valid JSON", block.split("\n").every((l) => { try { JSON.parse(l); return true; } catch { return false; } }));
 ok("an empty search is an empty block", productsBlock([]) === "" && productsBlock() === "");
 
+// A PHOTO TURN KEEPS THE WHOLE DESCRIPTION.
+// Finding the product is a vector search over `content`, which already holds
+// the photo description — the trim cannot change WHICH products come back. But
+// the model still has to pick between the four it was handed, and with two
+// similar items the detail in that description is what separates them.
+{
+  const long = "Matte black cuboid 146 x 70 x 47 mm with ridged side grips, a solar panel on top, a four-level LED percentage display, and four built-in cables. ".repeat(6);
+  const onPhoto = productForPrompt({ product_name: "Powerbank D509", visual: long }, 0.77, { photo: true });
+  const onText = productForPrompt({ product_name: "Powerbank D509", visual: long }, 0.77);
+  ok("a photo turn carries the full description", onPhoto.visual.length > 700 && !onPhoto.visual.endsWith("…"));
+  ok("a text turn carries one line of it", onText.visual.length <= 161);
+  ok("whitespace is tidied either way", !/\s\s|\n/.test(onPhoto.visual));
+  ok("the photo turn still drops the bookkeeping",
+    !("client_id" in productForPrompt({ client_id: "x", product_name: "Y", visual: long }, 0.5, { photo: true })));
+  const block = productsBlock([{ metadata: { product_name: "A", visual: long }, similarity: 0.9 }], { photo: true });
+  ok("productsBlock passes the photo flag through", JSON.parse(block).visual.length > 700);
+}
+
 console.log(fail === 0 ? `${pass} passed, 0 failed` : `${pass} passed, ${fail} FAILED`);
 process.exit(fail === 0 ? 0 : 1);

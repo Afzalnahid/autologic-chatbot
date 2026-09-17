@@ -30,19 +30,36 @@ const DROP = new Set(["client_id", "photo_key", "created_at", "updated_at", "vis
 
 /**
  * One product, as the reply prompt should see it.
+ *
+ * WHEN THE CUSTOMER SENT A PHOTO, KEEP THE WHOLE DESCRIPTION.
+ * Finding the product is a vector search and happens before any of this: the
+ * photo description is part of `content`, which is what was embedded, so the
+ * trim cannot affect which products come back. What the model still has to do
+ * is pick between the three or four it was handed — and with two power banks or
+ * two red sarees in that list, the detail in the photo description ("matte
+ * black, ridged grips, 146 × 70 mm, four built-in cables") is exactly what
+ * separates them. So a photo turn gets the full text and a text turn gets a
+ * line of it. Photos are about one message in eight, so the cost of being
+ * careful here is small.
+ *
  * @param {object} metadata  the row's metadata
  * @param {number} [score]   similarity from the vector search, 0-1
+ * @param {{ photo?: boolean }} [opts]  the customer sent a picture this turn
  */
-export function productForPrompt(metadata, score) {
+export function productForPrompt(metadata, score, opts = {}) {
   const m = metadata && typeof metadata === "object" ? metadata : {};
   const out = {};
   for (const [k, v] of Object.entries(m)) {
     if (DROP.has(k)) continue;
     if (v === null || v === undefined || v === "") continue;
     if (k === "description") { const d = clip(v, DESC_MAX); if (d) out.description = d; continue; }
-    // One short line of what the photo shows: enough for the bot to confirm
-    // "the red one with the gold border", not the whole essay.
-    if (k === "visual") { const d = clip(v, VISUAL_MAX); if (d) out.visual = d; continue; }
+    // A photo turn keeps the whole description (see the note above); a text
+    // turn gets one line — enough to confirm "the red one with the gold border".
+    if (k === "visual") {
+      const d = opts.photo ? String(v).replace(/\s+/g, " ").trim() : clip(v, VISUAL_MAX);
+      if (d) out.visual = d;
+      continue;
+    }
     out[k] = v;
   }
   // The search puts this on every row; the prompt tells the bot not to guess
@@ -51,9 +68,13 @@ export function productForPrompt(metadata, score) {
   return out;
 }
 
-/** The SEARCH RESULTS block, one product per line. */
-export function productsBlock(rows = []) {
+/**
+ * The SEARCH RESULTS block, one product per line.
+ * @param {Array} rows                  what the vector search returned
+ * @param {{ photo?: boolean }} [opts]  the customer sent a picture this turn
+ */
+export function productsBlock(rows = [], opts = {}) {
   return rows
-    .map((p) => JSON.stringify(productForPrompt(p.metadata, typeof p.similarity === "number" ? p.similarity : undefined)))
+    .map((p) => JSON.stringify(productForPrompt(p.metadata, typeof p.similarity === "number" ? p.similarity : undefined, opts)))
     .join("\n");
 }

@@ -899,7 +899,11 @@ export async function composeReply({ clientId, client, bType, senderId, combined
           // explains why. The whole metadata row was ~970 tokens per product,
           // three or four of them on every reply, most of it the photo
           // description that had already done its job building the vector.
-          productsBlock(products)
+          // A photo turn (the vision pass writes "--- ITEM" into the text) keeps
+          // each product's full photo description, because that is what tells
+          // two similar items apart once the search has handed over four of
+          // them. A text turn gets the short form.
+          productsBlock(products, { photo: combined.includes("--- ITEM") })
         : "\n\nSEARCH RESULTS: none found.";
     }
   } catch (e) {
