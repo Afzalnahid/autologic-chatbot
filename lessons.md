@@ -1388,3 +1388,11 @@ notifications. The owner found it.
   account binding; keep the two separate.
 - After a reload the module's in-memory token is gone; persist it (localStorage)
   if logout still needs to un-register it server-side.
+
+## 2026-09-18 — quoted heredocs still eat backslashes here
+Five string literals in bot.js broke the production build with "Unterminated
+string constant": a `<<'EOF'` heredoc fed to node turned every `\n` in the
+JavaScript into a real newline. The syntax check I ran in the same command
+printed ok because the check ran before the write landed. Rule: never carry
+backslash escapes through a heredoc — build them with String.fromCharCode(92),
+or use the Edit tool, and run `node --check` as a separate command afterwards.

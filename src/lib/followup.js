@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase.js";
 import { planActive } from "@/lib/plans.js";
+import { featureGate } from "@/lib/plan-limits.js";
 import { sendBroadcastText, waSendText } from "@/lib/messenger.js";
 import { bufferInsert } from "@/lib/bot.js";
 import { sendableChannels, remainingQuota, WINDOW_HOURS } from "@/lib/broadcast.js";
@@ -58,6 +59,8 @@ export async function runFollowups(client, settings) {
   const cfg = followupConfig(settings);
   if (!cfg.enabled) return { skipped: "disabled" };
   if (!planActive(client)) return { skipped: "plan_inactive" };
+  // Package gate — see FEATURE_DEFS in src/lib/features.js.
+  if (!(await featureGate(client, "followup")).ok) return { skipped: "not_in_package" };
 
   const lastRun = settings?.followup?.last_run_at;
   if (lastRun && Date.now() - new Date(lastRun).getTime() < THROTTLE_MIN * 60 * 1000) {

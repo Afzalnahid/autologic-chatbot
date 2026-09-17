@@ -7,6 +7,7 @@ import { composeReply, botAllowed, bufferInsert, botReplyRows, saveMemory, getCl
 import { rateLimit } from "@/lib/rate-limit.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { originAllowed } from "@/lib/widget.js";
+import { featureGate } from "@/lib/plan-limits.js";
 
 const PLATFORM = "website";
 
@@ -112,6 +113,14 @@ export const POST = withErrors(async (request) => {
 
   const client = block.client || (await getClient(clientId));
   const bType = client?.business_type || "ecommerce";
+
+  // Package gate — see FEATURE_DEFS in src/lib/features.js. Same shape as a
+  // paused bot: the message is saved for the inbox, the visitor gets no reply.
+  const gate = await featureGate(client, "widget");
+  if (!gate.ok) {
+    console.log("[widget] not in package:", { clientId });
+    return NextResponse.json({ items: [], bot: false, off: true }, { headers: head });
+  }
 
   let items;
   try {

@@ -6,7 +6,7 @@ import { T, Card, Btn, Badge, Inp, Select, Switch, useIsMobile, fmtNum } from ".
 import { AREAS, FEATURES as USAGE_FEATURES, featureLabel } from "@/lib/usage-features.js";
 import { limitConflicts, limitMeaning, trialTotal, trialTextMismatch } from "@/lib/limit-conflicts.js";
 import { clampTrialDays, MIN_TRIAL_DAYS, MAX_TRIAL_DAYS } from "@/lib/plans.js";
-import { FEATURE_DEFS } from "@/lib/features.js";
+import { FEATURE_DEFS, AREA_LABELS } from "@/lib/features.js";
 import { perCallRates, packageCost, floorPrice, marginAt } from "@/lib/package-cost.js";
 
 // The package list, in two parts. A shop and a service buy different things, so
@@ -87,7 +87,13 @@ const AREA_INFO = {
 // the client dashboard and the admin drawer show (src/lib/features.js), so the
 // three can never drift. Adding a capability there teaches the whole product to
 // honour it; here it is just the toggle list, in the same order.
-const FEATURES = FEATURE_DEFS.map((d) => [d.key, d.label]);
+// Every switch the product enforces, grouped the way the gates are grouped in
+// src/lib/features.js. Rendered from the registry so a feature cannot exist in
+// the code without appearing here, and cannot appear here without a gate
+// (tests/t-feature-gates.mjs holds the second half).
+const FEATURE_AREAS = Object.keys(AREA_LABELS).map((area) => ({
+  area, label: AREA_LABELS[area], items: FEATURE_DEFS.filter((d) => d.area === area),
+}));
 
 const LIMITS = [
   ["messages_per_day", "Messages / day"],
@@ -1358,11 +1364,24 @@ function PlanForm({ plan, onSave, onCancel, busy, trialDays }) {
     </div>
     <LimitWarnings limits={p} planId={p.id} days={shownDays} />
 
-    <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 8px" }}>What is included</div>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 7 }}>
-      {FEATURES.map(([k, label]) => <Switch key={k} size="sm" label={label}
-        on={p.features?.[k] !== false} onClick={() => setF(k, p.features?.[k] === false)} />)}
+    <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 2px" }}>What is included</div>
+    <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 10, lineHeight: 1.55 }}>
+      Every switch here is enforced: a feature that is off refuses in the dashboard with a message naming this package, and the bot skips it for every client on the package. "Shops" and "services" mark the switches that only mean anything for one kind of business.
     </div>
+    {FEATURE_AREAS.map((g) => <div key={g.area} style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, letterSpacing: ".04em", textTransform: "uppercase", marginBottom: 6 }}>{g.label}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 8 }}>
+        {g.items.map((d) => {
+          const on = p.features?.[d.key] !== false;
+          return <div key={d.key} style={{ padding: "9px 11px", borderRadius: 11, background: T.bgAlt, border: `0.5px solid ${T.border}`, opacity: on ? 1 : .72 }}>
+            <Switch size="sm" label={d.label} on={on} onClick={() => setF(d.key, !on)} />
+            <div style={{ fontSize: 11, color: T.textDim, lineHeight: 1.5, marginTop: 5 }}>
+              {d.biz !== "both" && <span style={{ fontWeight: 700, color: T.textMuted }}>{d.biz === "ecommerce" ? "Shops · " : "Services · "}</span>}{d.what}
+            </div>
+          </div>;
+        })}
+      </div>
+    </div>)}
 
     <label style={{ display: "block", fontSize: 11, color: T.textMuted, marginTop: 14 }}>
       AI models for this package <span style={{ color: T.textDim }}>(main,fallback — empty = platform default)</span>

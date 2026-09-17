@@ -11,6 +11,7 @@
 // never treated as "unlimited" though — an unknown plan id falls back to trial.
 import { supabase } from "@/lib/supabase.js";
 import { PLANS, PAID_PLANS, TRIAL_DAYS, clampTrialDays } from "@/lib/plans.js";
+import { featureOn, gateMessage } from "@/lib/features.js";
 
 const TTL = 60_000;
 let _cache = null;
@@ -101,8 +102,17 @@ export async function limitsFor(client) {
 // feature added to the product later is not silently switched off for everyone
 // until the owner has had a chance to set it per package.
 export function can(limits, key) {
-  const v = limits?.features?.[key];
-  return v === undefined ? true : !!v;
+  return featureOn(limits?.features, key);
+}
+
+// The one question every feature asks before it runs: "does this client's
+// package include me?" Returns { ok } or { ok:false, message } with the
+// sentence the dashboard shows (see gateMessage in features.js). The gate
+// reads the same merged limits as every quota — the plan's switches plus any
+// per-client override — so an exception granted from the admin panel wins.
+export async function featureGate(client, key) {
+  const limits = await limitsFor(client);
+  return { ...gateMessage(limits, key), limits };
 }
 
 export const overLimit = (used, limit) => limit !== null && limit !== undefined && used >= Number(limit);

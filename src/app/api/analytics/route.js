@@ -3,6 +3,7 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
+import { featureGate } from "@/lib/plan-limits.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { nowInDhaka } from "@/lib/time.js";
@@ -94,6 +95,10 @@ function topOf(map, limit) {
 export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Package gate — see FEATURE_DEFS in src/lib/features.js.
+  const gate = await featureGate(client, "analytics");
+  if (!gate.ok) return NextResponse.json({ error: gate.message, feature: "analytics" }, { status: 403 });
 
   const url = new URL(request.url);
   const days = Math.min(Math.max(parseInt(url.searchParams.get("days") || "30", 10) || 30, 7), 90);

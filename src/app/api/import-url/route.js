@@ -6,7 +6,7 @@ import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
 import { extractProductsFromUrl } from "@/lib/gemini.js";
 import { embedMeter } from "@/lib/usage.js";
-import { checkProductQuota, checkScrapeQuota } from "@/lib/plan-limits.js";
+import { checkProductQuota, checkScrapeQuota, featureGate } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
 // One wording for every photo, here and at message time. See products.js.
 import { visionPrompt, buildContent, describeImages } from "@/lib/products.js";
@@ -30,6 +30,9 @@ export async function POST(request) {
     // Two package gates: room for another product, and website imports left
     // this month. Scraping a page is the single most expensive AI call we make,
     // so it is checked before we fetch anything.
+    // Package gate — see FEATURE_DEFS in src/lib/features.js.
+    const gate = await featureGate(client, "website_import");
+    if (!gate.ok) return NextResponse.json({ error: gate.message, feature: "website_import" }, { status: 403 });
     const pq = await checkProductQuota(client);
     if (!pq.ok) return NextResponse.json({ error: pq.message }, { status: 403 });
     const sq = await checkScrapeQuota(client);

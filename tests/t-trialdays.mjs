@@ -21,9 +21,12 @@ const src = readFileSync(__R("src/lib/plan-limits.js"), "utf8")
   .replace(/^import .*from "@\/lib\/supabase\.js";$/m,
     "export let __reply = { data: null, error: null };\nexport const __setReply = (r) => { __reply = r; };\n" +
     "const supabase = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => { if (__reply.throws) throw new Error('down'); return __reply; } }) }) }) };")
-  .replace(/from "@\/lib\/plans\.js";$/m, 'from "./tmp-plans2.mjs";');
+  .replace(/from "@\/lib\/plans\.js";$/m, 'from "./tmp-plans2.mjs";')
+  // features.js is pure (no imports), so the real file is copied beside the test.
+  .replace(/from "@\/lib\/features\.js";$/m, 'from "./tmp-features2.mjs";');
 if (/@\/lib\//.test(src)) throw new Error("an import was left unrewritten — the shim needs updating");
 writeFileSync(new URL("tmp-plans2.mjs", import.meta.url), readFileSync(__R("src/lib/plans.js"), "utf8"));
+writeFileSync(new URL("tmp-features2.mjs", import.meta.url), readFileSync(__R("src/lib/features.js"), "utf8"));
 const at = new URL("tmp-pl2.mjs", import.meta.url);
 writeFileSync(at, src);
 const M = await import(`${at.href}?v=${v}`);

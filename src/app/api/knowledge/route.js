@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
+import { featureGate, checkKbQuota } from "@/lib/plan-limits.js";
 import { supabase } from "@/lib/supabase.js";
 import { ingestFile, deleteFile } from "@/lib/knowledge.js";
 
@@ -33,6 +34,14 @@ export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+    // Package gate — see FEATURE_DEFS in src/lib/features.js.
+    const gate = await featureGate(client, "kb");
+    if (!gate.ok) return NextResponse.json({ error: gate.message, feature: "kb" }, { status: 403 });
+    // The document limit (max_kb_files) existed but nothing called it, so a
+    // package with 0 files still took uploads. Checked here, after the feature.
+    const kq = await checkKbQuota(client, 1);
+    if (!kq.ok) return NextResponse.json({ error: kq.message }, { status: 403 });
 
     const form = await request.formData();
     const file = form.get("file");

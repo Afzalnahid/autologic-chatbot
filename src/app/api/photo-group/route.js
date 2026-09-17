@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
+import { featureGate } from "@/lib/plan-limits.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { getClientAI } from "@/lib/ai.js";
 
@@ -27,6 +28,9 @@ export async function POST(request) {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+    // Package gate — see FEATURE_DEFS in src/lib/features.js.
+    const gate = await featureGate(client, "photo_import");
+    if (!gate.ok) return NextResponse.json({ error: gate.message, feature: "photo_import" }, { status: 403 });
     const rl = rateLimit(`photo-group:${client.id}`, 60, 3600000);
     if (!rl.ok) return tooManyRequests(rl.retryAfter, "You are grouping photos very quickly. Please wait a moment.");
 

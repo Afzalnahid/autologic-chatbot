@@ -4,6 +4,7 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
+import { featureGate } from "@/lib/plan-limits.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { newWidgetKey, normalizeDomain } from "@/lib/widget.js";
 
@@ -41,6 +42,10 @@ export const GET = withErrors(async (request) => {
 export const POST = withErrors(async (request) => {
   const { client, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Package gate — see FEATURE_DEFS in src/lib/features.js.
+  const gate = await featureGate(client, "widget");
+  if (!gate.ok) return NextResponse.json({ error: gate.message, feature: "widget" }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
   const domains = cleanDomains(body.allowed_domains);

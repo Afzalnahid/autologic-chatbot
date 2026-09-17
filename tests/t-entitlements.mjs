@@ -45,9 +45,11 @@ is("null used shows as null, never 0", shapeMeter("p", "P", null, 300), { key: "
 is("zero used is a real 0, not unread", shapeMeter("p", "P", 0, 300), { key: "p", label: "P", used: 0, limit: 300, remaining: 300, unlimited: false, pct: 0 });
 
 // ── FEATURE_DEFS is the single labelled source ───────────────────────────────
-is("FEATURE_DEFS covers all nine capability keys",
+// Thirteen since 2026-09-18: the four dashboard tools joined, and every one
+// of them is enforced (tests/t-feature-gates.mjs holds that half).
+is("FEATURE_DEFS covers all thirteen capability keys",
   FEATURE_DEFS.map((d) => d.key).sort(),
-  ["broadcast", "byok", "calendar", "comments", "followup", "kb", "vision", "voice", "widget"]);
+  ["analytics", "assistant", "broadcast", "byok", "calendar", "comments", "followup", "kb", "photo_import", "vision", "voice", "website_import", "widget"]);
 
 console.log(`${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

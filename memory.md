@@ -730,6 +730,31 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - PACKAGE FEATURE SWITCHES ARE NOW ENFORCED (2026-09-18, owner: "make the
+    feature switch live and connected"). Audit found can() in plan-limits.js was
+    never called: all 9 switches were display-only, and checkKbQuota (the file
+    limit) was never called either. Now: src/lib/features.js is the registry —
+    13 keys (vision, voice, comments, widget, broadcast, followup | kb,
+    photo_import, website_import | assistant, calendar, analytics, byok), each
+    with area, biz and a "what it stops" sentence; featureOn() + gateMessage()
+    pure; plan-limits.js featureGate(client,key) = limitsFor + gateMessage (so a
+    per-client limit_overrides.features wins). Gates: bot.js vision/voice
+    (photo/voice arrive as bare markers, composeReply adds a [NOTE] so the bot
+    asks for text), handleComment; widget/chat (visitor told nothing, like a
+    paused bot); channels/website POST; broadcast POST; followup.js
+    runFollowups; gcal/login (connectFailedPage 403); knowledge POST (+ the file
+    limit, finally); inventory-chat; photo-draft + photo-group; import-url;
+    analytics. byok stays gated by the admin client_ai grant. Admin → Packages
+    renders every switch from FEATURE_DEFS grouped by area with the sentence.
+    tests/t-feature-gates.mjs fails the build if a key has no gate. DB: the 4
+    new keys set true on every plan (nothing changes until the owner flips one);
+    EzPz (svc_starter) and mahadihasan5272 (trial) had comment automation on
+    against a comments:false plan → limit_overrides.features.comments=true so
+    enforcement took nothing away; owner told, can remove. Manual: "A feature
+    that is not in your package" block on the packages page, EN + BN.
+    LESSON: this Bash tool un-escapes backslashes inside quoted heredocs — a
+    "\n" in JS source became a real newline five times; build strings with
+    String.fromCharCode(92) or use the Edit tool.
   - REDUCTION PLAN (node scripts/ai-cost-model.mjs --reduce). Shop Growth at its
     limit after the product trim = ৳16,410/mo. Steps, each on top of the last:
     caching ৳12,670 · shorter output 248→150 ৳11,992 · comment prompt 4,723→1,500

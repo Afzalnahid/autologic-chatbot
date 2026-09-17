@@ -1212,6 +1212,12 @@ export const DOCS = {
         ["Website imports / month", "20", "200", "Unlimited"],
       ] } },
 
+      { h: "A feature that is not in your package",
+        p: [
+          "Every switch in the tables above is real. A feature your package does not include does not run: the button in the dashboard says so — *Photo product matching is not included in your Shop Starter package* — and the bot simply skips it. A customer who sends a photo to a shop without photo matching is asked to type the product name; a voice note where voice is off gets a polite request to type.",
+          "Nothing is taken away from what you already have. Your products, documents and conversations stay; the feature waits for the package that includes it.",
+        ] },
+
       { h: "How a reply is counted",
         p: ["The unit is **one bot reply to one customer message**. Everything else is free:"],
         table: { head: ["What happens", "Counts as"],

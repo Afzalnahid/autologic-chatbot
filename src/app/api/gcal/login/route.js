@@ -1,6 +1,9 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { signState } from "@/lib/oauth-state.js";
+import { supabase } from "@/lib/supabase.js";
+import { featureGate } from "@/lib/plan-limits.js";
+import { connectFailedPage } from "@/lib/connect-page.js";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const SCOPES = [
@@ -14,6 +17,17 @@ export async function GET(request) {
     const { searchParams, origin } = new URL(request.url);
     const clientId = searchParams.get("client_id") || "";
     const redirectUri = `${origin}/api/gcal/callback`;
+
+    // Package gate — see FEATURE_DEFS in src/lib/features.js. The button in the
+    // dashboard is the only way here, so the answer is the same page a failed
+    // connection shows, not a bare error.
+    if (clientId) {
+      const { data: client } = await supabase.from("clients").select("id, plan, limit_overrides").eq("id", clientId).maybeSingle();
+      if (client) {
+        const gate = await featureGate(client, "calendar");
+        if (!gate.ok) return connectFailedPage({ platform: "gcal", status: 403, reason: gate.message, eyebrow: "Not in your package" });
+      }
+    }
 
     const url =
       "https://accounts.google.com/o/oauth2/v2/auth?" +

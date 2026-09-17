@@ -13,9 +13,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 const src = readFileSync(__R("src/lib/plan-limits.js"), "utf8")
   .replace(/^import .*from "@\/lib\/supabase\.js";$/m,
     "export let __db = {};\nexport const __setDb = (d) => { __db = d; };\nconst supabase = { from: (t) => __db[t] };")
-  .replace(/from "@\/lib\/plans\.js";$/m, 'from "./tmp-plans3.mjs";');
+  .replace(/from "@\/lib\/plans\.js";$/m, 'from "./tmp-plans3.mjs";')
+  // features.js is pure (no imports), so the real file is copied beside the test.
+  .replace(/from "@\/lib\/features\.js";$/m, 'from "./tmp-features3.mjs";');
 if (/@\/lib\//.test(src)) throw new Error("an import was left unrewritten — the shim needs updating");
 writeFileSync(new URL("tmp-plans3.mjs", import.meta.url), readFileSync(__R("src/lib/plans.js"), "utf8"));
+writeFileSync(new URL("tmp-features3.mjs", import.meta.url), readFileSync(__R("src/lib/features.js"), "utf8"));
 const at = new URL("tmp-pl3.mjs", import.meta.url);
 writeFileSync(at, src);
 const M = await import(`${at.href}?v=${Date.now()}`);

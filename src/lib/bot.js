@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
 import { chatWithGemini, UNCLEAR_AUDIO } from "@/lib/gemini.js";
 import { productsBlock } from "@/lib/prompt-parts.js";
-import { limitsFor, messageAllowance, quotaWindowStart } from "@/lib/plan-limits.js";
+import { limitsFor, messageAllowance, quotaWindowStart, can } from "@/lib/plan-limits.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
@@ -957,7 +957,17 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     // as well — the language lock was already proven to work better there.
     // Measured on a real catalogue the stable part is ~2,900 tokens, past
     // Gemini's 2,048-token minimum for caching.
-    const turn = context + who + timeLine + lock +
+    // A photo or a voice note the package does not read arrives as a bare
+    // marker (see processConversation). The model is told, so it asks the
+    // customer to type rather than answering a picture it never saw.
+    const unread =
+      (/📷 Photo/.test(combined) && !combined.includes("--- ITEM")
+        ? "\n\n[NOTE] The customer sent a photo that could not be read on this account. Do not describe or guess it; ask them politely, in their language, to type the product name or code."
+        : "") +
+      (/🎤 Voice message/.test(combined)
+        ? "\n\n[NOTE] The customer sent a voice note that could not be transcribed on this account. Do not guess what it said; ask them politely, in their language, to type their message."
+        : "");
+    const turn = context + who + unread + timeLine + lock +
       "\n\n[CUSTOMER MESSAGE]\n" + combined + `\n\n[Reply in ${lang} only.]`;
     raw = await aiFor.chat(systemPrompt + rules, [...history, { role: "user", content: turn }]);
   } catch (e) {
@@ -1374,6 +1384,14 @@ export async function handleIncoming(event) {
   let content = event.text || "";
   let attachments = null;
   let voiceUnclear = false;
+  // Package gates for the two calls that cost money before the bot has even
+  // decided whether to answer — see FEATURE_DEFS in src/lib/features.js. Read
+  // once here; the client row is fetched again by botAllowed() below, but that
+  // runs after these calls would already have been paid for.
+  const gateClient = await getClient(clientId);
+  const gateLimits = gateClient ? await limitsFor(gateClient) : null;
+  const visionOn = !gateLimits || can(gateLimits, "vision");
+  const voiceOn = !gateLimits || can(gateLimits, "voice");
   // Which key answers for this client — the platform's, or their own (BYOK).
   // The channel travels with it, so a photograph or a voice note read here is
   // billed to the channel it arrived on rather than to the client in general.
@@ -1383,7 +1401,9 @@ export async function handleIncoming(event) {
 
   // Voice notes — Facebook/Instagram hand us a CDN url, WhatsApp a media id
   // that needs the channel token. Both end in the same transcription.
-  if (event.audio || (event.audioId && channel.platform === "whatsapp")) {
+  if (!voiceOn && (event.audio || (event.audioId && channel.platform === "whatsapp"))) {
+    content = `🎤 Voice message${event.text ? `\n${event.text}` : ""}`;
+  } else if (event.audio || (event.audioId && channel.platform === "whatsapp")) {
     let transcript = "";
     try {
       if (event.audio) {
@@ -1401,7 +1421,10 @@ export async function handleIncoming(event) {
     content = transcript ? `🎤 ${transcript}${event.text ? `\n${event.text}` : ""}` : (event.text || "");
   }
 
-  if (event.mediaId && channel.platform === "whatsapp") {
+  if (event.mediaId && channel.platform === "whatsapp" && !visionOn) {
+    content = content ? `${content}\n📷 Photo` : "📷 Photo";
+    attachments = "whatsapp-media";
+  } else if (event.mediaId && channel.platform === "whatsapp") {
     try {
       const meta = await fetch(`https://graph.facebook.com/v24.0/${event.mediaId}`, { headers: { Authorization: `Bearer ${channel.access_token}` } }).then(r => r.json());
       if (meta.url) {
@@ -1416,7 +1439,10 @@ export async function handleIncoming(event) {
     } catch (e) { console.error("wa media:", e.message); }
   }
 
-  if (event.images.length) {
+  if (event.images.length && !visionOn) {
+    attachments = event.images.join(",");
+    content = content ? `${content}\n📷 Photo` : "📷 Photo";
+  } else if (event.images.length) {
     attachments = event.images.join(",");
     const parts = [];
     for (let i = 0; i < event.images.length; i++) {
@@ -1542,6 +1568,13 @@ export async function handleComment(event) {
   const replyOn = channel.comment_reply_enabled !== false;
   const dmOn = channel.comment_dm_enabled !== false;
   if (!replyOn && !dmOn) return;
+
+  // Package gate — see FEATURE_DEFS in src/lib/features.js. A package without
+  // comment automation leaves the comment exactly as it is: no reply, no DM,
+  // and nothing recorded, so it can be answered by hand.
+  const commentClient = await getClient(channel.client_id);
+  const commentLimits = commentClient ? await limitsFor(commentClient) : null;
+  if (!commentLimits || !can(commentLimits, "comments")) return;
 
   // Dedupe — Facebook can deliver the same comment more than once.
   const { error: dupErr } = await sb().from("processed_comments")
