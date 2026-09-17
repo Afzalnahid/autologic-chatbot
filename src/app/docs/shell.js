@@ -1,4 +1,5 @@
 import { P, THEME_CSS } from "@/lib/landing.js";
+import PublicFonts from "../public-fonts.js";
 import { BotMark } from "@/lib/brand.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { PAGES, GROUPS } from "@/lib/docs/index.js";
@@ -17,7 +18,6 @@ import DocsAuthButton from "./auth-button.js";
 // Only the search box is a client component; everything else is plain HTML.
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
   ${THEME_CSS}
   /* The sideways clip belongs on <html>, never on <body>. "overflow-x: hidden"
      on body makes body a scroll container (its overflow-y computes to auto),
@@ -193,6 +193,7 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
   return (
     <div className={bn ? "bn" : ""} style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: bn ? "'Anek Bangla', sans-serif" : "Inter, system-ui, sans-serif" }}>
+      <PublicFonts />
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <nav style={{ position: "sticky", top: 0, zIndex: 5, background: `color-mix(in srgb, ${P.paper} 88%, transparent)`,

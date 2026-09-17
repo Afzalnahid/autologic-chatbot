@@ -1,4 +1,5 @@
 import { P, THEME_CSS } from "@/lib/landing.js";
+import PublicFonts from "./public-fonts.js";
 import { BotMark } from "@/lib/brand.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { COMPANY, COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
@@ -23,7 +24,6 @@ import { COMPANY, COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 // so any page that renders an element with this id gets a working toggle.
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
   ${THEME_CSS}
   /* The sideways clip goes on html, never on body: overflow-x hidden on body
      turns body into a scroll container and every sticky thing inside it then
@@ -129,6 +129,7 @@ export default function SiteShell({ eyebrow, title, lead, updated, children }) {
   return (
     <div style={{ background: P.paper, minHeight: "100vh", color: P.ink,
       fontFamily: "Inter, system-ui, sans-serif" }}>
+      <PublicFonts />
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <nav style={{ position: "sticky", top: 0, zIndex: 5, borderBottom: `1px solid ${P.line}`,

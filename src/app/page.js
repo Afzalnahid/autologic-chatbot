@@ -1,4 +1,5 @@
 import Script from "next/script";
+import PublicFonts from "./public-fonts.js";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
 import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
 import { BotMark } from "@/lib/brand.js";
@@ -200,8 +201,8 @@ export default function Home({ searchParams }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{
         __html: JSON.stringify(siteJsonLd(lang)).replace(/</g, "\\u003c") }} />
       {/* Theme boot lives in the root layout (a script here never executes). */}
+      <PublicFonts />
       <style dangerouslySetInnerHTML={{__html:`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Anek+Bangla:wght@400;600;700&display=swap');
         ${THEME_CSS}
         /* The sideways clip goes on <html>, never on <body>: "overflow-x:
            hidden" on body quietly turns body into a scroll container, and the
