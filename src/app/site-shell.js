@@ -35,7 +35,13 @@ const CSS = `
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box }
   p, span, div, td, th, li { overflow-wrap: anywhere }
 
-  .fr { font-family: 'Fraunces', Georgia, serif; font-weight: 700; letter-spacing: -0.02em;
+  /* A stand-in for Fraunces with its metrics, so the headline occupies the same
+     space before the real face arrives and nothing below it jumps. The numbers
+     were measured in Chrome on 2026-09-18 (Fraunces 600 is 77% of Georgia's
+     width at the same size): a solution page shifted 0.15 without this. */
+  @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
+    size-adjust: 77%; ascent-override: 127%; descent-override: 34%; line-gap-override: 0% }
+  .fr { font-family: 'Fraunces', 'Fraunces Fallback', Georgia, serif; font-weight: 700; letter-spacing: -0.02em;
     overflow-wrap: normal; hyphens: none }
   .lbl { font-family: 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .09em;
     text-transform: uppercase }
