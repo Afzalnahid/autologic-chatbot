@@ -730,6 +730,34 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - THE SEVEN AUDIT FINDINGS FIXED (2026-09-18, owner: "now fix those things, i
+    agree with your decision", 796e6b1). NEW src/lib/revenue.js (pure, 33 checks
+    in tests/t-revenue.mjs): clientRevenue() bills only the DAYS a package was
+    live, at the price that client actually pays (byok_monthly when they hold a
+    key), and returns a `reason` for internal / suspended / trial / no_plan /
+    expired_before / free; receivedRevenue() sums APPROVED payment_requests
+    dated paid_at ?? reviewed_at ?? created_at; revenueSummary() gives billed,
+    received, outstanding and an excluded-count map.
+    Route returns `revenue: {billed_bdt, received_bdt, payments, outstanding_bdt,
+    excluded, never_paid}` + per-client revenue_reason/revenue_partial/internal/
+    own_key. PROFIT IS NOW COMPUTED ON MONEY RECEIVED, not on billed.
+    Money tab: "Money in" + "Billed" replace "Revenue"; new <RevenueTruth> card
+    explains the gap and who is excluded; new <FixedCosts> card takes the four
+    dollar amounts ("Save what I pay") or a one-press "They really are ৳0"
+    (settings.fixed_costs_confirmed_at) — until then the stat reads "Profit
+    before hosting". ExchangeRate shows a dormant typed rate ("your ৳126.00 is
+    saved but switched off"); NOT enabled for him, it moves every figure 2.3%.
+    Accuracy card names orphan usage (deleted clients) so totals vs Per client
+    no longer disagree silently.
+    DB (docs/sql/2026-09-18-revenue-truth.sql, APPLIED): clients.internal bool
+    (+ admin switch "Internal account — never invoiced"), Autologic System set
+    internal=true; model_prices row gemini-3-flash-preview 0.75/3.75 VERIFIED on
+    ai.google.dev/gemini-api/docs/pricing 2026-09-18 (same as the model it
+    previews; doubles 2027-01-01 like 3.6-flash). That page also confirms
+    context caching = $0.075/1M for 3.6-flash, i.e. our CACHED_RATE 0.10.
+    New POST actions: save_costs, confirm_fixed_costs, set_internal.
+    STILL THE OWNER'S: the package prices/caps (4 of 6 lose money), whether to
+    switch the ৳126 rate on, and typing the real hosting bills.
   - PACKAGES & COSTS TAB AUDITED (2026-09-18, owner: "audit the full package and
     costing tab and give me a proper breakdown"). Report artifact:
     https://claude.ai/artifact/8U7ymZesdLLqLzny4u6w87
