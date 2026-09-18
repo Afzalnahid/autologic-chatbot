@@ -588,6 +588,7 @@ function ApiUsage({ d, rate, isMobile }) {
   const withUsage = rows.filter((c) => (c.calls || 0) > 0).length;
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <CostWork d={d} rate={rate} />
     <Accuracy d={d} rate={rate} />
 
     {/* The three-way split, whole platform */}
@@ -916,6 +917,77 @@ function FeatureCosts({ byFeature, totalCost, rate, days }) {
       style={{ marginTop: 10, background: "none", border: "none", padding: 0, color: T.gold, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
       {open ? "Show fewer" : `Show all ${rows.length}`}
     </button>}
+  </Card>;
+}
+
+// Did the cost work actually work?
+//
+// Two changes shipped on 2026-09-18 to make a reply cheaper: the prompt was
+// reordered and trimmed, and it was shaped so Gemini can reuse its fixed front
+// half at a tenth of the price. Neither could be measured that day, because no
+// customer had messaged a bot since the 10th — and a saving nobody has measured
+// is a plan, not a saving. This card is the measurement, in one place, so the
+// question "is it working?" is a glance instead of a database query.
+//
+// The baseline is what a reply cost before: 7,426 tokens of input, ৳0.78.
+const BASE_IN = 7426, BASE_REPLY_BDT = 0.779;
+
+function CostWork({ d, rate }) {
+  const t = d.totals || {};
+  const chat = t.by_feature?.["bot.chat"];
+  const calls = Number(chat?.calls) || 0;
+  const tin = Number(chat?.tokensIn) || 0;
+  const cached = Number(chat?.tokensCached) || 0;
+  const rates = perCallRates(t.by_feature || {});
+  const nowIn = calls ? tin / calls : null;
+  const nowCost = Number.isFinite(rates["bot.chat"]) ? rates["bot.chat"] * rate : null;
+  const hit = tin > 0 ? cached / tin : 0;
+
+  // Three states, and they mean different things. "No replies" is not "not
+  // working" — saying so would send the owner looking for a bug that is not
+  // there.
+  const state = calls === 0 ? "quiet" : cached > 0 ? "working" : "nocache";
+  const TONE = { quiet: T.textDim, nocache: T.warn, working: T.success };
+  const ICON = { quiet: "ti-zzz", nocache: "ti-alert-triangle", working: "ti-circle-check" };
+  const HEAD = {
+    quiet: "No replies in this window, so there is nothing to measure",
+    nocache: "Replies are being measured — but none of the prompt is being reused yet",
+    working: "It is working",
+  };
+
+  const Row = ({ k, now, was, note }) => <div style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "8px 0", borderTop: `1px solid ${T.border}` }}>
+    <span style={{ fontSize: 12.5, color: T.textMuted, flex: "1 1 auto", minWidth: 0 }}>{k}
+      {note && <span style={{ display: "block", fontSize: 10.5, color: T.textDim, marginTop: 1, lineHeight: 1.5 }}>{note}</span>}</span>
+    {was && <span style={{ fontSize: 11.5, color: T.textDim, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", textDecoration: "line-through" }}>{was}</span>}
+    <span style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", minWidth: 72, textAlign: "right" }}>{now}</span>
+  </div>;
+
+  return <Card style={{ borderColor: state === "working" ? `color-mix(in srgb, ${T.success} 40%, transparent)` : state === "nocache" ? `color-mix(in srgb, ${T.warn} 40%, transparent)` : T.border }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+      <i className={`ti ${ICON[state]}`} style={{ fontSize: 17, color: TONE[state] }} />
+      <div style={{ fontSize: 14, fontWeight: 700 }}>Is the cost work paying off?</div>
+    </div>
+    <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7 }}>{HEAD[state]}</div>
+
+    {calls > 0 && <div style={{ marginTop: 10 }}>
+      <Row k="One reply, in tokens" note={`${num(calls)} replies measured in this window`}
+        was={num(BASE_IN)} now={num(Math.round(nowIn))} />
+      <Row k="Reused from the cache" note="charged at a tenth of the rate"
+        now={`${Math.round(hit * 100)}%`} />
+      <Row k="What one reply costs" note="the answer itself, without the photo or the search"
+        was={bdtFine(BASE_REPLY_BDT)} now={nowCost === null ? "—" : bdtFine(nowCost)} />
+      {nowCost !== null && <div style={{ marginTop: 9, fontSize: 12.5, color: nowCost < BASE_REPLY_BDT ? T.success : T.warn, lineHeight: 1.6 }}>
+        {nowCost < BASE_REPLY_BDT
+          ? <>Down <b>{Math.round((1 - nowCost / BASE_REPLY_BDT) * 100)}%</b> from before. On 10,000 replies a month that is {bdt((BASE_REPLY_BDT - nowCost) * 10000)} saved.</>
+          : <>No cheaper than before. The prompt is still going up at full size.</>}
+      </div>}
+    </div>}
+
+    <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${T.border}`, fontSize: 11.5, color: T.textDim, lineHeight: 1.7 }}>
+      {state === "working"
+        ? <>Gemini reuses the fixed front of the prompt while the same client keeps talking. The share moves with how busy a page is — a quiet page lets the cache expire between messages, so a low number on a quiet week is not a fault.</>
+        : <><b style={{ color: T.textMuted }}>To measure it:</b> send <b style={{ color: T.textMuted }}>8 to 10 messages</b> to one connected page <b style={{ color: T.textMuted }}>within a few minutes</b> — text, a photo and a voice note between them. The first reply can never be reused; it is the one that fills the cache. Messages spread over hours will not show it, because the cache expires between them. Then come back to this card.</>}
+    </div>
   </Card>;
 }
 

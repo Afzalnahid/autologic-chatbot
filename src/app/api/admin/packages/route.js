@@ -269,6 +269,10 @@ export async function GET(request) {
     totals: {
       calls: totals.calls, tokens: totals.tokens,
       tokens_in: totals.tokensIn, tokens_out: totals.tokensOut,
+      // How much of the input Gemini reused at a tenth of the price. 0 means
+      // the repeated part of the prompt is not being reused — which is a
+      // prompt-shape problem, not a billing one, and the panel says so.
+      tokens_cached: totals.tokensCached, cache_hit_rate: totals.cacheHitRate,
       ai_cost_usd: totals.platformCost,
       own_key_cost_usd: totals.clientKeyCost,
       by_kind: totals.byKind,
