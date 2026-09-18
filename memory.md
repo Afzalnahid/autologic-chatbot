@@ -730,6 +730,27 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - MODEL CHAIN CORRECTED (2026-09-18, cdfe6ef, owner: "check which models are
+    used" then "do this"). WAS: platform_ai.model_chain =
+    "gemini-2.5-flash,gemini-3-flash-preview" (set 2026-08-25). REALITY: 665 of
+    the last 700 calls ran on gemini-3.6-flash, which was in NEITHER list — it
+    was only reached via the built-in last-resort MODEL_CHAIN in gemini.js, so
+    nearly every reply paid THREE failed round trips first. gemini-3-flash-preview
+    answered 5 calls on 2026-08-24 and nothing since.
+    gemini-2.5-flash quits after ~9 calls/day (09-01: 9 calls then stop; 09-11:
+    3 calls then 155 on 3.6) — reads like a FREE-TIER ceiling. Owner: "i will
+    add the paid key before launch, this is no issue". So today's ৳ figures are
+    forecast-at-paid-rates, not a bill.
+    NOW both lists lead with gemini-3.6-flash, then gemini-2.5-flash: the DB row
+    (no deploy) and the code default in gemini.js + .env.example.
+    KEY STRUCTURAL FACT: the admin panel's chain reaches chatWithGemini ONLY.
+    analyzeImage / transcribeAudio / product.catalog walk gemini.js MODEL_CHAIN,
+    which the panel cannot set. generateEmbedding is hard-wired to
+    gemini-embedding-001 (CLAUDE.md invariant) and is not in either chain.
+    No plan and no client has its own model_chain. tests/t-gemini.mjs +6.
+    WHEN THE PAID KEY LANDS: re-check whether gemini-2.5-flash stops quitting —
+    its input is 0.30 vs 0.75, so it becomes a real 2.5x saving on a model the
+    platform already ran. Owner has said KEEP THE MODEL AS IT IS for now.
   - EVERY PACKAGE NOW CARRIES EVERY FEATURE (2026-09-18, a9e4a85, owner: "all
     features should be same for all packages and the main difference will be
     reply amount, channel amount"). Four capabilities used to be withheld by
