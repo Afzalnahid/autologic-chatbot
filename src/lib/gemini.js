@@ -17,7 +17,15 @@ function getGenAI(apiKey) {
 // that hit the primary model's daily free-tier cap died with it. The bot must
 // never depend on one id again: each call walks this list until one answers.
 // Override without a deploy by setting GEMINI_MODELS to a comma-separated list.
-export const MODEL_CHAIN = (process.env.GEMINI_MODELS || "gemini-2.5-flash,gemini-3.6-flash")
+//
+// ORDER MATTERS, and it is not only about fallback. The admin panel's chain
+// reaches chatWithGemini and nothing else — a photo read, a voice note and the
+// batch product namer all walk THIS list. It led with gemini-2.5-flash until
+// 2026-09-18, and that model was answering about nine calls a day before its
+// quota bit, so every photo on a busy day paid a failed round trip before the
+// model that actually answers got asked. The list now leads with the one that
+// has served 665 of the last 700 calls.
+export const MODEL_CHAIN = (process.env.GEMINI_MODELS || "gemini-3.6-flash,gemini-2.5-flash")
   .split(",").map(s => s.trim()).filter(Boolean);
 const PRIMARY_MODEL = MODEL_CHAIN[0];
 

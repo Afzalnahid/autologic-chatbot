@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { loadPure } from "./shim.mjs";
+import { readFileSync } from "node:fs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const G = join(here, "..", "src", "lib", "gemini.js");
@@ -104,6 +105,40 @@ eq("null entries are skipped", geminiTurns([null, { role: "user", content: "x" }
 // An unknown role is treated as the customer, never as the model — a stray
 // value must not be able to put the assistant first and break the request.
 eq("an unknown role counts as user", geminiTurns([{ role: "system", content: "x" }]), [u("x")]);
+
+// ── The model chain, and the order it is tried in ──────────────────────────
+//
+// The admin panel's chain reaches chatWithGemini and NOTHING else: reading a
+// photo, transcribing a voice note and naming a batch of products all walk
+// MODEL_CHAIN here. Until 2026-09-18 it led with gemini-2.5-flash, which was
+// answering about nine calls a day before its quota bit — so on a busy day
+// every photo paid a failed round trip before the model that actually answers
+// got asked. What is held here is that the list leads with a model that works
+// and that the documented default does not drift from the code's.
+{
+  const src = readFileSync(G, "utf8");
+  const m = src.match(/process\.env\.GEMINI_MODELS \|\| "([^"]+)"/);
+  ok("there is a built-in chain", !!m);
+  const chain = (m ? m[1] : "").split(",").map((x) => x.trim()).filter(Boolean);
+
+  ok("it names more than one model", chain.length >= 2, chain);
+  ok("no id repeats", new Set(chain).size === chain.length, chain);
+  // A preview id is the first thing Google retires; gemini-3-flash-preview sat
+  // in the platform chain for three weeks having answered nothing since the day
+  // it was set.
+  ok("no preview model is relied on", chain.every((id) => !/preview/i.test(id)), chain);
+  ok("every id looks like a Gemini chat model", chain.every((id) => /^gemini-[\d.]+-/.test(id)), chain);
+  ok("embeddings are not in the chat chain", chain.every((id) => !/embedding/i.test(id)), chain);
+
+  // The comment above the constant says which way round it goes; .env.example
+  // shows the same list to anyone setting it by hand. Those two drifting apart
+  // is how the wrong model ends up first.
+  const env = readFileSync(join(here, "..", ".env.example"), "utf8");
+  const doc = env.match(/^#\s*GEMINI_MODELS=(.+)$/m);
+  ok("the example env documents the variable", !!doc);
+  ok("and documents the same order the code defaults to",
+    doc && doc[1].trim() === chain.join(","), doc ? doc[1].trim() : "");
+}
 
 console.log(fail === 0
   ? `${pass} passed, 0 failed`
