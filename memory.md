@@ -769,6 +769,16 @@ again?"
     (4) comment replies are counted only when the inbox DM is on — with DM off
     each costs ৳0.42 and counts nothing (bot.js comment path, reply_turn only
     on the DM row).
+    SWEEP v3 (same day, owner: "bot off but messages still captured"): all 18
+    AI call sites are metered (onUsage/getClientAI) — the gap is limits, not
+    measurement. NEW HOLES: (5) handleIncoming in bot.js runs vision/voice on
+    every customer photo/voice note BEFORE botAllowed — so paused channel,
+    manual chat, expired plan or over-quota still spend AI, uncounted. Broker's
+    BD 60d: 1,355 customer msgs, 768 agent, 96 bot replies, 292 vision calls.
+    (6) every product photo is read separately (up to 12 per product, ~৳0.18
+    each); product edits re-embed. With these, 3.6-flash steady month: Basic
+    71%, Pro 81%, Enterprise 92% (first month 119% = loss); 2.5-flash 32/37/42%.
+    Owner replies (saveAgentTurn) use no AI. Sheet GwxvQSCumEUFAY6c5p6Gya v3.
   - DEBOUNCE WINDOW: NOT CHANGED, and deliberately (2026-09-18). The owner asked
     why two messages 23s apart got two replies. Raising DEBOUNCE_QUIET_MS (5s)
     would slow EVERY single-message reply by the same amount. The real fix was
