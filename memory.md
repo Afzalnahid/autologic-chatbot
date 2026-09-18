@@ -730,6 +730,40 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - FOUR PACKAGES SHIPPED (2026-09-18, 1a3710e, owner: "do everything point
+    wise"). Trial / Basic ৳1,999 / Pro ৳4,999 / Enterprise ৳9,999, ids
+    trial|basic|pro|enterprise, ALL biz="both". Replies 90(3d) / 2,000 / 5,500 /
+    12,000. Channels 1/2/3/3. Products 20/500/1500/null, docs 2/25/150/null,
+    scrapes 5/20/100/null, broadcasts 2/10/40/null. byok 1499/3499/6999.
+    The capacity row is read as PRODUCTS by a shop and DOCUMENTS by a service —
+    that is what collapses six rows into three. Overage ৳0.60/reply is ADVERTISED
+    but NOT BUILT (no metering/billing for it yet).
+    OLD SIX ARE public=false, active=TRUE — off the pricing page, still live for
+    Broker's BD (shop_growth), EzPz (svc_starter), Autologic (svc_growth). They
+    stay in PAID_PLANS or messageAllowance reads them as "no plan" and the bots
+    stop. docs/sql/2026-09-18-four-packages.sql.
+    COSTED FROM TODAY'S MEASUREMENT, not a forecast: at 100% use Basic is 57% of
+    price, Pro 64%. Gross ~৳1,302/client/month on a 60/35/5 mix; break-even 7
+    clients; 100 clients ≈ ৳13.9 lakh/year.
+  - HOSTING COSTS FILLED IN AND CONFIRMED (2026-09-18). Vercel = **hobby ($0)**
+    and Supabase = **free ($0)**, both read from their APIs, not guessed. Resend
+    free tier $0; domain $1.17/mo. billing.fixed_costs_confirmed_at set, so the
+    admin card stops asking and "Profit" is the right word again.
+    TWO RISKS TO RAISE BEFORE LAUNCH: Vercel's Hobby plan forbids COMMERCIAL use,
+    and Supabase Free pauses after a week idle and caps at 500MB. Both need
+    upgrading before paying clients arrive.
+  - DEBOUNCE WINDOW: NOT CHANGED, and deliberately (2026-09-18). The owner asked
+    why two messages 23s apart got two replies. Raising DEBOUNCE_QUIET_MS (5s)
+    would slow EVERY single-message reply by the same amount. The real fix was
+    2d13942 (supersededBy): the effective combining window is now 5s + compose
+    time, measured at ~29s on the test burst, which already covers it.
+  - MODEL STILL 3.6-flash, ON PURPOSE (2026-09-18). 2.5-flash is 2.6x cheaper
+    (৳0.19 vs ৳0.49 measured on the same conversation today) and its cache floor
+    is 2,048 vs 4,096 — so caching only works there. NOT switched: on the free
+    key 2.5-flash rate-limits after a handful of calls, so putting it first would
+    put a failed round trip in front of every reply. DO IT AFTER THE PAID KEY:
+    one line, Admin → AI Engine, chain to "gemini-2.5-flash,gemini-3.6-flash".
+    Worth ~৳12 lakh/year at 100 clients.
   - MODEL CHAIN CORRECTED (2026-09-18, cdfe6ef, owner: "check which models are
     used" then "do this"). WAS: platform_ai.model_chain =
     "gemini-2.5-flash,gemini-3-flash-preview" (set 2026-08-25). REALITY: 665 of
