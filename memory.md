@@ -730,6 +730,55 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - PACKAGES & COSTS TAB AUDITED (2026-09-18, owner: "audit the full package and
+    costing tab and give me a proper breakdown"). Report artifact:
+    https://claude.ai/artifact/8U7ymZesdLLqLzny4u6w87
+    FIVE WRONG NUMBERS, all under-stating cost, fixed in 6003e05:
+      1. "What one customer message costs you" = WHOLE bill ÷ customer messages
+         (1,433) instead of bot cost ÷ replies (99). ৳0.14 shown vs ৳1.20 true.
+         Replaced by PerReplyCost, which also breaks a reply into answer /
+         search / photo / voice and shows photos-per-reply (1.9, measured).
+      2. CostPlanner read by_kind: kind "chat" mixes a real reply (7,426 tok)
+         with bot.tag (93 tok), language, catalog, assistant. $0.0035 vs
+         $0.0063. package-cost.js gained replyRates()/replyTokens() reading
+         by_feature; the panel uses them. 3,000 replies: ৳1,389 → ৳2,493.
+      3. Rate card assumed 3,000 in/250 out per reply → measured 7,426/235.
+         gemini-3.6-flash ৳392 → ৳794 per 1,000 replies, and it says the size.
+      4. Embedding model quoted "per 1,000 replies" at reply size → now per
+         1,000 SEARCHES at the measured 34 tokens. ৳137 → ৳1.
+      5. summarise() kept tokensCached only in the grand total, so the
+         per-model "check the arithmetic" table would stop adding up once
+         caching works. Cached now in every bucket + its own column.
+    tests/t-reply-cost.mjs (23) + t-usage bucket shape updated.
+    MEASURED BOOK, 30d to 2026-09-18 (rate 123.11): total $1.59067 = ৳196.
+      bot $1.43277 (90.1%) · catalogue $0.13224 · platform $0.00846 ·
+      legacy $0.01721. bot.chat 153 calls @ $0.006327; bot.vision 295 @
+      $0.001364; bot.voice 36 @ $0.000472; bot.embed 159 @ $0.0000051.
+      Reply = 7,426 tok in / 235 out. 1,433 customer msgs, 99 billable
+      replies, 819 AGENT replies (humans answered 93%).
+    PACKAGE ECONOMICS AT THAT COST (typical=55% / full):
+      Starter ৳1,500 → ৳1,361 / ৳2,444 (+9% / −63%), floor ৳4,600
+      Growth  ৳3,500 → ৳6,716 / ৳12,130 (−92% / −247%), floor ৳22,400
+      Scale   ৳6,000 → ৳22,088 / ৳40,135 (−268% / −569%), floor ৳73,700
+      Trial 90 replies → ৳71 / ৳104. Shop vs Service differ <1%.
+      => FOUR OF SIX PACKAGES LOSE MONEY. Recommendation stands: cut the
+      CAPS (1,500 / 4,000 / 7,000 + ৳1 overage), not raise the price.
+    OWNER-SIDE DATA PROBLEMS (reported, deliberately NOT changed):
+      · payment_requests is EMPTY — ৳8,500/30d "Revenue" is assumed from the
+        plan column; ৳0 has ever been received. All 3 paid accounts hand-set.
+      · platform_costs all 0 (vercel/supabase/resend/domain) → Profit inflated.
+      · Nothing resets clients.plan on expiry, so an expired plan keeps
+        counting as revenue. Broker's BD expired 2026-09-19.
+      · Autologic System is comped to 2029 yet adds ৳3,500/mo (41% of revenue).
+      · settings.usd_bdt = 126 typed but usd_bdt_manual is OFF → market 123.11
+        is what runs.
+      · gemini-3-flash-preview has no model_prices row (5 calls at fallback).
+      · usage_daily rows for deleted client 93963074-… (8 calls, 7,162 tok):
+        in the total, in nobody's per-client row.
+    UNVERIFIED: no bot.chat traffic since 2026-09-10, so the prompt trim AND
+    caching are both unmeasured; tokens_cached = 0 everywhere means "has not
+    run", not "broken". reply_turn only started 2026-09-08, so bot replies
+    before that read as 0 (80 rows) — self-corrects after 2026-10-08.
   - THE UNIT IS "BOT REPLIES", SAID SO EVERYWHERE (2026-09-18, owner asked of
     the trial bullet: "30 customer per day or 30 replies per day?"). It is 30
     BOT REPLIES — message-usage.js counts role=bot AND reply_turn=true, one per

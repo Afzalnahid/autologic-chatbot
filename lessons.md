@@ -1419,3 +1419,14 @@ one decision has to reach. Second: a guard written against the exact words of th
 bug it just fixed is half a guard. My first test banned the FAQ's sentence and
 missed a footnote three lines away saying the same thing in different words; the
 test now bans the shape of the claim.
+
+## 2026-09-18 — a cost panel averaged two different things and called it one
+Every per-call rate in the admin costing tab came from `by_kind`, and "kind" says
+what sort of call it was, not who asked. A customer reply carrying the catalogue
+(7,426 tokens) sat in the same average as auto-tagging (93 tokens), so the number
+the packages were priced against read 45% low. Two rules. First: an average is
+only meaningful over things that are the same kind of thing — when a bucket holds
+both the product and its plumbing, split it before dividing. Second: an
+assumption written as a literal in a formula (3,000 tokens a reply, 30 a day)
+ages into a lie, and nobody re-reads a formula. Measure it, or read it from the
+one place that holds it.
