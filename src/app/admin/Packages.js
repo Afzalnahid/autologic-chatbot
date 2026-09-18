@@ -932,6 +932,20 @@ function FeatureCosts({ byFeature, totalCost, rate, days }) {
 // The baseline is what a reply cost before: 7,426 tokens of input, ৳0.78.
 const BASE_IN = 7426, BASE_REPLY_BDT = 0.779;
 
+// Gemini reuses a repeated PREFIX at a tenth of the rate, but only once that
+// prefix passes a floor, and the floor differs by model — read off
+// ai.google.dev/gemini-api/docs/caching on 2026-09-18. This is the fact that
+// decides whether caching can happen at all, so it is named rather than left
+// as folklore: on 2026-09-18 the trim took a reply to ~4,500 tokens IN TOTAL,
+// which put the fixed part of it comfortably under 3.6-flash's 4,096 floor —
+// the trim and the cache were pulling against each other.
+const CACHE_FLOOR = { "gemini-3.8-flash": 4096, "gemini-3.7-flash": 4096, "gemini-3.6-flash": 4096,
+  "gemini-3.5-flash": 4096, "gemini-3.1-pro-preview": 4096, "gemini-2.5-flash": 2048, "gemini-2.5-pro": 2048 };
+const floorFor = (chain) => {
+  const first = String(chain || "").split(",")[0].trim();
+  return CACHE_FLOOR[first] ?? null;
+};
+
 function CostWork({ d, rate }) {
   const t = d.totals || {};
   const chat = t.by_feature?.["bot.chat"];
@@ -946,6 +960,7 @@ function CostWork({ d, rate }) {
   // Three states, and they mean different things. "No replies" is not "not
   // working" — saying so would send the owner looking for a bug that is not
   // there.
+  const floor = floorFor(d.platform_model_chain);
   const state = calls === 0 ? "quiet" : cached > 0 ? "working" : "nocache";
   const TONE = { quiet: T.textDim, nocache: T.warn, working: T.success };
   const ICON = { quiet: "ti-zzz", nocache: "ti-alert-triangle", working: "ti-circle-check" };
@@ -986,6 +1001,14 @@ function CostWork({ d, rate }) {
     <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${T.border}`, fontSize: 11.5, color: T.textDim, lineHeight: 1.7 }}>
       {state === "working"
         ? <>Gemini reuses the fixed front of the prompt while the same client keeps talking. The share moves with how busy a page is — a quiet page lets the cache expire between messages, so a low number on a quiet week is not a fault.</>
+        // Only the FIXED front of a request can be reused, and it is a fraction
+        // of the whole. So the test is not "is the request under the floor" —
+        // on 2026-09-18 the request was 4,491 against a floor of 4,096 and the
+        // prefix still had no chance. A request under roughly twice the floor
+        // cannot have a prefix that reaches it.
+        : state === "nocache" && floor && nowIn !== null && nowIn < floor * 2
+        ? <><b style={{ color: T.warn }}>The prompt is too small to qualify.</b> Gemini only reuses a repeated front section once it passes <b style={{ color: T.textMuted }}>{num(floor)} tokens</b> on this model, and a whole reply here is only {num(Math.round(nowIn))} in total — of which just the fixed front can be reused, and that part is smaller again. Trimming the prompt and caching it pull against each other: the cheaper the prompt gets, the less of it qualifies.
+            {" "}Two ways out, and both are real: grow the fixed front on purpose with content worth sending every time, or run on a model with a lower floor — gemini-2.5-flash needs {num(CACHE_FLOOR["gemini-2.5-flash"])}, and costs less per token besides.</>
         : <><b style={{ color: T.textMuted }}>To measure it:</b> send <b style={{ color: T.textMuted }}>8 to 10 messages</b> to one connected page <b style={{ color: T.textMuted }}>within a few minutes</b> — text, a photo and a voice note between them. The first reply can never be reused; it is the one that fills the cache. Messages spread over hours will not show it, because the cache expires between them. Then come back to this card.</>}
     </div>
   </Card>;
