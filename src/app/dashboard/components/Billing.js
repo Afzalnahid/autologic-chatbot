@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { T, Card, Btn, Inp, Badge, PLAN_META, PLAN_LIST, taka, shortDate } from "./ui.js";
 import { api } from "./session.js";
 import { priceForClient } from "@/lib/plans.js";
+import UsageMeters from "./UsageMeters.js";
 
 // The Billing tab, moved out of dashboard-client.js unchanged.
 
@@ -140,6 +141,13 @@ export default function Billing({initialPlan,initialCycle}) {
         </div>}
       </div>}
       {!limit&&d.active&&<div style={{fontSize:12.5,color:T.success,marginTop:14}}><i className="ti ti-infinity" style={{marginRight:5}}/>Unlimited messages on this plan</div>}
+      {/* Everything else the package counts — products and documents added,
+          AI Assistant questions, channels, broadcasts, website imports — with
+          what is left, under the package it belongs to. Bot replies are shown
+          above, so they are not repeated here. */}
+      {d.entitlements?.meters?.length>0&&<div style={{marginTop:20,paddingTop:16,borderTop:`1px solid ${T.border}`}}>
+        <UsageMeters meters={d.entitlements.meters.filter(m=>m.key!=="messages")} period={d.entitlements.period}/>
+      </div>}
     </Card>
 
     {/* On their own AI key → the reduced price list. Neutral styling on purpose:

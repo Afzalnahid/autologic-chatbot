@@ -392,6 +392,7 @@ export async function POST(request) {
       max_kb_files: int(p.max_kb_files),
       max_scrapes_per_month: int(p.max_scrapes_per_month),
       max_broadcasts_per_month: int(p.max_broadcasts_per_month),
+      max_assistant_per_month: int(p.max_assistant_per_month),
       features: p.features || {},
       feature_list: Array.isArray(p.feature_list) ? p.feature_list : [],
       model_chain: p.model_chain ? String(p.model_chain).slice(0, 120) : null,
@@ -512,7 +513,8 @@ export async function POST(request) {
     const plan = (await loadPlans())[cl?.plan] || {};
     const clean = {};
     for (const k of ["messages_per_day", "messages_per_month", "messages_per_channel", "channels",
-                     "max_products", "max_kb_files", "max_scrapes_per_month", "max_broadcasts_per_month"]) {
+                     "max_products", "max_kb_files", "max_scrapes_per_month", "max_broadcasts_per_month",
+                     "max_assistant_per_month"]) {
       const raw = overrides ? overrides[k] : undefined;
       if (raw === "" || raw === null || raw === undefined) continue;   // empty = follow the package
       const v = int(raw);

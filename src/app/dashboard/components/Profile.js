@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Inp, Badge, Select } from "./ui.js";
+import UsageMeters from "./UsageMeters.js";
 import { api, getSb, setAuthToken, apiJson } from "./session.js";
 import PushToggle from "./PushToggle.js";
 
@@ -20,21 +21,6 @@ function Row({k,v}) {
 // One metered allowance as a used/remaining bar. Unlimited shows "∞" and no
 // bar; an unread count shows "—", never 0. Bar tone matches the Billing and
 // admin usage bars (green healthy → amber → red), the app's usage convention.
-function PlanMeter({ m }) {
-  const unread = m.used === null || m.used === undefined;
-  const tone = m.pct === null ? T.textDim : m.pct >= 90 ? T.danger : m.pct >= 70 ? T.warn : T.success;
-  return <div style={{marginBottom:10}}>
-    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
-      <span style={{color:T.textMuted}}>{m.label}</span>
-      <span><b>{unread?"—":m.used.toLocaleString("en-IN")}</b><span style={{color:T.textDim}}> / {m.unlimited?"∞":Number(m.limit).toLocaleString("en-IN")}</span></span>
-    </div>
-    <div style={{height:5,background:T.bgAlt,borderRadius:3,overflow:"hidden"}}>
-      <div style={{height:"100%",width:m.pct===null?0:`${Math.min(100,m.pct)}%`,background:tone,borderRadius:3}}/>
-    </div>
-    {!m.unlimited&&!unread&&<div style={{fontSize:10.5,color:T.textDim,marginTop:3}}>{m.remaining.toLocaleString("en-IN")} left</div>}
-  </div>;
-}
-
 export default function Profile() {
   const [p,setP]=useState(null);
   const [editing,setEditing]=useState(false);
@@ -180,8 +166,7 @@ export default function Profile() {
           {/* Every metered allowance with how much is used and how much is left,
               plus the capability features — from the one shared assembler, so
               this matches exactly what the admin sees for this account. */}
-          <div style={{fontSize:12.5,fontWeight:600,margin:"14px 0 8px"}}>Usage this {bill.entitlements.period}</div>
-          {bill.entitlements.meters.map((m)=><PlanMeter key={m.key} m={m}/>)}
+          <div style={{margin:"14px 0 4px"}}><UsageMeters meters={bill.entitlements.meters} period={bill.entitlements.period}/></div>
           <div style={{fontSize:12.5,fontWeight:600,margin:"14px 0 8px"}}>What's included</div>
           {/* Neutral on/off — mint is reserved for "bot is live". */}
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(150px,100%),1fr))",gap:"6px 14px",marginBottom:4}}>

@@ -12,6 +12,7 @@
 import { supabase } from "@/lib/supabase.js";
 import { PLANS, PAID_PLANS, TRIAL_DAYS, clampTrialDays } from "@/lib/plans.js";
 import { featureOn, gateMessage } from "@/lib/features.js";
+import { addVerdict, addRefusal } from "@/lib/allowance.js";
 
 const TTL = 60_000;
 let _cache = null;
@@ -35,7 +36,7 @@ function fromConstant() {
       messages_per_channel: null,
       channels: p.channels ?? 1,
       max_products: null, max_kb_files: null,
-      max_scrapes_per_month: null, max_broadcasts_per_month: null,
+      max_scrapes_per_month: null, max_broadcasts_per_month: null, max_assistant_per_month: null,
       features: {}, feature_list: p.features || [], model_chain: null,
       highlight: !!p.highlight, active: true, public: true, sort: 0,
     };
@@ -92,6 +93,7 @@ export async function limitsFor(client) {
     maxKbFiles: pick("max_kb_files") ?? null,
     maxScrapesPerMonth: pick("max_scrapes_per_month") ?? null,
     maxBroadcastsPerMonth: pick("max_broadcasts_per_month") ?? null,
+    maxAssistantPerMonth: pick("max_assistant_per_month") ?? null,
     features: { ...(plan.features || {}), ...(ov.features || {}) },
     // A client-specific chain beats the package's, which beats the platform default.
     modelChain: client?.model_chain || pick("model_chain") || null,
@@ -173,22 +175,64 @@ export async function messageAllowance(client) {
 // them to the billing page for nothing.
 const COUNT_FAILED = "We could not check your package limit just now. Please try again in a moment.";
 
-// How many products this account may still add.
+// How many products this account may still add — counted as ADDS this month
+// and as what is in the catalogue (see allowance.js for the rule and why).
 export async function checkProductQuota(client, adding = 1) {
+  return checkAddQuota(client, adding, { kind: "product", table: "products", max: "maxProducts", noun: "products" });
+}
+
+// Adds this window from allowance_events (written by a database trigger on every
+// insert, whichever route made it), plus the current catalogue size.
+export async function addsThisWindow(client, kind) {
+  const { count, error } = await supabase.from("allowance_events")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", client.id).eq("kind", kind).gte("created_at", quotaWindowStart(client));
+  return error ? null : (count || 0);
+}
+
+async function checkAddQuota(client, adding, { kind, table, max: maxKey, noun }) {
   const limits = await limitsFor(client);
-  const max = limits.maxProducts;
+  const max = limits[maxKey];
   if (max === null || max === undefined) return { ok: true, limits };
-  const { count, error } = await supabase.from("products")
-    .select("id", { count: "exact", head: true }).eq("client_id", client.id);
+  const [added, storedQ] = await Promise.all([
+    addsThisWindow(client, kind),
+    supabase.from(table).select("id", { count: "exact", head: true }).eq("client_id", client.id),
+  ]);
   // A failed count used to read as zero, which passes every limit. A quota that
   // fails OPEN is a quota that does not exist on the day the database hiccups,
   // and nothing anywhere would have said so. It fails closed, and says why.
-  if (error) return { ok: false, limits, message: COUNT_FAILED };
-  const used = count || 0;
-  if (used + adding > Number(max)) {
+  if (added === null || storedQ.error) return { ok: false, limits, message: COUNT_FAILED };
+  const v = addVerdict({ max, added, stored: storedQ.count || 0, adding });
+  if (!v.ok) {
+    return { ok: false, used: v.used, limit: v.limit, limits,
+      message: addRefusal(v, { planName: limits.planName, noun, trial: client?.plan === "trial" }) };
+  }
+  return { ok: true, used: added, limit: max, limits };
+}
+
+// AI Assistant questions this window, counted from the metering table (feature
+// "product.assistant"), the same rows the cost report reads. Before 2026-09-19
+// the assistant had no monthly limit at all, only 80 an hour.
+export async function assistantUsed(client) {
+  const { data, error } = await supabase.from("usage_daily").select("calls")
+    .eq("client_id", client.id).eq("feature", "product.assistant")
+    .gte("day", String(quotaWindowStart(client)).slice(0, 10)).limit(2000);
+  return error ? null : (data || []).reduce((n, r) => n + (r.calls || 0), 0);
+}
+
+export async function checkAssistantQuota(client) {
+  const limits = await limitsFor(client);
+  const max = limits.maxAssistantPerMonth;
+  if (max === null || max === undefined) return { ok: true, limits };
+  const used = await assistantUsed(client);
+  if (used === null) return { ok: false, limits, message: COUNT_FAILED };
+  if (used >= Number(max)) {
+    const n = Number(max).toLocaleString("en-IN");
     return {
       ok: false, used, limit: max, limits,
-      message: `Your ${limits.planName} package includes ${Number(max).toLocaleString("en-IN")} products and you already have ${used.toLocaleString("en-IN")}. Remove some, or upgrade for more room.`,
+      message: client?.plan === "trial"
+        ? `Your ${limits.planName} includes ${n} AI Assistant questions and you have asked ${used.toLocaleString("en-IN")}. Choose a package to ask more.`
+        : `Your ${limits.planName} package includes ${n} AI Assistant questions a month and you have asked ${used.toLocaleString("en-IN")}. It resets on the 1st, or upgrade for more.`,
     };
   }
   return { ok: true, used, limit: max, limits };
@@ -345,20 +389,7 @@ export async function checkBroadcastQuota(client) {
   return { ok: true, used, limit: max, limits };
 }
 
-// Knowledge-base documents.
+// Knowledge-base documents — the same add rule as products.
 export async function checkKbQuota(client, adding = 1) {
-  const limits = await limitsFor(client);
-  const max = limits.maxKbFiles;
-  if (max === null || max === undefined) return { ok: true, limits };
-  const { count, error } = await supabase.from("file_registry")
-    .select("id", { count: "exact", head: true }).eq("client_id", client.id);
-  if (error) return { ok: false, limits, message: COUNT_FAILED };
-  const used = count || 0;
-  if (used + adding > Number(max)) {
-    return {
-      ok: false, used, limit: max, limits,
-      message: `Your ${limits.planName} package includes ${Number(max).toLocaleString("en-IN")} knowledge documents and you already have ${used.toLocaleString("en-IN")}. Remove one, or upgrade for more.`,
-    };
-  }
-  return { ok: true, used, limit: max, limits };
+  return checkAddQuota(client, adding, { kind: "document", table: "file_registry", max: "maxKbFiles", noun: "knowledge documents" });
 }

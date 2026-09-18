@@ -100,10 +100,11 @@ const LIMITS = [
   ["messages_per_month", "Bot replies / month"],
   ["messages_per_channel", "Bot replies / channel / month"],
   ["channels", "Channels allowed"],
-  ["max_products", "Products"],
-  ["max_kb_files", "Knowledge files"],
+  ["max_products", "Products added / month"],
+  ["max_kb_files", "Knowledge files added / month"],
   ["max_scrapes_per_month", "Website scrapes / month"],
   ["max_broadcasts_per_month", "Broadcasts / month"],
+  ["max_assistant_per_month", "AI Assistant questions / month"],
 ];
 
 // Five message boxes, and not all five are live at once — see limit-conflicts.js.

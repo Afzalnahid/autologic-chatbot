@@ -8,7 +8,7 @@
 // the USAGE half (one cheap count per meter) and the single assembler the API
 // routes call.
 import { supabase } from "@/lib/supabase.js";
-import { limitsFor, quotaWindowStart, WIDGET_PLATFORM } from "@/lib/plan-limits.js";
+import { limitsFor, quotaWindowStart, WIDGET_PLATFORM, addsThisWindow, assistantUsed } from "@/lib/plan-limits.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { featureList, shapeMeter } from "@/lib/features.js";
@@ -32,10 +32,13 @@ export async function usageMeters(client, limits) {
     supabase.from(table).select("id", { count: "exact", head: true }).eq("client_id", client.id)
       .then((r) => (r.error ? null : (r.count || 0))));
 
-  const [messages, products, documents, channelRows, broadcasts, scrapeRows] = await Promise.all([
+  const [messages, products, documents, productAdds, documentAdds, asked, channelRows, broadcasts, scrapeRows] = await Promise.all([
     soft(countBillableMessages(client.id, msgSince)),
     biz === "ecommerce" ? countOf("products") : Promise.resolve(null),
     biz === "agency" ? countOf("file_registry") : Promise.resolve(null),
+    biz === "ecommerce" ? soft(addsThisWindow(client, "product")) : Promise.resolve(null),
+    biz === "agency" ? soft(addsThisWindow(client, "document")) : Promise.resolve(null),
+    soft(assistantUsed(client)),
     soft(supabase.from("channels").select("platform,page_id").eq("client_id", client.id).limit(500)
       .then((r) => (r.error ? null : r.data))),
     soft(supabase.from("broadcasts").select("id", { count: "exact", head: true })
@@ -56,8 +59,12 @@ export async function usageMeters(client, limits) {
     // different — and larger — number than the one being spent.
     shapeMeter("messages", "Bot replies", messages, trial ? limits.messagesPerDay : limits.messagesPerMonth),
   ];
-  if (biz === "ecommerce") meters.push(shapeMeter("products", "Products", products, limits.maxProducts));
-  if (biz === "agency") meters.push(shapeMeter("documents", "Knowledge documents", documents, limits.maxKbFiles));
+  // Products and documents are counted as ADDS (allowance.js): every add uses
+  // one and a delete does not give it back. `stored` rides along so the panel
+  // can also say how many are in the catalogue now.
+  if (biz === "ecommerce") meters.push({ ...shapeMeter("products", "Products added", productAdds, limits.maxProducts), stored: products });
+  if (biz === "agency") meters.push({ ...shapeMeter("documents", "Documents added", documentAdds, limits.maxKbFiles), stored: documents });
+  meters.push(shapeMeter("assistant", "AI Assistant questions", asked, limits.maxAssistantPerMonth));
   meters.push(shapeMeter("channels", "Channels", channelsUsed, limits.channels));
   meters.push(shapeMeter("broadcasts", "Broadcasts", broadcasts, limits.maxBroadcastsPerMonth));
   meters.push(shapeMeter("scrapes", "Website imports", scrapesUsed, limits.maxScrapesPerMonth));

@@ -305,6 +305,21 @@ first.
 `checkScrapeQuota` in `plan-limits.js` reads this table (`kind = 'scrape'`) rather
 than keeping its own counter — one source of truth, nothing to drift.
 
+### `allowance_events` — every product and document ADDED
+
+One row per insert into `products` (kind `product`) or `file_registry` (kind
+`document`), written by the AFTER INSERT triggers `products_allowance` and
+`file_registry_allowance` — never by application code, so every way a product
+gets in (add form, photo import, CSV/Shopify/WooCommerce, website import, the
+AI Assistant) is counted by the same row. Deleting a product does not delete
+its row: the package number is how many a client may ADD in the month
+(owner's rule, 2026-09-19), read by `checkProductQuota` / `checkKbQuota` via
+`addsThisWindow()` and shown as "Products added" / "Documents added" on the
+client's Billing and Profile meters. RLS on, no policies: server only.
+Migration: `docs/sql/2026-09-19-allowance-meters.sql` (also adds
+`plans.max_assistant_per_month`, the monthly AI Assistant allowance, counted
+from `usage_daily` rows with feature `product.assistant`).
+
 ### `model_prices` — what the AI costs us
 `provider`, `model` (composite key), `input_per_1m`, `output_per_1m`, `updated_at`.
 A `__default__` row per provider is the fallback so a brand-new model id still

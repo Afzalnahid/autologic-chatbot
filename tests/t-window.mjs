@@ -17,7 +17,9 @@ const src = readFileSync(__R("src/lib/plan-limits.js"), "utf8")
   .replace(/^import .*from "@\/lib\/supabase\.js";$/m, "const supabase = { from: () => ({}) };")
   .replace(/from "@\/lib\/plans\.js";$/m, 'from "./tmp-plans.mjs";')
   // features.js is pure (no imports), so the real file is copied beside the test.
-  .replace(/from "@\/lib\/features\.js";$/m, 'from "./tmp-features.mjs";');
+  .replace(/from "@\/lib\/features\.js";$/m, 'from "./tmp-features.mjs";')
+  // allowance.js is pure (no imports), so the real file is imported where it lives.
+  .replace(/from "@\/lib\/allowance\.js";$/m, 'from "../src/lib/allowance.js";');
 if (/@\/lib\//.test(src)) throw new Error("an import was left unrewritten — the shim needs updating");
 writeFileSync(new URL("tmp-plans.mjs", import.meta.url), readFileSync(__R("src/lib/plans.js"), "utf8"));
 writeFileSync(new URL("tmp-features.mjs", import.meta.url), readFileSync(__R("src/lib/features.js"), "utf8"));
