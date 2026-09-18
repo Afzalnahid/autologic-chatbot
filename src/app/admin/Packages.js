@@ -178,11 +178,19 @@ export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
   // ignore the market rate the moment one existed.
   const rate = Number(d.fx?.rate) || Number(d.settings?.usd_bdt) || 120;
   const t = d.totals || {};
-  const revenue = (d.clients || []).reduce((n, c) => n + Number(c.revenue_bdt || 0), 0);
+  // BILLED is what the live packages are worth over this window; RECEIVED is
+  // money that actually arrived. They used to be one number, called Revenue,
+  // and it was the first — computed from the plan column even for an expired,
+  // suspended or comped account. See src/lib/revenue.js.
+  const rev = d.revenue || {};
+  const billed = Number(rev.billed_bdt || 0);
+  const received = Number(rev.received_bdt || 0);
   const aiCostBdt = Number(t.ai_cost_usd || 0) * rate;
   const fixedBdt = Number(t.fixed_window_usd || 0) * rate;
-  const profit = revenue - aiCostBdt - fixedBdt;
-  const margin = revenue > 0 ? (profit / revenue) * 100 : NaN;
+  // Profit is worked out on money RECEIVED. Counting an invoice nobody has
+  // paid as profit is how a business runs out of cash while the screen is green.
+  const profit = received - aiCostBdt - fixedBdt;
+  const margin = received > 0 ? (profit / received) * 100 : NaN;
 
   const TABS = [
     { id: "money", label: "Money", icon: "ti-report-money" },
@@ -213,7 +221,7 @@ export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
       <i className={`ti ${msg.ok ? "ti-check" : "ti-alert-circle"}`} />{msg.text}
     </Card>}
 
-    {tab === "money" && <Money d={d} rate={rate} revenue={revenue} aiCostBdt={aiCostBdt} fixedBdt={fixedBdt} profit={profit} margin={margin} isMobile={isMobile} />}
+    {tab === "money" && <Money d={d} rate={rate} billed={billed} received={received} aiCostBdt={aiCostBdt} fixedBdt={fixedBdt} profit={profit} margin={margin} isMobile={isMobile} post={post} busy={busy} />}
     {tab === "usage" && <ApiUsage d={d} rate={rate} isMobile={isMobile} />}
     {tab === "clients" && <PerClient d={d} rate={rate} post={post} busy={busy} isMobile={isMobile} />}
     {tab === "packages" && <PlanEditor d={d} post={post} busy={busy} isSuper={isSuper} rate={rate} setMsg={setMsg} />}
@@ -222,7 +230,7 @@ export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
 }
 
 // ── Money ───────────────────────────────────────────────────────────────────
-function Money({ d, rate, revenue, aiCostBdt, fixedBdt, profit, margin, isMobile }) {
+function Money({ d, rate, billed, received, aiCostBdt, fixedBdt, profit, margin, isMobile, post, busy }) {
   const t = d.totals || {};
   const Stat = ({ label, value, sub, color }) => <Card style={{ flex: "1 1 170px", minWidth: 0 }}>
     <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 1, color: T.textDim, marginBottom: 5 }}>{label}</div>
@@ -232,14 +240,26 @@ function Money({ d, rate, revenue, aiCostBdt, fixedBdt, profit, margin, isMobile
 
   const kinds = Object.entries(t.by_kind || {});
   const KIND_LABEL = { chat: "Replies", vision: "Photo matching", voice: "Voice notes", embed: "Search & indexing", scrape: "Website scraping" };
+  const rev = d.revenue || {};
+  const outstanding = Number(rev.outstanding_bdt || 0);
+  // Four fixed costs sitting at zero is not the same as four costs that ARE
+  // zero, and "Profit" is only the right word once the owner has said which.
+  const fixedKnown = !(t.fixed_unset || []).length || !!t.fixed_confirmed_at;
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-      <Stat label={`Revenue · ${d.days}d`} value={bdt(revenue)} sub="Active packages, pro-rated" />
+      <Stat label={`Money in · ${d.days}d`} value={bdt(received)}
+        sub={rev.payments ? `${num(rev.payments)} verified payment${rev.payments === 1 ? "" : "s"}` : "No payment verified yet"}
+        color={received > 0 ? T.text : T.warn} />
+      <Stat label="Billed" value={bdt(billed)} sub={outstanding > 0 ? `${bdt(outstanding)} not collected` : "All collected"} />
       <Stat label="AI cost" value={bdt(aiCostBdt)} sub={`${usd(t.ai_cost_usd)} · metered`} color={T.warn} />
-      <Stat label="Fixed cost" value={bdt(fixedBdt)} sub="Hosting, database, email" color={T.warn} />
-      <Stat label="Profit" value={bdt(profit)} sub={`Margin ${pct(margin)}`} color={profit >= 0 ? T.success : T.danger} />
+      <Stat label={fixedKnown ? "Profit" : "Profit before hosting"} value={bdt(profit)}
+        sub={received > 0 ? `Margin ${pct(margin)} · on money in` : "Nothing has come in"}
+        color={profit >= 0 ? T.success : T.danger} />
     </div>
+
+    <RevenueTruth d={d} billed={billed} received={received} rate={rate} />
+    <FixedCosts d={d} rate={rate} post={post} busy={busy} />
 
     <Card>
       <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>Where the AI money goes</div>
@@ -271,6 +291,120 @@ function Money({ d, rate, revenue, aiCostBdt, fixedBdt, profit, margin, isMobile
 
     <CostPlanner d={d} rate={rate} />
   </div>;
+}
+
+// Why "billed" and "money in" are different numbers.
+//
+// The panel had one figure called Revenue and it was neither: it read the
+// `plan` column of every client and multiplied by the package price, so an
+// expired package, a suspended account and the owner's own company all counted
+// as income. On a platform where not one payment had ever been recorded it
+// reported ৳8,500 a month. Now both are shown, and the gap is explained rather
+// than left for the owner to find.
+const REVENUE_REASON = {
+  internal: ["Internal accounts", "Never invoiced — your own company, demos"],
+  suspended: ["Suspended", "Not charged while suspended"],
+  no_plan: ["No package", "Signed up, never bought"],
+  trial: ["On the free trial", "Costs you money, pays nothing — by design"],
+  expired_before: ["Expired", "The package ran out before this window"],
+  free: ["Free package", "Priced at zero"],
+};
+
+function RevenueTruth({ d, billed, received, rate }) {
+  const rev = d.revenue || {};
+  const excluded = rev.excluded || {};
+  const rows = Object.entries(excluded).filter(([, n]) => n > 0);
+  const partial = (d.clients || []).filter((c) => c.revenue_partial).length;
+  const outstanding = Number(rev.outstanding_bdt || 0);
+  if (!rows.length && !partial && outstanding <= 0 && received > 0) return null;
+
+  return <Card style={{ borderColor: rev.never_paid ? `color-mix(in srgb, ${T.warn} 45%, transparent)` : T.border }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+      <i className={`ti ${rev.never_paid ? "ti-alert-triangle" : "ti-receipt"}`} style={{ fontSize: 17, color: rev.never_paid ? T.warn : T.textMuted }} />
+      <div style={{ fontSize: 14, fontWeight: 700 }}>Billed is not the same as paid</div>
+    </div>
+
+    {rev.never_paid
+      ? <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7 }}>
+          <b style={{ color: T.warn }}>No payment has ever been recorded.</b> Every paid package on this platform was switched on by hand, so
+          {" "}<b style={{ color: T.text }}>{bdt(billed)}</b> is what those packages are worth over {d.days} days — not money you have.
+          It becomes real income when a client submits a payment and you approve it in <b style={{ color: T.textMuted }}>Payments</b>.
+        </div>
+      : <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7 }}>
+          <b style={{ color: T.text }}>{bdt(received)}</b> came in over {d.days} days against <b style={{ color: T.text }}>{bdt(billed)}</b> billed.
+          {outstanding > 0 && <> That leaves <b style={{ color: T.warn }}>{bdt(outstanding)}</b> billed and not collected.</>}
+        </div>}
+
+    {!!(rows.length || partial) && <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+      <div style={{ fontSize: 11, color: T.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 7 }}>Who is not in the billed figure</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {rows.map(([key, n]) => {
+          const [label, why] = REVENUE_REASON[key] || [key, ""];
+          return <div key={key} style={{ flex: "1 1 190px", minWidth: 0, background: T.bgAlt, borderRadius: 11, padding: "9px 11px" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600 }}>{label} <span style={{ color: T.gold }}>{num(n)}</span></div>
+            <div style={{ fontSize: 10.5, color: T.textDim, marginTop: 2, lineHeight: 1.5 }}>{why}</div>
+          </div>;
+        })}
+        {partial > 0 && <div style={{ flex: "1 1 190px", minWidth: 0, background: T.bgAlt, borderRadius: 11, padding: "9px 11px" }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600 }}>Part of the window <span style={{ color: T.gold }}>{num(partial)}</span></div>
+          <div style={{ fontSize: 10.5, color: T.textDim, marginTop: 2, lineHeight: 1.5 }}>The package expired part-way, so only those days are billed</div>
+        </div>}
+      </div>
+    </div>}
+  </Card>;
+}
+
+// The four bills that are not AI, and the difference between "zero" and "never
+// filled in". Four zeroes made "Profit" mean "profit before hosting", which is
+// not what the word says — so the panel asks once, and stops asking.
+const FIXED_HINT = {
+  vercel: "What Vercel charges each month for hosting",
+  supabase: "The database plan",
+  resend: "Sending email to you and your clients",
+  domain: "tellmoreai.com and anything else billed yearly, divided by twelve",
+};
+
+function FixedCosts({ d, rate, post, busy }) {
+  const t = d.totals || {};
+  const unset = t.fixed_unset || [];
+  const confirmed = !!t.fixed_confirmed_at;
+  const [vals, setVals] = useState(() => Object.fromEntries((d.platform_costs || []).map((c) => [c.id, String(c.monthly_usd ?? "")])));
+  if (!unset.length || confirmed) return null;
+
+  const rows = (d.platform_costs || []).filter((c) => unset.includes(c.id));
+  const box = { width: 96, background: T.card, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit" };
+
+  return <Card style={{ borderColor: `color-mix(in srgb, ${T.warn} 45%, transparent)` }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+      <i className="ti ti-server-cog" style={{ fontSize: 17, color: T.warn }} />
+      <div style={{ fontSize: 14, fontWeight: 700 }}>{rows.length} fixed cost{rows.length === 1 ? " is" : "s are"} still ৳0</div>
+    </div>
+    <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7, marginBottom: 11 }}>
+      Until these are real, the figure above is profit <i>before</i> hosting. Type what you pay each month in US dollars — or, if you genuinely pay nothing because you are on free plans, say so once and this card goes away.
+    </div>
+
+    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+      {rows.map((c) => <label key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ flex: "1 1 170px", minWidth: 0, fontSize: 12.5 }}>{c.label}
+          <span style={{ display: "block", fontSize: 10.5, color: T.textDim, lineHeight: 1.5 }}>{FIXED_HINT[c.id] || c.note}</span>
+        </span>
+        <span style={{ fontSize: 12, color: T.textDim }}>$</span>
+        <input type="number" min="0" step="0.01" value={vals[c.id] ?? ""} placeholder="0"
+          onChange={(e) => setVals((v) => ({ ...v, [c.id]: e.target.value }))} style={box} />
+        <span style={{ fontSize: 11.5, color: T.textDim, minWidth: 74 }}>{bdt((Number(vals[c.id]) || 0) * rate)}/mo</span>
+      </label>)}
+    </div>
+
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+      <Btn gold small disabled={busy}
+        onClick={() => post({ action: "save_costs", costs: rows.map((c) => ({ id: c.id, monthly_usd: Number(vals[c.id]) || 0 })) })}>
+        Save what I pay
+      </Btn>
+      <Btn small disabled={busy} onClick={() => post({ action: "confirm_fixed_costs" })}>
+        They really are ৳0
+      </Btn>
+    </div>
+  </Card>;
 }
 
 // What one REPLY costs — the number a package is priced against.
@@ -793,6 +927,7 @@ function Accuracy({ d, rate }) {
   const unpriced = t.unpriced || [];
   const guessed = unpriced.reduce((n, m) => n + Number(m.cost || 0), 0);
   const legacy = Number(t.by_area?.unattributed?.cost || 0);
+  const orphan = t.orphan && Number(t.orphan.calls) > 0 ? t.orphan : null;
   const exact = Math.max(0, total - guessed);
   const exactPct = total > 0 ? (exact / total) * 100 : 100;
   const clean = !unpriced.length && !legacy;
@@ -823,6 +958,16 @@ function Accuracy({ d, rate }) {
     {legacy > 0 && <div style={{ marginTop: 9, fontSize: 11.5, color: T.textDim, lineHeight: 1.6 }}>
       <i className="ti ti-clock-hour-4" style={{ marginRight: 5 }} />
       {bdtFine(legacy * rate)} was recorded before calls started naming themselves, so it sits under <b style={{ color: T.textMuted }}>Not attributed</b>. That figure stops growing from today.
+    </div>}
+
+    {/* Usage belonging to a client who has since been deleted. The money was
+        really spent, so it stays in the platform total — but it is in nobody's
+        per-client row, and a total that does not equal the sum of its parts is
+        the kind of thing that quietly destroys trust in the whole screen. */}
+    {!!orphan && <div style={{ marginTop: 9, fontSize: 11.5, color: T.textDim, lineHeight: 1.6 }}>
+      <i className="ti ti-user-off" style={{ marginRight: 5 }} />
+      {bdtFine(Number(orphan.cost_usd) * rate)} across {num(orphan.calls)} calls belongs to {num(orphan.clients)} deleted client{orphan.clients === 1 ? "" : "s"}.
+      It is counted in the totals but appears under nobody in <b style={{ color: T.textMuted }}>Per client</b>, so those two will not add up — this is the difference.
     </div>}
   </Card>;
 }
@@ -1217,6 +1362,20 @@ function ClientPanel({ c, rate, post, busy, d }) {
     </div>
     <LimitWarnings limits={ov} planId={c.plan} days={tDays} />
 
+    {/* Whether this account is one you actually invoice. The revenue figure
+        used to count every client with a package name, including your own
+        company — see src/lib/revenue.js. */}
+    <div style={{ marginTop: 14, padding: "11px 13px", background: T.bgAlt, borderRadius: 12 }}>
+      <Switch size="sm" tone="accent" on={!!c.internal}
+        onClick={() => post({ action: "set_internal", client_id: c.client_id, internal: !c.internal })}
+        label="Internal account — never invoiced" />
+      <div style={{ fontSize: 10.5, color: T.textDim, marginTop: 6, lineHeight: 1.5 }}>
+        {c.internal
+          ? "Left out of the revenue figure. Everything else works exactly as it does for a paying client."
+          : "Turn this on for your own company, a demo or a partner, so their package price stops counting as money you expect."}
+      </div>
+    </div>
+
     {/* Feature exceptions, pre-set to the package */}
     <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", margin: "16px 0 4px" }}>
       <div style={{ fontSize: 12.5, fontWeight: 700 }}>Features for this client</div>
@@ -1530,6 +1689,11 @@ function ExchangeRate({ d, post, busy, rate }) {
   const [typed, setTyped] = useState(String(d.settings?.usd_bdt ?? rate));
   const box = { background: T.bgAlt, border: `1px solid ${T.border}`, borderRadius: 9, padding: "7px 10px", color: T.text, fontSize: 12.5, fontFamily: "inherit", width: 100 };
   const age = fx.at ? ago(fx.at) : null;
+  // A rate the owner typed and then left switched off. It changes every cost on
+  // the page, so a number sitting there unused has to be visible — otherwise
+  // the only way to find out is to wonder why the total moved.
+  const typedNum = Number(d.settings?.usd_bdt);
+  const dormant = !d.settings?.usd_bdt_manual && Number.isFinite(typedNum) && Math.abs(typedNum - Number(rate)) > 0.01 ? typedNum : null;
 
   return <Card>
     <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
@@ -1546,6 +1710,11 @@ function ExchangeRate({ d, post, busy, rate }) {
       </Badge>
       {age && <span style={{ fontSize: 11.5, color: T.textDim }}>updated {age}</span>}
       {fx.source === "fallback" && <span style={{ fontSize: 11.5, color: T.warn }}>no market rate yet — press Update</span>}
+      {/* A number typed into the box while the switch was off sat there doing
+          nothing, and nothing on the screen said so. */}
+      {dormant !== null && <span style={{ fontSize: 11.5, color: T.warn }}>
+        your ৳{dormant.toFixed(2)} is saved but switched off
+      </span>}
       <Btn small disabled={busy} onClick={() => post({ action: "refresh_fx" })} style={{ marginLeft: "auto" }}>
         <i className="ti ti-refresh" style={{ marginRight: 5 }} />Update now
       </Btn>
@@ -1554,6 +1723,10 @@ function ExchangeRate({ d, post, busy, rate }) {
     <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
       <Switch size="sm" on={manual} onClick={() => setManual(!manual)}
         label="Use my own rate instead of the market's" />
+      {dormant !== null && !manual && <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 7, lineHeight: 1.6 }}>
+        You saved <b style={{ color: T.text }}>৳{dormant.toFixed(2)}</b> earlier, but the switch above is off, so every figure on this page is converted at the market&apos;s
+        {" "}<b style={{ color: T.text }}>৳{Number(rate).toFixed(2)}</b>. Turn the switch on and save to use your own number.
+      </div>}
       {manual && <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 9 }}>
         <span style={{ fontSize: 12.5, color: T.textMuted }}>1 USD =</span>
         <input value={typed} onChange={(e) => setTyped(e.target.value)} style={box} />

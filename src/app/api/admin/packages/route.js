@@ -6,6 +6,7 @@ import { callerEmail, callerRole, CAN_EDIT, CAN_DELETE } from "@/lib/admin-auth.
 import { loadPrices, summarise, dhakaDay } from "@/lib/usage.js";
 import { invalidatePlans, loadPlans } from "@/lib/plan-limits.js";
 import { cleanFeatureOverrides } from "@/lib/features.js";
+import { clientRevenue, receivedRevenue } from "@/lib/revenue.js";
 import { getPlatformAI } from "@/lib/platform-ai.js";
 import { fetchUsdBdt, rateFrom, isStale } from "@/lib/fx.js";
 import { listBillableModels } from "@/lib/model-catalog.js";
@@ -84,7 +85,7 @@ export async function GET(request) {
   const days = Math.min(365, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 30));
   const since = daysAgo(days);
 
-  const [plansQ, pricesMap, costsQ, usageQ, clientsQ, channelsQ, settings] = await Promise.all([
+  const [plansQ, pricesMap, costsQ, usageQ, clientsQ, channelsQ, settings, paymentsQ, ownKeyQ] = await Promise.all([
     supabase.from("plans").select("*").order("sort"),
     loadPrices(),
     supabase.from("platform_costs").select("*").order("id"),
@@ -92,9 +93,17 @@ export async function GET(request) {
     // the screen is a sum of these rows, and a capped read is a cost report
     // that is quietly too low.
     pageAll((from, to) => supabase.from("usage_daily").select("*").gte("day", since).order("day", { ascending: true }).range(from, to)),
-    supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type"),
+    supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type,internal"),
     supabase.from("channels").select("id,client_id,platform,page_id,name,status,msg_limit_monthly"),
     billingSettings().then(freshRate),
+    // Money that actually arrived. Revenue used to be inferred from the `plan`
+    // column alone, which is an expectation, not income — see revenue.js.
+    supabase.from("payment_requests").select("client_id,amount,status,created_at,reviewed_at,paid_at")
+      .eq("status", "approved").gte("created_at", new Date(Date.now() - 400 * 86400000).toISOString()),
+    // Which clients run on their own AI key: they are charged the LOWER
+    // own-key price, and the old figure billed them the standard one.
+    // Same rule as clientHasOwnKey(): permission alone is not a key.
+    supabase.from("client_ai").select("client_id,api_key_enc,provider"),
   ]);
   // What one dollar is worth, and whether that is the market's answer or the
   // owner's. The panel prints both so a margin can never be read off a number
@@ -144,18 +153,42 @@ export async function GET(request) {
   }
 
   const planOf = Object.fromEntries(plans.map((p) => [p.id, p]));
+
+  // Who actually runs on their own AI key. Permission without a saved key is
+  // still the platform's key and the standard price (clientHasOwnKey's rule).
+  const ownKeyIds = new Set((ownKeyQ.data || [])
+    .filter((r) => r.api_key_enc && r.provider === "google").map((r) => r.client_id));
+
+  // The window every figure on this screen is measured over. Revenue is now
+  // counted over the same one, day by day, instead of being assumed from the
+  // plan column — see src/lib/revenue.js.
+  const windowFrom = new Date(Date.now() - days * 86400000).toISOString();
+  const windowTo = new Date().toISOString();
+  const payments = paymentsQ.data || [];
+
   const rows = clients.map((c) => {
     const s = summarise(usageByClient.get(c.id) || [], pricesMap);
     const messages = msgByClient.get(c.id) || 0;
     const p = planOf[c.plan] || null;
-    // Revenue is pro-rated to the window so cost and income compare like for like.
-    const revenueBdt = (Number(p?.monthly || 0) / 30) * days;
+    // What this client is billed for the part of the window their package was
+    // actually live, at the price they actually pay. It used to be
+    // monthly/30*days for anybody with a plan name, which counted an expired
+    // package, a suspended account and the owner's own company.
+    const rev = clientRevenue(c, p, { from: windowFrom, to: windowTo, ownKey: ownKeyIds.has(c.id) });
+    const revenueBdt = rev.bdt;
     return {
       client_id: c.id,
       business_name: c.business_name,
       owner_email: c.owner_email,
       plan: c.plan,
       suspended: !!c.suspended,
+      internal: !!c.internal,
+      own_key: ownKeyIds.has(c.id),
+      plan_expires_at: c.plan_expires_at || null,
+      // Why this client is worth nothing, or less than a full window of their
+      // price. null when they are simply billed in full.
+      revenue_reason: rev.reason,
+      revenue_partial: rev.partial,
       limit_overrides: c.limit_overrides || null,
       model_chain: c.model_chain || null,
       business_type: c.business_type || "ecommerce",
@@ -190,6 +223,22 @@ export async function GET(request) {
   });
 
   const totals = summarise(usage, pricesMap);
+
+  // Usage that belongs to nobody. A deleted client keeps its usage rows — the
+  // money was really spent — but nothing on this screen showed them, so the
+  // platform total and the sum of the per-client rows quietly disagreed.
+  const liveIds = new Set(clients.map((c) => c.id));
+  const orphanRows = usage.filter((u) => !liveIds.has(u.client_id));
+  const orphan = orphanRows.length ? summarise(orphanRows, pricesMap) : null;
+
+  // Money in, over the same window. Everything else on this screen is measured;
+  // revenue was the one figure that was assumed.
+  const received = receivedRevenue(payments, { from: windowFrom, to: windowTo });
+  const billed = rows.reduce((n, r) => n + Number(r.revenue_bdt || 0), 0);
+  // Why the billed figure is not simply every client's price: the panel says
+  // it out loud rather than leaving the owner to wonder where a client went.
+  const revenueExcluded = {};
+  for (const r of rows) if (r.revenue_reason) revenueExcluded[r.revenue_reason] = (revenueExcluded[r.revenue_reason] || 0) + 1;
   const fixedMonthlyUsd = (costsQ.data || []).reduce((n, r) => n + Number(r.monthly_usd || 0), 0);
 
   return NextResponse.json({
@@ -206,6 +255,17 @@ export async function GET(request) {
     settings,
     fx,
     clients: rows,
+    // BILLED and RECEIVED are different questions and used to share one name.
+    revenue: {
+      billed_bdt: billed,
+      received_bdt: received.bdt,
+      payments: received.count,
+      outstanding_bdt: billed - received.bdt,
+      excluded: revenueExcluded,
+      // True while no payment has EVER been recorded — the state this platform
+      // was in when the panel was reporting ৳8,500 a month.
+      never_paid: payments.length === 0,
+    },
     totals: {
       calls: totals.calls, tokens: totals.tokens,
       tokens_in: totals.tokensIn, tokens_out: totals.tokensOut,
@@ -234,6 +294,13 @@ export async function GET(request) {
       // these is a house guess, and the panel says so instead of hiding it.
       unpriced: totals.unpriced,
       fixed_monthly_usd: fixedMonthlyUsd,
+      // Every fixed cost still sitting at zero. Four zeroes make "Profit" mean
+      // "profit before hosting", which is not what the word says — so the
+      // panel is told, and says so, until the owner confirms them.
+      fixed_unset: (costsQ.data || []).filter((c) => !(Number(c.monthly_usd) > 0)).map((c) => c.id),
+      fixed_confirmed_at: settings.fixed_costs_confirmed_at || null,
+      // What AI was spent by clients that no longer exist.
+      orphan: orphan ? { cost_usd: orphan.platformCost + orphan.clientKeyCost, calls: orphan.calls, tokens: orphan.tokens, clients: new Set(orphanRows.map((u) => u.client_id)).size } : null,
       // The fixed bill pro-rated to the same window as the AI cost.
       fixed_window_usd: (fixedMonthlyUsd / 30) * days,
       // `messages` is set once, above. It used to be set again HERE as
@@ -368,6 +435,46 @@ export async function POST(request) {
     }, { onConflict: "id" });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });
+  }
+
+  // Several fixed costs at once, from the card that asks for them. Saving them
+  // also answers the question the card exists to ask, so it confirms too.
+  if (action === "save_costs") {
+    const costs = Array.isArray(body.costs) ? body.costs : [];
+    if (!costs.length) return NextResponse.json({ error: "no costs given" }, { status: 400 });
+    for (const c of costs) {
+      if (!c?.id) continue;
+      const { error } = await supabase.from("platform_costs")
+        .update({ monthly_usd: Number(c.monthly_usd) || 0, updated_at: new Date().toISOString() })
+        .eq("id", String(c.id));
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    const next = { ...(await billingSettings()), fixed_costs_confirmed_at: new Date().toISOString() };
+    await supabase.from("app_settings")
+      .upsert({ id: BILLING_SETTINGS, settings: next, updated_at: new Date().toISOString() }, { onConflict: "id" });
+    return NextResponse.json({ ok: true });
+  }
+
+  // "They really are zero." A cost of zero and a cost nobody has filled in are
+  // different answers, and only the owner can tell them apart — so the panel
+  // says "profit before hosting" until this is pressed.
+  if (action === "confirm_fixed_costs") {
+    const next = { ...(await billingSettings()), fixed_costs_confirmed_at: new Date().toISOString() };
+    const { error } = await supabase.from("app_settings")
+      .upsert({ id: BILLING_SETTINGS, settings: next, updated_at: new Date().toISOString() }, { onConflict: "id" });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Mark an account as one the platform never invoices — the owner's own
+  // company, a demo, a partner. It keeps working like any other client; it
+  // simply stops counting as revenue it was never going to bring in.
+  if (action === "set_internal") {
+    const { client_id, internal } = body;
+    if (!client_id) return NextResponse.json({ error: "missing client_id" }, { status: 400 });
+    const { error } = await supabase.from("clients").update({ internal: !!internal }).eq("id", client_id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, internal: !!internal });
   }
 
   if (action === "save_settings") {
