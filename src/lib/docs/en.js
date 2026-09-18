@@ -1195,31 +1195,33 @@ export const DOCS = {
         ] },
 
       { table: { head: ["", "Basic", "Pro", "Enterprise"], rows: [
-        ["Price / month", "৳1,999", "৳4,999", "৳9,999"],
+        ["Price / month (launch price to 31 Dec 2026)", "৳2,699", "৳5,999", "৳11,999"],
         ["Bot replies", "2,000 / month", "5,500 / month", "12,000 / month"],
-        ["Channels", "2", "All 3", "All 3"],
-        ["Website imports / month", "20", "100", "Unlimited"],
-        ["Broadcasts / month", "10", "40", "Unlimited"],
+        ["Channels", "2 + website widget", "All 3 + website widget", "All 3 + website widget"],
+        ["AI Assistant questions / month", "100", "400", "800"],
+        ["Broadcasts / month", "10", "40", "100"],
         ["Every feature", "Yes", "Yes", "Yes"],
-        ["Extra replies", "৳0.60 each", "৳0.60 each", "By agreement"],
         ["Priority support", "—", "—", "Yes"],
       ] } },
 
       { biz: "ecommerce", table: { head: ["For shops", "Basic", "Pro", "Enterprise"], rows: [
-        ["Products", "500", "1,500", "Unlimited"],
+        ["Products added / month", "500", "1,000", "2,500"],
+        ["Products from a website link / month", "10", "40", "100"],
         ["Photo product matching", "Yes", "Yes", "Yes"],
         ["Add products from photos", "Yes", "Yes", "Yes"],
       ] } },
 
       { biz: "agency", table: { head: ["For services", "Basic", "Pro", "Enterprise"], rows: [
-        ["Knowledge documents", "25", "150", "Unlimited"],
+        ["Knowledge documents added / month", "20", "60", "150"],
         ["Google Calendar booking", "Yes", "Yes", "Yes"],
         ["Comment automation", "Yes", "Yes", "Yes"],
       ] } },
 
       { h: "When you reach a limit",
         p: [
-          "You cannot run out of features — you already have all of them. What you can run out of is room: replies for the month, products in the catalogue, documents, website imports, broadcasts.",
+          "You cannot run out of features — you already have all of them. What you can run out of is room: replies for the month, products or documents added, AI Assistant questions, website imports, broadcasts.",
+          "Products and documents are counted as you **add** them. Each one added uses one of the month's number, and deleting it does not give it back — every add is read and indexed by the AI, so it has already been paid for. Your catalogue can never hold more than the package number either.",
+          "**Billing** shows every meter under your package — how much is used and how much is left — and so does **Profile**.",
           "When that happens the dashboard says which limit and what it is, and nothing is deleted. Out of replies, the bot stops answering new customers until the month turns or you move up; your inbox keeps working and you can answer by hand. Out of product slots, the ones you have keep selling and the next one is refused.",
           "The tables above are the real numbers — the same ones the bot and the dashboard enforce, read from your package as the admin panel has it, not from a page written once.",
         ] },

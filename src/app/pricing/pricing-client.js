@@ -40,9 +40,8 @@ const tierOf = (id) => String(id);
 const COMPARE = [
   { label: "Bot replies", trial: "30 / day", basic: "2,000 / mo", pro: "5,500 / mo", enterprise: "12,000 / mo" },
   { label: "Channels", trial: "1", basic: "2", pro: "All 3", enterprise: "All 3" },
-  { label: "Website imports / month", trial: "5", basic: "20", pro: "100", enterprise: "Unlimited" },
-  { label: "Broadcasts / month", trial: "2", basic: "10", pro: "40", enterprise: "Unlimited" },
-  { label: "Extra replies", trial: "—", basic: "৳0.60 each", pro: "৳0.60 each", enterprise: "By agreement" },
+  { label: "AI Assistant questions / month", trial: "30", basic: "100", pro: "400", enterprise: "800" },
+  { label: "Broadcasts / month", trial: "2", basic: "10", pro: "40", enterprise: "100" },
 
   { label: "AI replies (Bangla & English)", trial: true, basic: true, pro: true, enterprise: true },
   { label: "Live conversation inbox", trial: true, basic: true, pro: true, enterprise: true },
@@ -56,12 +55,13 @@ const COMPARE = [
   { label: "Priority support", trial: false, basic: false, pro: false, enterprise: true },
 
   { only: "ecommerce", label: "Product catalogue & orders", trial: true, basic: true, pro: true, enterprise: true },
-  { only: "ecommerce", label: "Products", trial: "20", basic: "500", pro: "1,500", enterprise: "Unlimited" },
+  { only: "ecommerce", label: "Products added / month", trial: "20", basic: "500", pro: "1,000", enterprise: "2,500" },
+  { only: "ecommerce", label: "Products from a website link / month", trial: "5", basic: "10", pro: "40", enterprise: "100" },
   { only: "ecommerce", label: "Photo product matching (Vision AI)", trial: true, basic: true, pro: true, enterprise: true },
   { only: "ecommerce", label: "Add products from photos", trial: true, basic: true, pro: true, enterprise: true },
 
   { only: "agency", label: "Knowledge Base (document upload)", trial: true, basic: true, pro: true, enterprise: true },
-  { only: "agency", label: "Documents", trial: "2", basic: "25", pro: "150", enterprise: "Unlimited" },
+  { only: "agency", label: "Documents added / month", trial: "2", basic: "20", pro: "60", enterprise: "150" },
   { only: "agency", label: "Google Calendar booking", trial: true, basic: true, pro: true, enterprise: true },
 ];
 
@@ -152,6 +152,9 @@ export default function PricingClient() {
         <h1 style={{ fontSize: 36, fontWeight: 800, margin: "0 0 14px", letterSpacing: -0.5 }}>Simple, honest pricing</h1>
         <p style={{ fontSize: 16, color: T.muted, maxWidth: 560, margin: "0 auto 28px", lineHeight: 1.7 }}>
           Start free. Upgrade when your customers start rolling in. No hidden fees, cancel any time.
+        </p>
+        <p style={{ fontSize: 13, color: T.muted, margin: "-14px auto 24px" }}>
+          Launch prices, valid until 31 December 2026.
         </p>
 
         <div style={{ display: "inline-flex", background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 4, gap: 4 }}>

@@ -42,9 +42,9 @@ is("own key but package has no byok → standard, not 0", priceForClient({ month
 is("own key, byok accidentally 0 → standard, not 0", priceForClient({ monthly: 1500, byok_monthly: 0 }, "monthly", true), 1500);
 
 // ── the catalogue carries the agreed prices ──────────────────────────────────
-is("basic byok", [PLANS.basic.byokMonthly, PLANS.basic.byokYearly], [1499, 14990]);
-is("pro byok", [PLANS.pro.byokMonthly, PLANS.pro.byokYearly], [3499, 34990]);
-is("enterprise byok", [PLANS.enterprise.byokMonthly, PLANS.enterprise.byokYearly], [6999, 69990]);
+is("basic byok", [PLANS.basic.byokMonthly, PLANS.basic.byokYearly], [1999, 19990]);
+is("pro byok", [PLANS.pro.byokMonthly, PLANS.pro.byokYearly], [4499, 44990]);
+is("enterprise byok", [PLANS.enterprise.byokMonthly, PLANS.enterprise.byokYearly], [8999, 89990]);
 is("trial has no byok price", [PLANS.trial.byokMonthly ?? null, PLANS.trial.byokYearly ?? null], [null, null]);
 
 // Every BYOK price is strictly lower than its standard price (a BYOK client
