@@ -795,7 +795,21 @@ again?"
     Still treat the repo as public for secrets. Move the job into vercel.json
     after the Vercel Pro upgrade. First scheduled GitHub run NOT yet confirmed
     (no gh CLI here) — check followup.last_run_at on Autologic advances.
-  - LAUNCH PACKAGES LIVE IN DB (2026-09-19, owner chose the launch offer):
+  - TWO PACKAGE SETS (2026-09-19, c158d6d + docs/sql/2026-09-19-two-package-
+    sets.sql, APPLIED). Owner: always two business types → two package sets,
+    each with its own BYOK price list; old packages cleared everywhere.
+    Shop Basic/Pro/Enterprise ৳2,699 / 5,999 / 11,999 (BYOK 1,999 / 4,499 /
+    8,999) sized by products added 500 / 1,000 / 2,500 + website-link imports
+    10 / 40 / 100. Service Basic/Pro/Enterprise ৳2,299 / 4,999 / 9,999 (BYOK
+    1,699 / 3,499 / 7,499) sized by documents added 20 / 60 / 150 (cheaper: no
+    catalogue for AI to read). Common: replies 2,000/5,500/12,000, channels
+    2/3/3 + widget, Assistant 100/400/800, broadcasts 10/40/100. Yearly ×10.
+    Clients moved (owner: straight to new limits): Broker's BD → shop_pro,
+    EzPz → svc_basic, Autologic → svc_enterprise. ALL 11 retired rows deleted
+    (basic/pro/enterprise "both", starter, agency, shop_/svc_ starter/growth/
+    scale); plans table now = trial + 6. PAID_PLANS/PLAN_META/PLAN_LIST in code
+    carry only the new ids.
+  - (superseded by the line above) LAUNCH PACKAGES LIVE IN DB (2026-09-19, owner chose the launch offer):
     Basic ৳2,699 / Pro ৳5,999 / Enterprise ৳11,999 a month (yearly ×10; BYOK
     1,999 / 4,499 / 8,999), "launch prices until 31 Dec 2026" on the pricing
     page. Limits: replies 2,000/5,500/12,000; channels 2/3/3 + widget;
