@@ -795,6 +795,18 @@ again?"
     Still treat the repo as public for secrets. Move the job into vercel.json
     after the Vercel Pro upgrade. First scheduled GitHub run NOT yet confirmed
     (no gh CLI here) — check followup.last_run_at on Autologic advances.
+  - MODEL DECISION (2026-09-19, owner): QUALITY FIRST — do NOT move to
+    gemini-2.5-flash. Primary stays gemini-3.6-flash; the fallback must be
+    equally strong. Google now lists stable gemini-3.7-flash and 3.8-flash at
+    the same price as 3.6 (verified ai.google.dev/pricing 2026-09-19).
+    Proposed chain "gemini-3.6-flash,gemini-3.8-flash" — NOT applied: the local
+    .env.local key is a dummy, so 3.8's availability on the live key is
+    unverified (check Admin → AI Engine model list). Applying needs BOTH the DB
+    platform_ai.model_chain AND the code MODEL_CHAIN default in gemini.js
+    (vision/voice/catalog walk the code chain), plus model_prices rows.
+    CONSEQUENCE: all 3.x flash prices double on 2027-01-01, so packages must be
+    priced for that (≈৳4,499 / ৳9,999 / ৳20,999 for ≥৳1,000 profit at 100%)
+    or carry a published price change from January.
   - PACKAGE LIMITS PROPOSAL SHOWN, NOT APPLIED (2026-09-18). Owner: "there will
     be something need to change, just show me the package list, no need to
     add". Proposed: Assistant questions/month 30/300/600/1,000; product photos
