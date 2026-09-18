@@ -779,6 +779,11 @@ again?"
     each); product edits re-embed. With these, 3.6-flash steady month: Basic
     71%, Pro 81%, Enterprise 92% (first month 119% = loss); 2.5-flash 32/37/42%.
     Owner replies (saveAgentTurn) use no AI. Sheet GwxvQSCumEUFAY6c5p6Gya v3.
+    FIXED COSTS FROM OWNER (2026-09-18): VPS $103/year (≈৳1,057/mo) + other
+    running costs ≈৳20,000/mo, on top of Vercel Pro + Supabase Pro (৳5,540)
+    → ≈৳26,597/mo. NOT yet entered in admin platform_costs (owner not asked).
+    Break-even at 100% use, mix 50/35/15 Basic/Pro/Ent, 2.5% gateway fee:
+    3.6-flash 42 clients, 2.5-flash 11. Sheet v4.
   - DEBOUNCE WINDOW: NOT CHANGED, and deliberately (2026-09-18). The owner asked
     why two messages 23s apart got two replies. Raising DEBOUNCE_QUIET_MS (5s)
     would slow EVERY single-message reply by the same amount. The real fix was
