@@ -1189,33 +1189,37 @@ export const DOCS = {
         ] },
 
       { h: "The three tiers",
-        p: ["Both sides climb the same three rungs, so a shop and a service on the same tier are the same size of business."] },
+        p: [
+          "Both sides climb the same three rungs, so a shop and a service on the same tier are the same size of business.",
+          "**Every tier has every feature.** Moving up does not unlock anything — photo matching, comment automation, calendar booking, the AI Assistant and your own AI key are in all three, and in the free trial. What you are buying is **size**: how many replies the bot may send, how many channels it answers on, how big a catalogue or how many documents it can hold.",
+        ] },
 
       { table: { head: ["", "Starter", "Growth", "Scale"], rows: [
         ["Bot replies", "3,000 / month", "15,000 / month", "50,000 / month"],
         ["Channels", "1", "All 3", "All 3"],
-        ["Voice messages", "Yes", "Yes", "Yes"],
-        ["Comment automation", "—", "Yes", "Yes"],
-        ["Your own AI key", "—", "—", "Yes"],
+        ["Website imports / month", "20", "200", "Unlimited"],
+        ["Broadcasts / month", "4", "20", "Unlimited"],
+        ["Every feature", "Yes", "Yes", "Yes"],
         ["Priority support", "—", "—", "Yes"],
       ] } },
 
       { biz: "ecommerce", table: { head: ["For shops", "Starter", "Growth", "Scale"], rows: [
         ["Products", "300", "3,000", "Unlimited"],
-        ["Photo product matching", "—", "Yes", "Yes"],
-        ["Website imports / month", "20", "200", "Unlimited"],
+        ["Photo product matching", "Yes", "Yes", "Yes"],
+        ["Add products from photos", "Yes", "Yes", "Yes"],
       ] } },
 
       { biz: "agency", table: { head: ["For services", "Starter", "Growth", "Scale"], rows: [
         ["Knowledge Base documents", "10", "40", "Unlimited"],
-        ["Google Calendar booking", "—", "Yes", "Yes"],
-        ["Website imports / month", "20", "200", "Unlimited"],
+        ["Google Calendar booking", "Yes", "Yes", "Yes"],
+        ["Comment automation", "Yes", "Yes", "Yes"],
       ] } },
 
-      { h: "A feature that is not in your package",
+      { h: "When you reach a limit",
         p: [
-          "Every switch in the tables above is real. A feature your package does not include does not run: the button in the dashboard says so — *Photo product matching is not included in your Shop Starter package* — and the bot simply skips it. A customer who sends a photo to a shop without photo matching is asked to type the product name; a voice note where voice is off gets a polite request to type.",
-          "Nothing is taken away from what you already have. Your products, documents and conversations stay; the feature waits for the package that includes it.",
+          "You cannot run out of features — you already have all of them. What you can run out of is room: replies for the month, products in the catalogue, documents, website imports, broadcasts.",
+          "When that happens the dashboard says which limit and what it is, and nothing is deleted. Out of replies, the bot stops answering new customers until the month turns or you move up; your inbox keeps working and you can answer by hand. Out of product slots, the ones you have keep selling and the next one is refused.",
+          "The tables above are the real numbers — the same ones the bot and the dashboard enforce, read from your package as the admin panel has it, not from a page written once.",
         ] },
 
       { h: "How a reply is counted",

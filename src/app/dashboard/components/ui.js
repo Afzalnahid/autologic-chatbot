@@ -139,12 +139,12 @@ export const PLAN_META={
 // Shop packages, because business_type defaults to a shop; the live list
 // replaces this the moment it arrives and is filtered by the real type.
 export const PLAN_LIST=[
-  {id:"shop_starter",biz:"ecommerce",name:"Shop Starter",monthly:1500,yearly:15000,byok_monthly:1000,byok_yearly:10000,tagline:"One channel, your catalogue answering for itself",
-   features:["3,000 bot replies / month","1 channel of your choice","Product catalogue & order collection"]},
-  {id:"shop_growth",biz:"ecommerce",name:"Shop Growth",monthly:3500,yearly:35000,byok_monthly:2500,byok_yearly:25000,highlight:true,tagline:"Every channel, and customers who send photos instead of names",
-   features:["15,000 bot replies / month","All 3 channels","Photo product matching (Vision AI)"]},
+  {id:"shop_starter",biz:"ecommerce",name:"Shop Starter",monthly:1500,yearly:15000,byok_monthly:1000,byok_yearly:10000,tagline:"One channel, your whole catalogue answering for itself",
+   features:["3,000 bot replies / month","1 channel of your choice","300 products"]},
+  {id:"shop_growth",biz:"ecommerce",name:"Shop Growth",monthly:3500,yearly:35000,byok_monthly:2500,byok_yearly:25000,highlight:true,tagline:"Every channel, five times the replies",
+   features:["15,000 bot replies / month","All 3 channels","3,000 products"]},
   {id:"shop_scale",biz:"ecommerce",name:"Shop Scale",monthly:6000,yearly:60000,byok_monthly:4000,byok_yearly:40000,tagline:"For a catalogue and a crowd that keep growing",
-   features:["50,000 bot replies / month","Unlimited products","Use your own AI key"]},
+   features:["50,000 bot replies / month","All 3 channels","Unlimited products"]},
 ];
 
 export const taka=n=>"\u09F3"+Number(n||0).toLocaleString("en-IN");

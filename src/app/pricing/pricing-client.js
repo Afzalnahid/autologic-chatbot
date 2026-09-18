@@ -24,26 +24,41 @@ const T = {
 // calendar row; a service never sees photo matching.
 const tierOf = (id) => (id === "trial" ? "trial" : String(id).split("_")[1] || "");
 
+// Every package carries every feature (the owner's rule, 2026-09-18) — a
+// package is a SIZE, not a smaller product. So the numbers come first and
+// carry the whole comparison, and the capability rows below them are all
+// ticks: they are there to prove nothing is held back, which is the point.
+//
+// This table used to disagree with the database in three places at once —
+// Analytics and comment automation were promised as absent from the trial
+// while the trial had them, and "use your own AI key" was promised to Starter
+// and Growth while the switch said Scale only. Keeping every row true is also
+// what makes that impossible again; tests/t-packages-uniform.mjs checks it.
 const COMPARE = [
   { label: "Bot replies", trial: "30 / day", starter: "3,000 / mo", growth: "15,000 / mo", scale: "50,000 / mo" },
   { label: "Channels", trial: "1", starter: "1", growth: "All 3", scale: "All 3" },
+  { label: "Website imports / month", trial: "5", starter: "20", growth: "200", scale: "Unlimited" },
+  { label: "Broadcasts / month", trial: "2", starter: "4", growth: "20", scale: "Unlimited" },
+
   { label: "AI replies (Bangla & English)", trial: true, starter: true, growth: true, scale: true },
   { label: "Live conversation inbox", trial: true, starter: true, growth: true, scale: true },
-  { label: "Analytics dashboard", trial: false, starter: true, growth: true, scale: true },
+  { label: "Analytics dashboard", trial: true, starter: true, growth: true, scale: true },
   { label: "Website chat widget", trial: true, starter: true, growth: true, scale: true },
   { label: "Broadcasts & follow-ups", trial: true, starter: true, growth: true, scale: true },
   { label: "Voice message understanding", trial: true, starter: true, growth: true, scale: true },
-  { label: "Comment automation", trial: false, starter: false, growth: true, scale: true },
-  { label: "Use your own AI key (lower price)", trial: false, starter: true, growth: true, scale: true },
+  { label: "Comment automation", trial: true, starter: true, growth: true, scale: true },
+  { label: "AI Assistant in your dashboard", trial: true, starter: true, growth: true, scale: true },
+  { label: "Use your own AI key (lower price)", trial: true, starter: true, growth: true, scale: true },
   { label: "Priority support", trial: false, starter: false, growth: false, scale: true },
 
   { only: "ecommerce", label: "Product catalogue & orders", trial: true, starter: true, growth: true, scale: true },
   { only: "ecommerce", label: "Products", trial: "20", starter: "300", growth: "3,000", scale: "Unlimited" },
-  { only: "ecommerce", label: "Photo product matching (Vision AI)", trial: true, starter: false, growth: true, scale: true },
+  { only: "ecommerce", label: "Photo product matching (Vision AI)", trial: true, starter: true, growth: true, scale: true },
+  { only: "ecommerce", label: "Add products from photos", trial: true, starter: true, growth: true, scale: true },
 
   { only: "agency", label: "Knowledge Base (document upload)", trial: true, starter: true, growth: true, scale: true },
   { only: "agency", label: "Documents", trial: "2", starter: "10", growth: "40", scale: "Unlimited" },
-  { only: "agency", label: "Google Calendar booking", trial: true, starter: false, growth: true, scale: true },
+  { only: "agency", label: "Google Calendar booking", trial: true, starter: true, growth: true, scale: true },
 ];
 
 // A plain-language reach line per tier, so "3,000 replies" means something to a
@@ -227,7 +242,10 @@ export default function PricingClient() {
 
       {/* Comparison */}
       <section style={{ ...wrap, padding: "0 20px 56px" }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 18, textAlign: "center" }}>Compare plans</h2>
+        <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6, textAlign: "center" }}>Compare plans</h2>
+        <p style={{ fontSize: 14, color: T.muted, marginBottom: 18, textAlign: "center", maxWidth: 520, marginInline: "auto", lineHeight: 1.65 }}>
+          Every plan has every feature. What you choose is the size: how many replies, how many channels, how big a catalogue.
+        </p>
         <div style={{ overflowX: "auto", border: `1px solid ${T.border}`, borderRadius: 14, background: T.card }}>
           <table style={{ width: "100%", minWidth: 620, borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
@@ -254,7 +272,7 @@ export default function PricingClient() {
           </table>
         </div>
         <div style={{ fontSize: 11.5, color: T.dim, marginTop: 10, textAlign: "center" }}>
-          One bot reply counts as one, however many bubbles it takes. Replies you type yourself are free, and nothing counts while the bot is off.
+          One bot reply counts as one, however many bubbles it takes. Replies you type yourself are free, and nothing counts while the bot is off. No feature is locked to a bigger plan.
         </div>
       </section>
 
