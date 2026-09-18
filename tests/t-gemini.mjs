@@ -130,6 +130,14 @@ eq("an unknown role counts as user", geminiTurns([{ role: "system", content: "x"
   ok("every id looks like a Gemini chat model", chain.every((id) => /^gemini-[\d.]+-/.test(id)), chain);
   ok("embeddings are not in the chat chain", chain.every((id) => !/embedding/i.test(id)), chain);
 
+  // Owner's rule, 2026-09-19: quality is never traded for a fallback. Every
+  // model after the first must be the same generation or newer, and never a
+  // cheaper tier (lite) — a failover must not quietly make the answers worse.
+  const gen = (id) => Number((id.match(/^gemini-([\d.]+)-/) || [])[1] || 0);
+  ok("no fallback is an older generation than the primary",
+    chain.slice(1).every((id) => gen(id) >= gen(chain[0])), chain);
+  ok("no fallback is a lite model", chain.slice(1).every((id) => !/lite/i.test(id)), chain);
+
   // The comment above the constant says which way round it goes; .env.example
   // shows the same list to anyone setting it by hand. Those two drifting apart
   // is how the wrong model ends up first.

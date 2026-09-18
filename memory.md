@@ -799,11 +799,14 @@ again?"
     gemini-2.5-flash. Primary stays gemini-3.6-flash; the fallback must be
     equally strong. Google now lists stable gemini-3.7-flash and 3.8-flash at
     the same price as 3.6 (verified ai.google.dev/pricing 2026-09-19).
-    Proposed chain "gemini-3.6-flash,gemini-3.8-flash" — NOT applied: the local
-    .env.local key is a dummy, so 3.8's availability on the live key is
-    unverified (check Admin → AI Engine model list). Applying needs BOTH the DB
-    platform_ai.model_chain AND the code MODEL_CHAIN default in gemini.js
-    (vision/voice/catalog walk the code chain), plus model_prices rows.
+    APPLIED 2026-09-19: owner saved "gemini-3.6-flash,gemini-3.8-flash" in
+    Admin → AI Engine (DB verified); code MODEL_CHAIN default + .env.example
+    changed to match; t-gemini now fails on an older-generation or lite
+    fallback; model_prices rows added for 3.7/3.8-flash. PARTLY VERIFIED: 3.8
+    appeared in the AI Engine list, but that list is read with the ENV key,
+    not the saved key — and saving a chain without a new key skips the model
+    check (two admin bugs, written down, not fixed). If GEMINI_MODELS is set
+    on Vercel it overrides the code default — unknown (env values unreadable).
     CONSEQUENCE: all 3.x flash prices double on 2027-01-01, so packages must be
     priced for that (≈৳4,499 / ৳9,999 / ৳20,999 for ≥৳1,000 profit at 100%)
     or carry a published price change from January.

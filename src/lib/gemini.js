@@ -25,7 +25,13 @@ function getGenAI(apiKey) {
 // quota bit, so every photo on a busy day paid a failed round trip before the
 // model that actually answers got asked. The list now leads with the one that
 // has served 665 of the last 700 calls.
-export const MODEL_CHAIN = (process.env.GEMINI_MODELS || "gemini-3.6-flash,gemini-2.5-flash")
+//
+// The FALLBACK is never an older, weaker generation (owner's rule, 2026-09-19:
+// "I don't want to lose my quality"). It was gemini-2.5-flash; it is now
+// gemini-3.8-flash — same family and the same price as the primary, so a
+// failover changes neither the quality of an answer nor its cost. Keep this in
+// step with Admin → AI Engine (platform_ai.model_chain).
+export const MODEL_CHAIN = (process.env.GEMINI_MODELS || "gemini-3.6-flash,gemini-3.8-flash")
   .split(",").map(s => s.trim()).filter(Boolean);
 const PRIMARY_MODEL = MODEL_CHAIN[0];
 
