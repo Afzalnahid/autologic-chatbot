@@ -1,0 +1,29 @@
+name: Send due follow-ups
+
+# Follow-ups must go out inside Meta's 24-hour window, so they have to be
+# checked through the day. Vercel's Hobby plan allows a cron only once a day,
+# so GitHub calls the endpoint instead (free for a public repository).
+# The endpoint itself decides who is due; calling it early or twice is harmless.
+#
+# Optional but recommended: add a repository secret CRON_SECRET with the SAME
+# value as the CRON_SECRET environment variable on Vercel. Until both exist the
+# endpoint is open, which only lets someone trigger follow-ups that were due anyway.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call the follow-up endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$CRON_SECRET" ]; then AUTH="Authorization: Bearer $CRON_SECRET"; else AUTH="X-No-Secret: 1"; fi
+          code=$(curl -sS -o body.json -w "%{http_code}" -H "$AUTH" --max-time 90 https://tellmoreai.com/api/cron/followups)
+          cat body.json; echo
+          test "$code" = "200"

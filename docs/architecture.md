@@ -369,11 +369,14 @@ Environment variables are listed in [security.md §2](./security.md).
 
 ### Scheduled work
 
-One cron job, declared in `vercel.json`:
+Three scheduled jobs. Two are Vercel crons in `vercel.json`; the third runs
+from GitHub Actions because Vercel's Hobby plan allows a cron only once a day:
 
-| Path | Schedule | What it does |
-|---|---|---|
-| `/api/cron/expiry` | `0 4 * * *` (10:00 Dhaka) | Emails every owner whose trial or plan ends within 3 days. |
+| Path | Schedule | Where | What it does |
+|---|---|---|---|
+| `/api/cron/expiry` | `0 4 * * *` (10:00 Dhaka) | `vercel.json` | Emails every owner whose trial or plan ends within 3 days. |
+| `/api/cron/channels` | `30 4 * * *` | `vercel.json` | Checks every channel token (see above). |
+| `/api/cron/followups` | every 30 min | `.github/workflows/followups.yml` | Sends the follow-ups that are due, for every account that switched them on. |
 
 Two reminders go out per plan period, not one: the first on entering the last
 three days, the second on the final day. One warning followed by three days of
@@ -383,11 +386,13 @@ reminders have been sent is tracked by `clients.expiry_warn_stage` against the
 date in `expiry_warned_at` — see [database.md](./database.md).
 
 Everything else that looks like a background job is triggered by a request
-instead — broadcasts continue in batches as the dashboard calls back, follow-ups
-run when the dashboard is opened, and the metering is written inline with each
-AI call. This is the only clock in the system.
+instead — broadcasts continue in batches as the dashboard calls back, and the metering is
+written inline with each AI call. Follow-ups used to be in this list (run only
+when the dashboard opened the inbox, so an owner who stayed away sent none);
+since 2026-09-19 they have their own 30-minute job above. When the project moves
+to Vercel Pro, that job can move into `vercel.json` and the workflow be deleted.
 
-`/api/cron/expiry` should be protected by a `CRON_SECRET` environment variable
+`/api/cron/*` should be protected by a `CRON_SECRET` environment variable
 on the Vercel project: Vercel sends it as `Authorization: Bearer $CRON_SECRET`
 and the route rejects anything else. **If the variable is not set the endpoint is
 open** — deliberately, because a cron that 401s until someone remembers a second
@@ -685,6 +690,9 @@ matching order or booking, no follow-up in the last 30 days, no contact pause, n
 opt-out, and a live channel. No tag means no evidence of interest, and nothing is
 sent.
 
-Evaluation is lazy: `runFollowups` is called from `GET /api/conversations`, claims
-its run by stamping `last_run_at` before doing any work, and does nothing if it ran
-within the last 15 minutes. No cron is involved.
+`runFollowups` runs from `/api/cron/followups` every 30 minutes (GitHub Actions,
+`.github/workflows/followups.yml`) for every account whose `settings.followup.enabled`
+is true, and still also from `GET /api/conversations`. Either way it claims its run
+by stamping `last_run_at` before doing any work and does nothing if it ran within
+the last 15 minutes, so the two triggers never double-send. The workflow sends
+`Authorization: Bearer $CRON_SECRET` when the repository secret exists.
