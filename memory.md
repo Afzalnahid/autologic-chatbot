@@ -730,6 +730,32 @@ again?"
     equals channels.page_id (professional-account id) — routes log unmatched ids,
     check Vercel logs after a real deauth. FB owner user_id still maps to no
     channel (not stored).
+  - EVERY PACKAGE NOW CARRIES EVERY FEATURE (2026-09-18, a9e4a85, owner: "all
+    features should be same for all packages and the main difference will be
+    reply amount, channel amount"). Four capabilities used to be withheld by
+    tier: vision, comments, calendar, byok. Worse, the TRIAL had all of them, so
+    buying Shop Starter after the trial LOST photo matching + comments, and
+    Service Starter lost calendar — a downgrade on the first invoice.
+    All 13 switches = true on all 10 plans in production AND in the seed
+    docs/sql/2026-08-31-plans-biz.sql. The gating machinery is untouched (it is
+    what per-client exceptions ride on); only the values changed. The EzPz +
+    mahadihasan5272 comment overrides are CLEARED (limit_overrides = null) —
+    they now repeat the package, which cleanFeatureOverrides treats as no
+    exception at all.
+    Copy follows the rule: plans.js + DB bullets/taglines now lead with the
+    allowance ("3,000 bot replies / month", "300 products", "Every feature —
+    nothing is held back"); ui.js fallback cards likewise; the pricing COMPARE
+    table leads with the 4 numeric rows and every capability row is ✓ across,
+    under the line "Every plan has every feature"; both manuals swapped "a
+    feature that is not in your package" for "when you reach a limit".
+    This also closed the 3 page-vs-database mismatches found in the feature
+    chart (trial Analytics, trial comments, own-key promised to Starter/Growth).
+    tests/t-packages-uniform.mjs (47). 56/56. Verified live on /pricing.
+    PRICING CONSEQUENCE, unchanged and still the owner's: caps stay 3,000 /
+    15,000 / 50,000, and the measured cost says Growth and Scale lose money at
+    those. packageCost() never read the feature switches, so the cost table in
+    the audit artifact already assumed every package does vision/voice — it
+    still stands exactly as published.
   - THE SEVEN AUDIT FINDINGS FIXED (2026-09-18, owner: "now fix those things, i
     agree with your decision", 796e6b1). NEW src/lib/revenue.js (pure, 33 checks
     in tests/t-revenue.mjs): clientRevenue() bills only the DAYS a package was
