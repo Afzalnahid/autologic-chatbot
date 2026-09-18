@@ -22,7 +22,10 @@ const T = {
 //
 // `only` marks a row that belongs to one business type. A shop never sees the
 // calendar row; a service never sees photo matching.
-const tierOf = (id) => (id === "trial" ? "trial" : String(id).split("_")[1] || "");
+// Four packages now, and the id IS the tier — no splitting on "_" and no shop
+// or service variants, because a package is a size and the capacity row is read
+// as products by a shop and as documents by a service.
+const tierOf = (id) => String(id);
 
 // Every package carries every feature (the owner's rule, 2026-09-18) — a
 // package is a SIZE, not a smaller product. So the numbers come first and
@@ -35,30 +38,31 @@ const tierOf = (id) => (id === "trial" ? "trial" : String(id).split("_")[1] || "
 // and Growth while the switch said Scale only. Keeping every row true is also
 // what makes that impossible again; tests/t-packages-uniform.mjs checks it.
 const COMPARE = [
-  { label: "Bot replies", trial: "30 / day", starter: "3,000 / mo", growth: "15,000 / mo", scale: "50,000 / mo" },
-  { label: "Channels", trial: "1", starter: "1", growth: "All 3", scale: "All 3" },
-  { label: "Website imports / month", trial: "5", starter: "20", growth: "200", scale: "Unlimited" },
-  { label: "Broadcasts / month", trial: "2", starter: "4", growth: "20", scale: "Unlimited" },
+  { label: "Bot replies", trial: "30 / day", basic: "2,000 / mo", pro: "5,500 / mo", enterprise: "12,000 / mo" },
+  { label: "Channels", trial: "1", basic: "2", pro: "All 3", enterprise: "All 3" },
+  { label: "Website imports / month", trial: "5", basic: "20", pro: "100", enterprise: "Unlimited" },
+  { label: "Broadcasts / month", trial: "2", basic: "10", pro: "40", enterprise: "Unlimited" },
+  { label: "Extra replies", trial: "—", basic: "৳0.60 each", pro: "৳0.60 each", enterprise: "By agreement" },
 
-  { label: "AI replies (Bangla & English)", trial: true, starter: true, growth: true, scale: true },
-  { label: "Live conversation inbox", trial: true, starter: true, growth: true, scale: true },
-  { label: "Analytics dashboard", trial: true, starter: true, growth: true, scale: true },
-  { label: "Website chat widget", trial: true, starter: true, growth: true, scale: true },
-  { label: "Broadcasts & follow-ups", trial: true, starter: true, growth: true, scale: true },
-  { label: "Voice message understanding", trial: true, starter: true, growth: true, scale: true },
-  { label: "Comment automation", trial: true, starter: true, growth: true, scale: true },
-  { label: "AI Assistant in your dashboard", trial: true, starter: true, growth: true, scale: true },
-  { label: "Use your own AI key (lower price)", trial: true, starter: true, growth: true, scale: true },
-  { label: "Priority support", trial: false, starter: false, growth: false, scale: true },
+  { label: "AI replies (Bangla & English)", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "Live conversation inbox", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "Analytics dashboard", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "Website chat widget", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "Broadcasts & follow-ups", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "Voice message understanding", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "Comment automation", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "AI Assistant in your dashboard", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "Use your own AI key (lower price)", trial: true, basic: true, pro: true, enterprise: true },
+  { label: "Priority support", trial: false, basic: false, pro: false, enterprise: true },
 
-  { only: "ecommerce", label: "Product catalogue & orders", trial: true, starter: true, growth: true, scale: true },
-  { only: "ecommerce", label: "Products", trial: "20", starter: "300", growth: "3,000", scale: "Unlimited" },
-  { only: "ecommerce", label: "Photo product matching (Vision AI)", trial: true, starter: true, growth: true, scale: true },
-  { only: "ecommerce", label: "Add products from photos", trial: true, starter: true, growth: true, scale: true },
+  { only: "ecommerce", label: "Product catalogue & orders", trial: true, basic: true, pro: true, enterprise: true },
+  { only: "ecommerce", label: "Products", trial: "20", basic: "500", pro: "1,500", enterprise: "Unlimited" },
+  { only: "ecommerce", label: "Photo product matching (Vision AI)", trial: true, basic: true, pro: true, enterprise: true },
+  { only: "ecommerce", label: "Add products from photos", trial: true, basic: true, pro: true, enterprise: true },
 
-  { only: "agency", label: "Knowledge Base (document upload)", trial: true, starter: true, growth: true, scale: true },
-  { only: "agency", label: "Documents", trial: "2", starter: "10", growth: "40", scale: "Unlimited" },
-  { only: "agency", label: "Google Calendar booking", trial: true, starter: true, growth: true, scale: true },
+  { only: "agency", label: "Knowledge Base (document upload)", trial: true, basic: true, pro: true, enterprise: true },
+  { only: "agency", label: "Documents", trial: "2", basic: "25", pro: "150", enterprise: "Unlimited" },
+  { only: "agency", label: "Google Calendar booking", trial: true, basic: true, pro: true, enterprise: true },
 ];
 
 // A plain-language reach line per tier, so "3,000 replies" means something to a
@@ -72,10 +76,10 @@ const COMPARE = [
 // owner changed it. It read "~180 chats" until 2026-09-18 — from when the trial
 // was costed as a month; three days at 30 replies is 90 replies, about 18 chats.
 const REACH = {
-  trial:   "≈ ~6 customer chats a day to try it out",
-  starter: "≈ ~600 customers a month — like adding ~1 agent",
-  growth:  "≈ ~3,000 customers a month — like ~3 agents",
-  scale:   "≈ ~10,000 customers a month — like ~8+ agents",
+  trial:      "≈ ~6 customer chats a day to try it out",
+  basic:      "≈ ~400 customers a month — like adding ~1 agent",
+  pro:        "≈ ~1,100 customers a month — like ~2 agents",
+  enterprise: "≈ ~2,400 customers a month, or as many as you need",
 };
 
 const FAQ = [

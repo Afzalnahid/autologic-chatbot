@@ -48,7 +48,7 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error("FAI
   ok("there are capability rows", caps.length >= 10);
   for (const r of caps) {
     if (/Priority support/i.test(r.label)) {
-      ok("priority support is still the one Scale-only line", /scale: true/.test(r.raw) && /growth: false/.test(r.raw));
+      ok("priority support is still the one top-tier line", /enterprise: true/.test(r.raw) && /pro: false/.test(r.raw));
       continue;
     }
     ok(`"${r.label}" is on for every tier`, !/: false/.test(r.raw));
@@ -56,9 +56,9 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error("FAI
 
   // The numbers are what the table is FOR, so they must still differ.
   const replies = rows.find((r) => r.label === "Bot replies");
-  ok("bot replies are still a ladder", replies && /"3,000 \/ mo"/.test(replies.raw) && /"50,000 \/ mo"/.test(replies.raw));
+  ok("bot replies are still a ladder", replies && /"2,000 \/ mo"/.test(replies.raw) && /"12,000 \/ mo"/.test(replies.raw));
   const channels = rows.find((r) => r.label === "Channels");
-  ok("channels still differ between Starter and Growth", channels && /starter: "1"/.test(channels.raw) && /growth: "All 3"/.test(channels.raw));
+  ok("channels still climb", channels && /basic: "2"/.test(channels.raw) && /pro: "All 3"/.test(channels.raw));
   ok("the table leads with the numbers", rows[0].label === "Bot replies" && rows[1].label === "Channels");
   ok("and says so above itself", /Every plan has every feature/.test(src));
 }
@@ -67,7 +67,7 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error("FAI
 {
   const { PLANS } = await import(pathToFileURL(join(ROOT, "src", "lib", "plans.js")).href + "?v=" + Date.now());
   const paid = Object.values(PLANS).filter((p) => Number(p.monthly) > 0);
-  ok("there are paid packages", paid.length === 6);
+  ok("there are paid packages", paid.length === 3);
   for (const p of paid) {
     const first = (p.features || [])[0] || "";
     ok(`${p.id} leads with its reply allowance`, /bot replies \/ month/i.test(first));

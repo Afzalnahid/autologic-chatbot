@@ -28,7 +28,7 @@ ok("no free or zero-price offer slips into the list", offers.offers.every((o) =>
 ok("offerCount matches the offers actually listed", offers.offerCount === offers.offers.length);
 ok("each offer says it is a monthly price",
   offers.offers.every((o) => o.priceSpecification.unitText === "MONTH" && o.priceSpecification.price === o.price));
-ok("each offer carries the plan's own name", offers.offers.some((o) => o.name === PLANS.shop_starter.name));
+ok("each offer carries the plan's own name", offers.offers.some((o) => o.name === PLANS.basic.name));
 ok("the offers point at the pricing page", offers.offers.every((o) => o.url === `${SITE}/pricing`));
 
 const faq = faqJsonLd([

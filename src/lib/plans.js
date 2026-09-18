@@ -49,12 +49,16 @@ export const BIZ_FEATURES = {
 };
 
 export const PLANS = {
-  // ── Free, and the same whichever business you are ─────────────────────────
+  // Four packages, and every one of them carries every feature (the owner's
+  // rule, 2026-09-18). What separates them is SIZE — replies, channels, and how
+  // much catalogue or knowledge they can hold. `biz: "both"` throughout: the
+  // capacity row is read as products by a shop and as documents by a service,
+  // so one row serves both sides instead of six rows serving three each.
   trial: {
     id: "trial",
     biz: "both",
     name: "Free Trial",
-    tagline: "Every feature, for a few days",
+    tagline: "Every feature, for three days",
     monthly: 0,
     yearly: 0,
     messagesPerDay: 30,
@@ -64,139 +68,75 @@ export const PLANS = {
     features: [
       "Every feature switched on",
       "30 bot replies a day (about 5-6 customers)",
-      "1 channel (Facebook, Instagram or WhatsApp)",
+      "1 channel of your choice",
       "20 products or 2 documents",
       "No card needed",
     ],
   },
 
-  // ── Shops ────────────────────────────────────────────────────────────────
-  shop_starter: {
-    id: "shop_starter",
-    biz: "ecommerce",
-    name: "Shop Starter",
-    tagline: "One channel, your whole catalogue answering for itself",
-    monthly: 1500,
-    yearly: 15000,
-    byokMonthly: 1000,
-    byokYearly: 10000,
+  basic: {
+    id: "basic",
+    biz: "both",
+    name: "Basic",
+    tagline: "One or two pages, answered all day",
+    monthly: 1999,
+    yearly: 19990,
+    byokMonthly: 1499,
+    byokYearly: 14990,
     messagesPerDay: null,
-    messagesPerMonth: 3000,
-    channels: 1,
+    messagesPerMonth: 2000,
+    channels: 2,
     highlight: false,
     features: [
-      "3,000 bot replies / month",
-      "1 channel of your choice",
-      "300 products",
-      "20 website imports, 4 broadcasts a month",
+      "2,000 bot replies / month",
+      "2 channels + website widget",
+      "500 products or 25 documents",
       "Every feature — nothing is held back",
-    ],
-  },
-  shop_growth: {
-    id: "shop_growth",
-    biz: "ecommerce",
-    name: "Shop Growth",
-    tagline: "Every channel, five times the replies",
-    monthly: 3500,
-    yearly: 35000,
-    byokMonthly: 2500,
-    byokYearly: 25000,
-    messagesPerDay: null,
-    messagesPerMonth: 15000,
-    channels: 3,
-    highlight: true,
-    features: [
-      "15,000 bot replies / month",
-      "All 3 channels — Facebook, Instagram, WhatsApp",
-      "3,000 products",
-      "200 website imports, 20 broadcasts a month",
-      "Every feature — nothing is held back",
-    ],
-  },
-  shop_scale: {
-    id: "shop_scale",
-    biz: "ecommerce",
-    name: "Shop Scale",
-    tagline: "For a catalogue and a crowd that keep growing",
-    monthly: 6000,
-    yearly: 60000,
-    byokMonthly: 4000,
-    byokYearly: 40000,
-    messagesPerDay: null,
-    messagesPerMonth: 50000,
-    channels: 3,
-    highlight: false,
-    features: [
-      "50,000 bot replies / month",
-      "All 3 channels — Facebook, Instagram, WhatsApp",
-      "Unlimited products",
-      "Unlimited website imports and broadcasts",
-      "Priority support",
+      "Extra replies at ৳0.60 each",
     ],
   },
 
-  // ── Services ─────────────────────────────────────────────────────────────
-  svc_starter: {
-    id: "svc_starter",
-    biz: "agency",
-    name: "Service Starter",
-    tagline: "One channel, answering from your own documents",
-    monthly: 1500,
-    yearly: 15000,
-    byokMonthly: 1000,
-    byokYearly: 10000,
+  pro: {
+    id: "pro",
+    biz: "both",
+    name: "Pro",
+    tagline: "Every channel, a full catalogue",
+    monthly: 4999,
+    yearly: 49990,
+    byokMonthly: 3499,
+    byokYearly: 34990,
     messagesPerDay: null,
-    messagesPerMonth: 3000,
-    channels: 1,
-    highlight: false,
-    features: [
-      "3,000 bot replies / month",
-      "1 channel of your choice",
-      "10 knowledge documents",
-      "20 website imports, 4 broadcasts a month",
-      "Every feature — nothing is held back",
-    ],
-  },
-  svc_growth: {
-    id: "svc_growth",
-    biz: "agency",
-    name: "Service Growth",
-    tagline: "Every channel, five times the replies",
-    monthly: 3500,
-    yearly: 35000,
-    byokMonthly: 2500,
-    byokYearly: 25000,
-    messagesPerDay: null,
-    messagesPerMonth: 15000,
+    messagesPerMonth: 5500,
     channels: 3,
     highlight: true,
     features: [
-      "15,000 bot replies / month",
-      "All 3 channels — Facebook, Instagram, WhatsApp",
-      "40 knowledge documents",
-      "200 website imports, 20 broadcasts a month",
+      "5,500 bot replies / month",
+      "All 3 channels + website widget",
+      "1,500 products or 150 documents",
       "Every feature — nothing is held back",
+      "Extra replies at ৳0.60 each",
     ],
   },
-  svc_scale: {
-    id: "svc_scale",
-    biz: "agency",
-    name: "Service Scale",
-    tagline: "For a practice that answers all day",
-    monthly: 6000,
-    yearly: 60000,
-    byokMonthly: 4000,
-    byokYearly: 40000,
+
+  enterprise: {
+    id: "enterprise",
+    biz: "both",
+    name: "Enterprise",
+    tagline: "Your numbers, set to your business",
+    monthly: 9999,
+    yearly: 99990,
+    byokMonthly: 6999,
+    byokYearly: 69990,
     messagesPerDay: null,
-    messagesPerMonth: 50000,
+    messagesPerMonth: 12000,
     channels: 3,
     highlight: false,
     features: [
-      "50,000 bot replies / month",
-      "All 3 channels — Facebook, Instagram, WhatsApp",
-      "Unlimited knowledge documents",
-      "Unlimited website imports and broadcasts",
+      "12,000 bot replies / month, or your own number",
+      "All 3 channels + website widget",
+      "Unlimited products and documents",
       "Priority support",
+      "Limits set per account — tell us what you need",
     ],
   },
 };
@@ -208,12 +148,8 @@ export const plansFor = (biz) =>
     .filter((id) => id !== "trial" && (PLANS[id].biz === "both" || PLANS[id].biz === biz))
     .map((id) => PLANS[id]);
 
-// Three tiers on each side, cheapest first, and the trial ahead of both.
-export const PLAN_ORDER = [
-  "trial",
-  "shop_starter", "shop_growth", "shop_scale",
-  "svc_starter", "svc_growth", "svc_scale",
-];
+// Cheapest first, the trial ahead of them all.
+export const PLAN_ORDER = ["trial", "basic", "pro", "enterprise"];
 
 // Anything that is not the trial and is not "no plan". Kept as a list because
 // messageAllowance() uses it as one of two ways to recognise a live package —
@@ -221,9 +157,13 @@ export const PLAN_ORDER = [
 // appear here. The old ids stay so an account still on one keeps working until
 // it is moved.
 export const PAID_PLANS = [
+  "basic", "pro", "enterprise",
+  // Withdrawn on 2026-09-18 but still LIVE for the accounts on them: a package
+  // nobody can buy any more is not a package nobody is paying for, and an id
+  // missing from this list reads as "no plan" — which would stop those bots.
   "shop_starter", "shop_growth", "shop_scale",
   "svc_starter", "svc_growth", "svc_scale",
-  "starter", "pro", "agency",
+  "starter", "agency",
 ];
 
 export function planOf(id) {

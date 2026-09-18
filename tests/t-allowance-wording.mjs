@@ -32,15 +32,15 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error("FAI
 {
   const { PLANS } = await import(pathToFileURL(join(ROOT, "src", "lib", "plans.js")).href + "?v=" + Date.now());
   const bullets = Object.values(PLANS).flatMap((p) => p.features || []);
-  ok("there are bullets to check", bullets.length > 20);
+  ok("there are bullets to check", bullets.length >= 15);
   const allowance = bullets.filter((b) => /\d[\d,]*\s*(bot replies|customer messages)|Unlimited (bot replies|customer messages)/i.test(b));
-  ok("every package states its allowance", allowance.length >= 7);
+  ok("every package states its allowance", allowance.length >= 4);
   ok("no bullet calls the allowance customer messages",
     !bullets.some((b) => /customer messages/i.test(b)));
   ok("the trial's bullet is per day and says replies",
     bullets.some((b) => /30 bot replies a day/i.test(b)));
   ok("the paid bullets are per month and say replies",
-    ["3,000", "15,000", "50,000"].every((n) => bullets.some((b) => b.includes(`${n} bot replies / month`))));
+    ["2,000", "5,500", "12,000"].every((n) => bullets.some((b) => b.includes(`${n} bot replies / month`))));
 }
 
 // ── The dashboard meter and the admin drawer read the same counter ──────────

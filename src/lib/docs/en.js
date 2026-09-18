@@ -1166,7 +1166,7 @@ export const DOCS = {
 
   "packages": {
     title: "Packages",
-    lead: "Seven packages: one free trial for everybody, then three for shops and three for services. What each one includes, and how to tell which is yours.",
+    lead: "Four packages — a free trial, then three sizes. Every one of them carries every feature; what changes is how much. Which is yours, and what happens when you reach a limit.",
     time: 5,
     blocks: [
       { h: "Two ladders, not one",
@@ -1188,29 +1188,31 @@ export const DOCS = {
           "It costs nothing and needs no card. When it ends the bot stops replying, but nothing is deleted — your products, documents and conversations wait for you.",
         ] },
 
-      { h: "The three tiers",
+      { h: "The three sizes",
         p: [
-          "Both sides climb the same three rungs, so a shop and a service on the same tier are the same size of business.",
+          "One ladder for everybody. A shop and a service on the same rung are the same size of business — the capacity row is simply read as products by a shop and as documents by a service.",
           "**Every tier has every feature.** Moving up does not unlock anything — photo matching, comment automation, calendar booking, the AI Assistant and your own AI key are in all three, and in the free trial. What you are buying is **size**: how many replies the bot may send, how many channels it answers on, how big a catalogue or how many documents it can hold.",
         ] },
 
-      { table: { head: ["", "Starter", "Growth", "Scale"], rows: [
-        ["Bot replies", "3,000 / month", "15,000 / month", "50,000 / month"],
-        ["Channels", "1", "All 3", "All 3"],
-        ["Website imports / month", "20", "200", "Unlimited"],
-        ["Broadcasts / month", "4", "20", "Unlimited"],
+      { table: { head: ["", "Basic", "Pro", "Enterprise"], rows: [
+        ["Price / month", "৳1,999", "৳4,999", "৳9,999"],
+        ["Bot replies", "2,000 / month", "5,500 / month", "12,000 / month"],
+        ["Channels", "2", "All 3", "All 3"],
+        ["Website imports / month", "20", "100", "Unlimited"],
+        ["Broadcasts / month", "10", "40", "Unlimited"],
         ["Every feature", "Yes", "Yes", "Yes"],
+        ["Extra replies", "৳0.60 each", "৳0.60 each", "By agreement"],
         ["Priority support", "—", "—", "Yes"],
       ] } },
 
-      { biz: "ecommerce", table: { head: ["For shops", "Starter", "Growth", "Scale"], rows: [
-        ["Products", "300", "3,000", "Unlimited"],
+      { biz: "ecommerce", table: { head: ["For shops", "Basic", "Pro", "Enterprise"], rows: [
+        ["Products", "500", "1,500", "Unlimited"],
         ["Photo product matching", "Yes", "Yes", "Yes"],
         ["Add products from photos", "Yes", "Yes", "Yes"],
       ] } },
 
-      { biz: "agency", table: { head: ["For services", "Starter", "Growth", "Scale"], rows: [
-        ["Knowledge Base documents", "10", "40", "Unlimited"],
+      { biz: "agency", table: { head: ["For services", "Basic", "Pro", "Enterprise"], rows: [
+        ["Knowledge documents", "25", "150", "Unlimited"],
         ["Google Calendar booking", "Yes", "Yes", "Yes"],
         ["Comment automation", "Yes", "Yes", "Yes"],
       ] } },
