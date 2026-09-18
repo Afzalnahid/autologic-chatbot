@@ -784,6 +784,15 @@ again?"
     → ≈৳26,597/mo. NOT yet entered in admin platform_costs (owner not asked).
     Break-even at 100% use, mix 50/35/15 Basic/Pro/Ent, 2.5% gateway fee:
     3.6-flash 42 clients, 2.5-flash 11. Sheet v4.
+  - PACKAGE LIMITS PROPOSAL SHOWN, NOT APPLIED (2026-09-18). Owner: "there will
+    be something need to change, just show me the package list, no need to
+    add". Proposed: Assistant questions/month 30/300/600/1,000; product photos
+    read by AI/month 40/1,000/3,000/10,000; Enterprise fair use 5,000 products,
+    500 docs, 300 imports; comment replies always count. Wait for owner's edits.
+    OWNER DECIDED (not built yet): customer photo/voice is read by AI only while
+    the plan is active — expired / over limit → store "📷 Photo" only, no AI.
+    OVERAGE ৳0.60/reply: still advertised, still not built — owner: "keep it in
+    your mind, we will talk later". Raise it again before selling.
   - DEBOUNCE WINDOW: NOT CHANGED, and deliberately (2026-09-18). The owner asked
     why two messages 23s apart got two replies. Raising DEBOUNCE_QUIET_MS (5s)
     would slow EVERY single-message reply by the same amount. The real fix was
