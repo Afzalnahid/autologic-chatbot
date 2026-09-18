@@ -1430,3 +1430,13 @@ both the product and its plumbing, split it before dividing. Second: an
 assumption written as a literal in a formula (3,000 tokens a reply, 30 a day)
 ages into a lie, and nobody re-reads a formula. Measure it, or read it from the
 one place that holds it.
+
+## 2026-09-18 — a guard that runs once cannot protect a slow operation
+Two customer messages 23 seconds apart each got their own reply, and the second
+opened with "Hello" twenty seconds into the conversation. The debounce was
+correct and tested; it simply decided BEFORE the twenty-second model call and
+nothing re-checked afterwards. The second handler then answered the whole burst
+while the first was still writing, so the customer was answered twice and the
+second reply could not see memory the first had not saved yet. Rule: when a
+decision is followed by slow work, the decision has to be re-taken before the
+side effect, not only before the work. Guard the SEND, not just the START.

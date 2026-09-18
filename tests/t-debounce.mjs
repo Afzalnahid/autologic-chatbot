@@ -22,7 +22,7 @@ const ok = (name, cond, extra = "") => {
   else { fail++; console.error("FAIL:", name, typeof extra === "string" ? extra : JSON.stringify(extra)); }
 };
 
-const { debounceDecision, DEBOUNCE_QUIET_MS, DEBOUNCE_MAX_MS } = await loadPure(BOT, "tmp-debounce.mjs");
+const { debounceDecision, supersededBy, DEBOUNCE_QUIET_MS, DEBOUNCE_MAX_MS } = await loadPure(BOT, "tmp-debounce.mjs");
 
 const T0 = 1_000_000_000_000; // a fixed "now" base
 const row = (id, ageMs) => ({ id, created_at: new Date(T0 - ageMs).toISOString() });
@@ -84,6 +84,43 @@ ok("max wait forces go even if not quiet",
   const d = debounceDecision([row("a", DEBOUNCE_QUIET_MS - 300)], "a", T0, T0);
   ok("wait shrinks near the quiet point", d.action === "wait" && d.waitMs <= 300 + 1, d);
 }
+
+// ── The second guard: after the reply is written, before it is sent ─────────
+//
+// The debounce decides ONCE and then the model writes, which takes twenty
+// seconds or more on a real catalogue. On 2026-09-18 two messages 23 seconds
+// apart each got their own reply: the first handler had already passed its
+// decision when the second message landed, so both sent. The customer got the
+// same answer twice, the second one opening with a fresh "Hello" because the
+// first had not saved its memory yet. supersededBy is the check that stops it.
+{
+  const A = { id: "a" }, B = { id: "b" };
+  ok("alone, nothing supersedes me", supersededBy([A], "a") === false);
+  ok("a newer message supersedes me", supersededBy([A, B], "a") === true);
+  ok("being the newest myself does not", supersededBy([A, B], "b") === false);
+
+  // The same burst the owner hit: msg 2's handler composes while msg 3 lands.
+  ok("the first handler stands down so the second answers both",
+    supersededBy([{ id: "msg2" }, { id: "msg3" }], "msg2") === true);
+  ok("and the second one sends", supersededBy([{ id: "msg2" }, { id: "msg3" }], "msg3") === false);
+
+  // Ids are compared as text: the buffer hands back whatever the driver made
+  // of a bigint, and a number that fails === a string is a duplicate reply.
+  ok("a numeric id matches its string form", supersededBy([{ id: 7 }], "7") === false);
+  ok("and a different one still supersedes", supersededBy([{ id: 7 }, { id: 8 }], "7") === true);
+
+  // Nothing to compare against must never mean "stand down" — that would be a
+  // customer waiting for a reply that was written and thrown away.
+  ok("no rows, no supersede", supersededBy([], "a") === false);
+  ok("no rows at all, no supersede", supersededBy(undefined, "a") === false);
+  ok("no row id of my own, no supersede", supersededBy([A, B], null) === false);
+}
+
+// The two guards answer different questions and must not be confused: one
+// decides WHETHER TO WAIT, the other decides WHETHER TO SEND.
+ok("bail and supersede agree when a newer message exists",
+  debounceDecision([row("a", 100), row("b", 50)], "a", T0, T0).action === "bail"
+  && supersededBy([{ id: "a" }, { id: "b" }], "a") === true);
 
 console.log(fail === 0 ? `${pass} passed, 0 failed` : `${pass} passed, ${fail} FAILED`);
 process.exit(fail === 0 ? 0 : 1);

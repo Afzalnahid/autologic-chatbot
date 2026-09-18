@@ -1051,6 +1051,24 @@ export function debounceDecision(rows, myRowId, nowMs, startMs, quietMs = DEBOUN
   return { action: "wait", waitMs: Math.max(50, Math.min(1200, quietMs - since)) };
 }
 
+// Has a newer message arrived since this handler claimed the burst?
+//
+// The debounce above decides ONCE, then the model is asked for a reply — and on
+// a real catalogue that takes twenty seconds or more. A message that lands in
+// that window starts its own handler, which waits its five seconds and answers
+// for the WHOLE burst. The first reply, already written, is then a duplicate:
+// it says the same things in different words, and because the first handler has
+// not saved its memory yet, the second one greets the customer all over again.
+//
+// That is exactly what happened on 2026-09-18 at 18:30 — two messages 23
+// seconds apart produced two replies, the second opening "Hello Nahid sir!"
+// twenty seconds into the conversation. Pure, so it is tested without timers.
+export function supersededBy(rows, myRowId) {
+  if (!myRowId || !rows || !rows.length) return false;
+  const latest = rows[rows.length - 1];
+  return String(latest.id) !== String(myRowId);
+}
+
 export async function processConversation(channel, senderId, myRowId) {
   const clientId = channel.client_id;
   const client = await getClient(clientId);
@@ -1091,6 +1109,14 @@ export async function processConversation(channel, senderId, myRowId) {
 
   const combined = rows.map(r => r.message_content).join("\n");
   const { items, bookingNote, handoff } = await composeReply({ clientId, client, bType, senderId, combined, platform: channel.platform, pageId: channel.page_id || "" });
+
+  // Writing the reply took real time. Check ONE more time that nobody newer has
+  // arrived — if they have, their handler is answering for this burst too, and
+  // sending ours as well is how a customer gets two replies to one question.
+  // The call we just paid for is spent either way; sending it would cost the
+  // customer's patience on top. WhatsApp is excluded for the same reason it
+  // skips the debounce: it is deduped on the message id Meta gives us.
+  if (channel.platform !== "whatsapp" && supersededBy(await pendingFor(senderId, clientId), myRowId)) return;
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
   else await sendResponses(channel.access_token, senderId, items, channel.platform, channel.page_id);
