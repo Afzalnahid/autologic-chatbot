@@ -752,6 +752,23 @@ again?"
     TWO RISKS TO RAISE BEFORE LAUNCH: Vercel's Hobby plan forbids COMMERCIAL use,
     and Supabase Free pauses after a week idle and caps at 500MB. Both need
     upgrading before paying clients arrive.
+  - FULL 100%-USE PACKAGE COST, ALL PLATFORM AI INCLUDED (2026-09-18). Owner:
+    every earlier sum priced bot replies only. Now priced with product add
+    (photo ৳0.19, chat interview ৳0.44), AI Assistant (৳0.26-0.44/question),
+    website import (~৳1.04/page, estimate), docs (~৳0.16), profile writing.
+    On 3.6-flash, steady month: Basic ৳1,210 (61%), Pro ৳3,437 (69%),
+    Enterprise ৳7,640 (76%); first month (whole catalogue built) up to 92% on
+    Enterprise. On 2.5-flash: 27% / 31% / 34%. Trial ≈ ৳70 each. 3.6-flash
+    price doubles 2027-01-01 → Basic would LOSE money; switching to 2.5-flash
+    before December is mandatory. Sheet: artifact GwxvQSCumEUFAY6c5p6Gya v2.
+    FOUR COST HOLES FOUND, NOT FIXED (owner to decide): (1) AI Assistant has
+    no monthly cap, only 80/hour (inventory-chat route) — worst case ≈৳15,000/
+    month, ≈৳1,500 in one trial; (2) Enterprise "unlimited" products/docs/
+    imports make 100% cost unbounded — needs fair-use caps; (3) product quota
+    counts products present, not added, so delete+re-add re-spends AI;
+    (4) comment replies are counted only when the inbox DM is on — with DM off
+    each costs ৳0.42 and counts nothing (bot.js comment path, reply_turn only
+    on the DM row).
   - DEBOUNCE WINDOW: NOT CHANGED, and deliberately (2026-09-18). The owner asked
     why two messages 23s apart got two replies. Raising DEBOUNCE_QUIET_MS (5s)
     would slow EVERY single-message reply by the same amount. The real fix was
