@@ -120,17 +120,12 @@ export function OnboardFrame({icon,title,sub,step,of,width=460,scroll,children})
 // override these — this is the first paint and the fallback.
 export const PLAN_META={
   trial:{name:"Free Trial",color:T.info},
-  shop_starter:{name:"Shop Starter",color:T.success},
-  shop_growth:{name:"Shop Growth",color:T.gold},
-  shop_scale:{name:"Shop Scale",color:T.purple},
-  svc_starter:{name:"Service Starter",color:T.success},
-  svc_growth:{name:"Service Growth",color:T.gold},
-  svc_scale:{name:"Service Scale",color:T.purple},
-  // Retired 2026-08-31. Kept so an account still carrying one of these reads as
-  // its own name rather than as "No plan".
-  starter:{name:"Starter (retired)",color:T.textDim},
-  pro:{name:"Pro (retired)",color:T.textDim},
-  agency:{name:"Agency (retired)",color:T.textDim},
+  shop_basic:{name:"Shop Basic",color:T.success},
+  shop_pro:{name:"Shop Pro",color:T.gold},
+  shop_enterprise:{name:"Shop Enterprise",color:T.purple},
+  svc_basic:{name:"Service Basic",color:T.success},
+  svc_pro:{name:"Service Pro",color:T.gold},
+  svc_enterprise:{name:"Service Enterprise",color:T.purple},
   none:{name:"No plan",color:T.textDim},
 };
 // The list shown for the instant before /api/plans answers. It held the three
@@ -139,12 +134,12 @@ export const PLAN_META={
 // Shop packages, because business_type defaults to a shop; the live list
 // replaces this the moment it arrives and is filtered by the real type.
 export const PLAN_LIST=[
-  {id:"shop_starter",biz:"ecommerce",name:"Shop Starter",monthly:1500,yearly:15000,byok_monthly:1000,byok_yearly:10000,tagline:"One channel, your whole catalogue answering for itself",
-   features:["3,000 bot replies / month","1 channel of your choice","300 products"]},
-  {id:"shop_growth",biz:"ecommerce",name:"Shop Growth",monthly:3500,yearly:35000,byok_monthly:2500,byok_yearly:25000,highlight:true,tagline:"Every channel, five times the replies",
-   features:["15,000 bot replies / month","All 3 channels","3,000 products"]},
-  {id:"shop_scale",biz:"ecommerce",name:"Shop Scale",monthly:6000,yearly:60000,byok_monthly:4000,byok_yearly:40000,tagline:"For a catalogue and a crowd that keep growing",
-   features:["50,000 bot replies / month","All 3 channels","Unlimited products"]},
+  {id:"shop_basic",biz:"ecommerce",name:"Shop Basic",monthly:2699,yearly:26990,byok_monthly:1999,byok_yearly:19990,tagline:"One or two pages, your catalogue answering all day",
+   features:["2,000 bot replies / month","2 channels + website widget","500 products added / month"]},
+  {id:"shop_pro",biz:"ecommerce",name:"Shop Pro",monthly:5999,yearly:59990,byok_monthly:4499,byok_yearly:44990,highlight:true,tagline:"Every channel, a full catalogue",
+   features:["5,500 bot replies / month","All 3 channels + website widget","1,000 products added / month"]},
+  {id:"shop_enterprise",biz:"ecommerce",name:"Shop Enterprise",monthly:11999,yearly:119990,byok_monthly:8999,byok_yearly:89990,tagline:"The most of everything, and room to fit your shop",
+   features:["12,000 bot replies / month","All 3 channels + website widget","2,500 products added / month"]},
 ];
 
 export const taka=n=>"\u09F3"+Number(n||0).toLocaleString("en-IN");

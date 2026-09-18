@@ -49,11 +49,12 @@ export const BIZ_FEATURES = {
 };
 
 export const PLANS = {
-  // Four packages, and every one of them carries every feature (the owner's
-  // rule, 2026-09-18). What separates them is SIZE — replies, channels, and how
-  // much catalogue or knowledge they can hold. `biz: "both"` throughout: the
-  // capacity row is read as products by a shop and as documents by a service,
-  // so one row serves both sides instead of six rows serving three each.
+  // Two sets of three, one per business type (owner's rule, 2026-09-19: "there
+  // are two types, ecommerce and agency, so there will be two types of
+  // packages"), plus one trial for both. Every package carries every feature;
+  // what separates them is SIZE. A shop is sized by products added, a service
+  // by knowledge documents added — and a service costs less because there is no
+  // catalogue for the AI to read. Each set has its own BYOK price list.
   trial: {
     id: "trial",
     biz: "both",
@@ -76,11 +77,12 @@ export const PLANS = {
   },
 
 
-  basic: {
-    id: "basic",
-    biz: "both",
-    name: "Basic",
-    tagline: "One or two pages, answered all day",
+  // ── Shops (ecommerce) ──
+  shop_basic: {
+    id: "shop_basic",
+    biz: "ecommerce",
+    name: "Shop Basic",
+    tagline: "One or two pages, your catalogue answering all day",
     monthly: 2699,
     yearly: 26990,
     byokMonthly: 1999,
@@ -92,17 +94,16 @@ export const PLANS = {
     features: [
       "2,000 bot replies / month",
       "2 channels + website widget",
-      "500 products or 20 documents a month",
+      "500 products added / month",
       "100 AI Assistant questions / month",
       "Every feature — nothing is held back",
     ],
   },
 
-
-  pro: {
-    id: "pro",
-    biz: "both",
-    name: "Pro",
+  shop_pro: {
+    id: "shop_pro",
+    biz: "ecommerce",
+    name: "Shop Pro",
     tagline: "Every channel, a full catalogue",
     monthly: 5999,
     yearly: 59990,
@@ -115,18 +116,17 @@ export const PLANS = {
     features: [
       "5,500 bot replies / month",
       "All 3 channels + website widget",
-      "1,000 products or 60 documents a month",
+      "1,000 products added / month",
       "400 AI Assistant questions / month",
       "Every feature — nothing is held back",
     ],
   },
 
-
-  enterprise: {
-    id: "enterprise",
-    biz: "both",
-    name: "Enterprise",
-    tagline: "The most of everything, and room to fit your business",
+  shop_enterprise: {
+    id: "shop_enterprise",
+    biz: "ecommerce",
+    name: "Shop Enterprise",
+    tagline: "The most of everything, and room to fit your shop",
     monthly: 11999,
     yearly: 119990,
     byokMonthly: 8999,
@@ -138,13 +138,80 @@ export const PLANS = {
     features: [
       "12,000 bot replies / month",
       "All 3 channels + website widget",
-      "2,500 products or 150 documents a month",
+      "2,500 products added / month",
       "800 AI Assistant questions / month",
       "Priority support",
       "Need more? We set your limits to fit",
     ],
   },
 
+  // ── Services (agency) — no product catalogue to read, so a lower price ──
+  svc_basic: {
+    id: "svc_basic",
+    biz: "agency",
+    name: "Service Basic",
+    tagline: "One or two pages, answering from your own documents",
+    monthly: 2299,
+    yearly: 22990,
+    byokMonthly: 1699,
+    byokYearly: 16990,
+    messagesPerDay: null,
+    messagesPerMonth: 2000,
+    channels: 2,
+    highlight: false,
+    features: [
+      "2,000 bot replies / month",
+      "2 channels + website widget",
+      "20 knowledge documents added / month",
+      "100 AI Assistant questions / month",
+      "Every feature, Google Calendar booking included",
+    ],
+  },
+
+  svc_pro: {
+    id: "svc_pro",
+    biz: "agency",
+    name: "Service Pro",
+    tagline: "Every channel, and meetings booked while you sleep",
+    monthly: 4999,
+    yearly: 49990,
+    byokMonthly: 3499,
+    byokYearly: 34990,
+    messagesPerDay: null,
+    messagesPerMonth: 5500,
+    channels: 3,
+    highlight: true,
+    features: [
+      "5,500 bot replies / month",
+      "All 3 channels + website widget",
+      "60 knowledge documents added / month",
+      "400 AI Assistant questions / month",
+      "Every feature, Google Calendar booking included",
+    ],
+  },
+
+  svc_enterprise: {
+    id: "svc_enterprise",
+    biz: "agency",
+    name: "Service Enterprise",
+    tagline: "The most of everything, and room to fit your practice",
+    monthly: 9999,
+    yearly: 99990,
+    byokMonthly: 7499,
+    byokYearly: 74990,
+    messagesPerDay: null,
+    messagesPerMonth: 12000,
+    channels: 3,
+    highlight: false,
+    features: [
+      "12,000 bot replies / month",
+      "All 3 channels + website widget",
+      "150 knowledge documents added / month",
+      "800 AI Assistant questions / month",
+      "Priority support",
+      "Need more? We set your limits to fit",
+    ],
+  },
 };
 
 // Every package a business of this type may buy, cheapest first. The trial is
@@ -155,21 +222,17 @@ export const plansFor = (biz) =>
     .map((id) => PLANS[id]);
 
 // Cheapest first, the trial ahead of them all.
-export const PLAN_ORDER = ["trial", "basic", "pro", "enterprise"];
+export const PLAN_ORDER = ["trial", "shop_basic", "shop_pro", "shop_enterprise", "svc_basic", "svc_pro", "svc_enterprise"];
 
 // Anything that is not the trial and is not "no plan". Kept as a list because
 // messageAllowance() uses it as one of two ways to recognise a live package —
 // the other being a package the owner created in the panel, which will never
-// appear here. The old ids stay so an account still on one keeps working until
-// it is moved.
+// appear here. The retired ids (basic/pro/enterprise "both", and the 2026-08-31
+// shop_/svc_ starter/growth/scale set) were removed on 2026-09-19 after every
+// account on them was moved to a current package.
 export const PAID_PLANS = [
-  "basic", "pro", "enterprise",
-  // Withdrawn on 2026-09-18 but still LIVE for the accounts on them: a package
-  // nobody can buy any more is not a package nobody is paying for, and an id
-  // missing from this list reads as "no plan" — which would stop those bots.
-  "shop_starter", "shop_growth", "shop_scale",
-  "svc_starter", "svc_growth", "svc_scale",
-  "starter", "agency",
+  "shop_basic", "shop_pro", "shop_enterprise",
+  "svc_basic", "svc_pro", "svc_enterprise",
 ];
 
 export function planOf(id) {

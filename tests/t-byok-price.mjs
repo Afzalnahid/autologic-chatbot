@@ -42,14 +42,19 @@ is("own key but package has no byok → standard, not 0", priceForClient({ month
 is("own key, byok accidentally 0 → standard, not 0", priceForClient({ monthly: 1500, byok_monthly: 0 }, "monthly", true), 1500);
 
 // ── the catalogue carries the agreed prices ──────────────────────────────────
-is("basic byok", [PLANS.basic.byokMonthly, PLANS.basic.byokYearly], [1999, 19990]);
-is("pro byok", [PLANS.pro.byokMonthly, PLANS.pro.byokYearly], [4499, 44990]);
-is("enterprise byok", [PLANS.enterprise.byokMonthly, PLANS.enterprise.byokYearly], [8999, 89990]);
+// Two price lists, one per business type (owner, 2026-09-19).
+is("shop basic byok", [PLANS.shop_basic.byokMonthly, PLANS.shop_basic.byokYearly], [1999, 19990]);
+is("shop pro byok", [PLANS.shop_pro.byokMonthly, PLANS.shop_pro.byokYearly], [4499, 44990]);
+is("shop enterprise byok", [PLANS.shop_enterprise.byokMonthly, PLANS.shop_enterprise.byokYearly], [8999, 89990]);
+is("service basic byok", [PLANS.svc_basic.byokMonthly, PLANS.svc_basic.byokYearly], [1699, 16990]);
+is("service pro byok", [PLANS.svc_pro.byokMonthly, PLANS.svc_pro.byokYearly], [3499, 34990]);
+is("service enterprise byok", [PLANS.svc_enterprise.byokMonthly, PLANS.svc_enterprise.byokYearly], [7499, 74990]);
+is("every paid package has a byok price list", Object.values(PLANS).filter((p) => p.monthly > 0).every((p) => p.byokMonthly > 0 && p.byokYearly > 0), true);
 is("trial has no byok price", [PLANS.trial.byokMonthly ?? null, PLANS.trial.byokYearly ?? null], [null, null]);
 
 // Every BYOK price is strictly lower than its standard price (a BYOK client
 // should never pay more for bringing their own key).
-for (const id of ["basic", "pro", "enterprise"]) {
+for (const id of ["shop_basic", "shop_pro", "shop_enterprise", "svc_basic", "svc_pro", "svc_enterprise"]) {
   const p = PLANS[id];
   is(`${id} byok < standard (monthly)`, p.byokMonthly < p.monthly, true);
   is(`${id} byok < standard (yearly)`, p.byokYearly < p.yearly, true);

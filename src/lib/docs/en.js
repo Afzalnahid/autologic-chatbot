@@ -1166,7 +1166,7 @@ export const DOCS = {
 
   "packages": {
     title: "Packages",
-    lead: "Four packages — a free trial, then three sizes. Every one of them carries every feature; what changes is how much. Which is yours, and what happens when you reach a limit.",
+    lead: "A free trial, then three sizes for shops and three for services, each with a lower price on your own AI key. Every package carries every feature; what changes is how much. Which is yours, and what happens when you reach a limit.",
     time: 5,
     blocks: [
       { h: "Two ladders, not one",
@@ -1190,12 +1190,11 @@ export const DOCS = {
 
       { h: "The three sizes",
         p: [
-          "One ladder for everybody. A shop and a service on the same rung are the same size of business — the capacity row is simply read as products by a shop and as documents by a service.",
+          "Two sets of three: one for shops, one for services. They grow the same way — replies, channels, AI Assistant questions — but a shop is sized by the products it adds and a service by the knowledge documents it adds. Services cost less, because there is no catalogue for the AI to read. Each set has a lower price for a business on its own AI key.",
           "**Every tier has every feature.** Moving up does not unlock anything — photo matching, comment automation, calendar booking, the AI Assistant and your own AI key are in all three, and in the free trial. What you are buying is **size**: how many replies the bot may send, how many channels it answers on, how big a catalogue or how many documents it can hold.",
         ] },
 
       { table: { head: ["", "Basic", "Pro", "Enterprise"], rows: [
-        ["Price / month (launch price to 31 Dec 2026)", "৳2,699", "৳5,999", "৳11,999"],
         ["Bot replies", "2,000 / month", "5,500 / month", "12,000 / month"],
         ["Channels", "2 + website widget", "All 3 + website widget", "All 3 + website widget"],
         ["AI Assistant questions / month", "100", "400", "800"],
@@ -1204,14 +1203,18 @@ export const DOCS = {
         ["Priority support", "—", "—", "Yes"],
       ] } },
 
-      { biz: "ecommerce", table: { head: ["For shops", "Basic", "Pro", "Enterprise"], rows: [
+      { biz: "ecommerce", table: { head: ["For shops", "Shop Basic", "Shop Pro", "Shop Enterprise"], rows: [
+        ["Price / month (launch price to 31 Dec 2026)", "৳2,699", "৳5,999", "৳11,999"],
+        ["On your own AI key / month", "৳1,999", "৳4,499", "৳8,999"],
         ["Products added / month", "500", "1,000", "2,500"],
         ["Products from a website link / month", "10", "40", "100"],
         ["Photo product matching", "Yes", "Yes", "Yes"],
         ["Add products from photos", "Yes", "Yes", "Yes"],
       ] } },
 
-      { biz: "agency", table: { head: ["For services", "Basic", "Pro", "Enterprise"], rows: [
+      { biz: "agency", table: { head: ["For services", "Service Basic", "Service Pro", "Service Enterprise"], rows: [
+        ["Price / month (launch price to 31 Dec 2026)", "৳2,299", "৳4,999", "৳9,999"],
+        ["On your own AI key / month", "৳1,699", "৳3,499", "৳7,499"],
         ["Knowledge documents added / month", "20", "60", "150"],
         ["Google Calendar booking", "Yes", "Yes", "Yes"],
         ["Comment automation", "Yes", "Yes", "Yes"],

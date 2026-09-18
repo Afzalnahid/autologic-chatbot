@@ -67,7 +67,10 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error("FAI
 {
   const { PLANS } = await import(pathToFileURL(join(ROOT, "src", "lib", "plans.js")).href + "?v=" + Date.now());
   const paid = Object.values(PLANS).filter((p) => Number(p.monthly) > 0);
-  ok("there are paid packages", paid.length === 3);
+  // Two sets of three — one for shops, one for services (owner, 2026-09-19).
+  ok("there are paid packages", paid.length === 6);
+  ok("three are for shops", paid.filter((p) => p.biz === "ecommerce").length === 3);
+  ok("three are for services", paid.filter((p) => p.biz === "agency").length === 3);
   for (const p of paid) {
     const first = (p.features || [])[0] || "";
     ok(`${p.id} leads with its reply allowance`, /bot replies \/ month/i.test(first));

@@ -22,10 +22,9 @@ const T = {
 //
 // `only` marks a row that belongs to one business type. A shop never sees the
 // calendar row; a service never sees photo matching.
-// Four packages now, and the id IS the tier — no splitting on "_" and no shop
-// or service variants, because a package is a size and the capacity row is read
-// as products by a shop and as documents by a service.
-const tierOf = (id) => String(id);
+// Two sets of three (shop_basic… / svc_basic…), one per business type, so the
+// tier is the id without its shop_/svc_ prefix and the same rows serve both.
+const tierOf = (id) => String(id).replace(/^(shop|svc)_/, "");
 
 // Every package carries every feature (the owner's rule, 2026-09-18) — a
 // package is a SIZE, not a smaller product. So the numbers come first and
