@@ -784,6 +784,17 @@ again?"
     → ≈৳26,597/mo. NOT yet entered in admin platform_costs (owner not asked).
     Break-even at 100% use, mix 50/35/15 Basic/Pro/Ent, 2.5% gateway fee:
     3.6-flash 42 clients, 2.5-flash 11. Sheet v4.
+  - FOLLOW-UPS NOW SCHEDULED (2026-09-19, f0f3b9b). Bug: runFollowups ran
+    only from GET /api/conversations, i.e. only while an owner had the inbox
+    open. New /api/cron/followups (all accounts with settings.followup.enabled)
+    called every 30 min by .github/workflows/followups.yml (Vercel Hobby allows
+    one cron/day). Live call verified: {"accounts":1,"visited":1,"sent":0}.
+    CRON_SECRET is NOT set on Vercel (endpoint open; harmless, only sends what
+    is due). NOTE: the GitHub repo answers 404 to the unauthenticated API, so it
+    is PRIVATE — Actions minutes are metered (2,000/month free; this job ≈1,440).
+    Still treat the repo as public for secrets. Move the job into vercel.json
+    after the Vercel Pro upgrade. First scheduled GitHub run NOT yet confirmed
+    (no gh CLI here) — check followup.last_run_at on Autologic advances.
   - PACKAGE LIMITS PROPOSAL SHOWN, NOT APPLIED (2026-09-18). Owner: "there will
     be something need to change, just show me the package list, no need to
     add". Proposed: Assistant questions/month 30/300/600/1,000; product photos

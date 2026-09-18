@@ -2,7 +2,11 @@ name: Send due follow-ups
 
 # Follow-ups must go out inside Meta's 24-hour window, so they have to be
 # checked through the day. Vercel's Hobby plan allows a cron only once a day,
-# so GitHub calls the endpoint instead (free for a public repository).
+# so GitHub calls the endpoint instead. Cost: the repository is private, where
+# GitHub Free includes 2,000 Actions minutes a month and bills each run as at
+# least one minute — 48 runs a day is ~1,440 minutes, leaving ~560 for the
+# Android build. Move this into vercel.json (and delete this file) once the
+# project is on Vercel Pro, which allows frequent crons.
 # The endpoint itself decides who is due; calling it early or twice is harmless.
 #
 # Optional but recommended: add a repository secret CRON_SECRET with the SAME
