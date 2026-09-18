@@ -795,6 +795,27 @@ again?"
     Still treat the repo as public for secrets. Move the job into vercel.json
     after the Vercel Pro upgrade. First scheduled GitHub run NOT yet confirmed
     (no gh CLI here) — check followup.last_run_at on Autologic advances.
+  - LAUNCH PACKAGES LIVE IN DB (2026-09-19, owner chose the launch offer):
+    Basic ৳2,699 / Pro ৳5,999 / Enterprise ৳11,999 a month (yearly ×10; BYOK
+    1,999 / 4,499 / 8,999), "launch prices until 31 Dec 2026" on the pricing
+    page. Limits: replies 2,000/5,500/12,000; channels 2/3/3 + widget;
+    products added/month 500/1,000/2,500; docs added/month 20/60/150;
+    AI Assistant questions/month 100/400/800 (trial 30); website-link imports
+    10/40/100; broadcasts 10/40/100. Nothing unlimited. ৳0.60 overage line
+    REMOVED everywhere (never built). Code 31f4fee, DB docs/sql/2026-09-19-
+    launch-packages.sql. At 100% use on 3.6-flash every package keeps ≥≈৳1,000.
+  - METERS (0b145f5): products/documents counted as ADDS per month via
+    allowance_events + DB triggers (delete does not give an add back; catalogue
+    also capped at the number); AI Assistant monthly allowance
+    (plans.max_assistant_per_month, enforced in inventory-chat); all meters
+    shown under the package on Billing and on Profile (UsageMeters.js).
+    NOT YET BROWSER-VERIFIED on the live dashboard.
+  - STILL TO DO from the owner's package brief: first-3-photos AI-read rule
+    per product; comment replies always counted; no photo/voice AI reading on
+    an expired plan (owner decided); Enterprise "customise" form; pricing docs
+    page with a short line per feature; rename "bot replies" → "AI replies"
+    (owner agreed); feature-by-feature verification; team members (not built,
+    so not listed).
   - MODEL DECISION (2026-09-19, owner): QUALITY FIRST — do NOT move to
     gemini-2.5-flash. Primary stays gemini-3.6-flash; the fallback must be
     equally strong. Google now lists stable gemini-3.7-flash and 3.8-flash at

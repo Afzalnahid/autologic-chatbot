@@ -1440,3 +1440,22 @@ while the first was still writing, so the customer was answered twice and the
 second reply could not see memory the first had not saved yet. Rule: when a
 decision is followed by slow work, the decision has to be re-taken before the
 side effect, not only before the work. Guard the SEND, not just the START.
+
+## 2026-09-19 — `git checkout <file>` to undo a probe also undid the real change
+To prove a new test fails on a bad model chain, I edited gemini.js with sed, ran
+the test, then ran `git checkout` on the file to put it back — which restored
+the last COMMIT, throwing away the uncommitted fix the probe was sitting on.
+Caught only because the diff stat came back smaller than expected. Rule: never
+probe by mutating a working-tree file that holds uncommitted work. Probe on a
+copy in the scratchpad (or evaluate the rule directly), and if a revert is
+needed, revert only the probe's own edit.
+
+## 2026-09-19 — every package cost must include every AI call, bot or not
+Four rounds of package costing priced bot replies only. The owner had to point
+out the rest: products added (each photo read separately, up to 12), the AI
+Assistant (no monthly cap at all), website imports, and — found only by reading
+bot.js — customer photos and voice notes read by AI BEFORE the "is the bot on?"
+check, so a paused channel or an expired plan still spends money uncounted.
+Rule: cost a package from the list of every AI call site (grep getClientAI and
+the gemini imports), each at its full allowance, not from the one feature the
+package is named after.
