@@ -96,6 +96,12 @@ every connect flow. Every callback and every `/select` route verifies it before
 writing anything, using a constant-time comparison. A raw client id, a tampered
 id, or an expired token is rejected with 403.
 
+One exception to the 30 minutes: WhatsApp Embedded Signup (business details,
+then an SMS code) took 22 minutes in a live run, so `/api/wa/callback` accepts a
+signup state for 2 hours. A signup state is the client id with an `es_` marker
+inside the signed payload (`lib/wa-signup.js`), so it cannot be forged into one
+and the login flow through the same callback keeps the 30-minute limit.
+
 The signing key is `OAUTH_STATE_SECRET` if set, otherwise `FB_APP_SECRET` — server
 side only, never sent to the browser.
 

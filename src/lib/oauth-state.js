@@ -28,7 +28,9 @@ export function signState(clientId) {
 }
 
 // Returns the client id, or null if the token is missing, tampered with or old.
-export function verifyState(state) {
+// `maxAgeMs` lets a flow that legitimately takes longer (WhatsApp signup, with
+// its SMS step) accept an older token; everything else keeps the 30 minutes.
+export function verifyState(state, maxAgeMs = TTL_MS) {
   if (!SECRET || !state) return null;
 
   const parts = String(state).split(".");
@@ -44,7 +46,7 @@ export function verifyState(state) {
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
 
   const age = Date.now() - Number(issuedAt);
-  if (!Number.isFinite(age) || age < 0 || age > TTL_MS) return null;
+  if (!Number.isFinite(age) || age < 0 || age > maxAgeMs) return null;
 
   return clientId || null;
 }

@@ -2,6 +2,9 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { markSvg } from "@/lib/brand-mark.js";
+import { readSignup, sharedWabaIds, choosePhone } from "@/lib/wa-signup.js";
+import { completeWhatsApp } from "@/lib/wa-connect.js";
+import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
 
 const APP_ID = process.env.FB_APP_ID;
 const APP_SECRET = process.env.FB_APP_SECRET;
@@ -75,20 +78,82 @@ function errorCard(title, text) {
   </main>`);
 }
 
+const GRAPH = "https://graph.facebook.com/v24.0";
+
+// Finishes a same-tab Embedded Signup from the code alone: exchange it for the
+// business token, read which WhatsApp account the signup shared with us from the
+// token's granular scopes, pick its number, and connect it. The owner lands on
+// the "connected" page, which returns them to the dashboard by itself.
+async function finishSignup({ clientId, code, redirect, searchParams }) {
+  const fail = (reason, title) => connectFailedPage({ platform: "whatsapp", reason, title, status: 400 });
+  if (!code) {
+    // Meta sends error=access_denied when the owner closes or cancels its window.
+    return fail("Setup was cancelled in Meta's window before it finished. Nothing was changed — start again from Channels when you're ready.", "WhatsApp not connected");
+  }
+  if (!APP_ID || !APP_SECRET) return fail("The server is not configured for WhatsApp. Please contact support.");
+
+  const tok = await fetch(
+    `${GRAPH}/oauth/access_token?client_id=${APP_ID}&client_secret=${APP_SECRET}&redirect_uri=${encodeURIComponent(redirect)}&code=${encodeURIComponent(code)}`
+  ).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
+  if (tok.error || !tok.access_token) {
+    console.error("[wa-signup] token exchange failed:", JSON.stringify(tok.error || tok));
+    return fail("Meta did not confirm the setup. Please start again from Channels.");
+  }
+  const token = tok.access_token;
+
+  const dbg = await fetch(
+    `${GRAPH}/debug_token?input_token=${encodeURIComponent(token)}&access_token=${APP_ID}|${APP_SECRET}`
+  ).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
+  const wabaIds = sharedWabaIds(dbg.data);
+  console.log(`[wa-signup] client ${clientId}: ${wabaIds.length} WhatsApp account(s) shared`, wabaIds.join(","));
+  if (!wabaIds.length) {
+    console.error("[wa-signup] no WhatsApp account in the token scopes:", JSON.stringify(dbg.error || dbg.data?.scopes || dbg).slice(0, 300));
+    return fail("Meta finished, but did not share a WhatsApp account with us. Start again from Channels and choose your WhatsApp account in Meta's window.");
+  }
+
+  // Newest-shared first: a fresh signup is the last account Meta listed.
+  let picked = null;
+  for (const wabaId of [...wabaIds].reverse()) {
+    const ph = await fetch(
+      `${GRAPH}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,code_verification_status&access_token=${encodeURIComponent(token)}`
+    ).then(r => r.json()).catch(e => ({ error: { message: e.message } }));
+    if (ph.error) console.error("[wa-signup] phone_numbers", wabaId, ph.error.message);
+    const phone = choosePhone(ph.data);
+    if (phone) { picked = { wabaId, phoneId: phone.id }; break; }
+  }
+  if (!picked) {
+    return fail("Your WhatsApp account was created, but it has no phone number yet. Start again from Channels, pick the same account and verify your number with the code Meta sends.", "Add your phone number");
+  }
+
+  const res = await completeWhatsApp({ clientId, token, wabaId: picked.wabaId, phoneId: picked.phoneId });
+  if (res.error) return connectFailedPage({ platform: "whatsapp", reason: res.error, status: res.status || 500 });
+  console.log(`[wa-signup] client ${clientId} connected phone ${picked.phoneId}`);
+  return connectedPage({ platform: "whatsapp", name: res.name, detail: res.number, rows: [
+    { ok: true, title: "WhatsApp replies are live", sub: "TellMore AI answers every message this number receives, 24/7." },
+    { ok: true, title: "Broadcasts and follow-ups ready", sub: "Reach people who messaged you in the last 24 hours from the Broadcast tab." },
+  ] });
+}
+
 export async function GET(request) {
   try {
     const { searchParams, origin } = new URL(request.url);
     const code = searchParams.get("code");
     const stateToken = searchParams.get("state") || "";
-    const clientId = verifyState(stateToken);
+    // A signup can take a while (business details, then an SMS code), so its
+    // state is accepted for 2 hours; the login flow keeps the usual 30 minutes.
+    const { clientId: cid, signup } = readSignup(verifyState(stateToken, 2 * 60 * 60 * 1000));
+    const clientId = signup ? cid : verifyState(stateToken);
     if (!clientId) {
       return errorCard("Link expired", "This connect link has expired or is invalid. Please start again from your dashboard.");
     }
 
+    const redirect = `${origin}/api/wa/callback`;
+
+    // Embedded Signup came back to this same tab: finish it here, on the server.
+    if (signup) return finishSignup({ clientId, code, redirect, searchParams });
+
     if (!code) return errorCard("Error", "Missing authorization code.");
     if (!APP_ID || !APP_SECRET) return errorCard("Error", "Server misconfigured.");
-
-    const redirect = `${origin}/api/wa/callback`;
 
     // 1. Exchange code for token
     const tokRes = await fetch(

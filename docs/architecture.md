@@ -262,6 +262,18 @@ tab shows an expired row in red with a Reconnect button; the normal connect
 flow upserts a fresh token and `"connected"`. Instagram/WhatsApp tokens are not
 probed yet (different hosts; a wrong verdict would be worse than none).
 
+**WhatsApp Embedded Signup runs in the same tab, not a popup** (2026-09-19).
+`/api/wa/embedded` sends the browser to Meta's OAuth dialog with the Embedded
+Signup `config_id` and `redirect_uri=/api/wa/callback`. On return, the callback
+exchanges the code for the business token, reads the shared WhatsApp account
+from `/debug_token` `granular_scopes`, picks its number (`choosePhone`: verified
+first), and `completeWhatsApp()` (`lib/wa-connect.js`) subscribes the webhook,
+registers the number and saves the channel; the "connected" page then returns to
+the dashboard. Why: the old popup reported the ids to its opener by
+postMessage, and on a phone the opener tab was frozen/reloaded during a 20-minute
+signup, so nothing was ever saved. The popup's `POST /api/wa/finish` is kept
+for any page still open from before; it calls the same `completeWhatsApp()`.
+
 **Native push** (the installed Capacitor app, whose WebView cannot do Web Push):
 `push/register-native` saves/removes an FCM device token in a separate table,
 `fcm_tokens` (its own table because an FCM token has none of Web Push's

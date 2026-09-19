@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { signState } from "@/lib/oauth-state.js";
 import { supabase } from "@/lib/supabase.js";
 import { markSvg } from "@/lib/brand-mark.js";
+import { signupUrl, markSignup } from "@/lib/wa-signup.js";
 
 const APP_ID = process.env.FB_APP_ID || "914246304594380";
 // The WhatsApp Embedded Signup configuration id. Like FB_APP_ID and
@@ -16,9 +17,10 @@ const CONFIG_ID = process.env.WA_CONFIG_ID || "1417283913551939";
 // WhatsApp Business Account, which meant a client had to go and create a WABA
 // in Meta Business Manager and then hunt for a Phone Number ID before they
 // could connect anything. Embedded Signup removes all of that: Meta's own
-// popup walks the owner through naming their business and verifying a phone
-// number by SMS, and creates the WABA for them. We receive the resulting
-// waba_id and phone_number_id directly from the popup.
+// flow walks the owner through naming their business and verifying a phone
+// number by SMS, and creates the WABA for them. It runs in the same tab and
+// returns to /api/wa/callback, which finds the new account from the code and
+// connects it (lib/wa-signup.js explains why it is no longer a popup).
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const clientId = searchParams.get("client_id") || "";
@@ -69,6 +71,15 @@ export async function GET(request) {
   }
 
   const stateToken = signState(clientId);
+  const { origin } = new URL(request.url);
+  const signupLink = signupUrl({
+    appId: APP_ID,
+    configId: CONFIG_ID,
+    redirect: `${origin}/api/wa/callback`,
+    state: signState(markSignup(clientId)),
+    prefill,
+    featureType: "whatsapp_business_app_onboarding",
+  });
 
   const html = `<!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -201,136 +212,26 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
   </details>
 </main>
 
-<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 <script>
 (function(){
-  var STATE = ${JSON.stringify(stateToken)};
+  // Same tab, no popup: Meta's window used to be a popup that reported back to
+  // this page, and on a phone this page was frozen or reloaded in the
+  // background while the owner worked in Meta for 15–20 minutes — the result
+  // was posted to nobody (seen live 2026-09-19). Now Meta sends the browser
+  // straight back to /api/wa/callback, which finishes on the server and shows
+  // the "connected" page, which returns to the dashboard. See lib/wa-signup.js.
+  var URL_ = ${JSON.stringify(signupLink)};
   var btn = document.getElementById('go');
   var status = document.getElementById('status');
-  var PREFILL = ${JSON.stringify(prefill)};
-  var session = null;   // waba_id + phone_number_id, from the popup
-  var authCode = null;  // OAuth code, from the FB.login callback
-  var done = false;
-
-  function say(msg, cls){ status.innerHTML = msg; status.className = 'status ' + (cls||''); }
-  function busy(msg){ say('<span class="spin"></span>' + msg); }
-  function ready(){ btn.disabled = false; }
-  function lock(){ btn.disabled = true; }
-
-  window.fbAsyncInit = function(){
-    FB.init({ appId: ${JSON.stringify(APP_ID)}, cookie:true, xfbml:false, version:'v26.0' });
-    ready();
-    say('');
+  btn.onclick = function(){
+    btn.disabled = true;
+    status.className = 'status';
+    status.innerHTML = '<span class="spin"></span>Opening Meta…';
+    window.location.href = URL_;
   };
-
-  // If the SDK never loads (blocked script, offline, ad blocker) the button
-  // would otherwise stay dead with no explanation.
-  setTimeout(function(){
-    if (typeof FB === 'undefined') {
-      say('Could not load Facebook. Disable any ad blocker for this page and reload.', 'err');
-    }
-  }, 6000);
-
-  // Meta's popup reports progress on a postMessage channel. The FINISH event
-  // carries the WABA and phone number ids that the owner just created.
-  window.addEventListener('message', function(ev){
-    if (ev.origin !== 'https://www.facebook.com' && ev.origin !== 'https://web.facebook.com') return;
-    var d;
-    try { d = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch(e){ return; }
-    if (!d || d.type !== 'WA_EMBEDDED_SIGNUP') return;
-
-    if (d.event === 'FINISH' || d.event === 'FINISH_ONLY_WABA') {
-      session = { waba_id: d.data && d.data.waba_id, phone_number_id: d.data && d.data.phone_number_id };
-      maybeFinish();
-    } else if (d.event === 'CANCEL') {
-      say('Setup was cancelled before it finished. You can start again when ready.', 'err');
-      ready();
-    } else if (d.event === 'ERROR') {
-      say('Meta reported an error: ' + ((d.data && d.data.error_message) || 'unknown'), 'err');
-      ready();
-    }
-  });
-
-  // Both halves arrive independently, so finish once we hold each of them.
-  function maybeFinish(){
-    if (done || !session || !authCode) return;
-    done = true;
-    busy('Finishing setup…');
-    fetch('/api/wa/finish', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        state: STATE,
-        code: authCode,
-        waba_id: session.waba_id,
-        phone_number_id: session.phone_number_id
-      })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(res){
-      if (res.error) { say(res.error, 'err'); ready(); done = false; return; }
-      // Hand over to the branded "connected" page, which names the number,
-      // explains what the bot now does and returns to the dashboard.
-      say('✓ Connected. One moment…', 'ok');
-      var q = '/api/wa/finish?done=1&name=' + encodeURIComponent(res.name || 'WhatsApp Business') + '&number=' + encodeURIComponent(res.number || '');
-      setTimeout(function(){ window.location.href = q; }, 500);
-    })
-    .catch(function(e){ say('Could not finish setup: ' + e.message, 'err'); ready(); done = false; });
-  }
-
-  lock();
-  say('<span class="spin"></span>Loading…');
-
-  var stallTimer = null;
-
-  // One button, one flow. featureType 'whatsapp_business_app_onboarding' opens
-  // Meta's Coexistence-capable Embedded Signup, which — verified live in the
-  // NORAY AFZAL NAHID portfolio — offers every option in a single window:
-  // "Create a WhatsApp Business account" (new number), an existing WABA number,
-  // AND "Connect a WhatsApp Business App" (a number already live on the consumer
-  // app). So there is no need for a second door. The extra Coexistence webhooks
-  // this can bring (history / smb_message_echoes / smb_app_state_sync) are
-  // ignored safely by parseWhatsAppEvent in lib/messenger.js, which only ever
-  // answers a live customer message on change.field === "messages".
-  function startSignup(featureType){
-    if (typeof FB === 'undefined') {
-      say('Facebook has not loaded yet. Please reload the page.', 'err');
-      return;
-    }
-    lock();
-    busy('Waiting for Meta…');
-
-    // FB.login opens a popup and its callback only fires once the person has
-    // finished or dismissed it, which legitimately takes minutes. So a timeout
-    // cannot mean "blocked" — it can only offer a hint, and must never claim
-    // failure while the person is still working in Meta's window.
-    clearTimeout(stallTimer);
-    stallTimer = setTimeout(function(){
-      if (!authCode && !done) {
-        say('Still waiting for Meta. If no Meta window opened, allow pop-ups for this site and click again.');
-        ready();
-      }
-    }, 20000);
-
-    FB.login(function(resp){
-      clearTimeout(stallTimer);
-      if (resp.authResponse && resp.authResponse.code) {
-        authCode = resp.authResponse.code;
-        busy('Waiting for you to finish setup with Meta…');
-        maybeFinish();
-      } else {
-        say('Setup was not completed. You can start again when ready.', 'err');
-        ready();
-      }
-    }, {
-      config_id: ${JSON.stringify(CONFIG_ID)},
-      response_type: 'code',
-      override_default_response_type: true,
-      extras: { setup: PREFILL, featureType: featureType, sessionInfoVersion:'3' }
-    });
-  }
-
-  btn.onclick = function(){ startSignup('whatsapp_business_app_onboarding'); };
+  // Coming back with the Back button restores this page from cache with the
+  // button still disabled; re-enable it.
+  window.addEventListener('pageshow', function(){ btn.disabled = false; status.innerHTML = ''; });
 })();
 </script>
 </body></html>`;
