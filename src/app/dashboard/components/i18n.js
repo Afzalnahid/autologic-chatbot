@@ -339,6 +339,13 @@ const DICT = {
     "shell.train": "Train your bot", "shell.managePlan": "Manage plan",
     "shell.usedMonth": "{used} of {limit} replies used this month", "shell.usedDay": "{used} of {limit} replies used today",
     "shell.usedFree": "{used} replies this month",
+    "inbox.title": "Conversations", "inbox.all": "All", "inbox.needs": "Needs you", "inbox.manual": "Manual",
+    "inbox.botReplying": "Bot replying", "inbox.youReplying": "You are replying", "inbox.takeOver": "Take over", "inbox.handBack": "Hand back to bot",
+    "inbox.placeholder": "Write a reply or let the bot answer…", "inbox.answeredIn": "answered in {s} s",
+    "inbox.today": "Today", "inbox.yesterday": "Yesterday",
+    "inbox.inStock": "In stock · {n} left", "inbox.inStockNoQty": "In stock", "inbox.outOfStock": "Out of stock",
+    "inbox.kpi.today": "Conversations today", "inbox.kpi.bot": "Answered by the bot, 7 days", "inbox.kpi.value": "Orders value, 7 days",
+    "inbox.kpi.bookings": "Bookings, 7 days", "inbox.kpi.reply": "Avg. first reply, 7 days",
 
     // ---- shared ----
     "common.save": "Save", "common.saved": "Saved", "common.unsaved": "Unsaved changes",
@@ -748,6 +755,13 @@ const DICT = {
     "shell.train": "বটকে শেখান", "shell.managePlan": "প্যাকেজ দেখুন",
     "shell.usedMonth": "এই মাসে {limit}টার মধ্যে {used}টা উত্তর ব্যবহার হয়েছে", "shell.usedDay": "আজ {limit}টার মধ্যে {used}টা উত্তর ব্যবহার হয়েছে",
     "shell.usedFree": "এই মাসে {used}টা উত্তর",
+    "inbox.title": "কথোপকথন", "inbox.all": "সব", "inbox.needs": "আপনাকে দরকার", "inbox.manual": "ম্যানুয়াল",
+    "inbox.botReplying": "বট উত্তর দিচ্ছে", "inbox.youReplying": "আপনি উত্তর দিচ্ছেন", "inbox.takeOver": "দায়িত্ব নিন", "inbox.handBack": "বটকে ফেরত দিন",
+    "inbox.placeholder": "উত্তর লিখুন, বা বটকে দিতে দিন…", "inbox.answeredIn": "{s} সেকেন্ডে উত্তর",
+    "inbox.today": "আজ", "inbox.yesterday": "গতকাল",
+    "inbox.inStock": "স্টকে আছে · {n}টা বাকি", "inbox.inStockNoQty": "স্টকে আছে", "inbox.outOfStock": "স্টকে নেই",
+    "inbox.kpi.today": "আজকের কথোপকথন", "inbox.kpi.bot": "বটের উত্তর, ৭ দিন", "inbox.kpi.value": "অর্ডারের টাকা, ৭ দিন",
+    "inbox.kpi.bookings": "বুকিং, ৭ দিন", "inbox.kpi.reply": "গড় প্রথম উত্তর, ৭ দিন",
 
     "common.save": "সেভ", "common.saved": "সেভ হয়েছে", "common.unsaved": "সেভ করা হয়নি",
     "common.optional": "ঐচ্ছিক", "common.skip": "বাদ দিন", "common.back": "আগেরটা", "common.send": "পাঠান", "common.cancel": "বাতিল",

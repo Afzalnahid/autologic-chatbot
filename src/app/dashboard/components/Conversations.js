@@ -4,14 +4,102 @@ import { T, Card, Badge, useIsMobile, Select, Switch, Segmented, taka, shortDate
 import { api, getSb, apiJson } from "./session.js";
 import { useBackClose } from "./back.js";
 import { useConvoRead, markConvoSeen } from "./convo-read.js";
+import { useT } from "./i18n.js";
 
-// The Conversations tab, moved out of dashboard-client.js unchanged.
+// The Inbox. Laid out the way the owner's design deck draws it (2026-09-20):
+// four numbers across the top, the list with an avatar and a channel dot per
+// chat, the open chat with a "Bot replying / Take over" control, a product
+// card wherever the bot showed one, and the customer panel on a wide screen.
 
 const CH_ICON = { facebook:"ti-brand-messenger", instagram:"ti-brand-instagram",
   whatsapp:"ti-brand-whatsapp", website:"ti-world" };
+// The channel's own colour, as the dot on an avatar (the same three the
+// Overview uses); the website widget has no brand colour and stays grey.
+const PCOLOR = { facebook:"#1877f2", instagram:"#e1306c", whatsapp:"#25d366" };
+const initialsOf = (s) => (String(s||"?").trim().replace(/^\+/,"").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"?");
+// A WhatsApp sender id is the customer's phone number; the chat header shows
+// it the way the deck does — the country and the first digits, then dots.
+const maskPhone = (sid) => { const d=String(sid||"").replace(/\D/g,""); return "+"+d.slice(0,3)+" "+d.slice(3,7)+" ······"; };
+// "Today, 2:14 pm" above the first message of each day.
+const dayLabel = (x, t) => {
+  const d=new Date(x), n=new Date(), y=new Date(); y.setDate(n.getDate()-1);
+  const same=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+  const day=same(d,n)?t("inbox.today"):same(d,y)?t("inbox.yesterday"):d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  return `${day}, ${d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase()}`;
+};
 
-export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[],focus=null,businessType="ecommerce"}) {
+// The four numbers above the inbox. Conversations today and the first-reply
+// time come from the chats already loaded (a customer message followed by the
+// bot's bubble is one reply; the median of a week of those); the bot's share
+// and the week's orders are the same figures Analytics shows for 7 days.
+function InboxStats({convos,an,isAgency,isMobile,t}){
+  const now=Date.now(), day=86400000;
+  const start=new Date(); start.setHours(0,0,0,0); const t0=start.getTime();
+  const wrote=(c,a,b)=>(c.messages||[]).some(m=>{ if(m.role!=="customer") return false; const x=new Date(m.time).getTime(); return x>=a&&x<b; });
+  const today=convos.filter(c=>wrote(c,t0,now)).length;
+  const yday=convos.filter(c=>wrote(c,t0-day,t0)).length;
+  const pct=(a,b)=>b?Math.round(((a-b)/b)*100):(a?100:null);
+  const replies=(a,b)=>{ const out=[]; for(const c of convos){ const ms=c.messages||[]; for(let i=1;i<ms.length;i++){
+    if(ms[i].role==="bot"&&ms[i-1].role==="customer"){ const x=new Date(ms[i].time).getTime(); if(x>=a&&x<b){ const s=(x-new Date(ms[i-1].time).getTime())/1000; if(s>=0&&s<=3600) out.push(s); } } } } return out; };
+  const median=(xs)=>{ if(!xs.length) return null; const s=[...xs].sort((p,q)=>p-q); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+  const r1=median(replies(now-7*day,now)), r0=median(replies(now-14*day,now-7*day));
+  const secs=(s)=>s==null?"—":s<90?`${Math.round(s)} s`:s<3600?`${(s/60).toFixed(s<600?1:0)} min`:`${(s/3600).toFixed(1)} h`;
+  const cv=an?.conversations, k=an?.kpi, g=an?.growth;
+  const items=[
+    {label:t("inbox.kpi.today"),value:String(today),delta:pct(today,yday),unit:"%"},
+    {label:t("inbox.kpi.bot"),value:cv&&cv.bot_resolved_pct!=null?`${cv.bot_resolved_pct}%`:"—",delta:g?.bot_handled_points??null,unit:" pts"},
+    isAgency?{label:t("inbox.kpi.bookings"),value:k?String(k.bookings??"—"):"—",delta:g?.conversions??null,unit:"%"}
+            :{label:t("inbox.kpi.value"),value:k?taka(k.revenue||0):"—",delta:g?.revenue??null,unit:"%"},
+    {label:t("inbox.kpi.reply"),value:secs(r1),delta:r1!=null&&r0?Math.round(((r1-r0)/r0)*100):null,unit:"%",lowerIsBetter:true},
+  ];
+  const shown=isMobile?items.slice(0,2):items;
+  return <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,minmax(0,1fr))",gap:isMobile?8:12,flexShrink:0}}>
+    {shown.map((it,i)=>{
+      const good=it.delta==null?null:(it.lowerIsBetter?it.delta<0:it.delta>0);
+      const bad=it.delta==null?null:(it.lowerIsBetter?it.delta>0:it.delta<0);
+      return <Card key={i} style={{padding:isMobile?"12px 14px":"14px 16px",minWidth:0}}>
+        <div style={{fontSize:12,color:T.textMuted,lineHeight:1.3,...(isMobile?{}:{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"})}}>{it.label}</div>
+        <div style={{display:"flex",alignItems:"baseline",gap:8,marginTop:6,minWidth:0}}>
+          <span style={{fontSize:isMobile?20:24,fontWeight:700,letterSpacing:"-0.02em",lineHeight:1.05,color:T.text,fontVariantNumeric:"tabular-nums",whiteSpace:"nowrap"}}>{it.value}</span>
+          {it.delta!=null&&it.delta!==0&&<span style={{fontSize:12,fontWeight:600,color:good?T.success:bad?T.danger:T.textDim,whiteSpace:"nowrap"}}>{it.delta>0?"+":"−"}{Math.abs(it.delta)}{it.unit}</span>}
+        </div>
+      </Card>;
+    })}
+  </div>;
+}
+
+// A product the bot showed in the chat, as a card: the bot sends the
+// product's own image, so the picture's address finds the product.
+function ProductCard({p,t,onLoad}){
+  const img=p.image_url||p.images?.[0]||"";
+  const out=p.stock_status==="outofstock";
+  const qty=p.stock_qty===null||p.stock_qty===undefined||p.stock_qty===""?null:Number(p.stock_qty);
+  const price=Number(p.sale_price)>0?p.sale_price:p.regular_price;
+  return <div style={{display:"flex",gap:12,alignItems:"center",padding:10,borderRadius:12,border:`1px solid ${T.border}`,background:T.card,maxWidth:300}}>
+    <span style={{width:56,height:56,borderRadius:10,background:T.inset,flexShrink:0,overflow:"hidden",display:"block"}}>
+      {img&&<img src={img} alt="" onLoad={onLoad} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.style.display="none"}}/>}
+    </span>
+    <span style={{minWidth:0}}>
+      <span style={{display:"block",fontSize:13,fontWeight:600,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.product_name}</span>
+      <span style={{display:"block",fontSize:11.5,color:out?T.danger:T.textMuted,marginTop:2}}>{out?t("inbox.outOfStock"):Number.isFinite(qty)?t("inbox.inStock",{n:qty}):t("inbox.inStockNoQty")}</span>
+      <span style={{display:"block",fontSize:13,fontWeight:700,color:T.gold,marginTop:3}}>{taka(price)}</span>
+    </span>
+  </div>;
+}
+
+export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[],focus=null,businessType="ecommerce",products=[]}) {
   const cap=(w)=>String(w||"").charAt(0).toUpperCase()+String(w||"").slice(1);
+  const t=useT();
+  const productFor=(u)=>{ const s=String(u||"").trim(); if(!s) return null; return products.find(p=>p.image_url===s||(p.images||[]).includes(s)||(p.variants||[]).some(v=>v.image_url===s))||null; };
+  // The week's figures for the numbers above the list — the same call the
+  // Overview makes, refreshed every minute.
+  const [an,setAn]=useState(null);
+  useEffect(()=>{
+    let live=true;
+    const go=()=>api(`/api/analytics?days=7&t=${Date.now()}`,{cache:"no-store"}).then(r=>r.json()).then(d=>{ if(live&&d&&!d.error) setAn(d); }).catch(()=>{});
+    go(); const iv=setInterval(go,60000);
+    return ()=>{ live=false; clearInterval(iv); };
+  },[]);
   const [chFilter,setChFilter]=useState("all");
   const [tagFilter,setTagFilter]=useState("all");
   const [search,setSearch]=useState("");
@@ -45,7 +133,10 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   };
   const q=search.trim().toLowerCase();
   const isManual=(cv)=>contacts[cv.id]?.bot_enabled===false;
-  const viewMatch=(cv)=>view==="unread"?convoRead.isUnread(cv):view==="manual"?isManual(cv):true;
+  // "Needs you": someone asked for a person, a complaint was tagged, or the
+  // customer wrote and this device has not looked yet — the Overview's rule.
+  const needsMe=(cv)=>!!contacts[cv.id]?.needs_human||(!!tagData?.complaint_tag&&tagsOf(cv.id).includes(tagData.complaint_tag))||convoRead.isUnread(cv);
+  const viewMatch=(cv)=>view==="needs"?needsMe(cv):view==="manual"?isManual(cv):true;
   const convos=allConvos.filter(c=>chMatch(c)&&viewMatch(c)
     &&(tagFilter==="all"||tagsOf(c.id).includes(tagFilter))
     &&(!q||(((contacts[c.id]?.name||c.sender||"")+" "+(c.lastMsg||"")).toLowerCase().includes(q))));
@@ -308,9 +399,11 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
 
   const Toggle=({on,onClick,label})=><Switch on={on} onClick={onClick} label={label} size="sm"/>;
 
-  const unreadN=allConvos.filter(cv=>convoRead.isUnread(cv)).length;
+  const needsN=allConvos.filter(needsMe).length;
   const manualN=allConvos.filter(isManual).length;
-  return <div ref={listRef} style={{display:isMobile?"block":"grid",gridTemplateColumns:wide?"320px minmax(0,1fr) 300px":"320px minmax(0,1fr)",gap:16,height:isMobile?(hasSel?"100%":(fitH?fitH+"px":"calc(100dvh - 190px)")):"calc(100vh - 130px)"}}>
+  return <div ref={listRef} style={{display:"flex",flexDirection:"column",gap:isMobile?10:14,height:isMobile?(hasSel?"100%":(fitH?fitH+"px":"calc(100dvh - 190px)")):"calc(100vh - 150px)"}}>
+    {(!isMobile||!hasSel)&&<InboxStats convos={allConvos} an={an} isAgency={businessType==="agency"} isMobile={isMobile} t={t}/>}
+    <div style={{flex:1,minHeight:0,display:isMobile?"block":"grid",gridTemplateColumns:wide?"320px minmax(0,1fr) 300px":"320px minmax(0,1fr)",gap:16}}>
     {/* On a phone the list is unmounted while a chat is open, so it used to
         come back scrolled to the top — leaving a chat deep in the inbox
         dropped you at the newest conversation. The list scrolls inside its
@@ -319,7 +412,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     {showList&&<Card style={{overflow:"hidden",padding:0,height:"100%"}}>
       <div ref={listScrollRef} onScroll={e=>{listScrollTop.current=e.currentTarget.scrollTop;}} style={{overflow:"auto",height:"100%"}}>
       <div style={{padding:"12px 16px",borderBottom:`0.5px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:12,fontWeight:500,color:T.textMuted}}>CHATS</span>
+        <span style={{fontSize:14,fontWeight:600,color:T.text}}>{t("inbox.title")}</span>
         {globalBot===null
           ?<span style={{fontSize:11,color:T.textDim}}><i className="ti ti-loader-2" style={{marginRight:5}}/>Loading…</span>
           :<Toggle on={globalBot} onClick={()=>toggle(null,!globalBot,true)} label={globalBot?"Bot ON":"Bot OFF"}/>}
@@ -335,7 +428,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
       </div>
       <div style={{padding:"10px 12px 0"}}>
         <Segmented size="sm" value={view} onChange={setView}
-          items={[{value:"all",label:"All"},{value:"unread",label:"Unread",badge:unreadN||null},{value:"manual",label:"Manual",badge:manualN||null}]}/>
+          items={[{value:"all",label:t("inbox.all"),badge:allConvos.length||null},{value:"needs",label:t("inbox.needs"),badge:needsN||null},{value:"manual",label:t("inbox.manual"),badge:manualN||null}]}/>
       </div>
       {/* Two dropdowns instead of two rows of chips. On a phone the chips were
           eating half the screen before a single conversation appeared, and the
@@ -404,28 +497,38 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         // makes it bold again. A bot reply does not make it read. The sidebar
         // Inbox badge counts the same set, so number and bold rows agree.
         const waiting=convoRead.isUnread(cv);
-        return <div key={cv.id} onClick={()=>setSelId(cv.id)} title={waiting?"Unread":undefined} style={{padding:"14px 16px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:on?T.goldBg:"transparent",borderLeft:on?`3px solid ${T.gold}`:"3px solid transparent"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:4}}>
-            <span style={{fontSize:13,fontWeight:waiting?700:500,color:T.text,display:"flex",alignItems:"center",gap:6,minWidth:0}}>
-              <i className={`ti ${CH_ICON[cv.platform]||"ti-message"}`} style={{fontSize:13,color:T.textMuted,flexShrink:0}}/>
-              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cvt.name||cv.sender}</span>
-            </span>
-            <span style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
-              <span style={{fontSize:10.5,color:waiting?T.text:T.textDim,fontWeight:waiting?600:400}}>{ago(cv.time)}</span>
-              {ctLoaded&&<Badge color={cvt.bot_enabled===false?T.warn:T.success}>{cvt.bot_enabled===false?"manual":"bot"}</Badge>}
-              {waiting&&<span aria-label="Unread" style={{width:9,height:9,borderRadius:"50%",background:T.gold,flexShrink:0,display:"inline-block"}}/>}
+        const manual=ctLoaded&&cvt.bot_enabled===false;
+        // The avatar carries the channel as a coloured dot, the way the deck
+        // draws it; a chat you have taken over says so with an amber chip.
+        return <div key={cv.id} onClick={()=>setSelId(cv.id)} title={waiting?"Unread":undefined} style={{padding:"12px 14px 12px 12px",cursor:"pointer",borderBottom:`0.5px solid ${T.border}`,background:on?T.goldBg:"transparent",borderLeft:on?`3px solid ${T.gold}`:"3px solid transparent",display:"flex",gap:11,alignItems:"flex-start"}}>
+          <span aria-hidden style={{position:"relative",width:38,height:38,borderRadius:"50%",background:on?T.card:T.goldBg,color:T.gold,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:12.5,fontWeight:700,flexShrink:0,marginTop:1}}>
+            {initialsOf(cvt.name||cv.sender)}
+            <span title={cap(cv.platform)} style={{position:"absolute",right:-1,bottom:-1,width:11,height:11,borderRadius:"50%",background:PCOLOR[cv.platform]||T.textDim,border:`2px solid ${T.card}`}}/>
+          </span>
+          <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8}}>
+            <span style={{fontSize:13.5,fontWeight:waiting?700:600,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{cvt.name||cv.sender}</span>
+            <span style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+              <span style={{fontSize:11,color:waiting?T.text:T.textDim,fontWeight:waiting?600:400}}>{ago(cv.time)}</span>
+              {waiting&&<span aria-label="Unread" style={{width:8,height:8,borderRadius:"50%",background:T.gold,flexShrink:0,display:"inline-block"}}/>}
             </span>
           </div>
-          <span style={{fontSize:12,color:waiting?T.text:T.textMuted,fontWeight:waiting?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{cv.lastMsg}</span>
-          {(multi&&cv.page_id)||tagsOf(cv.id).length?<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6,alignItems:"center"}}>
+          <span style={{fontSize:12.5,color:waiting?T.text:T.textMuted,fontWeight:waiting?600:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",marginTop:2}}>{cv.lastMsg}</span>
+          {manual||(multi&&cv.page_id)||tagsOf(cv.id).length?<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:6,alignItems:"center"}}>
+            {manual&&<span style={{fontSize:10.5,padding:"2px 8px",borderRadius:10,background:T.warnBg,color:T.warn,fontWeight:600}}>{t("inbox.manual")}</span>}
             {multi&&cv.page_id&&<span style={{fontSize:10.5,padding:"2px 8px",borderRadius:10,background:T.bgAlt,color:T.textDim,border:`0.5px solid ${T.border}`,display:"inline-flex",alignItems:"center",gap:4}}><i className="ti ti-arrow-narrow-right" style={{fontSize:11}}/>{acctName(cv.platform,cv.page_id)}</span>}
-            {tagsOf(cv.id).map(t=><span key={t} style={{fontSize:10.5,padding:"2px 8px",borderRadius:10,background:t===tagData?.complaint_tag?T.dangerBg:T.bgAlt,color:t===tagData?.complaint_tag?T.danger:T.textMuted,border:`0.5px solid ${t===tagData?.complaint_tag?T.danger+"40":T.border}`}}>{t}</span>)}
+            {tagsOf(cv.id).map(tg=><span key={tg} style={{fontSize:10.5,padding:"2px 8px",borderRadius:10,background:tg===tagData?.complaint_tag?T.dangerBg:T.bgAlt,color:tg===tagData?.complaint_tag?T.danger:T.textMuted,border:`0.5px solid ${tg===tagData?.complaint_tag?T.danger+"40":T.border}`}}>{tg}</span>)}
           </div>:null}
+          </div>
         </div>;
       })}
       </div>
     </Card>}
-    {showChat&&<Card style={{display:"flex",flexDirection:"column",padding:0,overflow:"hidden",height:"100%"}}>
+    {/* The chat column measures itself (a container query below), so the
+        "Bot replying" pill gives way to the customer's name when the column
+        is narrow — a small laptop with all three columns open. */}
+    {showChat&&<Card style={{display:"flex",flexDirection:"column",padding:0,overflow:"hidden",height:"100%",containerType:"inline-size"}}>
+      <style dangerouslySetInnerHTML={{__html:`@container (max-width: 560px) { .inbox-pill { display: none !important } }`}}/>
       {/* The chat header, shaped the way a messaging app shapes it: who you
           are talking to, where the conversation lives, and the one control
           that matters — is the bot answering, or are you. The tag picker used
@@ -437,22 +540,34 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
           {isMobile&&<button onClick={()=>setSelId(null)} aria-label="Back" className="ui-sq"
             style={{background:"none",border:"none",cursor:"pointer",color:T.text,fontSize:21,padding:0,flexShrink:0,
               display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-chevron-left"/></button>}
-          <div aria-hidden style={{width:36,height:36,borderRadius:"50%",background:T.goldBg,color:T.gold,
-            display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,flexShrink:0}}>
-            {(cname||"C").trim().charAt(0).toUpperCase()}
+          <div aria-hidden style={{position:"relative",width:36,height:36,borderRadius:"50%",background:T.goldBg,color:T.gold,
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:12.5,fontWeight:700,flexShrink:0}}>
+            {initialsOf(cname||"C")}
+            <span style={{position:"absolute",right:-1,bottom:-1,width:11,height:11,borderRadius:"50%",background:PCOLOR[c.platform]||T.textDim,border:`2px solid ${T.card}`}}/>
           </div>
           <div style={{minWidth:0,flex:1}}>
             <div style={{fontSize:15,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cname||"Customer"}</div>
-            <div style={{fontSize:11.5,color:T.textMuted,display:"flex",alignItems:"center",gap:5,minWidth:0}}>
-              <i className={`ti ${PICON[c.platform]||"ti-message"}`} style={{fontSize:12,flexShrink:0}}/>
-              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                {cap(c.platform)}{(perPlatform[c.platform]||[]).length>1&&c.page_id?` · ${acctName(c.platform,c.page_id)}`:""}
-              </span>
+            <div style={{fontSize:11.5,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              {[cap(c.platform),
+                c.platform==="whatsapp"&&/^\d{6,}$/.test(String(c.id))?maskPhone(c.id)
+                :((perPlatform[c.platform]||[]).length>1&&c.page_id?acctName(c.platform,c.page_id):null)].filter(Boolean).join(" · ")}
             </div>
           </div>
+          {/* Who is answering this person, and the one button that changes it.
+              "Take over" pauses the bot for this chat only; "Hand back to bot"
+              resumes it. The pill is dropped on a phone to keep the name row. */}
           {!ctLoaded
             ?<span style={{fontSize:11,color:T.textDim,flexShrink:0}}><i className="ti ti-loader-2" style={{marginRight:5}}/>Loading…</span>
-            :<Toggle on={ct.bot_enabled!==false} onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} label={ct.bot_enabled===false?"Manual":"Live"}/>}
+            :<>
+              {!isMobile&&<span className="inbox-pill" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:999,background:ct.bot_enabled===false?T.warnBg:T.liveBg,color:ct.bot_enabled===false?T.warn:T.live,fontSize:12,fontWeight:600,whiteSpace:"nowrap",flexShrink:0}}>
+                <span className={ct.bot_enabled===false?"":"ui-live"} style={{width:7,height:7,borderRadius:"50%",background:"currentColor",display:"inline-block"}}/>
+                {ct.bot_enabled===false?t("inbox.youReplying"):t("inbox.botReplying")}
+              </span>}
+              <button onClick={()=>toggle(c.id,ct.bot_enabled===false,false)} className="ui-btn"
+                style={{padding:"7px 12px",borderRadius:8,border:`1px solid ${T.borderStrong}`,background:T.card,color:T.text,fontSize:12.5,fontWeight:600,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0}}>
+                {ct.bot_enabled===false?t("inbox.handBack"):t("inbox.takeOver")}
+              </button>
+            </>}
           <button onClick={deleteChat} title="Delete chat" aria-label="Delete chat" className="ui-sq"
             style={{background:"none",border:"none",cursor:"pointer",color:T.danger,fontSize:17,padding:0,flexShrink:0,
               display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-trash"/></button>
@@ -470,13 +585,29 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
       <div ref={chatRef} onScroll={onChatScroll} style={{flex:1,overflow:"auto",overscrollBehavior:"contain",WebkitOverflowScrolling:"touch",padding:20,display:"flex",flexDirection:"column",gap:12}}>
         {shownMsgs.map((m,i)=>{
           const mine=m.role!=="customer";
-          return <div key={i} style={{display:"flex",justifyContent:mine?"flex-end":"flex-start"}}>
+          const prev=i?shownMsgs[i-1]:null;
+          const dayOf=(x)=>{ const d=new Date(x); return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate(); };
+          const newDay=!prev||dayOf(prev.time)!==dayOf(m.time);
+          // The bot's first bubble after a customer's message says how fast it came.
+          const secs=m.role==="bot"&&prev&&prev.role==="customer"?Math.round((new Date(m.time)-new Date(prev.time))/1000):null;
+          const atts=m.attachments||[];
+          // A bot picture that is a product's own image becomes a product card;
+          // the "🖼️ Image" line the stored reply carries for it is not shown.
+          const cards=atts.map(u=>[u,m.role==="bot"?productFor(u):null]);
+          const text=atts.length?String(m.text||"").split("\n").filter(l=>l.trim()!=="🖼️ Image").join("\n").trim():m.text;
+          return <div key={i}>
+          {newDay&&<div style={{textAlign:"center",fontSize:11,color:T.textDim,margin:"2px 0 8px"}}>{dayLabel(m.time,t)}</div>}
+          <div style={{display:"flex",justifyContent:mine?"flex-end":"flex-start"}}>
           <div style={{maxWidth:"70%"}}>
-            {(m.attachments||[]).length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4,alignItems:mine?"flex-end":"flex-start"}}>
-              {m.attachments.map((u,j)=><img key={j} src={u} alt="" onLoad={onImgLoad} style={{maxWidth:220,borderRadius:16,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
+            {cards.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4,alignItems:mine?"flex-end":"flex-start"}}>
+              {cards.map(([u,p],j)=>p
+                ?<ProductCard key={j} p={p} t={t} onLoad={onImgLoad}/>
+                :<img key={j} src={u} alt="" onLoad={onImgLoad} style={{maxWidth:220,borderRadius:16,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
             </div>}
-            {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?T.onGold:T.text,background:mine?T.accGrad:T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{m.text}</div>}
+            {(!atts.length||(text&&text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?T.onGold:T.text,background:mine?T.accGrad:T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{text}</div>}
             {mine&&m.role==="agent"&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>You</div>}
+            {m.role==="bot"&&secs!=null&&secs>=0&&secs<=600&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>TellMore AI · {t("inbox.answeredIn",{s:secs})}</div>}
+          </div>
           </div>
         </div>;})}
       </div>
@@ -504,13 +635,13 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-photo"/></button>
           <button onClick={toggleRec} title="Voice" aria-label="Voice" className="ui-sq"
             style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:recording?T.danger:T.gold,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,animation:recording?"pulse 1s infinite":"none"}}><i className={`ti ${recording?"ti-player-stop-filled":"ti-microphone"}`}/></button>
-          <div style={{flex:1,display:"flex",alignItems:"center",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:20,padding:"0 4px 0 12px",minWidth:0}}>
-            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Message" style={{flex:1,background:"none",border:"none",padding:"10px 0",color:T.text,fontSize:13,outline:"none",minWidth:0}}/>
+          <div style={{flex:1,display:"flex",alignItems:"center",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:10,padding:"0 4px 0 12px",minWidth:0}}>
+            <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder={t("inbox.placeholder")} style={{flex:1,background:"none",border:"none",padding:"10px 0",color:T.text,fontSize:13,outline:"none",minWidth:0}}/>
             <button onClick={()=>setShowEmoji(s=>!s)} title="Emoji" aria-label="Emoji" className="ui-sq"
               style={{width:30,height:30,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>😊</button>
           </div>
           <button onClick={send} disabled={sending} aria-label="Send" className="ui-sq"
-            style={{width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer",background:T.accGrad,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:16,color:T.onGold}}/></button>
+            style={{width:38,height:38,borderRadius:10,border:"none",cursor:"pointer",background:T.accGrad,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:16,color:T.onGold}}/></button>
         </div>
       </div>
     </Card>}
@@ -518,6 +649,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
       channel={cap(c.platform)+((perPlatform[c.platform]||[]).length>1&&c.page_id?` · ${acctName(c.platform,c.page_id)}`:"")}
       icon={PICON[c.platform]||CH_ICON[c.platform]||"ti-message"} tags={tagsOf(c.id)} complaintTag={tagData?.complaint_tag}
       businessType={businessType}/>}
+    </div>
   </div>;
 }
 
@@ -603,8 +735,8 @@ function CustomerPanel({c,name,ct,ctLoaded,msgs,channel,icon,tags,complaintTag,b
   return <Card style={{padding:16,height:"100%",overflow:"auto",display:"flex",flexDirection:"column",gap:18}}>
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",gap:6,paddingTop:4}}>
       <div aria-hidden style={{width:52,height:52,borderRadius:"50%",background:T.goldBg,color:T.gold,
-        display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700}}>
-        {(name||"C").trim().charAt(0).toUpperCase()}
+        display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,fontWeight:700}}>
+        {initialsOf(name||"C")}
       </div>
       <div style={{fontSize:15,fontWeight:600,color:T.text,maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name||"Customer"}</div>
       <div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:5}}><i className={`ti ${icon}`} style={{fontSize:13}}/>{channel}</div>

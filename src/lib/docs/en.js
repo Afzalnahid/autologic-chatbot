@@ -411,14 +411,23 @@ export const DOCS = {
           "It refreshes on its own — a new message appears without you pressing anything.",
         ] },
 
-      { shot: "inbox", cap: "The chat list on the left with its bot and manual badges, and the open conversation on the right." },
+      { shot: "inbox", cap: "The week's four numbers, the chat list with a channel dot on every avatar, the open conversation with its Bot replying / Take over control, and the customer panel." },
+
+      { h: "The four numbers",
+        table: { head: ["Card", "What it shows"],
+          rows: [
+            ["**Conversations today**", "How many different people wrote to you today, and the change against yesterday"],
+            ["**Answered by the bot**", "The share of the last 7 days' conversations the bot finished on its own — the same figure Analytics shows"],
+            ["**Orders value** (shops) · **Bookings** (agencies)", "The last 7 days, against the week before"],
+            ["**Avg. first reply**", "How long a customer typically waited for the bot's first reply this week, measured from their message to the bot's bubble. Lower is better, so a fall shows green"],
+          ] } },
 
       { h: "The two Bot switches",
         p: ["This is the most important thing on the tab, and there are **two** of them. They do different jobs:"],
         table: { head: ["Switch", "Where", "What it does"],
           rows: [
             ["**Bot ON / Bot OFF**", "Top of the chat list", "The whole account. Off, the bot stops replying on **every** channel and every conversation"],
-            ["**Live / Manual**", "Top of an open chat", "This one person only. The bot keeps working with everyone else"],
+            ["**Bot replying · Take over**", "Top of an open chat", "This one person only. Press **Take over** and you answer; **Hand back to bot** and it resumes. Everyone else is untouched"],
           ] } },
 
       { note: "The everyday move is the second one. A customer asks something delicate, you turn the bot off **for that chat**, answer yourself, and turn it back on when you are done. Nobody else is affected.",
@@ -432,7 +441,7 @@ export const DOCS = {
             ["**Search**", "Look inside names and message text at once"],
             ["**Channel dropdown**", "Show only one platform — and if you have several Pages, only one Page"],
             ["**Tag dropdown**", "Show only conversations carrying a tag, with a count beside each"],
-            ["**All · Unread · Manual**", "The three buttons under the search box. **Unread** shows only chats you have not opened since the customer last wrote; **Manual** shows only the chats you have taken over from the bot. The small number on each is how many there are"],
+            ["**All · Needs you · Manual**", "The three buttons under the search box. **Needs you** shows the chats waiting on a person: someone asked for one, a complaint was tagged, or the customer wrote and you have not opened it since; **Manual** shows only the chats you have taken over from the bot. The small number on each is how many there are"],
           ] } },
 
       { p: ["When a filter matches nothing you get **Clear filters**, so you never have to remember which one you left on."] },
@@ -447,11 +456,10 @@ export const DOCS = {
       { h: "Reading the list",
         table: { head: ["What you see", "What it means"],
           rows: [
-            ["The icon before the name", "Which channel this chat came in on"],
+            ["The coloured dot on the avatar", "Which channel this chat came in on — blue Messenger, pink Instagram, green WhatsApp, grey website"],
             ["**Bold name, bold preview, a red dot**", "Unread — a customer wrote and you have not looked yet, the way Messenger shows it. Open the chat and it goes back to normal; the next message makes it bold again. A bot reply does not clear it — you have not seen it"],
             ["“2m”, “3h”, “5d”", "How long since the last message"],
-            ["A green **bot** badge", "The bot is answering this person"],
-            ["An amber **manual** badge", "You have taken over this chat"],
+            ["An amber **Manual** chip", "You have taken over this chat; everything else is the bot's"],
             ["A grey pill with a name", "Which of your Pages this landed on (only shown when you have several)"],
             ["A **red tag**", "Your complaint tag — worth opening first"],
           ] } },
@@ -459,12 +467,15 @@ export const DOCS = {
       { h: "Answering someone yourself",
         steps: [
           "Open the chat.",
-          "Turn its switch to **Manual** so the bot does not talk over you.",
-          "Type in the box at the bottom and press Enter, or the blue send button.",
-          "When you are finished, turn the switch back on and the bot resumes.",
+          "Press **Take over** so the bot does not talk over you.",
+          "Type in the box at the bottom and press Enter, or the send button.",
+          "When you are finished, press **Hand back to bot** and it resumes.",
         ] },
 
-      { p: ["Your messages sit on the right in blue, the customer's on the left in grey. Anything you sent by hand is marked **You** underneath, so you can tell your words from the bot's at a glance."] },
+      { p: [
+          "Your messages and the bot's sit on the right, the customer's on the left in grey. Anything you sent by hand is marked **You** underneath; under the bot's reply you see how fast it came — **answered in 3 s**. The day and time sit above the first message of each day.",
+          "When the bot shows a product, the picture appears as a **card** with the product's name, stock and price, read from your catalogue at that moment.",
+        ] },
 
       { note: "The **Inbox** number on the sidebar is the count of unread chats — the same ones shown bold. Opening a chat, or **Mark all as read** in the bell at the top, clears it. It is remembered per device, so your phone and your computer each keep their own.",
         kind: "tip" },
@@ -515,7 +526,7 @@ export const DOCS = {
           { q: "The bot is not replying to anyone.",
             a: "Check the **Bot ON** switch at the top of the chat list first — that one covers everything. Then check the channel's own switch in **Channels**. If both are on and it is still silent, look at the **AI Engine** tab: a bot running on your own API key pauses politely when that key runs out." },
           { q: "The bot is not replying to one person.",
-            a: "That conversation is on **manual** — you or someone with your login turned its switch off. Turn it back on and the bot resumes with that person." },
+            a: "That conversation is on **manual** — you or someone with your login pressed **Take over**. Press **Hand back to bot** and it resumes with that person." },
           { q: "I turned a switch off and it came back on a few seconds later.",
             a: "That was a bug and it is fixed. If you still see it, your save is failing — you would also get a message saying the switch could not be saved. Check your connection and try again." },
           { q: "My message would not send.",

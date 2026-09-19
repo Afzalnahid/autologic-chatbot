@@ -93,7 +93,7 @@ const TABS = {
   overview:         () => <Overview me={{ client: { business_name: "Nokshi Threads" } }} convos={PROPS.convos} orders={PROPS.orders} channels={PROPS.channels} businessType="ecommerce" onGo={noop} />,
   "overview-agency": () => <Overview me={{ client: { business_name: "Pixel Studio" } }} convos={PROPS.convos} orders={[]} channels={PROPS.channels} businessType="agency" onGo={noop} />,
   analytics:        () => <Analytics isAgency={false} />,
-  conversations:    () => <Conversations convos={PROPS.convos} channels={PROPS.channels} refresh={noop} />,
+  conversations:    () => <Conversations convos={PROPS.convos} channels={PROPS.channels} products={PROPS.products} refresh={noop} />,
   comments:         () => <Comments />,
   broadcast:        () => <Broadcast />,
   inventory:        () => <Inventory products={PROPS.products} refresh={noop} />,

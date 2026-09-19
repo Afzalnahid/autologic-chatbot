@@ -35,12 +35,15 @@ const CHANNELS = [
 ];
 
 // ----------------------------------------------------------- conversations
+// The navy panjabi's picture: the bot sends a product's own image, and the
+// inbox turns that picture into a product card when the address matches.
+const PIMG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='%23E6E6EA'/></svg>";
 const CONVOS = [
   { id: "u1", sender: "Tasnim Rahman", platform: "instagram", page_id: "17841400000000000",
     status: "active", lastMsg: "Ei design ta ki M size e ache?", time: iso(4),
     messages: [
       { role: "customer", text: "Ei design ta ki M size e ache?", attachments: [], time: iso(6) },
-      { role: "bot", text: "Yes — the navy panjabi is in stock in M. It is 1,450 taka, and delivery inside Dhaka is 60 taka, one to two days.", attachments: [], time: iso(5) },
+      { role: "bot", text: "Yes — the navy panjabi is in stock in M. It is 1,450 taka, and delivery inside Dhaka is 60 taka, one to two days.\n🖼️ Image", attachments: [PIMG], time: iso(5) },
       { role: "customer", text: "Accha, ordr korte chai", attachments: [], time: iso(4) },
     ] },
   { id: "u2", sender: "Rahim Uddin", platform: "facebook", page_id: "102938475610293",
@@ -66,7 +69,7 @@ const CONVOS = [
 
 // ---------------------------------------------------------------- products
 const PRODUCTS = [
-  { id: "p1", created_at: iso(60 * 30), product_name: "Cotton panjabi — navy", product_code: "PJ-NVY-01", hidden: false,
+  { id: "p1", created_at: iso(60 * 30), product_name: "Cotton panjabi — navy", product_code: "PJ-NVY-01", hidden: false, image_url: PIMG,
     brand: "Nokshi", category: "Men › Panjabi", tags: ["cotton","summer","eid"],
     regular_price: 1650, sale_price: 1450, stock_qty: 12, stock_status: "instock",
     description: "Soft cotton panjabi that does not shrink. Comfortable in summer heat.",

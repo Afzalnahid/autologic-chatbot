@@ -913,7 +913,7 @@ export default function Dashboard() {
               onImport={(kind,prefill)=>{ setInvIntent({importer:kind,prefill,at:Date.now()}); setPage("inventory"); }}/>}
             {page==="overview"&&<Overview me={me} convos={convos} orders={orders} channels={dashChannels} businessType={bt} onGo={goTo}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
-            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels} focus={focus?.tab==="conversations"?focus:null} businessType={bt}/>}
+            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels} focus={focus?.tab==="conversations"?focus:null} businessType={bt} products={products}/>}
             {page==="broadcast"&&<Broadcast/>}
             {page==="comments"&&<Comments/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent} onIntentDone={()=>setInvIntent(null)}/>)}
