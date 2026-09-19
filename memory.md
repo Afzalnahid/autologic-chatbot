@@ -822,8 +822,11 @@ again?"
     + clientId), accepted 2 h. Callback exchanges code → debug_token
     granular_scopes → WABA → phone_numbers → choosePhone → completeWhatsApp()
     (lib/wa-connect.js) → connected page → dashboard. Tests t-wa-signup (18).
-    NOT VERIFIED END TO END: needs the owner to run one real signup (phone and
-    computer). Risks to watch: Meta may not run the ES wizard in redirect mode
+    VERIFIED LIVE 2026-09-19 14:35 UTC on the owner's phone: callback found 2
+    shared WABAs, took the newest (1621582123001716), subscribed + registered
+    phone 1296526726883536, channel saved (Nandi Realestate, +880 1322-916440,
+    on the owner's own "Autologic System" account). A customer message at
+    14:36:34 got a bot reply at 14:36:47 — WITH NO CARD in Meta: card test PASSED. Risks to watch: Meta may not run the ES wizard in redirect mode
     exactly like the popup; granular_scopes might omit a WABA. Nandi's WABA
     already exists in Meta — on retry, pick it rather than creating a new one.
     FOUND, NOT FIXED: /api/wa/select subscribes `${phoneId}/subscribed_apps`
@@ -832,7 +835,7 @@ again?"
     claims OpenAI BYOK, which the code does not support (Google only).
     WhatsApp cost: TellMore only sends free-form messages inside the 24-hour
     window (no templates in code) → Meta charges nothing; the payment-method step
-    in Meta's window is optional ("Finish" without a card). Card test pending.
+    in Meta's window is optional ("Finish" without a card). Card test PASSED.
   - FOUR SHORT ADS (2026-09-19, 7646ba9). Owner: "I like this type of video,
     make 3–4 more in marketing style, 40 s–1 min". Same engine; a film is now
     films/<name>/script.json (words + on-screen text + timings all in the
