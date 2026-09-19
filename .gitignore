@@ -13,3 +13,14 @@ node_modules/
 # next to the importing file and addressed by URL, which is what stops a stale
 # one being imported from somewhere nothing wrote it.
 tests/tmp-*
+
+# Explainer-video generator: rendered output, voice clips and QA stills are
+# rebuilt by the scripts in marketing/explainer-video; only the source is kept.
+marketing/explainer-video/build/
+marketing/explainer-video/stills/
+marketing/explainer-video/audio/
+marketing/explainer-video/*.mp4
+marketing/explainer-video/*-poster.jpg
+marketing/explainer-video/timeline-*.json
+marketing/explainer-video/package-lock.json
+marketing/explainer-video/shots/
