@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
 import { markSvg } from "@/lib/brand-mark.js";
 import { readSignup, sharedWabaIds, choosePhone } from "@/lib/wa-signup.js";
-import { completeWhatsApp } from "@/lib/wa-connect.js";
+import { completeWhatsApp, findWabaFor } from "@/lib/wa-connect.js";
+import { encryptSecret } from "@/lib/crypt.js";
 import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
 
 const APP_ID = process.env.FB_APP_ID;
@@ -180,7 +181,7 @@ export async function GET(request) {
             `https://graph.facebook.com/v24.0/${waba.id}/phone_numbers?fields=id,display_phone_number,verified_name,status&access_token=${userToken}`
           ).then(r => r.json());
           for (const p of (phonesRes.data || [])) {
-            phoneNumbers.push({ phoneId: p.id, displayNumber: p.display_phone_number, verifiedName: p.verified_name || biz.name, status: p.status, token: userToken });
+            phoneNumbers.push({ phoneId: p.id, wabaId: waba.id, displayNumber: p.display_phone_number, verifiedName: p.verified_name || biz.name, status: p.status, token: userToken });
           }
         }
       }
@@ -196,7 +197,7 @@ export async function GET(request) {
             `https://graph.facebook.com/v24.0/${waba.id}/phone_numbers?fields=id,display_phone_number,verified_name,status&access_token=${userToken}`
           ).then(r => r.json());
           for (const p of (phonesRes.data || [])) {
-            phoneNumbers.push({ phoneId: p.id, displayNumber: p.display_phone_number, verifiedName: p.verified_name || waba.name, status: p.status, token: userToken });
+            phoneNumbers.push({ phoneId: p.id, wabaId: waba.id, displayNumber: p.display_phone_number, verifiedName: p.verified_name || waba.name, status: p.status, token: userToken });
           }
         }
       } catch(e) { console.error("approach B:", e.message); }
@@ -272,7 +273,22 @@ export async function GET(request) {
       </label>`;
     }).join("");
 
-    const encoded = encodeURIComponent(JSON.stringify(phoneNumbers));
+    // Exactly one number: nothing to choose, so connect it now — one click, the
+    // same finishing step as the signup (completeWhatsApp).
+    if (phoneNumbers.length === 1) {
+      const only = phoneNumbers[0];
+      const res = await completeWhatsApp({ clientId, token: only.token, wabaId: only.wabaId || await findWabaFor(only.phoneId, only.token), phoneId: only.phoneId });
+      if (res.error) return connectFailedPage({ platform: "whatsapp", reason: res.error, status: res.status || 500 });
+      return connectedPage({ platform: "whatsapp", name: res.name, detail: res.number, rows: [
+        { ok: true, title: "WhatsApp replies are live", sub: "TellMore AI answers every message this number receives, 24/7." },
+        { ok: true, title: "Broadcasts and follow-ups ready", sub: "Reach people who messaged you in the last 24 hours from the Broadcast tab." },
+      ] });
+    }
+
+    // The list goes to the browser SEALED (AES-GCM, bound to this client): it
+    // carries the access token, which no page may ever see, and the seal stops a
+    // tampered form from connecting a number that was not offered.
+    const encoded = esc(encryptSecret(JSON.stringify({ clientId, phones: phoneNumbers })));
 
     return page(`<main class="card">
       <div class="brand">${markSvg({ size: 26, tile: true, style: "border-radius:8px;box-shadow:0 1px 4px rgba(22,24,31,.16)" })}TellMore AI</div>

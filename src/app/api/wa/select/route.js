@@ -1,13 +1,22 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
 import { verifyState } from "@/lib/oauth-state.js";
-import { supabase } from "@/lib/supabase.js";
 import { connectedPage, connectFailedPage } from "@/lib/connect-page.js";
-import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
-import { checkChannelQuota } from "@/lib/plan-limits.js";
+import { decryptSecret } from "@/lib/crypt.js";
+import { completeWhatsApp, findWabaFor } from "@/lib/wa-connect.js";
 
 const fail = (reason, status = 400) => connectFailedPage({ platform: "whatsapp", reason, status });
 
+// Connects a WhatsApp number chosen from the "find my number" list, or typed in
+// by hand (Phone Number ID + a token) under Advanced options.
+//
+// Before 2026-09-20 this route did its own, broken version of the last step: it
+// subscribed the webhook on the PHONE NUMBER id (the subscription belongs to the
+// WhatsApp Business Account), never registered the number on Cloud API, and the
+// picker carried every access token to the browser in plain JSON. A number
+// connected here could look live and neither receive nor send. Now both paths
+// finish through completeWhatsApp(), the same step the signup uses, and the list
+// travels sealed (AES-GCM, bound to this client) so the browser can neither read
+// the tokens nor swap in another number.
 export async function POST(request) {
   try {
     const form = await request.formData();
@@ -16,76 +25,38 @@ export async function POST(request) {
       return fail("This connect link has expired. Please start again from your dashboard.", 403);
     }
 
-    let phoneId, displayNumber, verifiedName, token;
+    let phoneId, token, wabaId = null;
 
-    // Case 1: manual fallback (token + phone id typed in)
-    const manualToken = form.get("manual_token");
-    const manualPhoneId = form.get("phone_id");
+    const manualToken = String(form.get("manual_token") || "").trim();
+    const manualPhoneId = String(form.get("phone_id") || "").trim();
     if (manualToken && manualPhoneId) {
+      // Case 1: typed in under Advanced options.
+      if (!/^\d{5,25}$/.test(manualPhoneId)) return fail("That Phone Number ID does not look right — it is a long number from WhatsApp Manager, not the phone number itself.");
+      phoneId = manualPhoneId;
       token = manualToken;
-      phoneId = String(manualPhoneId).trim();
-      // Try to fetch the display number for a nicer confirmation
-      try {
-        const info = await fetch(
-          `https://graph.facebook.com/v24.0/${phoneId}?fields=display_phone_number,verified_name&access_token=${token}`
-        ).then(r => r.json());
-        displayNumber = info.display_phone_number || phoneId;
-        verifiedName = info.verified_name || "WhatsApp Business";
-      } catch {
-        displayNumber = phoneId;
-        verifiedName = "WhatsApp Business";
-      }
     } else {
-      // Case 2: selected from the auto-detected list
-      const phonesRaw = form.get("phones");
-      const selectedIdx = parseInt(form.get("phone") || "0", 10);
-      if (!phonesRaw) return fail("No phone number was received. Please go back and choose a number.");
-      let phones;
-      try { phones = JSON.parse(decodeURIComponent(phonesRaw)); } catch {
-        return fail("The phone number data was not readable. Please try again.");
+      // Case 2: chosen from the list the login flow found.
+      let sealed;
+      try { sealed = JSON.parse(decryptSecret(form.get("phones"))); } catch {
+        return fail("The list of numbers could not be read. Please go back and try again.");
       }
-      const selected = phones[selectedIdx];
+      if (!sealed || sealed.clientId !== clientId || !Array.isArray(sealed.phones)) {
+        return fail("This list of numbers belongs to another session. Please start again from your dashboard.", 403);
+      }
+      const selected = sealed.phones[parseInt(form.get("phone") || "0", 10)];
       if (!selected) return fail("No phone number was selected. Please go back and choose one.");
-      ({ phoneId, displayNumber, verifiedName, token } = selected);
+      ({ phoneId, token } = selected);
+      wabaId = selected.wabaId || null;
     }
 
-    // One WhatsApp number powers exactly one TellMore AI account.
-    if (await ownedByAnotherClient("whatsapp", phoneId, clientId)) {
-      return fail(ALREADY_CONNECTED.whatsapp, 409);
-    }
+    if (!wabaId) wabaId = await findWabaFor(phoneId, token);
 
-    const cq = await checkChannelQuota(clientId, "whatsapp", phoneId);
-    if (!cq.ok) return fail(cq.message, 403);
-
-    // Subscribe the app to this WhatsApp number's webhooks
-    const sub = await fetch(
-      `https://graph.facebook.com/v24.0/${phoneId}/subscribed_apps`,
-      { method: "POST", headers: { Authorization: `Bearer ${token}` } }
-    ).then(r => r.json()).catch(() => ({}));
-    console.log("[wa/select] webhook subscribe:", JSON.stringify(sub));
-
-    // Save channel
-    const { error } = await supabase.from("channels").upsert(
-      {
-        client_id: clientId,
-        platform: "whatsapp",
-        page_id: phoneId,
-        access_token: token,
-        name: [verifiedName, displayNumber].filter(Boolean).join(" · ") || null,
-        status: "connected",
-        connected_at: new Date().toISOString(),
-        bot_enabled: true,
-      },
-      { onConflict: "client_id,platform,page_id" }
-    );
-    if (error) return fail("We could not save the connection: " + error.message, 500);
-
-    const rows = [
+    const res = await completeWhatsApp({ clientId, token, wabaId, phoneId });
+    if (res.error) return fail(res.error, res.status || 500);
+    return connectedPage({ platform: "whatsapp", name: res.name, detail: res.number, rows: [
       { ok: true, title: "WhatsApp replies are live", sub: "TellMore AI answers every message this number receives, 24/7." },
       { ok: true, title: "Broadcasts and follow-ups ready", sub: "Reach people who messaged you in the last 24 hours from the Broadcast tab." },
-    ];
-    if (sub.error) rows.push({ ok: false, title: "Updates could not be registered", sub: "Disconnect and connect the number again. If it repeats, tell us: " + sub.error.message });
-    return connectedPage({ platform: "whatsapp", name: verifiedName, detail: displayNumber, rows });
+    ] });
   } catch (e) {
     console.error("[wa-select]", e?.message || e);
     return fail(undefined, 500);

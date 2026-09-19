@@ -2,11 +2,33 @@ import { supabase } from "@/lib/supabase.js";
 import { ownedByAnotherClient, ALREADY_CONNECTED } from "@/lib/channels.js";
 import { checkChannelQuota } from "@/lib/plan-limits.js";
 import { pinFor, registerVerdict } from "@/lib/wa-register.js";
+import { sharedWabaIds } from "@/lib/wa-signup.js";
 
 const GRAPH = "https://graph.facebook.com/v24.0";
 // The server-only secret the two-step PIN is derived from (same fallback chain
 // as the OAuth state signer). Changing it would change every future PIN.
 const PIN_SECRET = process.env.OAUTH_STATE_SECRET || process.env.FB_APP_SECRET || process.env.SUPABASE_SERVICE_KEY || "";
+
+// Which WhatsApp Business Account holds this number, for a path that only has
+// the number and a token (the manual Phone Number ID form, or a number found by
+// the login flow's app-level lookup). The token's granular scopes name the
+// accounts it can reach; the one whose numbers include ours is it. Returns the
+// WABA id, or null — the caller then connects without the webhook subscription
+// step and logs it, rather than refusing a number that may already be set up.
+export async function findWabaFor(phoneId, token) {
+  const appId = process.env.FB_APP_ID, secret = process.env.FB_APP_SECRET;
+  if (!appId || !secret) return null;
+  try {
+    const dbg = await fetch(`${GRAPH}/debug_token?input_token=${encodeURIComponent(token)}&access_token=${appId}|${secret}`).then(r => r.json());
+    for (const wabaId of sharedWabaIds(dbg.data)) {
+      const ph = await fetch(`${GRAPH}/${wabaId}/phone_numbers?fields=id&access_token=${encodeURIComponent(token)}`).then(r => r.json());
+      if ((ph.data || []).some((p) => String(p.id) === String(phoneId))) return wabaId;
+    }
+  } catch (e) {
+    console.error("[wa-connect] findWabaFor:", e.message);
+  }
+  return null;
+}
 
 // The last step of every WhatsApp Embedded Signup, whichever way the browser
 // came back: subscribe our webhook to the WhatsApp account, register the number
@@ -22,7 +44,9 @@ export async function completeWhatsApp({ clientId, token, wabaId, phoneId }) {
   const cq = await checkChannelQuota(clientId, "whatsapp", phoneId);
   if (!cq.ok) return { error: cq.message, status: 403 };
 
-  // 1. Subscribe our webhook to the WABA so incoming messages reach us.
+  // 1. Subscribe our webhook to the WABA so incoming messages reach us. The
+  // subscription belongs to the ACCOUNT (WABA), never to a phone number id.
+  if (!wabaId) console.error(`[wa-connect] phone ${phoneId}: no WhatsApp account id, webhook subscription skipped`);
   if (wabaId) {
     const sub = await fetch(`${GRAPH}/${wabaId}/subscribed_apps`, {
       method: "POST",

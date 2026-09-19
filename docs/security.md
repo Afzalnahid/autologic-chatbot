@@ -102,6 +102,13 @@ signup state for 2 hours. A signup state is the client id with an `es_` marker
 inside the signed payload (`lib/wa-signup.js`), so it cannot be forged into one
 and the login flow through the same callback keeps the 30-minute limit.
 
+The WhatsApp "find my number" list (`/api/wa/callback` → `/api/wa/select`) used
+to carry every number's access token to the browser as plain JSON in a hidden
+form field. Since 2026-09-20 it is sealed with `encryptSecret` (AES-256-GCM, the
+same key as client AI keys) together with the client id; `/select` refuses a
+list it cannot open or one sealed for another client, so the page can neither
+read a token nor swap in a number that was not offered.
+
 The signing key is `OAUTH_STATE_SECRET` if set, otherwise `FB_APP_SECRET` — server
 side only, never sent to the browser.
 
