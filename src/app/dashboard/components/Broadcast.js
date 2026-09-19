@@ -191,6 +191,7 @@ export default function Broadcast(){
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
             <Badge color={T.success}>{b.sent} sent</Badge>
+            {b.replied>0&&<Badge color={T.info} title="Wrote back after receiving it">{b.replied} replied</Badge>}
             {b.failed>0&&<Badge color={T.danger}>{b.failed} failed</Badge>}
             {b.skipped>0&&<Badge color={T.textDim}>{b.skipped} skipped</Badge>}
           </div>

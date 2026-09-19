@@ -119,6 +119,8 @@ const HOURS = Array.from({ length: 24 }, (_, h) => ({
   hour: h,
   count: h < 7 ? Math.round(2 + h) : Math.round(14 + 30 * Math.exp(-Math.pow(h - 21, 2) / 26)),
 }));
+// The same shape by weekday: Friday evening busiest, Monday morning quiet.
+const HEAT = Array.from({ length: 7 }, (_, d) => HOURS.map((h) => Math.round(h.count * (d === 5 ? 1.4 : d === 1 ? 0.6 : 0.8 + 0.1 * d) / 4)));
 
 const ANALYTICS = {
   generated_at: iso(1),
@@ -140,6 +142,7 @@ const ANALYTICS = {
   },
   daily: DAILY,
   hours: HOURS,
+  heat: HEAT,
   channels: [
     { platform: "facebook", total: 862, contacts: 201 },
     { platform: "instagram", total: 613, contacts: 148 },
@@ -172,9 +175,9 @@ const BROADCAST = {
   quota: { limit: 2000, remaining: 1642, period: "month", unlimited: false },
   available_tags: ["Order", "Product Inquiry", "Delivery", "Complaint", "Other"],
   broadcasts: [
-    { id: "b1", created_at: iso(60 * 5), channel: "all", sent: 148, failed: 3, skipped: 22,
+    { id: "b1", created_at: iso(60 * 5), channel: "all", sent: 148, failed: 3, skipped: 22, replied: 37,
       message: "Eid collection is live — new panjabi designs in every size, and free delivery inside Dhaka until Friday." },
-    { id: "b2", created_at: iso(60 * 52), channel: "instagram", sent: 61, failed: 0, skipped: 9,
+    { id: "b2", created_at: iso(60 * 52), channel: "instagram", sent: 61, failed: 0, skipped: 9, replied: 12,
       message: "Restocked: the navy panjabi is back in M, L and XL." },
   ],
 };

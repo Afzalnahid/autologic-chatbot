@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { T, Card, Btn, Inp, Badge, Accordion, Select, Switch, useIsMobile, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
+import { T, Card, Btn, Inp, Badge, Accordion, Select, Switch, Segmented, useIsMobile, SAMPLE_ECOM, SAMPLE_AGENCY } from "./ui.js";
 import { api, apiJson } from "./session.js";
 import { useT, useLang } from "./i18n.js";
 import { TRAINING_KEYS_ECOM, TRAINING_KEYS_AGENCY } from "@/lib/assistant-actions.js";
@@ -426,8 +426,10 @@ export default function Settings({settings,setSettings}) {
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}}>
           <div>
             <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{t("bt.beh.tone")}</label>
-            <Select wide value={q.tone||"Friendly and helpful"} onChange={v=>setQ({tone:v})}
-              options={[{value:"Friendly and helpful",label:t("bt.beh.tone1")},{value:"Professional and formal",label:t("bt.beh.tone2")},{value:"Casual and fun",label:t("bt.beh.tone3")}]}/>
+            {/* Three choices, all visible at once (design handoff Part 3) —
+                a dropdown hid the two the owner was not using. */}
+            <Segmented size="sm" value={q.tone||"Friendly and helpful"} onChange={v=>setQ({tone:v})}
+              items={[{value:"Friendly and helpful",label:t("bt.beh.tone1")},{value:"Professional and formal",label:t("bt.beh.tone2")},{value:"Casual and fun",label:t("bt.beh.tone3")}]}/>
           </div>
           <div>
             <label style={{display:"block",fontSize:12,color:T.textMuted,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>{t("bt.beh.languages")}</label>

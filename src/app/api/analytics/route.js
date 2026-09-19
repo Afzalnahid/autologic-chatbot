@@ -147,6 +147,9 @@ export const GET = withErrors(async (request) => {
 
   const channelMap = new Map();
   const hours = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
+  // Customer messages by weekday (0 = Sunday) and hour, Dhaka time — the
+  // design's hour-by-day heatmap. Same rows as `hours`, one more axis.
+  const heat = Array.from({ length: 7 }, () => Array(24).fill(0));
   const contacts = new Set();
   const newContacts = new Set();
   const contactsByChannel = new Map();
@@ -178,6 +181,7 @@ export const GET = withErrors(async (request) => {
     if (role === "customer") {
       const local = nowInDhaka(new Date(m.created_at));
       hours[local.getUTCHours()].count++;
+      heat[local.getUTCDay()][local.getUTCHours()]++;
 
       if (m.sender_id) {
         contacts.add(m.sender_id);
@@ -305,6 +309,7 @@ export const GET = withErrors(async (request) => {
     conversions_daily: [...convMap.values()],
     channels: [...channelMap.values()].sort((a, b) => b.total - a.total),
     hours,
+    heat,
     top_queries: topOf(wordCount, 10).map((x) => ({ term: x.name, count: x.count })),
     top_products: topOf(productCount, 6),
     top_services: topOf(serviceCount, 6),

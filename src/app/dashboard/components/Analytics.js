@@ -1,11 +1,56 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { T, Card, Badge, words, KStat, Spark, BarList, fmtNum, fmtMoney } from "./ui.js";
+import { T, Card, Badge, words, KStat, Spark, BarList, fmtNum, fmtMoney, useIsMobile } from "./ui.js";
 import { api } from "./session.js";
 
-// The Analytics tab, moved out of dashboard-client.js unchanged.
+// The Analytics tab. 2026-09-20 (design handoff Part 3): the message volume is
+// one bar per day with the bot's share filled in, and "when customers message"
+// is an hour × weekday heatmap rather than a single row of hours.
+
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// One bar per day: the whole bar is every message that day, the filled part is
+// what the bot answered. Ninety bars still read — thin, but the shape and the
+// bot's share are what the owner is looking at, not any single day.
+function DayBars({ data, labels }) {
+  const max = Math.max(1, ...data.map((d) => d.total || 0));
+  const many = data.length > 40;
+  return <div>
+    <div style={{ display: "flex", alignItems: "flex-end", gap: many ? 1 : data.length > 10 ? 3 : 8, height: 120 }}>
+      {data.map((d) => <div key={d.date} title={`${d.date}: ${d.total} messages · bot ${d.bot}`} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%", minWidth: 0 }}>
+        <div style={{ position: "relative", height: `${Math.max(d.total ? 3 : 1.5, (d.total / max) * 100)}%`, background: T.inset, border: many ? "none" : `1px solid ${T.border}`, borderRadius: many ? 1 : 4, overflow: "hidden" }}>
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: `${d.total ? (Math.min(d.bot || 0, d.total) / d.total) * 100 : 0}%`, background: T.gold, opacity: .9 }} />
+        </div>
+      </div>)}
+    </div>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: T.textDim, marginTop: 6 }}>
+      <span>{labels?.[0]}</span><span style={{ color: T.textMuted }}>peak {fmtNum(max)} a day</span><span>{labels?.[1]}</span>
+    </div>
+  </div>;
+}
+
+// Hour × weekday: the darker the cell, the more customers wrote then. One
+// look answers "when should someone be at the desk" better than a row of
+// hours can, because Friday evening and Monday morning stop being averaged.
+function HeatMap({ heat, peakHour, isMobile }) {
+  const max = Math.max(1, ...heat.flat());
+  const cols = 24;
+  return <div style={{ overflowX: "auto" }}>
+    <div style={{ display: "grid", gridTemplateColumns: `28px repeat(${cols}, minmax(${isMobile ? 9 : 14}px, 1fr))`, gap: 2, alignItems: "center", minWidth: isMobile ? 320 : 0 }}>
+      {heat.map((row, d) => [
+        <div key={"d" + d} style={{ fontSize: 10, color: T.textDim, fontWeight: 600 }}>{DOW[d]}</div>,
+        ...row.map((v, h) => <div key={d + "-" + h} title={`${DOW[d]} ${h % 12 === 0 ? 12 : h % 12}${h < 12 ? "AM" : "PM"} — ${v}`}
+          style={{ aspectRatio: "1", borderRadius: 3, background: v ? `color-mix(in srgb, ${T.gold} ${Math.round(15 + 85 * (v / max))}%, transparent)` : T.inset, outline: h === peakHour && v === Math.max(...heat.map((r) => r[h])) && v > 0 ? `1.5px solid ${T.gold}` : "none", outlineOffset: -1 }} />),
+      ])}
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "28px repeat(4, 1fr) auto", fontSize: 10, color: T.textDim, marginTop: 6 }}>
+      <span /><span>12AM</span><span>6AM</span><span>12PM</span><span>6PM</span><span>11PM</span>
+    </div>
+  </div>;
+}
 
 export default function Analytics({isAgency}) {
+  const isMobile=useIsMobile();
   const [days,setDays]=useState(30);
   const [d,setD]=useState(null);
   const [loading,setLoading]=useState(true);
@@ -70,11 +115,11 @@ export default function Analytics({isAgency}) {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
         <div style={{fontSize:14,fontWeight:500}}>Message volume</div>
         <div style={{display:"flex",gap:14,fontSize:11.5,color:T.textMuted}}>
-          <span><span style={{display:"inline-block",width:9,height:2.5,background:T.gold,marginRight:5,verticalAlign:"middle"}}/>Customers ({fmtNum(k.customer_messages)})</span>
-          <span><span style={{display:"inline-block",width:9,height:2.5,background:T.info,marginRight:5,verticalAlign:"middle"}}/>Bot ({fmtNum(k.bot_messages)})</span>
+          <span><span style={{display:"inline-block",width:9,height:9,borderRadius:2,background:T.inset,border:`1px solid ${T.borderStrong}`,marginRight:5,verticalAlign:"-1px"}}/>All messages ({fmtNum(k.total_messages)})</span>
+          <span><span style={{display:"inline-block",width:9,height:9,borderRadius:2,background:T.gold,marginRight:5,verticalAlign:"-1px"}}/>Answered by the bot ({fmtNum(k.bot_messages)})</span>
         </div>
       </div>
-      <Spark data={d.daily} keys={["customer","bot"]} colors={[T.gold,T.info]} labels={[fmtDay(first),fmtDay(last)]}/>
+      <DayBars data={d.daily.map(x=>({...x,total:x.total??((x.customer||0)+(x.bot||0)+(x.agent||0))}))} labels={[fmtDay(first),fmtDay(last)]}/>
     </Card>
 
     {/* Conversation health + customer mix */}
@@ -151,15 +196,17 @@ export default function Analytics({isAgency}) {
           <div style={{fontSize:14,fontWeight:500}}>When customers message</div>
           {k.peak_hour!==null&&<span style={{fontSize:11.5,color:T.gold}}>peak {hourLabel(k.peak_hour)}</span>}
         </div>
-        <div style={{fontSize:11.5,color:T.textDim,marginBottom:14}}>Bangladesh time — plan your team around this</div>
-        <div style={{display:"flex",alignItems:"flex-end",gap:2,height:88}}>
+        <div style={{fontSize:11.5,color:T.textDim,marginBottom:14}}>Bangladesh time, by day of the week — plan your team around this</div>
+        {Array.isArray(d.heat)&&d.heat.length===7
+        ? <HeatMap heat={d.heat} peakHour={k.peak_hour} isMobile={isMobile}/>
+        : <><div style={{display:"flex",alignItems:"flex-end",gap:2,height:88}}>
           {d.hours.map(h=><div key={h.hour} title={`${hourLabel(h.hour)} — ${h.count}`} style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"flex-end",height:"100%"}}>
             <div style={{height:`${Math.max(h.count?8:2,(h.count/maxHr)*100)}%`,background:h.hour===k.peak_hour?T.gold:T.info,opacity:h.count?1:0.25,borderRadius:2}}/>
           </div>)}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.textDim,marginTop:6}}>
           <span>12AM</span><span>6AM</span><span>12PM</span><span>6PM</span><span>11PM</span>
-        </div>
+        </div></>}
       </Card>
     </div>
 

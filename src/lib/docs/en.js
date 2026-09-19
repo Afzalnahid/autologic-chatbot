@@ -634,7 +634,8 @@ export const DOCS = {
 
       { h: "When customers message",
         p: [
-          "Twenty-four bars, one per hour, in **Bangladesh time**. The tallest is marked as your peak.",
+          "A grid of seven rows (Sunday to Saturday) by twenty-four hours, in **Bangladesh time**: the darker a cell, the more customers wrote then, and the busiest hour is outlined. Friday evening and Monday morning stop being averaged into one number.",
+          "Above it, **Message volume** is one bar per day — the whole bar is every message that day, the filled part is what the bot answered.",
           "This is the most practical chart on the page: it tells you the hours worth being personally available, and the hours you can safely leave to the bot.",
         ] },
 
@@ -728,7 +729,7 @@ export const DOCS = {
         ] },
 
       { h: "Past broadcasts",
-        p: ["Every broadcast you have sent, newest first, with what it said, when, on which channel, and three badges: **sent**, **failed** and **skipped**. Tap any of them to open the full recipient list with a status line per person."] },
+        p: ["Every broadcast you have sent, newest first, with what it said, when, on which channel, and its badges: **sent**, **replied** (how many of those people wrote back afterwards), **failed** and **skipped**. Tap any of them to open the full recipient list with a status line per person."] },
 
       { h: "If something goes wrong",
         faq: [

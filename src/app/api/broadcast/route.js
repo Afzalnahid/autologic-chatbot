@@ -26,6 +26,34 @@ export const GET = withErrors(async (request) => {
       .eq("client_id", client.id).order("created_at", { ascending: false }).limit(20),
   ]);
 
+  // "Replied": recipients the broadcast reached who wrote back afterwards.
+  // Counted from the same tables the Inbox reads — recipients (who, when it
+  // was sent) against customer messages that came later — inside this
+  // client's rows only. Fails soft to 0 so the list never waits on it.
+  const list = listQ.data || [];
+  const replied = {};
+  if (list.length) {
+    try {
+      const { data: recips } = await supabase.from("broadcast_recipients")
+        .select("broadcast_id,sender_id,sent_at").eq("client_id", client.id).eq("status", "sent")
+        .in("broadcast_id", list.map((b) => b.id)).limit(20000);
+      const rows = recips || [];
+      if (rows.length) {
+        const oldest = rows.reduce((a, r) => (r.sent_at && r.sent_at < a ? r.sent_at : a), rows[0].sent_at || new Date().toISOString());
+        const { data: msgs } = await supabase.from("message_buffer").select("sender_id,created_at")
+          .eq("client_id", client.id).eq("role", "customer").gte("created_at", oldest).limit(30000);
+        const lastBy = {};
+        for (const m of msgs || []) if (m.sender_id && (!lastBy[m.sender_id] || m.created_at > lastBy[m.sender_id])) lastBy[m.sender_id] = m.created_at;
+        const seen = new Set();
+        for (const r of rows) {
+          const key = r.broadcast_id + "|" + r.sender_id;
+          if (seen.has(key)) continue; seen.add(key);
+          if (r.sent_at && lastBy[r.sender_id] && lastBy[r.sender_id] > r.sent_at) replied[r.broadcast_id] = (replied[r.broadcast_id] || 0) + 1;
+        }
+      }
+    } catch (e) { console.error("[broadcast] replied count:", e?.message || e); }
+  }
+
   return NextResponse.json({
     business_type: client.business_type || "ecommerce",
     plan_active: planActive(client),
@@ -35,7 +63,7 @@ export const GET = withErrors(async (request) => {
     channels: channels.map((c) => ({ platform: c.platform, page_id: c.page_id })),
     quota,
     blocked_reason: quota.blocked ? cannotSendReason(quota.blocked) : null,
-    broadcasts: listQ.data || [],
+    broadcasts: list.map((b) => ({ ...b, replied: replied[b.id] || 0 })),
   }, NO_CACHE);
 }, "broadcast");
 
