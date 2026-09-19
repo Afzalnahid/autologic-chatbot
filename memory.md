@@ -816,6 +816,28 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
+  - PART 3 BUILT (2026-09-20, owner: "skip the AI features, do the other things").
+    Stages, one commit each, all pushed, 61/61: 78daeb4 Overview home tab
+    (Overview.js; HOME="overview", first in PAGES/ICONS/LABELS, t-nav updated;
+    EN+BN strings ov.*; manual page "overview" + shots) · 58af895 Orders table
+    on desktop + Confirm/Call/Chat in the panel (Chat needs order.sender_id,
+    onGo=goTo) · 58d1753 Bookings month open on desktop, WeekStrip on phone,
+    Today/Later this week/Coming up/Past headings · 01e81b3 Channels chats-
+    today per row + Add-another cards; Knowledge drop zone + status badge ·
+    d4dd77b per-product "Bot sells" switch (metadata.hidden; lib/product-
+    visibility.js; bot searchProducts asks k+4 and dropHidden; Inventory
+    switch/badge/filter/editor; t-product-visibility) · b5be00f Analytics
+    day bars + weekday×hour heatmap (API heat[7][24]), broadcast "replied"
+    (recipients vs later customer messages), tone as Segmented · fcf0c3c
+    public site in Geist, Fraunces headings retired everywhere. Comments, AI
+    Engine, Admin: only the theme (already shipped in 192e718), verified in
+    the studio. Studio fixture fixes: products.tags arrays, orders sender_id,
+    contacts.needs_human, knowledge status, ANALYTICS.heat, BROADCAST.replied.
+    NOT BUILT (owner's call or later): reply chips, AI summary card, Knowledge
+    "try a question" (all cost AI); "from your catalogue/documents" caption
+    (needs a stored source); the phone layout with a bottom tab bar and the
+    "Workspace / Grow / Train" sidebar grouping (handoff Part 2 items 4–5).
+    Manual: every changed tab's page updated EN+BN with fresh shots.
   - DESIGN HANDOFF PART 3 received (2026-09-20; saved over "Claude outputs/
     CLAUDE-CODE-HANDOFF.md", untracked). Screens in build order: Overview,
     Orders, Bookings, Inventory/Knowledge/Channels, Analytics/Broadcasts/
