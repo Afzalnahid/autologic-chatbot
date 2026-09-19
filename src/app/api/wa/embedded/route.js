@@ -140,6 +140,10 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
 .btn3{width:100%;margin-top:14px;padding:12px 16px;border-radius:12px;font-size:13.5px;font-weight:700;border:0;background:linear-gradient(135deg,var(--acc),var(--accd));color:#fff;box-shadow:0 8px 18px color-mix(in srgb,var(--acc) 30%,transparent)}
 .warn{font-size:11.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;line-height:1.55;margin-top:12px}
 .warn b{color:var(--text)}
+.guide{margin:0 0 20px;text-align:left}
+.guide[hidden]{display:none}
+.gq{font-size:13px;font-weight:700;margin:0 2px 2px}
+.guide .steps{margin-top:12px}
 .subhelp{margin-top:12px}
 .subhelp>summary{cursor:pointer;list-style:none;font-size:12px;font-weight:600;color:var(--acc);display:inline-flex;align-items:center;gap:6px}
 .subhelp>summary::-webkit-details-marker{display:none}
@@ -160,6 +164,47 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
     <li><i class="ti ti-check"></i><span>Verify it with the code Meta sends by SMS or call</span></li>
     <li><i class="ti ti-check"></i><span>Your bot starts replying the moment it's connected</span></li>
   </ul>
+
+  <!-- Which door to take, by where the number lives today (owner, 2026-09-20).
+       Both languages are in the page; the dashboard's own choice picks one. -->
+  <div class="guide" data-lang="en">
+    <div class="gq">Where does your number live today?</div>
+    <details class="method">
+      <summary><span><i class="ti ti-circle-plus"></i>A new number (no WhatsApp on it yet)</span><i class="chev ti ti-chevron-down"></i></summary>
+      <div class="body"><ol class="steps"><li>Tap <b>Set up with Meta</b> below.</li><li>Choose <b>Create a new WhatsApp Business account</b> and type the number.</li><li>Enter the code Meta sends by SMS or call. Done — you come back here connected.</li></ol></div>
+    </details>
+    <details class="method">
+      <summary><span><i class="ti ti-brand-whatsapp"></i>My normal WhatsApp (the personal app)</span><i class="chev ti ti-chevron-down"></i></summary>
+      <div class="body"><ol class="steps"><li>Meta does not let the personal WhatsApp app connect to a bot. Move the number to the free <b>WhatsApp Business</b> app first: install it and open it with the same number — it offers to bring your chats along.</li><li>Then follow <b>“WhatsApp Business app”</b> below. You keep using WhatsApp on your phone and the bot answers too.</li><li>Only if that option does not appear: back up your chats, delete the WhatsApp account on that number (WhatsApp → Settings → Account → Delete account), then connect it as <b>a new number</b>. After that the number works only through TellMore AI, not in the phone app.</li></ol></div>
+    </details>
+    <details class="method">
+      <summary><span><i class="ti ti-building-store"></i>WhatsApp Business app on my phone</span><i class="chev ti ti-chevron-down"></i></summary>
+      <div class="body"><ol class="steps"><li>Update the WhatsApp Business app to the latest version.</li><li>Tap <b>Set up with Meta</b> and choose <b>Connect your WhatsApp Business app</b>.</li><li>Enter your number and confirm on your phone when the Business app asks.</li><li>Both keep working: the bot answers, and anything you type in the app is remembered by the bot.</li></ol></div>
+    </details>
+    <details class="method">
+      <summary><span><i class="ti ti-arrows-exchange"></i>Already on WhatsApp API with another company</span><i class="chev ti ti-chevron-down"></i></summary>
+      <div class="body"><ol class="steps"><li>Turn the number's two-step verification PIN <b>off</b>: WhatsApp Manager → Phone numbers → your number → Two-step verification — or ask your current provider to do it or to release the number.</li><li>Tap <b>Set up with Meta</b> and enter the same number. Meta moves it to us after a code by SMS or call; its name and quality rating come along.</li><li>If it still says a PIN is set, the PIN is not off yet — check again and retry.</li></ol></div>
+    </details>
+  </div>
+  <div class="guide" data-lang="bn" hidden>
+    <div class="gq">আপনার নম্বর এখন কোথায় চলে?</div>
+    <details class="method">
+      <summary><span><i class="ti ti-circle-plus"></i>নতুন নম্বর (এতে এখনো WhatsApp চলে না)</span><i class="chev ti ti-chevron-down"></i></summary>
+      <div class="body"><ol class="steps"><li>নিচের <b>Set up with Meta</b> চাপুন।</li><li><b>Create a new WhatsApp Business account</b> বেছে নম্বরটা লিখুন।</li><li>Meta SMS বা কলে যে কোড পাঠায়, সেটা দিন। শেষ — যুক্ত হয়ে এখানে ফিরে আসবেন।</li></ol></div>
+    </details>
+    <details class="method">
+      <summary><span><i class="ti ti-brand-whatsapp"></i>আমার সাধারণ WhatsApp (ব্যক্তিগত অ্যাপ)</span><i class="chev ti ti-chevron-down"></i></summary>
+      <div class="body"><ol class="steps"><li>Meta ব্যক্তিগত WhatsApp অ্যাপকে বটের সাথে যুক্ত হতে দেয় না। আগে নম্বরটা ফ্রি <b>WhatsApp Business</b> অ্যাপে নিন: অ্যাপটা নামিয়ে একই নম্বর দিয়ে খুলুন — পুরনো চ্যাট সাথে আনার অপশন দেয়।</li><li>তারপর নিচের <b>“WhatsApp Business অ্যাপ”</b>-এর ধাপ মানুন। ফোনে WhatsApp আগের মতোই চালাবেন, বটও উত্তর দেবে।</li><li>ওই অপশন না এলে তবেই: চ্যাটের ব্যাকআপ নিন, ওই নম্বরের WhatsApp অ্যাকাউন্ট মুছে দিন (WhatsApp → Settings → Account → Delete account), তারপর <b>নতুন নম্বর</b> হিসেবে যুক্ত করুন। এরপর নম্বরটা শুধু TellMore AI দিয়ে চলবে, ফোনের অ্যাপে নয়।</li></ol></div>
+    </details>
+    <details class="method">
+      <summary><span><i class="ti ti-building-store"></i>ফোনের WhatsApp Business অ্যাপ</span><i class="chev ti ti-chevron-down"></i></summary>
+      <div class="body"><ol class="steps"><li>WhatsApp Business অ্যাপটা সর্বশেষ সংস্করণে আপডেট করুন।</li><li><b>Set up with Meta</b> চাপুন, <b>Connect your WhatsApp Business app</b> বেছে নিন।</li><li>নম্বর দিন, আর ফোনের Business অ্যাপ জিজ্ঞেস করলে নিশ্চিত করুন।</li><li>দুটোই চলবে: বট উত্তর দেবে, আর আপনি অ্যাপে যা লিখবেন বট তা মনে রাখবে।</li></ol></div>
+    </details>
+    <details class="method">
+      <summary><span><i class="ti ti-arrows-exchange"></i>অন্য কোনো কোম্পানির মাধ্যমে আগে থেকেই WhatsApp API-তে আছে</span><i class="chev ti ti-chevron-down"></i></summary>
+      <div class="body"><ol class="steps"><li>নম্বরের two-step verification PIN <b>বন্ধ</b> করুন: WhatsApp Manager → Phone numbers → আপনার নম্বর → Two-step verification — অথবা আপনার বর্তমান সার্ভিসকে বন্ধ করতে বা নম্বরটা ছেড়ে দিতে বলুন।</li><li><b>Set up with Meta</b> চাপুন, একই নম্বর দিন। SMS বা কলের কোডের পর Meta নম্বরটা আমাদের কাছে সরিয়ে আনবে; নাম আর রেটিং সাথে আসে।</li><li>তারপরও PIN-এর কথা বললে বুঝবেন PIN এখনো বন্ধ হয়নি — আবার দেখে চেষ্টা করুন।</li></ol></div>
+    </details>
+  </div>
 
   <button id="go"><i class="ti ti-brand-meta"></i>Set up with Meta</button>
   <div class="status" id="status"></div>
@@ -212,6 +257,14 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
   </details>
 </main>
 
+<script>
+// The dashboard's language choice (i18n.js, "al-dash-lang") picks the guide.
+try { if (localStorage.getItem('al-dash-lang') === 'bn') {
+  document.querySelector('.guide[data-lang="en"]').hidden = true;
+  document.querySelector('.guide[data-lang="bn"]').hidden = false;
+  document.documentElement.lang = 'bn';
+} } catch(e){}
+</script>
 <script>
 (function(){
   // Same tab, no popup: Meta's window used to be a popup that reported back to
