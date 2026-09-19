@@ -812,6 +812,10 @@ again?"
     Both films rendered and verified (EN 426.2 s -14.9 LUFS, BN 460.0 s -15.2
     LUFS; 0 black frames, 0 silences). 1080p masters are 51/54 MB — over the
     30 MB phone-upload limit, so 540p previews were sent; masters stay local.
+  - WORKFLOW (owner, 2026-09-20): Claude Design finishes ALL design batches
+    first; the owner will then notify Claude Code, which reviews the full set
+    of changes in one pass before anything more is built or shipped. Do not
+    start handoff Part 2 items before that notice.
   - OBSIDIAN THEME + INBOX PANEL (2026-09-20, 192e718, Vercel READY). Written
     by a Claude Design session straight into the working copy, left
     uncommitted; the owner asked to push it. Reviewed (API ?sender_id= filters
