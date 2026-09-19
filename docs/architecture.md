@@ -274,6 +274,14 @@ postMessage, and on a phone the opener tab was frozen/reloaded during a 20-minut
 signup, so nothing was ever saved. The popup's `POST /api/wa/finish` is kept
 for any page still open from before; it calls the same `completeWhatsApp()`.
 
+**In the Android app** the WebView hands facebook.com to the phone's browser, so
+any Meta connect (Facebook, Instagram, WhatsApp) finishes THERE and no message
+reaches the app. Two things cover it: `/api/wa/embedded` detects the native
+bridge and, when the owner switches back to the app, goes to
+`/dashboard#channels`; and the Channels tab reloads its list on every return
+(focus, visibilitychange, Capacitor `appStateChange`). Before this the app sat
+on a spinner until it was killed and reopened.
+
 **Native push** (the installed Capacitor app, whose WebView cannot do Web Push):
 `push/register-native` saves/removes an FCM device token in a separate table,
 `fcm_tokens` (its own table because an FCM token has none of Web Push's

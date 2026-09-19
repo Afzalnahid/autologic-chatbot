@@ -223,10 +223,30 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
   var URL_ = ${JSON.stringify(signupLink)};
   var btn = document.getElementById('go');
   var status = document.getElementById('status');
+  // Inside the Android app the WebView cannot show facebook.com: it hands the
+  // link to the phone's browser and stays on THIS page, where a spinner used
+  // to spin forever. The signup finishes in the browser, so when the owner
+  // switches back to the app, take them to Channels, which reloads its list.
+  var isApp = false;
+  try { isApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); } catch(e){}
+  var left = false;
+  function backToApp(){ if (isApp && left && !document.hidden) { left = false; window.location.href = '/dashboard#channels'; } }
+  document.addEventListener('visibilitychange', backToApp);
+  window.addEventListener('focus', backToApp);
+  document.addEventListener('resume', backToApp);
+  try {
+    var App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (isApp && App) App.addListener('appStateChange', function(s){ if (s && s.isActive) backToApp(); });
+  } catch(e){}
   btn.onclick = function(){
     btn.disabled = true;
     status.className = 'status';
-    status.innerHTML = '<span class="spin"></span>Opening Meta…';
+    status.innerHTML = isApp
+      ? '<span class="spin"></span>Finish in the browser that opened, then come back to this app.'
+      : '<span class="spin"></span>Opening Meta…';
+    // Set after a moment: leaving the app for the browser is what should
+    // trigger the return, not a focus blip during the click itself.
+    setTimeout(function(){ left = true; }, 800);
     window.location.href = URL_;
   };
   // Coming back with the Back button restores this page from cache with the

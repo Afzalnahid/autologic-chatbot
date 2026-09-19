@@ -30,7 +30,23 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
   const [busyId,setBusyId]=useState(null);
   const [open,setOpen]=useState(null);           // expanded account row id
   const load=()=>api("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{});
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{
+    load();
+    // Reload whenever the owner comes back to this tab or to the app. In the
+    // Android app a Meta connect finishes in the phone's browser (the WebView
+    // hands facebook.com off to it), so no message ever reaches this page — the
+    // list only learnt about the new channel after the app was killed and
+    // reopened. Coming back is the one signal the app always gets.
+    const onBack=()=>{ if(!document.hidden) load(); };
+    window.addEventListener("focus",onBack);
+    document.addEventListener("visibilitychange",onBack);
+    let sub=null;
+    try{
+      const App=window.Capacitor?.Plugins?.App;
+      if(App) Promise.resolve(App.addListener("appStateChange",({isActive})=>{ if(isActive) load(); })).then(h=>{ sub=h; }).catch(()=>{});
+    }catch{}
+    return ()=>{ window.removeEventListener("focus",onBack); document.removeEventListener("visibilitychange",onBack); try{ sub&&sub.remove&&sub.remove(); }catch{} };
+  },[]);
   // A fresh connection reloads the list so the new channel is in it at once.
   useEffect(()=>{ if(justConnected) load(); },[justConnected]);
   const jc = justConnected && JUST[justConnected.platform];
