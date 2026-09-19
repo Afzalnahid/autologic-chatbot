@@ -809,6 +809,20 @@ again?"
     (render.mjs --stills). Outputs/voices/shots/stills gitignored. Lessons: GSAP
     fromTo on one target across a timeline left the wipe at 0 → use set/to/set;
     lazy:false for screenshot-after-seek; Tabler subset lacked ti-sun.
+    Both films rendered and verified (EN 426.2 s -14.9 LUFS, BN 460.0 s -15.2
+    LUFS; 0 black frames, 0 silences). 1080p masters are 51/54 MB — over the
+    30 MB phone-upload limit, so 540p previews were sent; masters stay local.
+  - FOUR SHORT ADS (2026-09-19, 7646ba9). Owner: "I like this type of video,
+    make 3–4 more in marketing style, 40 s–1 min". Same engine; a film is now
+    films/<name>/script.json (words + on-screen text + timings all in the
+    script), builders in ads.js (adHook, adAnswer, adChat, adScreen, adPrice,
+    adOutro), tts.mjs/render.mjs take --film. Ads: midnight (24/7),
+    photo-to-order (shops, outro says Shop from ৳2,699), book-meetings
+    (services, Service from ৳2,299), live-in-minutes (setup + price cards).
+    Timelines: EN 41.6 / 50.2 / 45.7 / 51.9 s, BN 45 / 54.6 / 47 / 52.8 s.
+    Every ad ends on the same outro (site, 3-day trial, Autolinium credit,
+    web/email/phone). Explainer regression-checked after the refactor (same
+    426.2 s, 199 cues). Outputs tellmoreai-<film>-<lang>.mp4, gitignored.
   - MAROON THEME + FIGMA HOME PAGE (2026-09-19, 8f72b0c, 706d216, e1c0b26).
     Owner chose the colour theme of their Figma landing design + its home-page
     layout, with existing content kept and the trial still 3 days. Brand is now
