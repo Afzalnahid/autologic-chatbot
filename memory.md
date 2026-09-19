@@ -812,6 +812,15 @@ again?"
     Both films rendered and verified (EN 426.2 s -14.9 LUFS, BN 460.0 s -15.2
     LUFS; 0 black frames, 0 silences). 1080p masters are 51/54 MB — over the
     30 MB phone-upload limit, so 540p previews were sent; masters stay local.
+  - PRODUCT/DOCUMENT ALLOWANCE IS A TOTAL (2026-09-20, 46183fe). Owner: "500
+    products" = 500 adds for as long as the client uses the package, never a
+    monthly refill. addsTotal() counts all allowance_events (no date filter);
+    delete still gives nothing back. Card wording lives in TWO places: plans.js
+    AND the DB column plans.feature_list (the pricing page reads the DB) —
+    updated both (docs/sql/2026-09-20-adds-are-a-total.sql, applied). At the
+    change no client had any allowance_events rows, so nobody was blocked.
+    The rendered explainer film's pricing scene still says "added / month"
+    (engine.js pricing feats) — re-render only if the owner asks.
   - WHATSAPP SIGNUP SAME-TAB (2026-09-19, d124ca5 refactor + c9b08fe). Owner
     connected Nandi Realestate's WhatsApp on a PHONE: Meta created the WABA,
     showed "Please close this tab", nothing connected. Logs: /api/wa/embedded
