@@ -8,12 +8,17 @@ import { getValidAccessToken, deleteEvent, getEventMeetLink } from "@/lib/gcal.j
 export const GET = withErrors(async (request) => {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json([], { status: authErr ? 401 : 200 });
-  const { data } = await supabase
+  // ?sender_id= narrows to one customer (the Inbox customer panel). Filtered
+  // at the database, inside this client's rows — never in JavaScript.
+  const sid = new URL(request.url).searchParams.get("sender_id");
+  let q = supabase
     .from("bookings")
     .select("*")
-    .eq("client_id", client.id)
+    .eq("client_id", client.id);
+  if (sid) q = q.eq("sender_id", sid);
+  const { data } = await q
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(sid ? 50 : 500);
   // Some events were created before the Meet link had finished building, so the
   // link is missing while the event itself exists. Fill those in once, quietly.
   const orphans = (data || []).filter(

@@ -142,7 +142,7 @@ function MonthGrid({ bookings, selected, onSelect }) {
                     <button key={p.label} onClick={() => onSelect(on ? null : p.get())} className="ui-btn"
                       style={{ padding: "6px 13px", borderRadius: 999, fontSize: 12, fontWeight: 600,
                         cursor: "pointer", border: `1px solid ${on ? "transparent" : T.border}`,
-                        background: on ? T.accGrad : T.card, color: on ? "#fff" : T.textMuted,
+                        background: on ? T.accGrad : T.card, color: on ? T.onGold : T.textMuted,
                         boxShadow: on ? T.accGlow : "none" }}>{p.label}</button>
                   );
                 })}
@@ -213,7 +213,7 @@ function MonthGrid({ bookings, selected, onSelect }) {
                   <b>{fmtKey(rB)}</b>
                 </span>
                 <span style={{ marginLeft: "auto", padding: "4px 11px", borderRadius: 999,
-                  background: T.accGrad, color: "#fff", fontSize: 11.5, fontWeight: 700 }}>
+                  background: T.accGrad, color: T.onGold, fontSize: 11.5, fontWeight: 700 }}>
                   {dayCount(rA, rB)} day{dayCount(rA, rB) === 1 ? "" : "s"}</span>
               </div>}
 
@@ -726,7 +726,7 @@ function BookingDrawer({ b, isMobile, onClose, update, cancel }) {
             ? <>
                 <a href={b.meeting_link} target="_blank" rel="noreferrer" className="ui-btn"
                   style={{display:"inline-flex",alignItems:"center",gap:7,padding:"12px 18px",borderRadius:12,
-                    background:T.accGrad,boxShadow:T.accGlow,color:"#fff",fontSize:13.5,fontWeight:600,textDecoration:"none"}}>
+                    background:T.accGrad,boxShadow:T.accGlow,color:T.onGold,fontSize:13.5,fontWeight:600,textDecoration:"none"}}>
                   <i className="ti ti-video"/>Join meeting
                 </a>
                 {/* Shown in full and copyable: the owner often needs to paste

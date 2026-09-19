@@ -143,7 +143,7 @@ export default function Orders({ orders, refresh, focus = null }) {
             </div>
             <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
               <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span style={{ width: 30, height: 30, borderRadius: 10, background: T.accGrad, color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{(o.customer_name || "?").trim().slice(0, 1).toUpperCase()}</span>
+                <span style={{ width: 30, height: 30, borderRadius: 10, background: T.accGrad, color: T.onGold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{(o.customer_name || "?").trim().slice(0, 1).toUpperCase()}</span>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.customer_name || "Customer"}</div>
                   <div style={{ fontSize: 12, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.phone_number ? <a href={`tel:${o.phone_number}`} onClick={e => e.stopPropagation()} style={{ color: T.gold, textDecoration: "none", fontWeight: 600 }}>{o.phone_number}</a> : "no phone"}{o.address ? ` · ${o.address}` : ""}</div>
@@ -200,7 +200,7 @@ function OrderDrawer({ o, onClose, update, remove, busy, isMobile }) {
         {o.status !== "Cancelled" && o.status !== "Returned" && <Card style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
             {FLOW.map((s, i) => { const done = i <= stepIdx; return <div key={s} style={{ display: "flex", alignItems: "center", flex: i < FLOW.length - 1 ? 1 : "0 0 auto" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}><span style={{ width: 26, height: 26, borderRadius: "50%", background: done ? T.accGrad : T.bgAlt, boxShadow: done ? T.accGlow : T.nmIn, color: done ? "#fff" : T.textDim, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}><i className={`ti ${done ? "ti-check" : STATUS[s].icon}`} /></span><span style={{ fontSize: 10, color: done ? T.text : T.textDim, fontWeight: done ? 600 : 400, whiteSpace: "nowrap" }}>{s}</span></div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}><span style={{ width: 26, height: 26, borderRadius: "50%", background: done ? T.accGrad : T.bgAlt, boxShadow: done ? T.accGlow : T.nmIn, color: done ? T.onGold : T.textDim, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}><i className={`ti ${done ? "ti-check" : STATUS[s].icon}`} /></span><span style={{ fontSize: 10, color: done ? T.text : T.textDim, fontWeight: done ? 600 : 400, whiteSpace: "nowrap" }}>{s}</span></div>
               {i < FLOW.length - 1 && <div style={{ flex: 1, height: 3, margin: "0 6px 16px", borderRadius: 2, background: i < stepIdx ? T.gold : T.border }} />}
             </div>; })}
           </div>

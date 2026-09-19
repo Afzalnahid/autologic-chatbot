@@ -6,7 +6,8 @@
 // dashboard painted these colours; a mismatched landing page made the two look
 // like different companies. Every value is a CSS variable so the page follows
 // the same light/dark switch as the dashboard (shared "al-theme" storage key).
-// 2026-08 redesign: crimson on soft white, neumorphic depth; dark mode mirrors it.
+// 2026-09-20 "Obsidian" theme in the brand maroon: maroon on near-white; dark mode near-black.
+// --lp-acc is for text and icons, --lp-fill for anything with white text on it.
 export const P = {
   paper: "var(--lp-bg)",        // page
   paper2: "var(--lp-card)",     // raised surface
@@ -17,7 +18,8 @@ export const P = {
   accent: "var(--lp-acc)",      // one accent is enough
   live: "#2ED3A7",              // mint, and only ever "the bot is live"
   line: "var(--lp-line)",
-  onAccent: "#FFFFFF",          // text sitting on a crimson fill
+  onAccent: "#FFFFFF",          // text sitting on a crimson fill (always P.fill, never P.blue)
+  fill: "var(--lp-fill)",       // crimson behind white text — stays readable in dark mode
   bubble: "var(--lp-bubble)",   // chat bubbles / typing dots in the phone demo
 };
 
@@ -25,24 +27,24 @@ export const P = {
 // page (landing, pricing), so the whole site re-themes from one place.
 export const THEME_CSS = `
   :root, [data-theme="light"] {
-    --lp-bg:#F7F5F7; --lp-card:#FFFFFF; --lp-ink:#121116; --lp-soft:#56505A;
-    --lp-acc:#7B1C3E; --lp-accDim:#5C1430; --lp-accSoft:rgba(123,28,62,.07);
-    --lp-line:#ECE6EA; --lp-bubble:#FFFFFF;
-    --lp-shd:rgba(18,17,22,.07); --lp-shl:rgba(255,255,255,0);
+    --lp-bg:#FCFCFD; --lp-card:#FFFFFF; --lp-ink:#111114; --lp-soft:#5C5C66;
+    --lp-acc:#7B1C3E; --lp-accDim:#5C1430; --lp-accSoft:rgba(123,28,62,.07); --lp-fill:#7B1C3E;
+    --lp-line:#E6E6EA; --lp-bubble:#FFFFFF;
+    --lp-shd:rgba(17,17,20,.06); --lp-shl:rgba(255,255,255,0);
     color-scheme: light;
   }
   [data-theme="dark"] {
-    --lp-bg:#121116; --lp-card:#1B1920; --lp-ink:#F2EEF1; --lp-soft:#A69EA7;
-    --lp-acc:#C04A72; --lp-accDim:#7B1C3E; --lp-accSoft:rgba(192,74,114,.14);
-    --lp-line:#2A2630; --lp-bubble:#211E27;
+    --lp-bg:#0B0B0E; --lp-card:#121216; --lp-ink:#EDEDF0; --lp-soft:#9C9CA6;
+    --lp-acc:#C04A72; --lp-accDim:#7B1C3E; --lp-accSoft:rgba(192,74,114,.14); --lp-fill:#C04A72;
+    --lp-line:#222228; --lp-bubble:#18181D;
     --lp-shd:rgba(0,0,0,.45); --lp-shl:rgba(255,255,255,0);
     color-scheme: dark;
   }
   :root {
     --lp-nm: 0 12px 32px var(--lp-shd), 0 2px 6px var(--lp-shd);
     --lp-nm-sm: 0 2px 10px var(--lp-shd);
-    --lp-grad: linear-gradient(135deg, var(--lp-acc), var(--lp-accDim));
-    --lp-glow: 0 10px 24px color-mix(in srgb, var(--lp-acc) 30%, transparent);
+    --lp-grad: linear-gradient(135deg, var(--lp-fill), var(--lp-accDim));
+    --lp-glow: 0 8px 20px color-mix(in srgb, var(--lp-fill) 24%, transparent);
   }
   body { background: var(--lp-bg) }
 `;

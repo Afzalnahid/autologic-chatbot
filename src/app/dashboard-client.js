@@ -421,7 +421,7 @@ function Onboarding({me,onTrial}) {
     <div style={{padding:"16px 16px 6px",borderRadius:16,background:T.bgAlt,boxShadow:T.nmIn,marginBottom:18}}>
       <div style={{fontSize:13.5,fontWeight:700,marginBottom:10,color:T.text}}>{TRIAL_DAYS}-day free trial · {PLANS.trial?.messagesPerDay??30} bot replies a day · no card</div>
       {perks.map(p=><div key={p} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:12.5,color:T.textMuted,marginBottom:10,lineHeight:1.5}}>
-        <span style={{width:20,height:20,borderRadius:7,background:T.accGrad,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12}}><i className="ti ti-check"/></span>{p}
+        <span style={{width:20,height:20,borderRadius:7,background:T.accGrad,color:T.onGold,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12}}><i className="ti ti-check"/></span>{p}
       </div>)}
     </div>
     <Btn gold onClick={startTrial} disabled={busy} style={CTA}>{busy?"Starting...":"Start free trial"}<i className="ti ti-arrow-right" style={{marginLeft:8,fontSize:15,verticalAlign:-2}}/></Btn>
@@ -1061,7 +1061,7 @@ export default function Dashboard() {
               onGo={(to,intent)=>{ if(intent) setInvIntent({...intent,at:Date.now()}); setPage(to); }}
               onImport={(kind,prefill)=>{ setInvIntent({importer:kind,prefill,at:Date.now()}); setPage("inventory"); }}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
-            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels} focus={focus?.tab==="conversations"?focus:null}/>}
+            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels} focus={focus?.tab==="conversations"?focus:null} businessType={bt}/>}
             {page==="broadcast"&&<Broadcast/>}
             {page==="comments"&&<Comments/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent} onIntentDone={()=>setInvIntent(null)}/>)}

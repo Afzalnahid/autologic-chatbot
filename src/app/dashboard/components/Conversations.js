@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { T, Card, Badge, useIsMobile, Select, Switch } from "./ui.js";
+import { T, Card, Badge, useIsMobile, Select, Switch, Segmented, taka, shortDate } from "./ui.js";
 import { api, getSb, apiJson } from "./session.js";
 import { useBackClose } from "./back.js";
 import { useConvoRead, markConvoSeen } from "./convo-read.js";
@@ -10,12 +10,18 @@ import { useConvoRead, markConvoSeen } from "./convo-read.js";
 const CH_ICON = { facebook:"ti-brand-messenger", instagram:"ti-brand-instagram",
   whatsapp:"ti-brand-whatsapp", website:"ti-world" };
 
-export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[],focus=null}) {
+export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[],focus=null,businessType="ecommerce"}) {
   const cap=(w)=>String(w||"").charAt(0).toUpperCase()+String(w||"").slice(1);
   const [chFilter,setChFilter]=useState("all");
   const [tagFilter,setTagFilter]=useState("all");
   const [search,setSearch]=useState("");
+  // The quick view above the list: everything, only unread chats, or only the
+  // chats you have taken over (bot paused for that person).
+  const [view,setView]=useState("all");
   const [contacts,setContacts]=useState({});
+  // Read state is needed by the quick view below, so it is set up before the list
+  // is filtered (it used to be read only further down).
+  const convoRead=useConvoRead();
   const [tagData,setTagData]=useState(null);
   const loadTags=async()=>{
     try{
@@ -38,7 +44,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     return p===chFilter;
   };
   const q=search.trim().toLowerCase();
-  const convos=allConvos.filter(c=>chMatch(c)
+  const isManual=(cv)=>contacts[cv.id]?.bot_enabled===false;
+  const viewMatch=(cv)=>view==="unread"?convoRead.isUnread(cv):view==="manual"?isManual(cv):true;
+  const convos=allConvos.filter(c=>chMatch(c)&&viewMatch(c)
     &&(tagFilter==="all"||tagsOf(c.id).includes(tagFilter))
     &&(!q||(((contacts[c.id]?.name||c.sender||"")+" "+(c.lastMsg||"")).toLowerCase().includes(q))));
   const PICON={facebook:"ti-brand-facebook",instagram:"ti-brand-instagram",whatsapp:"ti-brand-whatsapp"};
@@ -48,6 +56,14 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     if(s<60) return "now"; if(s<3600) return Math.floor(s/60)+"m"; if(s<86400) return Math.floor(s/3600)+"h";
     if(s<604800) return Math.floor(s/86400)+"d"; return new Date(t).toLocaleDateString("en-GB",{day:"numeric",month:"short"}); };
   const isMobile=useIsMobile();
+  // A wide screen gets a third column: the customer panel. Below 1280px there is
+  // not enough room beside the chat, so it stays two columns as before.
+  const [wide,setWide]=useState(false);
+  useEffect(()=>{
+    const check=()=>setWide(window.innerWidth>=1280);
+    check(); window.addEventListener("resize",check);
+    return ()=>window.removeEventListener("resize",check);
+  },[]);
   // The open conversation is tracked by its STABLE id, never its position in the
   // list — the list re-sorts every refresh (newest chat first), so an index would
   // point at a different conversation seconds later, which is why one chat used to
@@ -99,7 +115,6 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   // customer message — on open, and again when a new message lands while it is
   // open. Per device (localStorage), shared with the sidebar badge and the
   // bell's Mark-all through useConvoRead.
-  const convoRead=useConvoRead();
   const cLastCustomerAt=(c?.messages||[]).reduce((t,m)=>m.role==="customer"?Math.max(t,new Date(m.time).getTime()):t,0);
   useEffect(()=>{ if(c) markConvoSeen(c); },[c?.id,cLastCustomerAt]); // eslint-disable-line
   const [input,setInput]=useState("");
@@ -265,7 +280,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     }
   };
 
-  const filtered = chFilter!=="all"||tagFilter!=="all"||!!q;
+  const filtered = chFilter!=="all"||tagFilter!=="all"||view!=="all"||!!q;
   if(!convos.length&&!filtered) return <Card style={{textAlign:"center",padding:"48px 24px"}}>
     <i className="ti ti-inbox" style={{fontSize:32,color:T.textDim}}/>
     <div style={{fontSize:15,fontWeight:600,color:T.text,margin:"14px 0 7px"}}>No conversations yet</div>
@@ -293,7 +308,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
 
   const Toggle=({on,onClick,label})=><Switch on={on} onClick={onClick} label={label} size="sm"/>;
 
-  return <div ref={listRef} style={{display:isMobile?"block":"grid",gridTemplateColumns:"320px minmax(0,1fr)",gap:16,height:isMobile?(hasSel?"100%":(fitH?fitH+"px":"calc(100dvh - 190px)")):"calc(100vh - 130px)"}}>
+  const unreadN=allConvos.filter(cv=>convoRead.isUnread(cv)).length;
+  const manualN=allConvos.filter(isManual).length;
+  return <div ref={listRef} style={{display:isMobile?"block":"grid",gridTemplateColumns:wide?"320px minmax(0,1fr) 300px":"320px minmax(0,1fr)",gap:16,height:isMobile?(hasSel?"100%":(fitH?fitH+"px":"calc(100dvh - 190px)")):"calc(100vh - 130px)"}}>
     {/* On a phone the list is unmounted while a chat is open, so it used to
         come back scrolled to the top — leaving a chat deep in the inbox
         dropped you at the newest conversation. The list scrolls inside its
@@ -315,6 +332,10 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             style={{flex:1,background:"none",border:"none",outline:"none",color:T.text,fontSize:12.5,padding:"8px 0",minWidth:0}}/>
           {search&&<button onClick={()=>setSearch("")} aria-label="Clear search" style={{background:"none",border:"none",cursor:"pointer",color:T.textDim,fontSize:14,padding:2,flexShrink:0}}><i className="ti ti-x"/></button>}
         </div>
+      </div>
+      <div style={{padding:"10px 12px 0"}}>
+        <Segmented size="sm" value={view} onChange={setView}
+          items={[{value:"all",label:"All"},{value:"unread",label:"Unread",badge:unreadN||null},{value:"manual",label:"Manual",badge:manualN||null}]}/>
       </div>
       {/* Two dropdowns instead of two rows of chips. On a phone the chips were
           eating half the screen before a single conversation appeared, and the
@@ -369,7 +390,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             : "Conversations will appear here as soon as a customer writes to you."}
         </div>
         {filtered&&
-          <button onClick={()=>{setChFilter("all");setTagFilter("all");setSearch("");}} className="ui-btn"
+          <button onClick={()=>{setChFilter("all");setTagFilter("all");setSearch("");setView("all");}} className="ui-btn"
             style={{padding:"9px 16px",borderRadius:9,border:`1px solid ${T.border}`,background:T.card,
               color:T.text,fontSize:13.5,fontWeight:600,cursor:"pointer"}}>Clear filters</button>}
       </div>}
@@ -454,7 +475,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             {(m.attachments||[]).length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4,alignItems:mine?"flex-end":"flex-start"}}>
               {m.attachments.map((u,j)=><img key={j} src={u} alt="" onLoad={onImgLoad} style={{maxWidth:220,borderRadius:16,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
             </div>}
-            {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?"#fff":T.text,background:mine?T.accGrad:T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{m.text}</div>}
+            {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?T.onGold:T.text,background:mine?T.accGrad:T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{m.text}</div>}
             {mine&&m.role==="agent"&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>You</div>}
           </div>
         </div>;})}
@@ -489,9 +510,123 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
               style={{width:30,height:30,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>😊</button>
           </div>
           <button onClick={send} disabled={sending} aria-label="Send" className="ui-sq"
-            style={{width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer",background:T.accGrad,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:16,color:"#fff"}}/></button>
+            style={{width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer",background:T.accGrad,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:16,color:T.onGold}}/></button>
         </div>
       </div>
     </Card>}
+    {showChat&&wide&&<CustomerPanel c={c} name={cname} ct={ct} ctLoaded={ctLoaded} msgs={shownMsgs}
+      channel={cap(c.platform)+((perPlatform[c.platform]||[]).length>1&&c.page_id?` · ${acctName(c.platform,c.page_id)}`:"")}
+      icon={PICON[c.platform]||CH_ICON[c.platform]||"ti-message"} tags={tagsOf(c.id)} complaintTag={tagData?.complaint_tag}
+      businessType={businessType}/>}
   </div>;
+}
+
+// The third column on a wide screen: who this customer is and what they have
+// done with the business, so the owner does not have to leave the chat to find
+// out. Everything here is read from data the business already has — nothing is
+// guessed or generated. Orders for a shop, bookings for an agency.
+function CustomerPanel({c,name,ct,ctLoaded,msgs,channel,icon,tags,complaintTag,businessType}){
+  const isAgency=businessType==="agency";
+  const [rows,setRows]=useState(null);      // null = loading
+  const [err,setErr]=useState(false);
+  const [tick,setTick]=useState(0);
+  useEffect(()=>{
+    if(!c?.id) return;
+    let cancelled=false;
+    setRows(null); setErr(false);
+    api(`/api/${isAgency?"bookings":"orders"}?sender_id=${encodeURIComponent(c.id)}`)
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(d=>{ if(!cancelled) setRows(Array.isArray(d)?d:[]); })
+      .catch(()=>{ if(!cancelled) setErr(true); });
+    return ()=>{ cancelled=true; };
+  },[c?.id,isAgency,tick]);
+
+  const times=(msgs||[]).map(m=>new Date(m.time).getTime()).filter(Number.isFinite);
+  const firstAt=times.length?Math.min(...times):null;
+  const fromCustomer=(msgs||[]).filter(m=>m.role==="customer").length;
+  const botOn=ct?.bot_enabled!==false;
+  const lbl={fontSize:11.5,fontWeight:600,color:T.textMuted,margin:"0 0 8px"};
+  const stat=(k,v)=><div style={{padding:"10px 11px",borderRadius:8,background:T.inset,minWidth:0}}>
+    <div style={{fontSize:11.5,color:T.textMuted}}>{k}</div>
+    <div style={{fontSize:15,fontWeight:600,color:T.text,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v}</div>
+  </div>;
+
+  let business=null;
+  if(err) business=<div style={{fontSize:12.5,color:T.textMuted,lineHeight:1.5}}>
+      Could not load {isAgency?"bookings":"orders"}.{" "}
+      <button onClick={()=>setTick(t=>t+1)} style={{background:"none",border:"none",padding:0,color:T.gold,fontWeight:600,cursor:"pointer",fontSize:12.5}}>Try again</button>
+    </div>;
+  else if(rows===null) business=<div style={{fontSize:12.5,color:T.textDim}}><i className="ti ti-loader-2" style={{marginRight:6}}/>Loading…</div>;
+  else if(!rows.length) business=<div style={{fontSize:12.5,color:T.textMuted}}>{isAgency?"No bookings yet from this customer.":"No orders yet from this customer."}</div>;
+  else if(isAgency){
+    const now=Date.now();
+    const next=rows.filter(b=>b.status!=="Cancelled"&&b.meeting_datetime&&new Date(b.meeting_datetime).getTime()>now)
+      .sort((a,b)=>new Date(a.meeting_datetime)-new Date(b.meeting_datetime))[0];
+    const last=rows[0];
+    business=<>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:8}}>
+        {stat("Bookings",rows.length)}
+        {stat("Last status",last.status||"—")}
+      </div>
+      {next&&<div style={{marginTop:10,padding:"10px 11px",borderRadius:8,border:`1px solid ${T.border}`}}>
+        <div style={{fontSize:11.5,color:T.textMuted}}>Next meeting</div>
+        <div style={{fontSize:13,fontWeight:600,color:T.text,marginTop:3}}>
+          {new Date(next.meeting_datetime).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}
+        </div>
+        {next.service_want&&<div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{next.service_want}</div>}
+        {next.meeting_link&&<a href={next.meeting_link} target="_blank" rel="noopener noreferrer"
+          style={{display:"inline-flex",alignItems:"center",gap:5,marginTop:6,fontSize:12.5,fontWeight:600,color:T.gold,textDecoration:"none"}}>
+          <i className="ti ti-video"/>Open Meet link</a>}
+      </div>}
+    </>;
+  } else {
+    const kept=rows.filter(o=>o.status!=="Cancelled"&&o.status!=="Returned");
+    const spent=kept.reduce((s,o)=>s+(Number(o.total)||0),0);
+    const last=rows[0];
+    business=<>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:8}}>
+        {stat("Orders",rows.length)}
+        {stat("Spent",taka(spent))}
+      </div>
+      <div style={{marginTop:10,padding:"10px 11px",borderRadius:8,border:`1px solid ${T.border}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",gap:8,fontSize:11.5,color:T.textMuted}}>
+          <span>Last order{last.order_code?` · ${last.order_code}`:""}</span><span>{shortDate(last.created_at)}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",gap:8,marginTop:4,fontSize:13}}>
+          <span style={{fontWeight:600,color:T.text}}>{last.status||"Pending"}</span>
+          <span style={{fontWeight:600,color:T.text}}>{taka(last.total)}</span>
+        </div>
+      </div>
+    </>;
+  }
+
+  return <Card style={{padding:16,height:"100%",overflow:"auto",display:"flex",flexDirection:"column",gap:18}}>
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",gap:6,paddingTop:4}}>
+      <div aria-hidden style={{width:52,height:52,borderRadius:"50%",background:T.goldBg,color:T.gold,
+        display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700}}>
+        {(name||"C").trim().charAt(0).toUpperCase()}
+      </div>
+      <div style={{fontSize:15,fontWeight:600,color:T.text,maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name||"Customer"}</div>
+      <div style={{fontSize:12,color:T.textMuted,display:"flex",alignItems:"center",gap:5}}><i className={`ti ${icon}`} style={{fontSize:13}}/>{channel}</div>
+      {ctLoaded&&<Badge color={botOn?T.success:T.warn}>{botOn?"Bot is answering":"You are answering"}</Badge>}
+    </div>
+    <div>
+      <div style={lbl}>Conversation</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:8}}>
+        {stat("First message",firstAt?shortDate(firstAt):"—")}
+        {stat("Their messages",fromCustomer)}
+      </div>
+    </div>
+    <div>
+      <div style={lbl}>{isAgency?"Bookings":"Orders"}</div>
+      {business}
+    </div>
+    {!!tags?.length&&<div>
+      <div style={lbl}>Tags</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {tags.map(t=><span key={t} style={{fontSize:11.5,padding:"3px 9px",borderRadius:8,fontWeight:600,
+          background:t===complaintTag?T.dangerBg:T.inset,color:t===complaintTag?T.danger:T.textMuted}}>{t}</span>)}
+      </div>
+    </div>}
+  </Card>;
 }

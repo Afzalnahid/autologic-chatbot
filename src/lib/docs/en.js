@@ -382,9 +382,17 @@ export const DOCS = {
             ["**Search**", "Look inside names and message text at once"],
             ["**Channel dropdown**", "Show only one platform — and if you have several Pages, only one Page"],
             ["**Tag dropdown**", "Show only conversations carrying a tag, with a count beside each"],
+            ["**All · Unread · Manual**", "The three buttons under the search box. **Unread** shows only chats you have not opened since the customer last wrote; **Manual** shows only the chats you have taken over from the bot. The small number on each is how many there are"],
           ] } },
 
       { p: ["When a filter matches nothing you get **Clear filters**, so you never have to remember which one you left on."] },
+
+      { h: "The customer panel",
+        p: [
+          "On a wide screen — a laptop or a desktop monitor — a third column opens on the right of the chat. It shows who you are talking to without leaving the conversation: their name and channel, whether the bot or you is answering, when they first wrote, and how many messages they have sent.",
+          "For an online shop it also shows their **orders**: how many, how much they have spent (cancelled and returned orders are not counted), and their last order with its status. For an agency it shows their **bookings**, and the next meeting with its Google Meet link if one is coming up.",
+          "On a smaller screen or on a phone the panel is hidden so the chat keeps its room. Nothing in it is guessed — it is read from the orders and bookings already in your dashboard.",
+        ] },
 
       { h: "Reading the list",
         table: { head: ["What you see", "What it means"],

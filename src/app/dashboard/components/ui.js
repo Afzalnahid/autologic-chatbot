@@ -15,7 +15,7 @@ import { BotMark } from "@/lib/brand.js";
 export const T = {
   bg: "var(--bg)", bgAlt: "var(--bgAlt)", card: "var(--card)", cardAlt: "var(--cardAlt)", inset: "var(--inset)",
   rail: "var(--rail)", railHover: "var(--railHover)", railText: "var(--railText)", railTextOn: "var(--railTextOn)",
-  gold: "var(--gold)", goldDim: "var(--goldDim)", goldBg: "var(--goldBg)",
+  gold: "var(--gold)", goldDim: "var(--goldDim)", goldBg: "var(--goldBg)", onGold: "var(--onGold)",
   text: "var(--text)", textMuted: "var(--textMuted)", textDim: "var(--textDim)",
   border: "var(--border)", borderStrong: "var(--borderStrong)",
   danger: "var(--danger)", success: "var(--success)", info: "var(--gold)", warn: "var(--warn)", purple: "var(--purple)",
@@ -38,7 +38,7 @@ export function useIsMobile(){
   return m;
 }
 
-export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:small?10:12,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:600,background:danger?T.dangerBg:gold?T.accGrad:T.goldBg,color:danger?T.danger:gold?"#fff":T.gold,boxShadow:gold?T.accGlow:"none",...style}}>{children}</button>; }
+export function Btn({children,gold,danger,small,style,...p}){ return <button {...p} className="ui-btn" style={{padding:small?"6px 14px":"8px 20px",borderRadius:small?7:8,border:"none",cursor:"pointer",fontSize:small?12:13,fontWeight:600,background:danger?T.dangerBg:gold?T.accGrad:T.goldBg,color:danger?T.danger:gold?T.onGold:T.gold,boxShadow:gold?T.accGlow:"none",...style}}>{children}</button>; }
 export function Badge({children,color=T.gold}){ return <span style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,background:`color-mix(in srgb, ${color} 11%, transparent)`,color}}>{children}</span>; }
 
 // The one on/off control for the whole product. Off, it is pressed into the
@@ -75,7 +75,7 @@ export function Switch({on,onClick,disabled,size="md",tone="live",label,title}){
     {sw}<span style={{fontSize:12.5,color:T.textMuted,userSelect:"none",whiteSpace:"nowrap"}}>{label}</span>
   </span>;
 }
-export function Card({children,style,...p}){ return <div {...p} className="ui-card" style={{background:T.card,borderRadius:18,border:`1px solid ${T.border}`,boxShadow:T.nmSm,padding:"1.25rem",...style}}>{children}</div>; }
+export function Card({children,style,...p}){ return <div {...p} className="ui-card" style={{background:T.card,borderRadius:10,border:`1px solid ${T.border}`,boxShadow:T.nmSm,padding:"1.25rem",...style}}>{children}</div>; }
 // `emb` gives the field the pressed-in look of the auth page — used on every
 // first-run screen so signup, onboarding and the dashboard read as one product.
 export function Inp({label,textarea,emb,style,inputStyle,...p}){
@@ -94,7 +94,7 @@ export function Steps({step,of}){
 }
 export function OnboardFrame({icon,title,sub,step,of,width=460,scroll,children}){
   return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:T.bg}}>
-    <div className="ui-page" style={{width:"100%",maxWidth:width,background:T.card,borderRadius:26,border:`1px solid ${T.border}`,
+    <div className="ui-page" style={{width:"100%",maxWidth:width,background:T.card,borderRadius:14,border:`1px solid ${T.border}`,
       boxShadow:T.nmOut,padding:"clamp(22px, 4vw, 34px) clamp(18px, 4vw, 32px)",...(scroll?{maxHeight:"94dvh",overflowY:"auto"}:{})}}>
       <div style={{display:"inline-flex",alignItems:"center",gap:8,fontSize:13,fontWeight:700,color:T.text,marginBottom:18}}>
         <span style={{width:26,height:26,borderRadius:8,background:"#fff",boxShadow:"0 1px 4px rgba(22,24,31,.16)",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><BotMark size={22}/></span>
@@ -470,20 +470,20 @@ export function Motion() {
 
       /* Premium square button — the reference header's 48px rounded tile that
          lifts off the surface and floods red on hover. */
-      .pbtn { position: relative; width: 42px; height: 42px; border-radius: 14px; border: none;
+      .pbtn { position: relative; width: 42px; height: 42px; border-radius: 10px; border: none;
         cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
         background: ${T.card}; color: ${T.textMuted}; box-shadow: var(--nm-sm); flex-shrink: 0;
         transition: background .3s ease, color .3s ease, box-shadow .3s ease, transform .15s ease }
       .pbtn:active { transform: scale(.94) }
       @media (hover: hover) and (pointer: fine) {
-        .pbtn:hover { background: var(--acc-grad); color: #fff; box-shadow: var(--acc-glow) }
+        .pbtn:hover { background: var(--acc-grad); color: var(--onGold); box-shadow: var(--acc-glow) }
       }
       .pbtn .ti { font-size: 19px }
       /* Very narrow phones (≤360px): drop the on-screen back button — the
          phone's own back does the same — so the page title keeps its room. */
       @media (max-width: 360px) { .hide-xs { display: none !important } }
       .pbadge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
-        padding: 0 5px; border-radius: 9px; background: var(--acc-grad); color: #fff;
+        padding: 0 5px; border-radius: 9px; background: var(--acc-grad); color: var(--onGold);
         font-size: 10px; font-weight: 700; display: flex; align-items: center;
         justify-content: center; border: 2px solid ${T.card}; box-sizing: content-box }
       /* Calendar. A month grid is a navigator; the day list is where the work
@@ -527,29 +527,33 @@ export function Motion() {
   );
 }
 
-// The 2026-08 redesign: crimson on soft white, neumorphic depth. `gold` still
+// The 2026-09-20 "Obsidian" theme in the brand maroon: maroon on near-white /
+// near-black, hairline borders, flat depth. In dark mode the accent lifts to
+// #C04A72 for text and icons, and filled controls run #C04A72 -> #7B1C3E.
+// `onGold` is the text colour on a maroon fill (white in both modes).
+// Previously (2026-08): crimson on soft white, neumorphic depth. `gold` still
 // names the primary accent (every component reads it), it just holds red now.
 // Mint stays reserved for "the bot is live" and nothing else.
 export const PALETTE = {
   light: {
-    bg: "#F7F5F7", bgAlt: "#F3EEF1", card: "#FFFFFF", cardAlt: "#FFFFFF", inset: "#F1ECEF",
-    rail: "#FFFFFF", railHover: "#F6EEF2", railText: "#6B6470", railTextOn: "#FFFFFF",
-    gold: "#7B1C3E", goldDim: "#5C1430", goldBg: "rgba(123,28,62,0.07)",
-    text: "#121116", textMuted: "#56505A", textDim: "#8E8792",
-    border: "#ECE6EA", borderStrong: "#DCD3D8",
-    danger: "#C9273A", success: "#0A7C5C", warn: "#8A5A07", purple: "#6D3FD9",
-    live: "#0FA97C", liveBg: "rgba(15,169,124,0.11)", warnBg: "rgba(154,100,8,0.10)", dangerBg: "rgba(201,39,58,0.09)",
-    shDark: "rgba(18,17,22,0.07)", shLight: "rgba(255,255,255,0)",
+    bg: "#FCFCFD", bgAlt: "#F4F4F6", card: "#FFFFFF", cardAlt: "#FAFAFB", inset: "#F0F0F3",
+    rail: "#F7F7F8", railHover: "#EFEFF2", railText: "#55555F", railTextOn: "#FFFFFF",
+    gold: "#7B1C3E", goldDim: "#5C1430", goldBg: "rgba(123,28,62,0.07)", onGold: "#FFFFFF",
+    text: "#111114", textMuted: "#5C5C66", textDim: "#85858F",
+    border: "#E6E6EA", borderStrong: "#D4D4DA",
+    danger: "#B42318", success: "#0A7C5C", warn: "#8A5A07", purple: "#6D3FD9",
+    live: "#0FA97C", liveBg: "rgba(15,169,124,0.11)", warnBg: "rgba(154,100,8,0.10)", dangerBg: "rgba(180,35,24,0.08)",
+    shDark: "rgba(17,17,20,0.06)", shLight: "rgba(255,255,255,0)",
   },
   dark: {
-    bg: "#121116", bgAlt: "#16141B", card: "#1B1920", cardAlt: "#211E27", inset: "#26232D",
-    rail: "#1B1920", railHover: "#26232D", railText: "#948C96", railTextOn: "#FFFFFF",
-    gold: "#C04A72", goldDim: "#7B1C3E", goldBg: "rgba(192,74,114,0.14)",
-    text: "#F2EEF1", textMuted: "#B5ADB4", textDim: "#857D86",
-    border: "#2A2630", borderStrong: "#3A3541",
+    bg: "#0B0B0E", bgAlt: "#111115", card: "#121216", cardAlt: "#18181D", inset: "#1C1C22",
+    rail: "#0B0B0E", railHover: "#18181D", railText: "#A0A0AA", railTextOn: "#FFFFFF",
+    gold: "#C04A72", goldDim: "#7B1C3E", goldBg: "rgba(192,74,114,0.14)", onGold: "#FFFFFF",
+    text: "#EDEDF0", textMuted: "#9C9CA6", textDim: "#7E7E89",
+    border: "#222228", borderStrong: "#2E2E36",
     danger: "#FF7A82", success: "#3FE0B4", warn: "#F5C25A", purple: "#A78BFA",
     live: "#2ED3A7", liveBg: "rgba(46,211,167,0.13)", warnBg: "rgba(245,194,90,0.12)", dangerBg: "rgba(255,122,130,0.11)",
-    shDark: "rgba(0,0,0,0.45)", shLight: "rgba(255,255,255,0)",
+    shDark: "rgba(0,0,0,0.5)", shLight: "rgba(255,255,255,0)",
   },
 };
 
@@ -567,10 +571,10 @@ export function Theme() {
          maroon every filled control uses. */
       :root, [data-theme="light"], [data-theme="dark"] {
         --nm-out: 0 12px 32px var(--shDark), 0 2px 6px var(--shDark);
-        --nm-sm: 0 2px 10px var(--shDark);
+        --nm-sm: 0 1px 2px var(--shDark);
         --nm-in: inset 0 1px 3px var(--shDark);
         --acc-grad: linear-gradient(135deg, var(--gold), var(--goldDim));
-        --acc-glow: 0 10px 22px color-mix(in srgb, var(--gold) 32%, transparent);
+        --acc-glow: 0 6px 16px color-mix(in srgb, var(--gold) 22%, transparent);
       }
       body { background: var(--bg); color: var(--text) }
     `}}/>
@@ -710,7 +714,7 @@ export function Segmented({ items, value, onChange, vertical = false, glass = fa
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{it.label ?? it}</span>
             {it.badge != null && (
               <span style={{ marginLeft: "auto", background: on ? "rgba(255,255,255,.25)" : T.accGrad,
-                color: "#fff", fontSize: 10.5, fontWeight: 700, minWidth: 18, height: 18,
+                color: on ? T.railTextOn : T.onGold, fontSize: 10.5, fontWeight: 700, minWidth: 18, height: 18,
                 borderRadius: 9, display: "inline-flex", alignItems: "center", justifyContent: "center",
                 padding: "0 5px" }}>{it.badge}</span>
             )}

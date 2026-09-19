@@ -225,7 +225,7 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
             and came out 34x34 on a phone, smaller than every other icon button
             in the dashboard. On a mouse they stay 34. */}
         {[["grid", "ti-layout-grid"], ["list", "ti-list"]].map(([v, ic]) => <button key={v} onClick={() => pickView(v)} aria-label={v} aria-pressed={view === v} className="ui-btn ui-sq"
-          style={{ width: 34, height: 34, borderRadius: 9, border: "none", cursor: "pointer", background: view === v ? T.accGrad : "transparent", color: view === v ? "#fff" : T.textMuted, boxShadow: view === v ? T.accGlow : "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${ic}`} style={{ fontSize: 16 }} /></button>)}
+          style={{ width: 34, height: 34, borderRadius: 9, border: "none", cursor: "pointer", background: view === v ? T.accGrad : "transparent", color: view === v ? T.onGold : T.textMuted, boxShadow: view === v ? T.accGlow : "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><i className={`ti ${ic}`} style={{ fontSize: 16 }} /></button>)}
       </div>
       {/* Four buttons no longer fit a phone on one line — without wrapping, the
           last one hangs off the right edge and takes the whole page with it. */}
@@ -426,7 +426,7 @@ function ProductCard({ p, on, toggle, open, isMobile }) {
         <Badge color={T.purple}>{catOf(p)}</Badge>
       </div>
     </div>
-    <span className="inv-edit" style={{ position: "absolute", right: 10, bottom: 10, width: 30, height: 30, borderRadius: 10, background: T.accGrad, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: T.accGlow, opacity: 0, transition: "opacity .18s ease-out" }}><i className="ti ti-pencil" style={{ fontSize: 14 }} /></span>
+    <span className="inv-edit" style={{ position: "absolute", right: 10, bottom: 10, width: 30, height: 30, borderRadius: 10, background: T.accGrad, color: T.onGold, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: T.accGlow, opacity: 0, transition: "opacity .18s ease-out" }}><i className="ti ti-pencil" style={{ fontSize: 14 }} /></span>
     <style dangerouslySetInnerHTML={{__html:`
       @media (hover:hover) and (pointer:fine) {
         .inv-card:hover .inv-img { transform: scale(1.04) }
@@ -689,7 +689,7 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
             style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(112px, 1fr))", gap: 10, marginBottom: 14 }}>
             {gallery.map((g, i) => <div key={g.u} style={{ position: "relative", aspectRatio: "1", borderRadius: 14, overflow: "hidden", background: T.bgAlt, boxShadow: i === 0 ? T.accGlow : T.nmSm, border: `2px solid ${i === 0 ? T.gold : "transparent"}` }}>
               <img src={g.u} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-              {i === 0 && <span style={{ position: "absolute", top: 6, left: 6, background: T.accGrad, color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>Primary</span>}
+              {i === 0 && <span style={{ position: "absolute", top: 6, left: 6, background: T.accGrad, color: T.onGold, fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999 }}>Primary</span>}
               {g.kind === "file" && <span style={{ position: "absolute", bottom: 6, left: 6, background: "rgba(25,28,36,.7)", color: "#fff", fontSize: 10, padding: "2px 7px", borderRadius: 999 }}>New</span>}
               <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
                 {i !== 0 && <button type="button" title="Make primary" onClick={() => makePrimary(g)} style={{ width: 26, height: 26, minHeight: 0, borderRadius: 8, border: "none", background: "rgba(255,255,255,.9)", color: T.gold, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><i className="ti ti-star" style={{ fontSize: 14 }} /></button>}

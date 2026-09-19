@@ -36,13 +36,17 @@ Google Calendar · Vercel (`tellmoreai.com`)
 - Locked prompts (`FIXED_BASE`, `FIXED_ECOM`, `FIXED_AGENCY`) are enforced on the
   server and stay there.
 - Every feature answers for **both** `ecommerce` and `agency` business types.
-- Maroon `#7B1C3E` (deep shade `#5C1430`) on soft white `#F7F5F7`, white cards
-  with a hairline border, near-black `#121116` for dark sections — the owner's
-  2026-09-19 theme, taken from their Figma landing design. It replaces the
-  crimson `#D92632` of 2026-08-16. In dark mode the accent is lifted to
-  `#C04A72` (maroon itself is unreadable as text on `#121116`); filled controls
-  still end in `#7B1C3E`. Periwinkle and gold were removed and never return.
-  Mint `#2ED3A7` means "bot is live" and nothing else.
+- The "Obsidian" theme in the brand maroon (owner's choice, 2026-09-20): maroon
+  `#7B1C3E` (deep shade `#5C1430`) on near-white `#FCFCFD`, white cards with a
+  hairline border `#E6E6EA`, near-black `#0B0B0E` / `#121216` surfaces in dark
+  mode, flat depth, tight radii (cards 10px, buttons 8px). In dark mode the
+  accent is lifted to `#C04A72` (maroon is unreadable as text on near-black);
+  filled controls still end in `#7B1C3E`. Text on a maroon fill uses the
+  `onGold` token (`T.onGold`, `var(--onGold)`), never a literal `#fff`. Public
+  pages: `--lp-acc` for accent text/icons, `--lp-fill` for accent behind white
+  text. Near-black is for text and dark surfaces only, never a button or chat
+  bubble. Periwinkle and gold were removed and never return. Mint `#2ED3A7`
+  means "bot is live" and nothing else.
 - Design tokens are CSS variables: the dashboard's live in
   `src/app/dashboard/components/ui.js` (`PALETTE`), the public pages' in
   `src/lib/landing.js` (`THEME_CSS`). Never hard-code a brand colour in a component.

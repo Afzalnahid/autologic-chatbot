@@ -210,7 +210,7 @@ export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: "1 1 300px", minWidth: 0 }}>
         {TABS.map((x) => <button key={x.id} onClick={() => setTab(x.id)}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 11, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-            border: `1px solid ${tab === x.id ? "transparent" : T.border}`, background: tab === x.id ? T.accGrad || T.gold : T.card, color: tab === x.id ? "#fff" : T.textMuted }}>
+            border: `1px solid ${tab === x.id ? "transparent" : T.border}`, background: tab === x.id ? T.accGrad || T.gold : T.card, color: tab === x.id ? T.onGold : T.textMuted }}>
           <i className={`ti ${x.icon}`} />{x.label}
         </button>)}
       </div>

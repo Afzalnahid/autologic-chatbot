@@ -4,7 +4,7 @@
 //     it full-screen (no address bar), and
 //   - a store package (Play Store APK / App Store) is generated from this same
 //     manifest by PWABuilder — no separate mobile codebase to maintain.
-// Colours follow the brand invariant: maroon #7B1C3E on the soft-white ground.
+// Colours follow the brand invariant: maroon #7B1C3E on the near-white ground (Obsidian theme, 2026-09-20).
 export default function manifest() {
   return {
     name: "TellMore AI",

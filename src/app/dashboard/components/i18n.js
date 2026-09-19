@@ -64,7 +64,7 @@ export function LangToggle({ compact }) {
         <button key={l.id} onClick={() => setLang(l.id)} aria-pressed={lang === l.id}
           style={{ padding: compact ? "6px 9px" : "7px 11px", borderRadius: 8, border: "none", cursor: "pointer",
             fontSize: 11.5, fontWeight: 700, lineHeight: 1, fontFamily: "inherit",
-            background: lang === l.id ? T.accGrad : "transparent", color: lang === l.id ? "#fff" : T.textMuted }}>
+            background: lang === l.id ? T.accGrad : "transparent", color: lang === l.id ? T.onGold : T.textMuted }}>
           {l.short}
         </button>
       ))}

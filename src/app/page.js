@@ -112,7 +112,7 @@ function Slide({ conv, c, k }) {
 function Bub({ me, children }) {
   return (
     <div style={{ maxWidth: "84%", fontSize: 12.5, lineHeight: 1.6, padding: "8px 11px", borderRadius: 12,
-      background: me ? P.blue : P.bubble, color: me ? P.onAccent : P.ink,
+      background: me ? P.fill : P.bubble, color: me ? P.onAccent : P.ink,
       borderBottomRightRadius: me ? 4 : 12, borderBottomLeftRadius: me ? 12 : 4,
       border: me ? "none" : `1px solid ${P.line}` }}>{children}</div>
   );
@@ -181,7 +181,7 @@ function Flow({ lang }) {
             <div className="lbl" style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "বট যা বলে" : "The bot replies"}</div>
             <div className="stk" style={{ marginBottom: 10 }}>
               {STAGES.map((s2, k) => (
-                <div key={k} className={`fsay${k}`} style={{ padding: "10px 12px", background: P.blue, color: P.onAccent,
+                <div key={k} className={`fsay${k}`} style={{ padding: "10px 12px", background: P.fill, color: P.onAccent,
                   fontSize: 11.5, lineHeight: 1.5, borderRadius: 3, alignSelf: "start" }}>{bn ? s2.say : s2.sayEn}</div>
               ))}
             </div>
@@ -426,7 +426,7 @@ export default async function Home({ searchParams }) {
         .pcard.trial { border-style: dashed; border-color: ${P.accent}; box-shadow: none }
         .pcard.trial .pbtn { background: transparent; color: ${P.accent}; border: 1.5px solid ${P.accent} }
         .pcard ul { flex: 1 }
-        .pcard.hl { background: #7B1C3E; color: #fff; border-color: #7B1C3E; box-shadow: 0 18px 44px rgba(123,28,62,.35) }
+        .pcard.hl { background: #7B1C3E; color: #fff; border-color: #7B1C3E; box-shadow: 0 18px 44px rgba(123,28,62,.30) }
         .pbadge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: #F4C95D; color: #3A2A06;
           font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap }
         .pbtn { display: block; text-align: center; text-decoration: none; font-weight: 700; font-size: 14px; padding: 13px 16px;

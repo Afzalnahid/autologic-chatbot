@@ -46,7 +46,7 @@ const ago = (iso) => {
 const initialsOf = (s) => (s || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
 function Avatar({ c, size = 38 }) {
-  return <div style={{ width: size, height: size, borderRadius: size * 0.32, background: c?.logo_url ? T.bgAlt : T.accGrad, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.36, fontWeight: 700, flexShrink: 0, overflow: "hidden", boxShadow: T.nmSm }}>
+  return <div style={{ width: size, height: size, borderRadius: size * 0.32, background: c?.logo_url ? T.bgAlt : T.accGrad, color: T.onGold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.36, fontWeight: 700, flexShrink: 0, overflow: "hidden", boxShadow: T.nmSm }}>
     {c?.logo_url ? <img src={c.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initialsOf(c?.business_name || c?.owner_email)}
   </div>;
 }
@@ -245,7 +245,7 @@ export function AdminApp(props) {
     <div style={{ position: "fixed", zIndex: 50, top: isMobile ? 10 : 14, bottom: isMobile ? 10 : 14, left: isMobile ? 10 : 14, width: isMobile ? "min(272px, calc(100vw - 20px))" : 248, background: T.rail, borderRadius: 24, boxShadow: nav ? T.nmOut : "none", display: "flex", flexDirection: "column",
       transform: nav ? "translateX(0)" : "translateX(calc(-100% - 60px))", visibility: nav ? "visible" : "hidden", transition: nav ? "transform .28s cubic-bezier(.22,.61,.36,1), visibility 0s" : "transform .28s cubic-bezier(.22,.61,.36,1), visibility 0s .28s" }}>
       <div style={{ padding: "20px 18px 14px", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 14, background: T.accGrad, boxShadow: T.accGlow, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21 }}><i className="ti ti-shield-lock" /></div>
+        <div style={{ width: 44, height: 44, borderRadius: 14, background: T.accGrad, boxShadow: T.accGlow, color: T.onGold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21 }}><i className="ti ti-shield-lock" /></div>
         <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-.01em" }}>TellMore AI Admin</div><div style={{ fontSize: 9.5, color: T.textDim, textTransform: "uppercase", letterSpacing: ".16em", marginTop: 2 }}>platform console</div></div>
         {isMobile && <button onClick={() => setNav(false)} aria-label="Close menu" style={{ background: "none", border: "none", color: T.textDim, cursor: "pointer", fontSize: 18 }}><i className="ti ti-x" /></button>}
       </div>
@@ -289,7 +289,7 @@ export function AdminApp(props) {
           {!isMobile && <span style={{ fontSize: 11, color: T.textDim, display: "inline-flex", alignItems: "center", gap: 6 }}><span className="ui-live" style={{ width: 8, height: 8, borderRadius: "50%", background: T.live, display: "inline-block" }} />synced {ago(data.server_time)}</span>}
           <button onClick={onRefresh} disabled={refreshing} className={`pbtn${refreshing ? " is-busy" : ""}`} title="Refresh" aria-label="Refresh" style={isMobile ? { width: 36, height: 36, borderRadius: 11 } : undefined}><i className="ti ti-refresh" /></button>
           {!isMobile && <ThemeToggle mode={mode} toggle={toggleTheme} />}
-          <div title={ROLE[role].label} style={{ width: isMobile ? 36 : 42, height: isMobile ? 36 : 42, borderRadius: "50%", background: T.accGrad, boxShadow: T.accGlow, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 13 : 15, fontWeight: 700 }}>{initialsOf(data.email.split("@")[0].replace(/[._-]/g, " "))}</div>
+          <div title={ROLE[role].label} style={{ width: isMobile ? 36 : 42, height: isMobile ? 36 : 42, borderRadius: "50%", background: T.accGrad, boxShadow: T.accGlow, color: T.onGold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 13 : 15, fontWeight: 700 }}>{initialsOf(data.email.split("@")[0].replace(/[._-]/g, " "))}</div>
         </div>
       </div>
 
