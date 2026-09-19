@@ -795,6 +795,20 @@ again?"
     Still treat the repo as public for secrets. Move the job into vercel.json
     after the Vercel Pro upgrade. First scheduled GitHub run NOT yet confirmed
     (no gh CLI here) — check followup.last_run_at on Autologic advances.
+  - EXPLAINER FILM v2 (2026-09-19, 471a816, marketing/explainer-video/). Owner
+    asked for a marketing video: natural pro voiceover, motion graphics + 3D,
+    no gaps, every feature, "how to use", Autolinium credit + contacts. Built
+    MASTER_PROMPT.md (brief) → script.json (19 scenes EN+BN, all features from
+    the verified list; trial = 3 days; NO invented stats) → tts.mjs (Edge
+    en-US-AndrewMultilingualNeural / bn-BD-PradeepNeural) → timeline.html +
+    engine.js (ONE seekable GSAP timeline; three.js extruded logo + orbiting
+    channel coins; real /shots screens in a browser frame with callouts;
+    maroon theme) → render.mjs (frame-by-frame via CDP, ~10 fps; audio: bed +
+    SFX generated in audio-gen.mjs, narration measured then gained to -16 LUFS,
+    sidechain-ducked bed, limiter). EN = 426 s (7:06), BN ≈ 460 s. QA by stills
+    (render.mjs --stills). Outputs/voices/shots/stills gitignored. Lessons: GSAP
+    fromTo on one target across a timeline left the wipe at 0 → use set/to/set;
+    lazy:false for screenshot-after-seek; Tabler subset lacked ti-sun.
   - MAROON THEME + FIGMA HOME PAGE (2026-09-19, 8f72b0c, 706d216, e1c0b26).
     Owner chose the colour theme of their Figma landing design + its home-page
     layout, with existing content kept and the trial still 3 days. Brand is now
