@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Motion, Theme } from "../dashboard/components/ui.js";
 import Analytics from "../dashboard/components/Analytics.js";
+import Overview from "../dashboard/components/Overview.js";
 import Conversations from "../dashboard/components/Conversations.js";
 import Comments from "../dashboard/components/Comments.js";
 import Broadcast from "../dashboard/components/Broadcast.js";
@@ -87,6 +88,8 @@ const noop = () => {};
 // One entry per documentable tab. The key is the docs page slug wherever the
 // two line up, so a screenshot's file name matches the page that shows it.
 const TABS = {
+  overview:         () => <Overview me={{ client: { business_name: "Nokshi Threads" } }} convos={PROPS.convos} orders={PROPS.orders} channels={PROPS.channels} businessType="ecommerce" onGo={noop} />,
+  "overview-agency": () => <Overview me={{ client: { business_name: "Pixel Studio" } }} convos={PROPS.convos} orders={[]} channels={PROPS.channels} businessType="agency" onGo={noop} />,
   analytics:        () => <Analytics isAgency={false} />,
   conversations:    () => <Conversations convos={PROPS.convos} channels={PROPS.channels} refresh={noop} />,
   comments:         () => <Comments />,

@@ -350,6 +350,47 @@ export const DOCS = {
     ],
   },
 
+  "overview": {
+    title: "Overview",
+    lead: "The tab the dashboard opens on: the last seven days at a glance, who is waiting for you right now, your newest orders or next meetings, and whether every channel is live.",
+    time: 3,
+    blocks: [
+      { h: "What this tab is for",
+        p: [
+          "One look in the morning. It answers four questions without opening anything else: how busy was the week, is anyone waiting for **me**, what came in, and is the bot actually on everywhere.",
+          "Every number is real and current. The week's figures are the same ones **Analytics** shows for 7 days; the lists are the same chats, orders and channels you find in their own tabs.",
+        ] },
+
+      { shot: "overview", cap: "The week's four numbers, messages per day with the AI's share, the people who need you, the newest orders and every channel's state." },
+
+      { h: "The four cards",
+        table: { head: ["Card", "What it shows"],
+          rows: [
+            ["**Messages**", "Every message in and out over the last 7 days, with today's count, and a small line showing the day-by-day shape"],
+            ["**Customers**", "How many different people wrote, and how many of them were new"],
+            ["**Answered by AI**", "The share of conversations the bot finished on its own, and how many needed you"],
+            ["**Revenue**", "Money from orders this week and the order count"],
+          ] },
+        biz: "ecommerce" },
+      { table: { head: ["Card", "What it shows"],
+          rows: [["**Bookings**", "Meetings booked this week, and what share of your customers booked"]] },
+        biz: "agency" },
+      { p: ["The arrow beside each number compares this week with the week before. The **Analytics** tab has the longer view and the reasons behind it."] },
+
+      { h: "Messages this week",
+        p: ["One bar per day. The full bar is every message that day; the filled part is how many the bot answered. A bar that is mostly filled means the bot is carrying the load; a bar that is mostly empty means people were writing while the bot was paused, or you were answering by hand."] },
+
+      { h: "Needs you",
+        p: ["Chats that want a person, in the order that matters: someone who **asked for a person** (or got upset), a chat tagged as a **complaint**, then anything you have not read yet. Tap a row to open that chat in the Inbox. When the list is empty, the bot has everything covered."],
+        note: "**Unread** is per device, the same as the bold rows in the Inbox: reading a chat on your phone does not mark it read on your laptop.", kind: "tip" },
+
+      { h: "Recent orders", p: ["The five newest orders with their status and total. Tap one to open it in **Orders**."], biz: "ecommerce" },
+      { h: "Next meetings", p: ["Your upcoming bookings in time order, with a **Join** button when a Meet link exists. The **Bookings** tab has the full calendar."], biz: "agency" },
+
+      { h: "Channels",
+        p: ["One line per connected Page, account or number: **Live** (green dot) means the bot is answering there, **Paused** means messages wait for you, **Expired** means the platform dropped the connection and you need to reconnect. The pill at the top of the page says the same thing in one line, and a red bar appears when any connection has expired."] },
+    ] },
+
   "inbox": {
     title: "Inbox",
     lead: "Every chat from every channel in one inbox — with a switch that lets you take over from the bot whenever you want to answer someone yourself.",

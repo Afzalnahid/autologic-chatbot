@@ -503,7 +503,7 @@ export const SAMPLE = {
     global_bot_enabled: true,
     contacts: [
       { sender_id: "u1", name: "Tasnim Rahman", bot_enabled: true },
-      { sender_id: "u2", name: "Rahim Uddin", bot_enabled: true },
+      { sender_id: "u2", name: "Rahim Uddin", bot_enabled: true, needs_human: true },
       { sender_id: "u3", name: "Farhana Akter", bot_enabled: false },
       { sender_id: "u4", name: "Website visitor", bot_enabled: true },
     ],

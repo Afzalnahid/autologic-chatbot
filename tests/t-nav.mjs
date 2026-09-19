@@ -23,9 +23,13 @@ const say = (ok, msg) => { if (!ok) { bad++; console.log("FAIL " + msg); } };
 
 say(PAGES.length === ICONS.length, `PAGES ${PAGES.length} vs ICONS ${ICONS.length}`);
 say(PAGES.length === LABELS.length, `PAGES ${PAGES.length} vs LABELS ${LABELS.length}`);
-say(PAGES[0] === "assistant", `first page is ${PAGES[0]}, expected assistant`);
-say(ICONS[0] === "ti-sparkles", `first icon is ${ICONS[0]}`);
-say(LABELS[0] === "AI Assistant", `first label is ${LABELS[0]}`);
+// Overview is the home tab and leads the list (design handoff, 2026-09-20);
+// the assistant, which led before, is right behind it. The three arrays are
+// index-aligned, so a page added in one place and not the others shows up here.
+say(PAGES[0] === "overview", `first page is ${PAGES[0]}, expected overview`);
+say(ICONS[0] === "ti-layout-dashboard", `first icon is ${ICONS[0]}`);
+say(LABELS[0] === "Overview", `first label is ${LABELS[0]}`);
+say(PAGES[1] === "assistant" && ICONS[1] === "ti-sparkles" && LABELS[1] === "AI Assistant", "the assistant is second, with its icon and label");
 say(new Set(PAGES).size === PAGES.length, "a page key is listed twice");
 
 // Every page must appear in exactly one sidebar group, or it has no way in.

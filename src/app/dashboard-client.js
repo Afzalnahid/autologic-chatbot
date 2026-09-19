@@ -18,6 +18,7 @@ import { useConvoRead } from "./dashboard/components/convo-read.js";
 import WebsiteWidget from "./dashboard/components/WebsiteWidget.js";
 import Billing from "./dashboard/components/Billing.js";
 import Analytics from "./dashboard/components/Analytics.js";
+import Overview from "./dashboard/components/Overview.js";
 import Orders from "./dashboard/components/Orders.js";
 import Inventory from "./dashboard/components/Inventory.js";
 import InventoryAssistant from "./dashboard/components/InventoryAssistant.js";
@@ -35,24 +36,25 @@ import { runBack, useBackClose } from "./dashboard/components/back.js";
 
 // Exported so the screenshot studio can list exactly these tabs rather than
 // keeping a copy that falls behind.
-export const PAGES = ["assistant","analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
+export const PAGES = ["overview","assistant","analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
 // Grouped and ordered the way the day runs: the assistant first, because
 // talking to it is now the shortest way to almost everything — then see how it
 // is going, handle people, reach out, the shop, and the plumbing.
 const GROUPS = [
   { title: "Assistant", pages: ["assistant"] },
-  { title: "Overview",  pages: ["analytics","conversations","comments"] },
+  // Overview leads: the home tab since 2026-09-20 (design handoff Part 3).
+  { title: "Overview",  pages: ["overview","analytics","conversations","comments"] },
   { title: "Outreach",  pages: ["broadcast","channels"] },
   { title: "Business",  pages: ["orders","inventory"] },
   { title: "Account",   pages: ["settings","ai","billing","profile"] },
 ];
-const ICONS = ["ti-sparkles","ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user","ti-cpu"];
+const ICONS = ["ti-layout-dashboard","ti-sparkles","ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user","ti-cpu"];
 // "Bot Training" is the settings page: everything on it teaches or tunes the
 // bot, and owners looked straight past a tab called "Settings" for exactly
 // that. The page key stays "settings" so links and code paths are untouched.
 // "AI Engine" (key "ai") is the BYOK home — moved out of Bot Training into its
 // own tab so the API key, provider and model choice are easy to find and manage.
-const LABELS = ["AI Assistant","Analytics","Inbox","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile","AI Engine"];
+const LABELS = ["Overview","AI Assistant","Analytics","Inbox","Comments","Broadcast","Inventory","Orders","Channels","Billing","Bot Training","Profile","AI Engine"];
 
 
 
@@ -621,7 +623,7 @@ export default function Dashboard() {
   // entries and getting out took six presses. That is not a bug, though: it is
   // what a history is, and it is what somebody pressing back expects to
   // retrace. Leaving the app is what the app switcher is for.
-  const HOME="analytics";
+  const HOME="overview";
   const setPage=(p)=>{
     if(typeof window==="undefined"){ setPageRaw(p); return; }
     setPageRaw(prev=>{
@@ -1060,6 +1062,7 @@ export default function Dashboard() {
               businessType={bt} settings={settings} onMenu={isMobile?()=>setSidebarOpen(true):undefined}
               onGo={(to,intent)=>{ if(intent) setInvIntent({...intent,at:Date.now()}); setPage(to); }}
               onImport={(kind,prefill)=>{ setInvIntent({importer:kind,prefill,at:Date.now()}); setPage("inventory"); }}/>}
+            {page==="overview"&&<Overview me={me} convos={convos} orders={orders} channels={dashChannels} businessType={bt} onGo={goTo}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
             {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels} focus={focus?.tab==="conversations"?focus:null} businessType={bt}/>}
             {page==="broadcast"&&<Broadcast/>}

@@ -27,6 +27,9 @@ export const PAGES = [
   // The slug says "inbox" (the tab's public name since 2026-08-25); the tab
   // key stays "conversations" because the dashboard's #hash deep links and
   // page state were built on it. next.config.js redirects the old URL.
+  // The home tab: the week at a glance and who needs the owner. First of the
+  // daily pages because it is the first thing the dashboard opens on.
+  { slug: "overview",        group: "daily",    icon: "ti-layout-dashboard",  tab: "overview",      biz: "both" },
   { slug: "inbox",           group: "daily",    icon: "ti-messages",          tab: "conversations", biz: "both" },
   { slug: "comments",        group: "daily",    icon: "ti-message-circle-2",  tab: "comments",      biz: "both" },
   // tab: null — it explains the bell, the phone and the emails, which belong
