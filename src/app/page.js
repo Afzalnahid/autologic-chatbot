@@ -29,6 +29,17 @@ async function paidPlans() {
   return PLAN_ORDER.filter((id) => PLANS[id].monthly > 0).map((id) => ({ ...PLANS[id], feature_list: PLANS[id].features }));
 }
 
+// The 3-day free trial, shown as the first card of each set (owner, 2026-09-20:
+// "the 3 days free trial is also a package"). Live from the database like the
+// paid ones; the code catalogue if it cannot be read.
+async function trialPlan() {
+  try {
+    const t = (await loadPlans()).trial;
+    if (t && t.active !== false) return t;
+  } catch { /* fall through */ }
+  return PLANS.trial ? { ...PLANS.trial, feature_list: PLANS.trial.feature_list || PLANS.trial.features } : null;
+}
+
 // Google indexes the Bangla home page separately from the English one, so both
 // need their own title, sentence and share picture rather than one set of tags
 // written in English for both.
@@ -204,7 +215,7 @@ export default async function Home({ searchParams }) {
   const c = COPY[lang];
   const bn = lang === "bn";
   const other = lang === "bn" ? "/" : "/?lang=bn";
-  const plans = await paidPlans();
+  const [plans, trial] = await Promise.all([paidPlans(), trialPlan()]);
 
   return (
     // The "bn" class is what every Bangla rule below hangs off. Without it the
@@ -408,10 +419,12 @@ export default async function Home({ searchParams }) {
         #al-biz-svc:checked ~ .ptab-row label[for="al-biz-svc"] { background: var(--lp-grad); color: #fff }
         #al-biz-shop:focus-visible ~ .ptab-row label[for="al-biz-shop"],
         #al-biz-svc:focus-visible ~ .ptab-row label[for="al-biz-svc"] { outline: 2px solid ${P.accent}; outline-offset: 2px }
-        .pgrid { display: none; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 16px; align-items: stretch }
+        .pgrid { display: none; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 16px; align-items: stretch }
         #al-biz-shop:checked ~ .p-shop, #al-biz-svc:checked ~ .p-svc { display: grid }
         .pcard { position: relative; display: flex; flex-direction: column; background: ${P.paper}; color: ${P.ink};
-          border: 1px solid ${P.line}; border-radius: 20px; padding: 26px; box-shadow: var(--lp-nm-sm) }
+          border: 1px solid ${P.line}; border-radius: 20px; padding: 24px; box-shadow: var(--lp-nm-sm) }
+        .pcard.trial { border-style: dashed; border-color: ${P.accent}; box-shadow: none }
+        .pcard.trial .pbtn { background: transparent; color: ${P.accent}; border: 1.5px solid ${P.accent} }
         .pcard ul { flex: 1 }
         .pcard.hl { background: #7B1C3E; color: #fff; border-color: #7B1C3E; box-shadow: 0 18px 44px rgba(123,28,62,.35) }
         .pbadge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: #F4C95D; color: #3A2A06;
@@ -716,6 +729,26 @@ export default async function Home({ searchParams }) {
             </div>
             {[["ecommerce", "p-shop"], ["agency", "p-svc"]].map(([biz, cls]) => (
               <div key={biz} className={`pgrid ${cls}`}>
+                {/* The free trial is a package too: its own card, its own button.
+                    The paid cards are for buying, so they say so. */}
+                {trial && (
+                  <div className="pcard trial">
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", opacity: .8 }}>{bn ? "ফ্রি ট্রায়াল" : "Free trial"}</div>
+                    <div style={{ margin: "10px 0 4px", display: "flex", alignItems: "baseline", gap: 4 }}>
+                      <span className="fr" style={{ fontSize: 36 }}>{bn ? "ফ্রি" : "Free"}</span>
+                      <span style={{ fontSize: 13, opacity: .75 }}>{bn ? "· ৩ দিন" : "· 3 days"}</span>
+                    </div>
+                    <div style={{ fontSize: 13, opacity: .8, minHeight: 38, lineHeight: 1.5 }}>{bn ? "সব ফিচার চালু, তিন দিনের জন্য। কার্ড লাগে না।" : "Every feature switched on, for three days. No card needed."}</div>
+                    <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 22px", display: "grid", gap: 9 }}>
+                      {(trial.feature_list || []).map((f) => (
+                        <li key={f} style={{ display: "flex", gap: 8, fontSize: 13.5, lineHeight: 1.45 }}>
+                          <i className="ti ti-check" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />{f}
+                        </li>
+                      ))}
+                    </ul>
+                    <a href="/dashboard?auth=signup" className="btn pbtn">{bn ? "ফ্রি ট্রায়াল শুরু করুন" : "Start free trial"}</a>
+                  </div>
+                )}
                 {plans.filter((p) => p.biz === biz).map((p) => (
                   <div key={p.id} className={`pcard${p.highlight ? " hl" : ""}`}>
                     {p.highlight && <span className="pbadge">{bn ? "সবচেয়ে জনপ্রিয়" : "Most popular"}</span>}
@@ -732,7 +765,9 @@ export default async function Home({ searchParams }) {
                         </li>
                       ))}
                     </ul>
-                    <a href="/dashboard?auth=signup" className="btn pbtn">{bn ? "ফ্রি ট্রায়াল শুরু করুন" : "Start free trial"}</a>
+                    {/* Same link as /pricing: signs in or up if needed, then opens
+                        Billing with this package already chosen. */}
+                    <a href={`/dashboard?upgrade=${encodeURIComponent(p.id)}&cycle=monthly`} className="btn pbtn">{bn ? `${p.name} কিনুন` : `Buy ${p.name}`}</a>
                   </div>
                 ))}
               </div>
