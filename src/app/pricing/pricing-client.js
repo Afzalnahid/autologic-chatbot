@@ -54,13 +54,13 @@ const COMPARE = [
   { label: "Priority support", trial: false, basic: false, pro: false, enterprise: true },
 
   { only: "ecommerce", label: "Product catalogue & orders", trial: true, basic: true, pro: true, enterprise: true },
-  { only: "ecommerce", label: "Products added / month", trial: "20", basic: "500", pro: "1,000", enterprise: "2,500" },
+  { only: "ecommerce", label: "Products you can add (total)", trial: "20", basic: "500", pro: "1,000", enterprise: "2,500" },
   { only: "ecommerce", label: "Products from a website link / month", trial: "5", basic: "10", pro: "40", enterprise: "100" },
   { only: "ecommerce", label: "Photo product matching (Vision AI)", trial: true, basic: true, pro: true, enterprise: true },
   { only: "ecommerce", label: "Add products from photos", trial: true, basic: true, pro: true, enterprise: true },
 
   { only: "agency", label: "Knowledge Base (document upload)", trial: true, basic: true, pro: true, enterprise: true },
-  { only: "agency", label: "Documents added / month", trial: "2", basic: "20", pro: "60", enterprise: "150" },
+  { only: "agency", label: "Documents you can add (total)", trial: "2", basic: "20", pro: "60", enterprise: "150" },
   { only: "agency", label: "Google Calendar booking", trial: true, basic: true, pro: true, enterprise: true },
 ];
 

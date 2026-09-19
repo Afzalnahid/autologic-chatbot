@@ -33,10 +33,14 @@ export function PlanMeter({ m }) {
 
 export default function UsageMeters({ meters, period }) {
   if (!Array.isArray(meters) || !meters.length) return null;
-  const full = meters.filter((m) => !m.unlimited && (m.pct || 0) >= 100);
+  const isFull = (m) => !m.unlimited && (m.pct || 0) >= 100;
+  // Monthly meters reset; total ones (products, documents, channels) never do,
+  // so they get their own sentence instead of a false "it resets on the 1st".
+  const full = meters.filter((m) => isFull(m) && !m.total);
+  const fullTotal = meters.filter((m) => isFull(m) && m.total);
   return <div>
     <div style={{ fontSize: 12.5, fontWeight: 600, margin: "0 0 10px" }}>
-      Usage this {period === "day" ? "day" : "month"}
+      Usage
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(220px,100%),1fr))", gap: "14px 22px" }}>
       {meters.map((m) => <PlanMeter key={m.key} m={m} />)}
@@ -44,6 +48,10 @@ export default function UsageMeters({ meters, period }) {
     {full.length > 0 && <div style={{ fontSize: 11.5, color: T.warn, marginTop: 12 }}>
       <i className="ti ti-alert-triangle" style={{ marginRight: 5 }} />
       Used up: {full.map((m) => m.label).join(", ")}. It resets {period === "day" ? "tomorrow" : "on the 1st"}, or upgrade for more.
+    </div>}
+    {fullTotal.length > 0 && <div style={{ fontSize: 11.5, color: T.warn, marginTop: 8 }}>
+      <i className="ti ti-alert-triangle" style={{ marginRight: 5 }} />
+      Used up: {fullTotal.map((m) => m.label).join(", ")}. This is your package's total and does not reset. Upgrade for more.
     </div>}
   </div>;
 }

@@ -94,7 +94,7 @@ export const PLANS = {
     features: [
       "2,000 bot replies / month",
       "2 channels + website widget",
-      "500 products added / month",
+      "500 products in total",
       "100 AI Assistant questions / month",
       "Every feature — nothing is held back",
     ],
@@ -116,7 +116,7 @@ export const PLANS = {
     features: [
       "5,500 bot replies / month",
       "All 3 channels + website widget",
-      "1,000 products added / month",
+      "1,000 products in total",
       "400 AI Assistant questions / month",
       "Every feature — nothing is held back",
     ],
@@ -138,7 +138,7 @@ export const PLANS = {
     features: [
       "12,000 bot replies / month",
       "All 3 channels + website widget",
-      "2,500 products added / month",
+      "2,500 products in total",
       "800 AI Assistant questions / month",
       "Priority support",
       "Need more? We set your limits to fit",
@@ -162,7 +162,7 @@ export const PLANS = {
     features: [
       "2,000 bot replies / month",
       "2 channels + website widget",
-      "20 knowledge documents added / month",
+      "20 knowledge documents in total",
       "100 AI Assistant questions / month",
       "Every feature, Google Calendar booking included",
     ],
@@ -184,7 +184,7 @@ export const PLANS = {
     features: [
       "5,500 bot replies / month",
       "All 3 channels + website widget",
-      "60 knowledge documents added / month",
+      "60 knowledge documents in total",
       "400 AI Assistant questions / month",
       "Every feature, Google Calendar booking included",
     ],
@@ -206,7 +206,7 @@ export const PLANS = {
     features: [
       "12,000 bot replies / month",
       "All 3 channels + website widget",
-      "150 knowledge documents added / month",
+      "150 knowledge documents in total",
       "800 AI Assistant questions / month",
       "Priority support",
       "Need more? We set your limits to fit",

@@ -1206,7 +1206,7 @@ export const DOCS = {
       { biz: "ecommerce", table: { head: ["For shops", "Shop Basic", "Shop Pro", "Shop Enterprise"], rows: [
         ["Price / month (launch price to 31 Dec 2026)", "৳2,699", "৳5,999", "৳11,999"],
         ["On your own AI key / month", "৳1,999", "৳4,499", "৳8,999"],
-        ["Products added / month", "500", "1,000", "2,500"],
+        ["Products you can add (total, never resets)", "500", "1,000", "2,500"],
         ["Products from a website link / month", "10", "40", "100"],
         ["Photo product matching", "Yes", "Yes", "Yes"],
         ["Add products from photos", "Yes", "Yes", "Yes"],
@@ -1215,7 +1215,7 @@ export const DOCS = {
       { biz: "agency", table: { head: ["For services", "Service Basic", "Service Pro", "Service Enterprise"], rows: [
         ["Price / month (launch price to 31 Dec 2026)", "৳2,299", "৳4,999", "৳9,999"],
         ["On your own AI key / month", "৳1,699", "৳3,499", "৳7,499"],
-        ["Knowledge documents added / month", "20", "60", "150"],
+        ["Knowledge documents you can add (total, never resets)", "20", "60", "150"],
         ["Google Calendar booking", "Yes", "Yes", "Yes"],
         ["Comment automation", "Yes", "Yes", "Yes"],
       ] } },
@@ -1223,7 +1223,7 @@ export const DOCS = {
       { h: "When you reach a limit",
         p: [
           "You cannot run out of features — you already have all of them. What you can run out of is room: replies for the month, products or documents added, AI Assistant questions, website imports, broadcasts.",
-          "Products and documents are counted as you **add** them. Each one added uses one of the month's number, and deleting it does not give it back — every add is read and indexed by the AI, so it has already been paid for. Your catalogue can never hold more than the package number either.",
+          "Products and documents are counted as you **add** them, as a **total for as long as you use the package** — the number does not start again each month. Each one added uses one, and deleting it does not give it back: every add is read and indexed by the AI, so it has already been paid for. Need more room? Move up a package, and the new, bigger total counts what you have already added.",
           "**Billing** shows every meter under your package — how much is used and how much is left — and so does **Profile**.",
           "When that happens the dashboard says which limit and what it is, and nothing is deleted. Out of replies, the bot stops answering new customers until the month turns or you move up; your inbox keeps working and you can answer by hand. Out of product slots, the ones you have keep selling and the next one is refused.",
           "The tables above are the real numbers — the same ones the bot and the dashboard enforce, read from your package as the admin panel has it, not from a page written once.",

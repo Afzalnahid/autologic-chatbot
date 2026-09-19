@@ -135,11 +135,11 @@ export const PLAN_META={
 // replaces this the moment it arrives and is filtered by the real type.
 export const PLAN_LIST=[
   {id:"shop_basic",biz:"ecommerce",name:"Shop Basic",monthly:2699,yearly:26990,byok_monthly:1999,byok_yearly:19990,tagline:"One or two pages, your catalogue answering all day",
-   features:["2,000 bot replies / month","2 channels + website widget","500 products added / month"]},
+   features:["2,000 bot replies / month","2 channels + website widget","500 products in total"]},
   {id:"shop_pro",biz:"ecommerce",name:"Shop Pro",monthly:5999,yearly:59990,byok_monthly:4499,byok_yearly:44990,highlight:true,tagline:"Every channel, a full catalogue",
-   features:["5,500 bot replies / month","All 3 channels + website widget","1,000 products added / month"]},
+   features:["5,500 bot replies / month","All 3 channels + website widget","1,000 products in total"]},
   {id:"shop_enterprise",biz:"ecommerce",name:"Shop Enterprise",monthly:11999,yearly:119990,byok_monthly:8999,byok_yearly:89990,tagline:"The most of everything, and room to fit your shop",
-   features:["12,000 bot replies / month","All 3 channels + website widget","2,500 products added / month"]},
+   features:["12,000 bot replies / month","All 3 channels + website widget","2,500 products in total"]},
 ];
 
 export const taka=n=>"\u09F3"+Number(n||0).toLocaleString("en-IN");

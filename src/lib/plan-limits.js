@@ -175,18 +175,20 @@ export async function messageAllowance(client) {
 // them to the billing page for nothing.
 const COUNT_FAILED = "We could not check your package limit just now. Please try again in a moment.";
 
-// How many products this account may still add — counted as ADDS this month
-// and as what is in the catalogue (see allowance.js for the rule and why).
+// How many products this account may still add — counted as ADDS in total
+// (never reset) and as what is in the catalogue (allowance.js has the rule).
 export async function checkProductQuota(client, adding = 1) {
   return checkAddQuota(client, adding, { kind: "product", table: "products", max: "maxProducts", noun: "products" });
 }
 
-// Adds this window from allowance_events (written by a database trigger on every
-// insert, whichever route made it), plus the current catalogue size.
-export async function addsThisWindow(client, kind) {
+// Every add this account has ever made, from allowance_events (written by a
+// database trigger on every insert, whichever route made it). No date filter:
+// the product and document allowances are a TOTAL for as long as the account
+// uses its package, not a monthly one (owner, 2026-09-20).
+export async function addsTotal(client, kind) {
   const { count, error } = await supabase.from("allowance_events")
     .select("id", { count: "exact", head: true })
-    .eq("client_id", client.id).eq("kind", kind).gte("created_at", quotaWindowStart(client));
+    .eq("client_id", client.id).eq("kind", kind);
   return error ? null : (count || 0);
 }
 
@@ -195,7 +197,7 @@ async function checkAddQuota(client, adding, { kind, table, max: maxKey, noun })
   const max = limits[maxKey];
   if (max === null || max === undefined) return { ok: true, limits };
   const [added, storedQ] = await Promise.all([
-    addsThisWindow(client, kind),
+    addsTotal(client, kind),
     supabase.from(table).select("id", { count: "exact", head: true }).eq("client_id", client.id),
   ]);
   // A failed count used to read as zero, which passes every limit. A quota that

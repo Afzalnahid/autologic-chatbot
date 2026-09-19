@@ -18,11 +18,11 @@ ok("room left → allowed", addVerdict({ max: 500, added: 10, stored: 10 }).ok);
 ok("the last one fits exactly", addVerdict({ max: 500, added: 499, stored: 499 }).ok);
 ok("one past the limit is refused", !addVerdict({ max: 500, added: 500, stored: 400 }).ok);
 
-// Delete-and-re-add: catalogue has room, but this month's adds are spent.
+// Delete-and-re-add: catalogue has room, but the package's total adds are spent.
 const churn = addVerdict({ max: 500, added: 500, stored: 3 });
 ok("deleting does not give an add back", !churn.ok && churn.reason === "added", churn);
 
-// New month: adds reset, but a full catalogue still refuses.
+// A full catalogue refuses even with adds left (e.g. products from before adds were counted).
 const full = addVerdict({ max: 500, added: 0, stored: 500 });
 ok("a full catalogue refuses even with adds left", !full.ok && full.reason === "stored", full);
 
@@ -37,7 +37,8 @@ ok("text limits are compared as numbers", addVerdict({ max: "500", added: "499",
 // The sentences.
 const m1 = addRefusal(churn, { planName: "Basic", noun: "products" });
 ok("the added refusal says deleting does not give it back", /Deleting does not give an add back/.test(m1), m1);
-ok("and names the number", /500 products a month/.test(m1), m1);
+ok("and names the number as a total", /500 products in total/.test(m1), m1);
+ok("and never promises a monthly reset", !/a month|resets on the 1st/.test(m1) && /does not reset each month/.test(m1), m1);
 const m2 = addRefusal(full, { planName: "Basic", noun: "products" });
 ok("the stored refusal tells them to remove some", /Remove some/.test(m2), m2);
 const m3 = addRefusal(churn, { planName: "Free Trial", noun: "knowledge documents", trial: true });
