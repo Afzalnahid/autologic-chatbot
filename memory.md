@@ -850,8 +850,18 @@ again?"
     62/62 suites. STILL NOT BUILT from the decks: reply-suggestion chips,
     AI summary card (AI cost, owner's call), "from your catalogue" caption
     (no stored source), saved answers ("/"), Export, Closed view (none of
-    these exist in the maroon deck), the phone bottom tab bar (handoff
-    Part 2 item 4). The sidebar's light tint is a 5% gold mix over --rail
+    these exist in the maroon deck). PHONE BOTTOM BAR BUILT next (owner:
+    "in the mobile app and mobile views the sidebar options should be in
+    the footer"): Shell.js renders Overview · Inbox · Orders/Bookings ·
+    Analytics · More (opens the drawer) on isMobile && !fullBleed, publishes
+    --bottom-bar (58px) so Inventory's bulk bar and Settings' save bar sit
+    above it; the inbox list measures against .ui-scroll (the body div).
+    The owner also has a 12-PAGE deck (desktop, tablet, Android, iOS, Mac,
+    every view) but every copy that reached this PC was a 0-byte file
+    (WhatsApp Desktop download never completed: Downloads\ and
+    Downloads\Personal Info\, 04:13 and 05:08) — ask for it again by
+    another route before building the remaining views.
+    The sidebar's light tint is a 5% gold mix over --rail
     (tokens only). The parse helper: next/dist/compiled/babel/bundle.js →
     .parser() (require.resolve from the project root).
   - PART 3 BUILT (2026-09-20, owner: "skip the AI features, do the other things").
