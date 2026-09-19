@@ -856,11 +856,28 @@ again?"
     Analytics · More (opens the drawer) on isMobile && !fullBleed, publishes
     --bottom-bar (58px) so Inventory's bulk bar and Settings' save bar sit
     above it; the inbox list measures against .ui-scroll (the body div).
-    The owner also has a 12-PAGE deck (desktop, tablet, Android, iOS, Mac,
-    every view) but every copy that reached this PC was a 0-byte file
-    (WhatsApp Desktop download never completed: Downloads\ and
-    Downloads\Personal Info\, 04:13 and 05:08) — ask for it again by
-    another route before building the remaining views.
+    THE FINAL DECK then arrived (Downloads\"TellMore A Premium UI
+    Directions.pdf", 3.8 MB, 10 pages: the Overview on desktop, Mac,
+    tablet, iPhone, Android × light/dark; earlier copies were 0-byte
+    WhatsApp downloads). Built from it: c55a49c the frame — flush grouped
+    sidebar (GROUPS Workspace/Grow/Train/Account in dashboard-client.js,
+    NAV derived; white card on the active tab, grey counts, "Replies this
+    month · 84%" meter, small icon footer), tablet icon rail at 768–1099px
+    (Shell measures window width), phone header = "Today"/tab name + date
+    + magnifier + bell (no hamburger; More opens the drawer), desktop
+    header eyebrow "date · N chats need you" (unread count) + live pill
+    moved from Overview + search ≥1280 + bell + Train your bot · the
+    Overview commit — today's four cards (conversations today vs
+    yesterday from the loaded chats; bot share from analytics; orders
+    today and revenue today from the orders list, cancelled/returned
+    excluded; agency: bookings today + meetings this week), 7-day
+    sparkline hidden under 262px via @container, paired bars with "N
+    total · P% by AI", Needs you rows with reason dot + Open button,
+    Recent orders table (code · name · amount · status · "2m"), Channels
+    rows with chats today per page_id. Every grid track minmax(0,1fr)
+    (a "1fr" track let a nowrap label widen the page past 390px — the
+    scratchpad's find-overflow.mjs finds such elements). Manual overview
+    page rewritten EN+BN, shots retaken.
     The sidebar's light tint is a 5% gold mix over --rail
     (tokens only). The parse helper: next/dist/compiled/babel/bundle.js →
     .parser() (require.resolve from the project root).
