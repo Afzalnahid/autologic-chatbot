@@ -145,7 +145,8 @@ function ShellScene({ inner }) {
     me={me} nav={DASH_NAV} PAGES={DASH_PAGES} ICONS={DASH_ICONS}
     page={page} setPage={setPage} HOME="overview" navLabel={navLabel} t={t} isAgency={false} activeCount={3} pendingOrders={1}
     onLogout={noop} load={noop} loading={false} mode="light" toggleTheme={noop} convos={PROPS.convos} feed={[]}
-    goTo={(p) => { if (TABS[p]) setPage(p); }}>
+    goTo={(p) => { if (TABS[p]) setPage(p); }} orders={PROPS.orders} products={PROPS.products}
+    onFind={(kind) => setPage(kind === "customer" ? "conversations" : kind === "order" ? "orders" : "inventory")}>
     <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "12px 10px" : 20, minHeight: 0, minWidth: 0 }}>
       <div key={page} className="ui-page">{render()}</div>
     </div>

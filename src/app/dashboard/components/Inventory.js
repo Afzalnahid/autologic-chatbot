@@ -122,6 +122,8 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
     if (!intent?.at) return;
     if (intent.importer) { setPrefill(intent.prefill || null); setImporter(intent.importer); }
     if (intent.add) setEditor({ mode: "add" });
+    // The header's search box sent the owner here with what they typed.
+    if (intent.search != null) setSearch(String(intent.search));
     // Consume it. The intent is a ONE-SHOT request from the assistant; the page
     // remounts on every tab switch (key={page} in the shell), so an intent left
     // set would re-open its importer each time the owner came back to Inventory —

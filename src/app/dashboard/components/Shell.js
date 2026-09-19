@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { T, ThemeToggle, Theme, Motion } from "./ui.js";
 import { BotMark } from "@/lib/brand.js";
 import NotificationsBell from "./NotificationsBell.js";
+import GlobalSearch from "./GlobalSearch.js";
 import { LangToggle, useLang } from "./i18n.js";
 import { api } from "./session.js";
 
@@ -75,8 +76,11 @@ function PlanMeter({ me, t, onClick }) {
 
 export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed, me, nav, PAGES, ICONS,
   page, setPage, HOME, navLabel, t, isAgency, activeCount, pendingOrders, onLogout, load, loading, mode, toggleTheme,
-  convos, feed, goTo, children }) {
+  convos, feed, goTo, orders = [], products = [], onFind, children }) {
   const lang = useLang();
+  // On a phone the search box lives behind a magnifier button, in a row of
+  // its own under the header, so the title keeps its room.
+  const [searchOpen, setSearchOpen] = useState(false);
   const hour = new Date().getHours();
   const greet = hour < 12 ? t("ov.morning") : hour < 17 ? t("ov.afternoon") : t("ov.evening");
   const name = me?.client?.business_name || "";
@@ -195,6 +199,9 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, flexShrink: 0 }}>
+          {!isMobile && <GlobalSearch convos={convos} orders={orders} products={products} isAgency={isAgency} onGo={onFind} t={t} style={{ width: 280 }} />}
+          {isMobile && <button onClick={() => setSearchOpen((v) => !v)} className="pbtn" aria-label={t("shell.searchAria")} aria-expanded={searchOpen}
+            style={{ width: 38, height: 38, borderRadius: 10 }}><i className={`ti ti-${searchOpen ? "x" : "search"}`} /></button>}
           <NotificationsBell convos={convos} feed={feed} isMobile={isMobile} onNavigate={goTo} />
           <button onClick={() => setPage("settings")} className="ui-btn shell-primary" title={t("shell.train")} aria-label={t("shell.train")}
             style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", cursor: "pointer",
@@ -203,6 +210,9 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
             <i className="ti ti-wand" style={{ fontSize: 17 }} />{!isMobile && t("shell.train")}
           </button>
         </div>
+      </div>}
+      {!fullBleed && isMobile && searchOpen && <div style={{ padding: "10px 10px 0", flexShrink: 0 }}>
+        <GlobalSearch convos={convos} orders={orders} products={products} isAgency={isAgency} onGo={onFind} t={t} autoFocus onClose={() => setSearchOpen(false)} />
       </div>}
       {children}
     </div>
