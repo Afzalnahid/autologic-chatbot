@@ -2,12 +2,12 @@
   "appId": "com.tellmoreai.app",
   "appName": "TellMore AI",
   "webDir": "www",
-  "backgroundColor": "#EEF0F5",
+  "backgroundColor": "#F7F5F7",
   "server": {
     "url": "https://www.tellmoreai.com/dashboard",
     "cleartext": false
   },
   "android": {
-    "backgroundColor": "#EEF0F5"
+    "backgroundColor": "#F7F5F7"
   }
 }
