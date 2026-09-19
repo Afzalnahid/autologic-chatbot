@@ -13,7 +13,7 @@ import { chromium } from "playwright-core";
 import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
-import { spawn, execFileSync } from "node:child_process";
+import { spawn, spawnSync, execFileSync } from "node:child_process";
 import { bed, sfxTrack, wav } from "./audio-gen.mjs";
 
 const HERE = path.resolve(".");
@@ -85,8 +85,9 @@ parts.push(`[bedd]volume=0.55[bedv]`);
 // narration alone, then apply one fixed gain so the voice sits at -16 LUFS,
 // with a true-peak limiter as the only dynamic stage.
 const narOnly = parts.slice(0, parts.length - 3).concat([`[nar]ebur128=peak=true[out]`]);
-const meas = execFileSync("ffmpeg", ["-y", ...inputs, "-filter_complex", narOnly.join(";"), "-map", "[out]", "-f", "null", "-"], { stdio: ["ignore", "ignore", "pipe"] }).toString();
-const lufs = parseFloat((meas.match(/I:\s+(-?[\d.]+) LUFS/) || [])[1]);
+const meas = spawnSync("ffmpeg", ["-y", ...inputs, "-filter_complex", narOnly.join(";"), "-map", "[out]", "-f", "null", "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).stderr || "";
+const lufsAll = [...meas.matchAll(/I:\s+(-?[\d.]+) LUFS/g)];   // the last one is the Summary
+const lufs = lufsAll.length ? parseFloat(lufsAll[lufsAll.length - 1][1]) : NaN;
 const gainDb = Number.isFinite(lufs) ? Math.max(-12, Math.min(20, -16 - lufs)) : 0;
 console.log(`narration measured ${lufs} LUFS → gain ${gainDb.toFixed(1)} dB`);
 parts.push(`[narA][bedv][1:a]amix=inputs=3:normalize=0,volume=${gainDb.toFixed(2)}dB,alimiter=limit=0.85:attack=5:release=60,atrim=start=${from}:end=${total},asetpts=PTS-STARTPTS[out]`);
