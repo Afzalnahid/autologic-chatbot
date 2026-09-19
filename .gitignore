@@ -24,3 +24,4 @@ marketing/explainer-video/*-poster.jpg
 marketing/explainer-video/timeline-*.json
 marketing/explainer-video/package-lock.json
 marketing/explainer-video/shots/
+marketing/explainer-video/*-preview-*.mp4
