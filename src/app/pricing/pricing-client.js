@@ -131,7 +131,7 @@ export default function PricingClient() {
   }, []);
 
   return (
-    <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "Geist, 'Inter Fallback', system-ui, sans-serif" }}>
       <style dangerouslySetInnerHTML={{__html:THEME_CSS}}/>
       <nav style={{ borderBottom: `1px solid ${T.border}` }}>
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px" }}>

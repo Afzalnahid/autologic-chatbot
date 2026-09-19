@@ -48,9 +48,7 @@ const CSS = `
     size-adjust: 82%; ascent-override: 108.5%; descent-override: 26.8%; line-gap-override: 0% }
   @font-face { font-family: "Inter Fallback"; src: local("Arial"), local("Helvetica"), local("Liberation Sans");
     size-adjust: 100.6%; ascent-override: 96.4%; descent-override: 23.9%; line-gap-override: 0% }
-  @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
-    size-adjust: 77%; ascent-override: 127%; descent-override: 34%; line-gap-override: 0% }
-  .fr { font-family: 'Fraunces', 'Fraunces Fallback', Georgia, serif; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: normal; hyphens: none }
+  .fr { font-family: Geist, 'Inter Fallback', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; overflow-wrap: normal; hyphens: none }
   .bn .fr { font-family: 'Anek Bangla', sans-serif; font-weight: 700 }
   /* Bangla headings need leading that Latin ones do not. Painted to a canvas
      and measured pixel by pixel, Anek Bangla's actual ink runs 1.33em from the
@@ -209,7 +207,7 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
 
   return (
     <div className={bn ? "bn" : ""} style={{ background: P.paper, minHeight: "100vh", color: P.ink,
-      fontFamily: bn ? "'Anek Bangla', sans-serif" : "Inter, 'Inter Fallback', system-ui, sans-serif" }}>
+      fontFamily: bn ? "'Anek Bangla', sans-serif" : "Geist, 'Inter Fallback', system-ui, sans-serif" }}>
       <PublicFonts />
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 

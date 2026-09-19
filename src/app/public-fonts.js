@@ -1,4 +1,5 @@
-// The faces the public pages are set in.
+// The faces the public pages are set in: Geist, the same face as the app
+// (design handoff, 2026-09-20), Plex Mono for the small labels, Anek Bangla.
 //
 // They used to be pulled by an @import at the top of each page's inline CSS.
 // A browser cannot see an @import until the stylesheet holding it has arrived
@@ -11,7 +12,7 @@ export default function PublicFonts() {
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&family=Anek+Bangla:wght@400;600;700&display=swap" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Geist:wght@400;500;600;700;800&family=Anek+Bangla:wght@400;600;700&display=swap" />
     </>
   );
 }

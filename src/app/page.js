@@ -224,7 +224,7 @@ export default async function Home({ searchParams }) {
     // own — a different typeface from the words underneath it.
     <div className={lang === "bn" ? "bn" : ""}
       style={{ background: P.paper, minHeight: "100vh", color: P.ink,
-      fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Inter, 'Inter Fallback', system-ui, sans-serif" }}>
+      fontFamily: lang === "bn" ? "'Anek Bangla', sans-serif" : "Geist, 'Inter Fallback', system-ui, sans-serif" }}>
       {/* What lets Google print "TellMore AI" above a result instead of the bare
           domain. It is data, not code — nothing runs it — so unlike the theme
           boot it works fine sitting here in the page. It still needs
@@ -275,10 +275,8 @@ export default async function Home({ searchParams }) {
     size-adjust: 82%; ascent-override: 108.5%; descent-override: 26.8%; line-gap-override: 0% }
   @font-face { font-family: "Inter Fallback"; src: local("Arial"), local("Helvetica"), local("Liberation Sans");
     size-adjust: 100.6%; ascent-override: 96.4%; descent-override: 23.9%; line-gap-override: 0% }
-  @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
-    size-adjust: 77%; ascent-override: 127%; descent-override: 34%; line-gap-override: 0% }
   /* Headings: a heavy sans, as in the owner's Figma layout (2026-09-19). */
-  .fr { font-family: Inter, 'Inter Fallback', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; overflow-wrap: normal; hyphens: none }
+  .fr { font-family: Geist, 'Inter Fallback', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; overflow-wrap: normal; hyphens: none }
         .bn .fr { font-family: 'Anek Bangla', sans-serif; font-weight: 700 }
         /* Bangla headings need leading Latin ones do not. Anek Bangla's ink
            runs 1.33em from the top of a stacked conjunct to the bottom of a

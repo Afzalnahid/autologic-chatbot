@@ -15,7 +15,7 @@ import { COMPANY, COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 // company's website.
 //
 // This is the same furniture the landing page and the manual already use: the
-// same palette variables, the same Fraunces headings, the same nav buttons, the
+// same palette variables, the same Geist headings, the same nav buttons, the
 // same footer. Nothing new is invented here — where a rule exists in
 // docs/shell.js or page.js, it is the same rule.
 //
@@ -50,9 +50,9 @@ const CSS = `
     size-adjust: 82%; ascent-override: 108.5%; descent-override: 26.8%; line-gap-override: 0% }
   @font-face { font-family: "Inter Fallback"; src: local("Arial"), local("Helvetica"), local("Liberation Sans");
     size-adjust: 100.6%; ascent-override: 96.4%; descent-override: 23.9%; line-gap-override: 0% }
-  @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
-    size-adjust: 77%; ascent-override: 127%; descent-override: 34%; line-gap-override: 0% }
-  .fr { font-family: 'Fraunces', 'Fraunces Fallback', Georgia, serif; font-weight: 700; letter-spacing: -0.02em;
+  /* Headings: the same heavy sans as the home page and the app (2026-09-20);
+     the serif that stood here is gone from every public page. */
+  .fr { font-family: Geist, 'Inter Fallback', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em;
     overflow-wrap: normal; hyphens: none }
   .lbl { font-family: 'IBM Plex Mono', 'Plex Mono Fallback', ui-monospace, monospace; letter-spacing: .09em;
     text-transform: uppercase }
@@ -145,7 +145,7 @@ export function InfoCard({ icon, label, children, note }) {
 export default function SiteShell({ eyebrow, title, lead, updated, children }) {
   return (
     <div style={{ background: P.paper, minHeight: "100vh", color: P.ink,
-      fontFamily: "Inter, 'Inter Fallback', system-ui, sans-serif" }}>
+      fontFamily: "Geist, 'Inter Fallback', system-ui, sans-serif" }}>
       <PublicFonts />
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
