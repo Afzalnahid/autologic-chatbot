@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Motion, Theme } from "../dashboard/components/ui.js";
+import { Motion, Theme, useIsMobile } from "../dashboard/components/ui.js";
+import { useT } from "../dashboard/components/i18n.js";
+import Shell from "../dashboard/components/Shell.js";
 import Analytics from "../dashboard/components/Analytics.js";
 import Overview from "../dashboard/components/Overview.js";
 import Conversations from "../dashboard/components/Conversations.js";
@@ -22,7 +24,7 @@ import { AdminApp } from "../admin/admin-client.js";
 import LearnMore from "../dashboard/components/LearnMore.js";
 // The dashboard's own tab keys, so the docs-links scene below lists exactly
 // what the sidebar lists rather than a copy that can fall behind it.
-import { PAGES as DASH_PAGES } from "../dashboard-client.js";
+import { PAGES as DASH_PAGES, GROUPS as DASH_GROUPS, ICONS as DASH_ICONS } from "../dashboard-client.js";
 import { SAMPLE, PROPS, ADMIN } from "./sample.js";
 
 // The console takes its data as a prop and its actions as callbacks, so it
@@ -126,7 +128,32 @@ const TABS = {
   </div>,
 };
 
-export const TAB_IDS = Object.keys(TABS);
+// The frame itself — sidebar and top bar — around one of the tabs above, with
+// the same sample data. "shell" wraps the home tab; "shell-<tab>" wraps that
+// tab. The real frame is the one dashboard-client.js renders (Shell.js); only
+// the state it is handed is made up here.
+function ShellScene({ inner }) {
+  const isMobile = useIsMobile();
+  const t = useT();
+  const [page, setPage] = useState(inner);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  useEffect(() => { setSidebarOpen(!isMobile); }, [isMobile]);
+  const me = { client: { id: "demo", business_name: "Nokshi Threads", business_type: "ecommerce", plan: "shop_growth" }, usage: { today: 62, limit: null }, active: true };
+  const navLabel = (i) => t("nav." + (DASH_PAGES[i] || ""));
+  const render = TABS[page] || TABS.overview;
+  return <Shell isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} fullBleed={false}
+    me={me} settings={PROPS.settings} groups={DASH_GROUPS} PAGES={DASH_PAGES} ICONS={DASH_ICONS}
+    page={page} setPage={setPage} HOME="overview" navLabel={navLabel} t={t} isAgency={false} activeCount={3}
+    onLogout={noop} load={noop} loading={false} mode="light" toggleTheme={noop} convos={PROPS.convos} feed={[]}
+    goTo={(p) => { if (TABS[p]) setPage(p); }} botLive initials="NT" products={PROPS.products} bt="ecommerce">
+    <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "12px 10px" : 20, minHeight: 0, minWidth: 0 }}>
+      <div key={page} className="ui-page">{render()}</div>
+    </div>
+  </Shell>;
+}
+const SHELL_IDS = ["shell", "shell-conversations", "shell-orders", "shell-inventory"];
+
+export const TAB_IDS = [...Object.keys(TABS), ...SHELL_IDS];
 
 // Longest match wins, so "/api/channels/website" is not swallowed by
 // "/api/channels" whichever order the object happens to be written in.
@@ -187,6 +214,11 @@ export default function Studio({ tab, theme }) {
   }, []);
 
   const render = TABS[tab];
+
+  // The frame draws its own page: full height, no studio margin.
+  if (SHELL_IDS.includes(tab)) {
+    return <><Theme /><Motion />{ready && <ShellScene inner={tab === "shell" ? "overview" : tab.slice("shell-".length)} />}</>;
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
