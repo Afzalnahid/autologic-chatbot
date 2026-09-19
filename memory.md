@@ -812,6 +812,17 @@ again?"
     Both films rendered and verified (EN 426.2 s -14.9 LUFS, BN 460.0 s -15.2
     LUFS; 0 black frames, 0 silences). 1080p masters are 51/54 MB — over the
     30 MB phone-upload limit, so 540p previews were sent; masters stay local.
+  - OBSIDIAN THEME + INBOX PANEL (2026-09-20, 192e718, Vercel READY). Written
+    by a Claude Design session straight into the working copy, left
+    uncommitted; the owner asked to push it. Reviewed (API ?sender_id= filters
+    at the DB inside client_id), 60/60, build compiles, /shots checked light,
+    dark, 390 px. Handoff doc + patch + PNGs are in "Claude outputs/"
+    (untracked, NOT committed). Handoff Part 2 (reply chips, AI summary card —
+    both cost AI per chat, ask the owner first — reply-time captions, phone
+    layout with bottom tabs, KPI sparklines, grouped sidebar) waits for the
+    owner's go. Local `next build` fails only at /apple-icon prerender
+    (@vercel/og fileURLToPath on Windows) — environment, not code; it also
+    stops the dev server (shared .next), restart with preview_start.
   - WHATSAPP REGISTER FIX (2026-09-20, bf9b3d4). /register errors were ignored
     (false "Connected") and the PIN was random + never stored. Now PIN =
     pinFor(phoneId, OAUTH_STATE_SECRET||FB_APP_SECRET||…) (lib/wa-register.js),
