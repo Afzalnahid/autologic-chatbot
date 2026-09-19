@@ -795,6 +795,21 @@ again?"
     Still treat the repo as public for secrets. Move the job into vercel.json
     after the Vercel Pro upgrade. First scheduled GitHub run NOT yet confirmed
     (no gh CLI here) — check followup.last_run_at on Autologic advances.
+  - MAROON THEME + FIGMA HOME PAGE (2026-09-19, 8f72b0c, 706d216, e1c0b26).
+    Owner chose the colour theme of their Figma landing design + its home-page
+    layout, with existing content kept and the trial still 3 days. Brand is now
+    maroon #7B1C3E (deep #5C1430), soft white #F7F5F7, white cards, near-black
+    #121116; dark-mode accent lifted to #C04A72 (maroon unreadable as text on
+    dark). Changed in ui.js PALETTE, landing THEME_CSS, connect/FB/WA pages,
+    emails, manifest, widget.js, inbox bubbles, app splash (needs APK rebuild).
+    CLAUDE.md invariant updated. Home page rebuilt in the Figma structure with
+    REAL content only — the Figma's fake stats ("2,400+ stores", 34%, 4.9★,
+    $29, 14-day trial, Shopify "trusted by") deliberately NOT used. Headings on
+    the home page are heavy Inter now; /pricing, /solutions, /docs still use
+    the Fraunces serif (not asked; offer to match). Icon subset rebuilt
+    (scripts/make-icon-font.mjs) — it had silently lacked ti-sun (blank theme
+    button in dark mode on public pages). NOT yet done: /shots sample data still
+    shows the retired packages and no meters.
   - TWO PACKAGE SETS (2026-09-19, c158d6d + docs/sql/2026-09-19-two-package-
     sets.sql, APPLIED). Owner: always two business types → two package sets,
     each with its own BYOK price list; old packages cleared everywhere.
