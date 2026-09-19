@@ -820,10 +820,14 @@ again?"
     the OLD random PIN — if it is ever reconnected it will get the "turn the PIN
     off in WhatsApp Manager" message; that is expected. Coexistence acceptance
     (is_on_biz_app) is from Meta docs, not yet seen live.
-    STILL OPEN from the owner's WhatsApp list: (1) a "where does your number
-    live?" guide on the Connect WhatsApp page (normal WhatsApp → move to the
-    Business app → coexistence; other provider → turn PIN off, migrate);
-    (3) /api/wa/select bug (subscribes phoneId not WABA, never registers).
+    DONE same day: /api/wa/select now finishes via completeWhatsApp (WABA
+    subscription, register, verdict); the picker list is sealed with
+    encryptSecret + clientId (tokens no longer in the page); one found number
+    connects without a picker (019fd74). Connect WhatsApp page has a 4-way
+    "where does your number live?" guide, EN/BN by al-dash-lang (next commit).
+    OPEN: the login flow ("find my number") saves a long-lived USER token
+    (~60 days) — check with debug_token whether WA_LOGIN_CONFIG_ID returns a
+    non-expiring business token; if not, those channels stop after 60 days.
     Also: home page now shows the free-trial card + "Buy <plan>" (dc9ef5d).
   - PRODUCT/DOCUMENT ALLOWANCE IS A TOTAL (2026-09-20, 46183fe). Owner: "500
     products" = 500 adds for as long as the client uses the package, never a
