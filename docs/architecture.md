@@ -274,6 +274,17 @@ postMessage, and on a phone the opener tab was frozen/reloaded during a 20-minut
 signup, so nothing was ever saved. The popup's `POST /api/wa/finish` is kept
 for any page still open from before; it calls the same `completeWhatsApp()`.
 
+**Registering the number** (`lib/wa-register.js`, 2026-09-20). The two-step PIN
+sent to `/{phone}/register` is `pinFor(phoneId, secret)` — an HMAC of the phone
+id with the server secret — so the same number always gets the same PIN and a
+reconnect by us matches it; nothing is stored. (Before, a random PIN was set
+and lost, so a number we had registered could never be registered again.) A
+refused registration is judged by `registerVerdict`: Meta's PIN codes
+(133005/8/9) → "turn the PIN off in WhatsApp Manager"; 133006 → verify again;
+133016/133004 → wait; anything else is fine only if Meta lists the number as
+`platform_type: CLOUD_API` or `is_on_biz_app` (coexistence). Otherwise nothing is
+saved and the owner sees why — never "Connected" for a number that cannot send.
+
 **In the Android app** the WebView hands facebook.com to the phone's browser, so
 any Meta connect (Facebook, Instagram, WhatsApp) finishes THERE and no message
 reaches the app. Two things cover it: `/api/wa/embedded` detects the native
