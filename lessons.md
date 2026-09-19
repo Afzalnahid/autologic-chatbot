@@ -1459,3 +1459,15 @@ check, so a paused channel or an expired plan still spends money uncounted.
 Rule: cost a package from the list of every AI call site (grep getClientAI and
 the gemini imports), each at its full allowance, not from the one feature the
 package is named after.
+
+## 2026-09-19 — a popup that reports to its opener breaks on phones
+WhatsApp Embedded Signup ran in Meta's popup and handed the new account's ids
+back to our page by postMessage. It passed on a desktop. On the owner's phone
+the signup took 22 minutes; Chrome froze and reloaded our background tab, the
+ids were posted to nobody, Meta showed "Please close this tab", and nothing was
+saved — the Meta account existed but TellMore never connected it. Found only by
+reading the logs: the page had loaded twice and the finish route never ran.
+Rule: a flow that can take minutes on a phone must come back by REDIRECT to a
+server route that can finish from what the URL carries, never by messaging a
+page that has to stay alive in the background. And a signed state that expires
+must outlive the slowest real run of the flow, not a guess.

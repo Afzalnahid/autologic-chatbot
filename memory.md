@@ -812,6 +812,27 @@ again?"
     Both films rendered and verified (EN 426.2 s -14.9 LUFS, BN 460.0 s -15.2
     LUFS; 0 black frames, 0 silences). 1080p masters are 51/54 MB — over the
     30 MB phone-upload limit, so 540p previews were sent; masters stay local.
+  - WHATSAPP SIGNUP SAME-TAB (2026-09-19, d124ca5 refactor + c9b08fe). Owner
+    connected Nandi Realestate's WhatsApp on a PHONE: Meta created the WABA,
+    showed "Please close this tab", nothing connected. Logs: /api/wa/embedded
+    loaded twice (13:58, 14:20 UTC), /api/wa/finish never called, no channel row.
+    Cause: popup postMessage to an opener tab Chrome had frozen/reloaded. Fix:
+    button now goes to Meta's OAuth dialog with the ES config_id in the SAME tab,
+    redirect_uri=/api/wa/callback (already whitelisted); state = signState("es_"
+    + clientId), accepted 2 h. Callback exchanges code → debug_token
+    granular_scopes → WABA → phone_numbers → choosePhone → completeWhatsApp()
+    (lib/wa-connect.js) → connected page → dashboard. Tests t-wa-signup (18).
+    NOT VERIFIED END TO END: needs the owner to run one real signup (phone and
+    computer). Risks to watch: Meta may not run the ES wizard in redirect mode
+    exactly like the popup; granular_scopes might omit a WABA. Nandi's WABA
+    already exists in Meta — on retry, pick it rather than creating a new one.
+    FOUND, NOT FIXED: /api/wa/select subscribes `${phoneId}/subscribed_apps`
+    (should be the WABA) and never calls /register — the "find my number" and
+    manual-ID paths may save a number that cannot receive/send. Docs page also
+    claims OpenAI BYOK, which the code does not support (Google only).
+    WhatsApp cost: TellMore only sends free-form messages inside the 24-hour
+    window (no templates in code) → Meta charges nothing; the payment-method step
+    in Meta's window is optional ("Finish" without a card). Card test pending.
   - FOUR SHORT ADS (2026-09-19, 7646ba9). Owner: "I like this type of video,
     make 3–4 more in marketing style, 40 s–1 min". Same engine; a film is now
     films/<name>/script.json (words + on-screen text + timings all in the
