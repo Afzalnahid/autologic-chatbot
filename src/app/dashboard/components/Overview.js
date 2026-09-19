@@ -105,10 +105,9 @@ export default function Overview({ me, convos = [], orders = [], channels = [], 
     return () => { live = false; clearInterval(iv); };
   }, [isAgency]);
 
-  // ── greeting ─────────────────────────────────────────────────────────────
-  const hour = new Date().getHours();
-  const greet = hour < 12 ? t("ov.morning") : hour < 17 ? t("ov.afternoon") : t("ov.evening");
-  const name = me?.client?.business_name || "";
+  // The greeting and the date are the page header now (Shell.js), on every
+  // tab; this page opens with what the week looked like and whether the bot
+  // is live.
   const liveN = channels.filter((c) => c.status === "connected").length;
   const expiredN = channels.filter((c) => c.status === "expired").length;
 
@@ -150,12 +149,9 @@ export default function Overview({ me, convos = [], orders = [], channels = [], 
   const cols = isMobile ? "1fr" : "repeat(auto-fit, minmax(min(100%, 300px), 1fr))";
 
   return <div style={{ display: "grid", gap: 16 }}>
-    {/* greeting + live pill */}
+    {/* the week's lead line + live pill */}
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15 }}>{greet}{name ? `, ${name}` : ""}</div>
-        <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 3 }}>{new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })} · {t("ov.lead")}</div>
-      </div>
+      <div style={{ fontSize: 14, fontWeight: 600, minWidth: 0 }}>{t("ov.lead")}</div>
       <button onClick={() => onGo?.("channels")} className="ui-btn" title={t("nav.channels")}
         style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 13px", borderRadius: 999, border: `1px solid ${liveN ? "transparent" : T.border}`, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600,
           background: liveN ? T.liveBg : T.card, color: liveN ? T.live : T.textMuted }}>

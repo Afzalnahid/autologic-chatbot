@@ -37,17 +37,11 @@ import { runBack, useBackClose } from "./dashboard/components/back.js";
 // Exported so the screenshot studio can list exactly these tabs rather than
 // keeping a copy that falls behind.
 export const PAGES = ["overview","assistant","analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
-// Grouped and ordered the way the day runs: the assistant first, because
-// talking to it is now the shortest way to almost everything — then see how it
-// is going, handle people, reach out, the shop, and the plumbing.
-export const GROUPS = [
-  { title: "Assistant", pages: ["assistant"] },
-  // Overview leads: the home tab since 2026-09-20 (design handoff Part 3).
-  { title: "Overview",  pages: ["overview","analytics","conversations","comments"] },
-  { title: "Outreach",  pages: ["broadcast","channels"] },
-  { title: "Business",  pages: ["orders","inventory"] },
-  { title: "Account",   pages: ["settings","ai","billing","profile"] },
-];
+// The sidebar's order — one plain list, no group headings, the way the owner's
+// design deck draws it (2026-09-20): the home tab, then the day's work (the
+// assistant, people, orders, the catalogue), then reaching out, then how it is
+// going, then everything that tunes the bot and the account.
+export const NAV = ["overview","assistant","conversations","comments","orders","inventory","broadcast","channels","analytics","settings","ai","billing","profile"];
 export const ICONS = ["ti-layout-dashboard","ti-sparkles","ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user","ti-cpu"];
 // "Bot Training" is the settings page: everything on it teaches or tunes the
 // bot, and owners looked straight past a tab called "Settings" for exactly
@@ -877,8 +871,8 @@ export default function Dashboard() {
   if(stage==="connect-cal") return <><Theme/><Motion/><ConnectCalendar clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/></>;
 
   const activeCount=convoRead.count(convos);
-  const botLive=dashChannels.length>0;
-  const initials=(me?.client?.business_name||"A").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  // The Orders count on the sidebar: orders still waiting to be confirmed.
+  const pendingOrders=orders.filter(o=>o.status==="Pending").length;
 
   // 100dvh on every device, not only when isMobile says so. isMobile is a JS
   // media query that is false on the first paint, so a phone briefly got 100vh —
@@ -891,7 +885,7 @@ export default function Dashboard() {
   // menu button) so the sidebar is still reachable. Never on desktop.
   const fullBleed=isMobile&&((page==="conversations"&&chatOpen)||page==="assistant");
   const onLogout=async()=>{try{await unbindNativePush();}catch{} try{await getSb().auth.signOut({scope:"local"});}catch{} try{localStorage.removeItem("gv_app_signed_in");}catch{} setAuthToken(""); window.location.reload();};
-  return <Shell {...{isMobile,sidebarOpen,setSidebarOpen,fullBleed,me,settings,groups:GROUPS,PAGES,ICONS,page,setPage,HOME,navLabel,t,isAgency,activeCount,onLogout,load,loading,mode,toggleTheme,convos,feed,goTo,botLive,initials,products,bt}}>
+  return <Shell {...{isMobile,sidebarOpen,setSidebarOpen,fullBleed,me,nav:NAV,PAGES,ICONS,page,setPage,HOME,navLabel,t,isAgency,activeCount,pendingOrders,onLogout,load,loading,mode,toggleTheme,convos,feed,goTo}}>
       <div style={{flex:1,overflow:"auto",padding:fullBleed?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <div key={page} className="ui-page" style={fullBleed?{height:"100%",display:"flex",flexDirection:"column",minHeight:0}:undefined}>

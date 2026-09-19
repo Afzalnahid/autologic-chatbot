@@ -24,7 +24,7 @@ import { AdminApp } from "../admin/admin-client.js";
 import LearnMore from "../dashboard/components/LearnMore.js";
 // The dashboard's own tab keys, so the docs-links scene below lists exactly
 // what the sidebar lists rather than a copy that can fall behind it.
-import { PAGES as DASH_PAGES, GROUPS as DASH_GROUPS, ICONS as DASH_ICONS } from "../dashboard-client.js";
+import { PAGES as DASH_PAGES, NAV as DASH_NAV, ICONS as DASH_ICONS } from "../dashboard-client.js";
 import { SAMPLE, PROPS, ADMIN } from "./sample.js";
 
 // The console takes its data as a prop and its actions as callbacks, so it
@@ -142,10 +142,10 @@ function ShellScene({ inner }) {
   const navLabel = (i) => t("nav." + (DASH_PAGES[i] || ""));
   const render = TABS[page] || TABS.overview;
   return <Shell isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} fullBleed={false}
-    me={me} settings={PROPS.settings} groups={DASH_GROUPS} PAGES={DASH_PAGES} ICONS={DASH_ICONS}
-    page={page} setPage={setPage} HOME="overview" navLabel={navLabel} t={t} isAgency={false} activeCount={3}
+    me={me} nav={DASH_NAV} PAGES={DASH_PAGES} ICONS={DASH_ICONS}
+    page={page} setPage={setPage} HOME="overview" navLabel={navLabel} t={t} isAgency={false} activeCount={3} pendingOrders={1}
     onLogout={noop} load={noop} loading={false} mode="light" toggleTheme={noop} convos={PROPS.convos} feed={[]}
-    goTo={(p) => { if (TABS[p]) setPage(p); }} botLive initials="NT" products={PROPS.products} bt="ecommerce">
+    goTo={(p) => { if (TABS[p]) setPage(p); }}>
     <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "12px 10px" : 20, minHeight: 0, minWidth: 0 }}>
       <div key={page} className="ui-page">{render()}</div>
     </div>

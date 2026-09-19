@@ -16,7 +16,9 @@ const arr = (name) => {
   return JSON.parse(m[1]);
 };
 const PAGES = arr("PAGES"), ICONS = arr("ICONS"), LABELS = arr("LABELS");
-const groups = [...s.matchAll(/pages:\s*(\[[^\]]*\])/g)].flatMap((m) => JSON.parse(m[1]));
+// NAV is the sidebar's order — one flat list since the design deck of
+// 2026-09-20 (the grouped sidebar it replaced read the same way here).
+const groups = arr("NAV");
 
 let bad = 0;
 const say = (ok, msg) => { if (!ok) { bad++; console.log("FAIL " + msg); } };
@@ -32,9 +34,10 @@ say(LABELS[0] === "Overview", `first label is ${LABELS[0]}`);
 say(PAGES[1] === "assistant" && ICONS[1] === "ti-sparkles" && LABELS[1] === "AI Assistant", "the assistant is second, with its icon and label");
 say(new Set(PAGES).size === PAGES.length, "a page key is listed twice");
 
-// Every page must appear in exactly one sidebar group, or it has no way in.
-for (const p of PAGES) say(groups.filter((g) => g === p).length === 1, `${p} appears in ${groups.filter((g) => g === p).length} groups`);
-for (const g of groups) say(PAGES.includes(g), `group lists unknown page ${g}`);
+// Every page must appear exactly once in the sidebar, or it has no way in.
+for (const p of PAGES) say(groups.filter((g) => g === p).length === 1, `${p} appears ${groups.filter((g) => g === p).length} times in NAV`);
+for (const g of groups) say(PAGES.includes(g), `NAV lists unknown page ${g}`);
+say(groups[0] === "overview", `the sidebar starts with ${groups[0]}, expected overview`);
 
 // ── every tab's "Read docs" link ───────────────────────────────────────────
 // The AI Assistant tab shipped with a documentation page and no link to it,

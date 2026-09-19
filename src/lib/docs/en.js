@@ -364,6 +364,12 @@ export const DOCS = {
           "Every number is real and current. The week's figures are the same ones **Analytics** shows for 7 days; the lists are the same chats, orders and channels you find in their own tabs.",
         ] },
 
+      { h: "Around every tab",
+        p: [
+          "Every page opens the same way: the date, a greeting with your business name, the **bell** and one button, **Train your bot**, which opens Bot Training. On a phone the tab's name takes the greeting's place.",
+          "The menu on the left is one plain list. **Inbox** carries the number of unread chats and **Orders** the number still waiting to be confirmed. At the bottom, your package and how much of this month's bot replies it has used so far — tap it to see the full picture on Billing. Language, refresh and the light/dark switch sit just under it.",
+        ] },
+
       { shot: "overview", cap: "The week's four numbers, messages per day with the AI's share, the people who need you, the newest orders and every channel's state." },
 
       { h: "The four cards",
@@ -531,7 +537,7 @@ export const DOCS = {
     blocks: [
       { h: "The bell",
         p: [
-          "The bell in the top bar collects everything worth your attention, in three groups — the way Facebook arranges its own.",
+          "The bell at the top of every page collects everything worth your attention, in three groups — the way Facebook arranges its own.",
         ],
         table: { head: ["Group", "What lands there"],
           rows: [
