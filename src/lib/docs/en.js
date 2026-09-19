@@ -369,6 +369,7 @@ export const DOCS = {
           "Every page opens the same way: the date, a greeting with your business name, a **search box**, the **bell** and one button, **Train your bot**, which opens Bot Training. On a phone the tab's name takes the greeting's place and the search sits behind the magnifier.",
           "The search looks through your customers, orders and products at once, as you type. Pick a customer and their chat opens; an order opens in Orders; a product opens Inventory with that search already filled in. Arrow keys and Enter work too.",
           "The menu on the left is one plain list. **Inbox** carries the number of unread chats and **Orders** the number still waiting to be confirmed. At the bottom, your package and how much of this month's bot replies it has used so far — tap it to see the full picture on Billing. Language, refresh and the light/dark switch sit just under it.",
+          "On a phone, and in the app, the five you use most run along the **bottom of the screen**: Overview, Inbox, Orders (Bookings for an agency), Analytics and **More**, which opens the full menu. The bar steps aside while a chat is open so the message box has the bottom.",
         ] },
 
       { shot: "overview", cap: "The week's four numbers, messages per day with the AI's share, the people who need you, the newest orders and every channel's state." },

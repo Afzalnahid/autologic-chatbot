@@ -894,7 +894,9 @@ export default function Dashboard() {
     else if(kind==="product"){ setInvIntent({search:q,at:Date.now()}); setPage("inventory"); }
   };
   return <Shell {...{isMobile,sidebarOpen,setSidebarOpen,fullBleed,me,nav:NAV,PAGES,ICONS,page,setPage,HOME,navLabel,t,isAgency,activeCount,pendingOrders,onLogout,load,loading,mode,toggleTheme,convos,feed,goTo,orders,products,onFind}}>
-      <div style={{flex:1,overflow:"auto",padding:fullBleed?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
+      {/* "ui-scroll": the tab's scroll box, which a phone's inbox list measures
+          itself against so it ends where the bottom bar begins. */}
+      <div className="ui-scroll" style={{flex:1,overflow:"auto",padding:fullBleed?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
         {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
           <div key={page} className="ui-page" style={fullBleed?{height:"100%",display:"flex",flexDirection:"column",minHeight:0}:undefined}>
             {/* Not on Billing: that tab already says "Expired" and offers the

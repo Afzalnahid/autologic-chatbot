@@ -381,7 +381,7 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
         </div>}
 
     {/* Bulk action bar */}
-    {sel.size > 0 && <div style={{ position: "fixed", left: "50%", bottom: `calc(18px + env(safe-area-inset-bottom))`, transform: "translateX(-50%)", zIndex: 70, background: T.card, boxShadow: T.nmOut, border: `1px solid ${T.border}`, borderRadius: 16, padding: "8px 10px", display: "flex", alignItems: "center", gap: 6, maxWidth: "calc(100vw - 20px)", flexWrap: "wrap", justifyContent: "center" }} className="ui-page">
+    {sel.size > 0 && <div style={{ position: "fixed", left: "50%", bottom: `calc(18px + env(safe-area-inset-bottom) + var(--bottom-bar, 0px))`, transform: "translateX(-50%)", zIndex: 70, background: T.card, boxShadow: T.nmOut, border: `1px solid ${T.border}`, borderRadius: 16, padding: "8px 10px", display: "flex", alignItems: "center", gap: 6, maxWidth: "calc(100vw - 20px)", flexWrap: "wrap", justifyContent: "center" }} className="ui-page">
       <span style={{ fontSize: 12.5, fontWeight: 600, padding: "0 6px" }}>{sel.size} selected</span>
       <Btn small onClick={() => bulkStock("instock")} disabled={busyBulk}><i className="ti ti-check" style={{ marginRight: 5 }} />In stock</Btn>
       <Btn small onClick={() => bulkStock("outofstock")} disabled={busyBulk}><i className="ti ti-circle-x" style={{ marginRight: 5 }} />Out of stock</Btn>

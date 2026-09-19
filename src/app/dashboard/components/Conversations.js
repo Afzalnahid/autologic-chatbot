@@ -349,7 +349,11 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   // what sits above the list can change (the filter row appears, a banner shows).
   useEffect(()=>{
     if(!isMobile||hasSel){ setFitH(null); return; }
-    const measure=()=>{ const r=listRef.current?.getBoundingClientRect(); if(r) setFitH(Math.max(280,Math.round(window.innerHeight-r.top-8))); };
+    // Fill to the bottom of the tab's scroll box ("ui-scroll" in the shell),
+    // not the window: a phone has a bar along the bottom of the screen.
+    const measure=()=>{ const el=listRef.current; if(!el) return; const r=el.getBoundingClientRect();
+      const sc=el.closest(".ui-scroll"); const bottom=sc?sc.getBoundingClientRect().bottom:window.innerHeight;
+      setFitH(Math.max(280,Math.round(bottom-r.top-8))); };
     measure();
     const t=setTimeout(measure,150);
     window.addEventListener("resize",measure);

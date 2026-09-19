@@ -102,8 +102,23 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
   };
   const go = (p) => { setPage(p); if (isMobile) setSidebarOpen(false); };
   const SIDE = 236;
+  // A phone gets the sidebar's most-used entries as a bar along the bottom
+  // (the owner's design, 2026-09-20): Overview, Inbox, Orders or Bookings,
+  // Analytics, and More, which opens the full menu. Not while a chat or the
+  // assistant fills the screen — the composer owns the bottom then. The
+  // bar's height is published as --bottom-bar so anything fixed to the
+  // bottom of the screen (a save bar, a bulk-action bar) can sit above it.
+  const showBar = isMobile && !fullBleed;
+  const BAR = 58;
+  const tabs = [
+    { p: "overview" },
+    { p: "conversations", badge: activeCount ? String(activeCount) : undefined },
+    { p: "orders", badge: !isAgency && pendingOrders ? String(pendingOrders) : undefined },
+    { p: "analytics" },
+    { more: true },
+  ];
 
-  return <div style={{ display: "flex", height: "100dvh", overflow: "hidden", background: T.bg }}>
+  return <div style={{ display: "flex", height: "100dvh", overflow: "hidden", background: T.bg, "--bottom-bar": showBar ? `${BAR}px` : "0px" }}>
     <Theme /><Motion />
     <style dangerouslySetInnerHTML={{ __html: `
       @media (hover: hover) and (pointer: fine) { .nav-item:not([aria-current]):hover { background: ${T.railHover}; color: ${T.text} } }
@@ -215,6 +230,25 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
         <GlobalSearch convos={convos} orders={orders} products={products} isAgency={isAgency} onGo={onFind} t={t} autoFocus onClose={() => setSearchOpen(false)} />
       </div>}
       {children}
+      {showBar && <nav aria-label="Main" style={{ flexShrink: 0, display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", background: T.card,
+        borderTop: `1px solid ${T.border}`, height: `calc(${BAR}px + env(safe-area-inset-bottom))`, paddingBottom: "env(safe-area-inset-bottom)", zIndex: 45 }}>
+        {tabs.map((tab) => {
+          const on = tab.more ? sidebarOpen : page === tab.p;
+          const label = tab.more ? t("nav.more") : navLabel(PAGES.indexOf(tab.p));
+          const icon = tab.more ? "ti-menu-2" : iconFor(tab.p);
+          return <button key={tab.p || "more"} type="button" onClick={() => tab.more ? setSidebarOpen(true) : go(tab.p)} aria-current={on && !tab.more ? "page" : undefined}
+            aria-label={label} className="tab-item"
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, minWidth: 0, height: BAR,
+              background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "0 2px", color: on ? T.gold : T.textMuted }}>
+            <span style={{ position: "relative", width: 40, height: 26, borderRadius: 13, background: on ? T.goldBg : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <i className={`ti ${icon}`} style={{ fontSize: 19 }} />
+              {tab.badge && <span style={{ position: "absolute", top: -4, right: -2, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 8, background: T.accGrad, color: T.onGold,
+                fontSize: 9.5, fontWeight: 700, display: "inline-flex", alignItems: "center", justifyContent: "center", border: `2px solid ${T.card}`, boxSizing: "content-box" }}>{tab.badge}</span>}
+            </span>
+            <span style={{ fontSize: 10.5, fontWeight: on ? 700 : 500, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+          </button>;
+        })}
+      </nav>}
     </div>
   </div>;
 }

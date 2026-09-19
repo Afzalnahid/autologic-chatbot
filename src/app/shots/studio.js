@@ -140,15 +140,21 @@ function ShellScene({ inner }) {
   useEffect(() => { setSidebarOpen(!isMobile); }, [isMobile]);
   const me = { client: { id: "demo", business_name: "Nokshi Threads", business_type: "ecommerce", plan: "shop_growth" }, usage: { today: 62, limit: null }, active: true };
   const navLabel = (i) => t("nav." + (DASH_PAGES[i] || ""));
-  const render = TABS[page] || TABS.overview;
-  return <Shell isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} fullBleed={false}
+  // A phone with a chat open fills the screen with it (no header, no bottom
+  // bar) — the same rule dashboard-client.js applies.
+  const [chatOpen, setChatOpen] = useState(false);
+  const fullBleed = isMobile && page === "conversations" && chatOpen;
+  const render = page === "conversations"
+    ? () => <Conversations convos={PROPS.convos} channels={PROPS.channels} products={PROPS.products} refresh={noop} onChatOpen={setChatOpen} />
+    : (TABS[page] || TABS.overview);
+  return <Shell isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} fullBleed={fullBleed}
     me={me} nav={DASH_NAV} PAGES={DASH_PAGES} ICONS={DASH_ICONS}
     page={page} setPage={setPage} HOME="overview" navLabel={navLabel} t={t} isAgency={false} activeCount={3} pendingOrders={1}
     onLogout={noop} load={noop} loading={false} mode="light" toggleTheme={noop} convos={PROPS.convos} feed={[]}
     goTo={(p) => { if (TABS[p]) setPage(p); }} orders={PROPS.orders} products={PROPS.products}
     onFind={(kind) => setPage(kind === "customer" ? "conversations" : kind === "order" ? "orders" : "inventory")}>
-    <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "12px 10px" : 20, minHeight: 0, minWidth: 0 }}>
-      <div key={page} className="ui-page">{render()}</div>
+    <div className="ui-scroll" style={{ flex: 1, overflow: "auto", padding: fullBleed ? 0 : (isMobile ? "12px 10px" : 20), minHeight: 0, minWidth: 0 }}>
+      <div key={page} className="ui-page" style={fullBleed ? { height: "100%", display: "flex", flexDirection: "column", minHeight: 0 } : undefined}>{render()}</div>
     </div>
   </Shell>;
 }
