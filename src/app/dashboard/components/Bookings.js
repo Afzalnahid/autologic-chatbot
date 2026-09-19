@@ -48,9 +48,9 @@ const fmtKey = (k, opt) => new Date(k + "T12:00:00").toLocaleDateString("en-GB",
   opt || { day: "numeric", month: "short", year: "numeric" });
 const dayCount = (a, b) => Math.round((new Date(b + "T12:00:00") - new Date(a + "T12:00:00")) / 864e5) + 1;
 
-function MonthGrid({ bookings, selected, onSelect }) {
+function MonthGrid({ bookings, selected, onSelect, defaultOpen = false }) {
   const [cursor, setCursor] = useState(() => { const d = new Date(); d.setDate(1); return d; });
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const inner = useRef(null);
   const [h, setH] = useState(0);
   const touch = useRef(null);
@@ -299,6 +299,33 @@ function keyOf(d) {
   return d.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });   // YYYY-MM-DD
 }
 
+// The phone's calendar (design handoff Part 3): the next seven days as a strip
+// of chips, a dot for each confirmed meeting, a tick when the day's meetings
+// are done. Tap a day to see only it; tap again to see everything. The month
+// grid stays one tap away underneath for anything further out.
+function WeekStrip({ bookings, selected, onSelect }) {
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() + i); return d; });
+  const byDay = {};
+  bookings.forEach((b) => { if (!b.meeting_datetime) return; const d = new Date(b.meeting_datetime); if (!isNaN(d)) (byDay[keyOf(d)] = byDay[keyOf(d)] || []).push(b); });
+  const todayKey = keyOf(new Date());
+  const on = (k) => selected?.a === k && (!selected.b || selected.b === k);
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: 14 }}>
+    {days.map((d) => { const k = keyOf(d); const items = byDay[k] || []; const live = items.filter((b) => b.status === "Confirmed").length; const done = items.filter((b) => b.status === "Completed").length; const sel = on(k); const today = k === todayKey;
+      return <button key={k} onClick={() => onSelect(sel ? null : { a: k })} className="ui-btn"
+        aria-label={`${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}${items.length ? `, ${items.length} meeting` : ""}`} aria-pressed={sel}
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 2px 7px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", minWidth: 0,
+          border: `1px solid ${sel ? "transparent" : today ? T.gold : T.border}`, background: sel ? T.accGrad : T.card, color: sel ? T.onGold : T.text, boxShadow: sel ? T.accGlow : "none" }}>
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: .4, textTransform: "uppercase", color: sel ? T.onGold : T.textDim }}>{d.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 2)}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, lineHeight: 1 }}>{d.getDate()}</span>
+        <span style={{ display: "flex", gap: 2, height: 5, alignItems: "center" }}>
+          {done > 0 && <i className="ti ti-check" style={{ fontSize: 9, lineHeight: 1, color: sel ? T.onGold : T.success }} />}
+          {Array.from({ length: Math.min(live, 3) }).map((_, n) => <span key={n} style={{ width: 4, height: 4, borderRadius: "50%", background: sel ? T.onGold : T.gold }} />)}
+        </span>
+      </button>; })}
+  </div>;
+}
+
+
 export default function Bookings({calConnected,clientId}) {
   const isMobile=useIsMobile();
   const [bookings,setBookings]=useState([]);
@@ -471,7 +498,8 @@ export default function Bookings({calConnected,clientId}) {
           </div>
         </Card>)}
     </div>}
-    {bookings.length>0&&<MonthGrid bookings={bookings} selected={day} onSelect={setDay}/>}
+    {bookings.length>0&&isMobile&&<WeekStrip bookings={bookings} selected={day} onSelect={setDay}/>}
+    {bookings.length>0&&<MonthGrid bookings={bookings} selected={day} onSelect={setDay} defaultOpen={!isMobile}/>}
 
     {day?.a&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"9px 13px",
       borderRadius:12,background:T.goldBg,border:`1px solid color-mix(in srgb, ${T.gold} 30%, transparent)`,fontSize:13}}>
@@ -544,7 +572,17 @@ export default function Bookings({calConnected,clientId}) {
       // order. The controls inside it stop the click from bubbling, so
       // "Join meeting", the phone number and the two status buttons still do
       // their own job rather than opening the drawer behind them.
-      :filtered.map(b=><Card key={b.id} onClick={()=>setOpen(b)} role="button" tabIndex={0}
+      :filtered.flatMap((b,i)=>{
+        // A heading whenever the list moves to the next stretch of time — the
+        // design's "Later this week". Left out while a day or range is chosen,
+        // where the heading above the list already says which day it is.
+        const g=group(b._w.ts), prev=i?group(filtered[i-1]._w.ts):null;
+        const label=g==="today"?"Today":g==="week"?"Later this week":g==="later"?"Coming up":"Past";
+        const head=(!day?.a&&g!==prev)?[<div key={"h-"+g} style={{display:"flex",alignItems:"center",gap:8,fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:g==="past"?T.textDim:T.textMuted,marginTop:i?6:0}}>
+          <i className={`ti ${g==="today"?"ti-sun":g==="week"?"ti-calendar-week":g==="later"?"ti-calendar-month":"ti-history"}`} style={{fontSize:13}}/>{label}
+          <span style={{flex:1,height:1,background:T.border}}/>
+        </div>]:[];
+        return [...head,<Card key={b.id} onClick={()=>setOpen(b)} role="button" tabIndex={0}
         onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setOpen(b);}}}
         style={{cursor:"pointer"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
@@ -605,7 +643,7 @@ export default function Bookings({calConnected,clientId}) {
             {b.status==="Confirmed"&&<Btn small danger onClick={()=>cancel(b)}>Cancel</Btn>}
           </div>
         </div>
-      </Card>)}
+      </Card>];})}
     </div>
 
     {/* Re-read from `bookings` on every render so the drawer follows a status

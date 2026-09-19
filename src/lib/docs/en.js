@@ -930,7 +930,8 @@ export const DOCS = {
 
       { h: "The calendar",
         p: [
-          "The month view marks every day that has something booked; tap a day to see just that day. Above it, **Next 7 days** and **This month** switch the range, and the arrows move between months.",
+          "The month view marks every day that has something booked; tap a day to see just that day. Above it, **Next 7 days** and **This month** switch the range, and the arrows move between months. On a laptop the month is open from the start; on a phone a strip of the next seven days sits above it — a dot for each meeting — and the month is one tap away below.",
+          "The list underneath is grouped by when: **Today**, **Later this week**, **Coming up**, and **Past** at the bottom. Choose a day or a range and the headings give way to that day's list.",
           "Each booking shows the person, the time, which channel they came from, and a **video** icon that opens the Meet link.",
         ],
         biz: "agency" },
