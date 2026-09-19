@@ -185,11 +185,11 @@ const BROADCAST = {
 // missing here, so the screenshots quietly documented a thinner tab than the
 // one a client actually gets.
 const KNOWLEDGE = [
-  { file_id: "k1", file_name: "Service list and pricing 2026.pdf", file_type: "application/pdf", chunks: 34,
+  { file_id: "k1", file_name: "Service list and pricing 2026.pdf", file_type: "application/pdf", chunks: 34, status: "ready",
     created_at: iso(60 * 24 * 5), file_url: "https://example.com/service-list.pdf" },
-  { file_id: "k2", file_name: "Standard proposal template.docx", file_type: "docx", chunks: 22,
+  { file_id: "k2", file_name: "Standard proposal template.docx", file_type: "docx", chunks: 22, status: "ready",
     created_at: iso(60 * 24 * 18), file_url: "https://example.com/proposal.docx" },
-  { file_id: "k3", file_name: "Frequently asked questions.txt", file_type: "text/plain", chunks: 11,
+  { file_id: "k3", file_name: "Frequently asked questions.txt", file_type: "text/plain", chunks: 11, status: "ready",
     created_at: iso(60 * 24 * 31), file_url: "https://example.com/faq.txt" },
 ];
 

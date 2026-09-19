@@ -237,7 +237,10 @@ export const DOCS = {
         kind: "tip" },
 
       { h: "Reading the list",
-        p: ["Connected channels are grouped by platform, with a count beside each name."],
+        p: [
+          "Connected channels are grouped by platform, with a count beside each name. Each row also says how many customers wrote to that Page, account or number **today**, so a paused Page with chats waiting is visible as exactly that.",
+          "At the bottom, **Add another** offers a card for each platform — the quickest way to connect a second Page or your first WhatsApp number.",
+        ],
         table: { head: ["Section", "What it covers"],
           rows: [
             ["**Facebook**", "Messenger replies and comment automation"],
@@ -812,8 +815,8 @@ export const DOCS = {
 
       { h: "Uploading documents",
         p: [
-          "An agency's bot answers from your own documents rather than a price list. Press **Upload document** and pick a **PDF**, **Word (DOCX)** or plain text file.",
-          "TellMore AI reads the file, breaks it into pieces and indexes them. The card then shows how many pieces were indexed — that number is only a progress signal; a bigger document simply makes more.",
+          "An agency's bot answers from your own documents rather than a price list. Press **Upload** and pick a **PDF**, **Word (DOCX)**, text, Markdown or CSV file — or, on a computer, drop the files onto the dashed strip above the list. Several at once is fine; they are read one after another.",
+          "TellMore AI reads the file, breaks it into pieces and indexes them. The card then shows **Ready** with how many pieces were indexed — that number is only a progress signal; a bigger document simply makes more. A document that is still being read, or that could not be read, says so on its card instead.",
         ],
         biz: "agency" },
 

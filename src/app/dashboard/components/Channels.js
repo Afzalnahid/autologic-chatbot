@@ -29,7 +29,21 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
   const [channels,setChannels]=useState([]);
   const [busyId,setBusyId]=useState(null);
   const [open,setOpen]=useState(null);           // expanded account row id
-  const load=()=>api("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{});
+  // How many customers wrote to each Page, account or number today (design
+  // handoff Part 3): counted from the same conversation list the Inbox shows,
+  // by the channel's own id, so a paused Page with twelve chats waiting is
+  // visible as exactly that.
+  const [today,setToday]=useState({});
+  const load=()=>Promise.all([
+    api("/api/channels").then(r=>r.json()).then(d=>Array.isArray(d)&&setChannels(d)).catch(()=>{}),
+    api("/api/conversations").then(r=>r.json()).then(cv=>{
+      if(!Array.isArray(cv)) return;
+      const d0=new Date(); d0.setHours(0,0,0,0);
+      const m={};
+      for(const c of cv){ if(c.page_id&&c.time&&new Date(c.time)>=d0) m[c.page_id]=(m[c.page_id]||0)+1; }
+      setToday(m);
+    }).catch(()=>{}),
+  ]);
   useEffect(()=>{
     load();
     // Reload whenever the owner comes back to this tab or to the app. In the
@@ -96,7 +110,7 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
         </span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:13.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ch.name||`${m.label} ${m.noun} · …${String(ch.page_id||"").slice(-4)}`}</div>
-          <div style={{fontSize:11.5,color:expired?T.danger:T.textMuted,marginTop:1}}>{on?"Live — the bot is answering":expired?"Disconnected — the connection expired, reconnect to resume":"Paused — messages wait for you"}</div>
+          <div style={{fontSize:11.5,color:expired?T.danger:T.textMuted,marginTop:1}}>{on?"Live — the bot is answering":expired?"Disconnected — the connection expired, reconnect to resume":"Paused — messages wait for you"}{today[ch.page_id]?<span style={{color:T.text,fontWeight:600}}> · {today[ch.page_id]} chat{today[ch.page_id]===1?"":"s"} today</span>:<span style={{color:T.textDim}}> · no chats today</span>}</div>
         </div>
         {expired
           ?<span onClick={e=>e.stopPropagation()}><Btn gold onClick={onConnect} style={{padding:"7px 12px",fontSize:12.5,borderRadius:10}}><i className="ti ti-plug-connected" style={{marginRight:5}}/>Reconnect</Btn></span>
@@ -204,6 +218,23 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
         <WebsiteWidget bare onChanged={load}/>
       </div>
     </Card>
+
+    {/* "Add another": one card per platform, always there, so adding a second
+        Page or the first WhatsApp number never means hunting for a small
+        button inside a section that may not exist yet. */}
+    {channels.length>0&&<div>
+      <div style={{fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:T.textDim,margin:"6px 2px 8px"}}>Add another</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 200px), 1fr))",gap:10}}>
+        {Object.entries(META).map(([p,m])=><button key={p} onClick={onConnect} className="ui-btn ob-row" style={{display:"flex",alignItems:"center",gap:11,padding:"12px 14px",borderRadius:12,background:T.card,border:`1px solid ${T.border}`,boxShadow:T.nmSm,cursor:"pointer",textAlign:"left",fontFamily:"inherit",color:T.text,minWidth:0}}>
+          <span style={{width:36,height:36,borderRadius:11,background:`${m.color}14`,color:m.color,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}><i className={`ti ${m.icon}`}/></span>
+          <span style={{flex:1,minWidth:0}}>
+            <span style={{display:"block",fontSize:13,fontWeight:600}}>{m.label} {m.noun}</span>
+            <span style={{display:"block",fontSize:11.5,color:T.textMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{meta.some(c=>c.platform===p)?"Connect one more":"Not connected yet"}</span>
+          </span>
+          <i className="ti ti-plus" style={{color:T.gold,fontSize:16,flexShrink:0}}/>
+        </button>)}
+      </div>
+    </div>}
 
     {channels.length===0&&<Card style={{textAlign:"center",padding:"40px 24px"}}>
       <i className="ti ti-plug-off" style={{fontSize:30,color:T.textDim}}/>

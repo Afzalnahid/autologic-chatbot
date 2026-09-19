@@ -133,6 +133,21 @@ export default function KnowledgeBase() {
       </div>
     </Card>}
 
+    {/* The drop zone stays once there are documents (design handoff Part 3):
+        the empty-state box used to be the only place a file could be dropped,
+        so it vanished the moment it had done its job. On a phone the same
+        strip is a tap target for the picker. */}
+    {!empty && !busy && <div
+      onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+      onDragLeave={() => setDrag(false)}
+      onDrop={(e) => { e.preventDefault(); setDrag(false); upload(e.dataTransfer.files); }}
+      onClick={() => fileRef.current?.click()} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileRef.current?.click(); } }}
+      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "14px 16px", borderRadius: 10, cursor: "pointer",
+        border: `1.5px dashed ${drag ? T.gold : T.borderStrong}`, background: drag ? T.goldBg : "transparent", color: drag ? T.gold : T.textMuted, fontSize: 12.5 }}>
+      <i className="ti ti-cloud-upload" style={{ fontSize: 18, color: T.gold }} />
+      <span>{isMobile ? "Tap to add a document" : "Drop PDF, Word, text, Markdown or CSV files here — or tap to choose"}</span>
+    </div>}
+
     {/* Progress is a real count, not a spinner: reading a long PDF takes a
         while and "3 of 7 · price-list.pdf" is the difference between waiting
         and assuming it has hung. */}
@@ -201,6 +216,14 @@ export default function KnowledgeBase() {
                 <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.file_name}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginTop: 4, fontSize: 11.5, color: T.textMuted }}>
                   <Badge color={ic.c}>{KIND(f)}</Badge>
+                  {/* What the bot can do with it right now. "ready" is what the
+                      indexer writes when every piece is in; anything else is
+                      shown as it is, never assumed fine. */}
+                  {f.status && (f.status === "ready"
+                    ? <Badge color={T.success}><i className="ti ti-check" style={{ fontSize: 11, marginRight: 3 }} />Ready</Badge>
+                    : /fail|error/i.test(f.status)
+                    ? <Badge color={T.danger}><i className="ti ti-alert-triangle" style={{ fontSize: 11, marginRight: 3 }} />Failed</Badge>
+                    : <Badge color={T.warn}><i className="ti ti-loader-2" style={{ fontSize: 11, marginRight: 3 }} />{f.status}</Badge>)}
                   <span>{f.chunks || 0} piece{f.chunks === 1 ? "" : "s"} indexed</span>
                   {f.created_at && <><span style={{ color: T.textDim }}>·</span><span>{shortDate(f.created_at)}</span></>}
                 </div>
