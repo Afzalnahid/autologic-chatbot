@@ -816,6 +816,44 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
+  - PREMIUM UI DIRECTIONS DECK BUILT (2026-09-20, later). The owner sent
+    "TellMore AI — Premium UI Directions.pdf" (Downloads; 8 pages = one
+    Inbox screen in 4 colour directions × light/dark; the MAROON pages 1–2
+    are "the colour theme I have now, perfect") and asked to check every
+    view against it. Four commits, each verified in headless Chrome (1440
+    light/dark/Bangla, 390, phone with a chat open), manual EN+BN, all
+    pushed, Vercel READY: 3329ebd refactor only — the frame (sidebar + top
+    bar + content column) moved text-for-text into components/Shell.js;
+    studio scenes "shell", "shell-<tab>" draw it around sample data
+    (ShellScene in studio.js) · 5d98ae0 the frame as the deck draws it:
+    flat sidebar (NAV in dashboard-client.js replaces GROUPS; t-nav reads
+    NAV), tinted active pill, counts on Inbox (unread) and Orders (pending),
+    PlanMeter from /api/billing at the foot, lang/sync/theme/logout under
+    it; NO top bar — each page opens with "Sunday, 20 September · Inbox" +
+    "Good morning, <business>" + bell + "Train your bot" (→ settings);
+    phone: tab name as title; Overview lost its own greeting · 45af266 the
+    Inbox: InboxStats (conversations today vs yesterday, bot share + orders
+    value/bookings from /api/analytics?days=7, median first-reply time from
+    the loaded chats — customer msg → next bot bubble, lower is better),
+    quick views All · Needs you · Manual (needs = needs_human | complaint
+    tag | unread), initials avatar + channel dot rows, amber Manual chip,
+    "Bot replying / You are replying" pill + "Take over / Hand back to bot"
+    button (pill hides via @container ≤560px), WhatsApp number masked
+    "+880 1712 ······", "Today, 2:14 pm" day dividers, "TellMore AI ·
+    answered in N s" under the bot's first bubble after a customer message,
+    ProductCard when a bot attachment URL equals a product's image_url /
+    images[] / variant image_url (products prop from the shell), composer
+    "Write a reply or let the bot answer…", square send · 298c6ef header
+    search (GlobalSearch.js + pure src/lib/global-search.js, t-search 18):
+    customers/orders/products from loaded data, pick → chat / order /
+    Inventory with intent.search; phone: magnifier button + row.
+    62/62 suites. STILL NOT BUILT from the decks: reply-suggestion chips,
+    AI summary card (AI cost, owner's call), "from your catalogue" caption
+    (no stored source), saved answers ("/"), Export, Closed view (none of
+    these exist in the maroon deck), the phone bottom tab bar (handoff
+    Part 2 item 4). The sidebar's light tint is a 5% gold mix over --rail
+    (tokens only). The parse helper: next/dist/compiled/babel/bundle.js →
+    .parser() (require.resolve from the project root).
   - PART 3 BUILT (2026-09-20, owner: "skip the AI features, do the other things").
     Stages, one commit each, all pushed, 61/61: 78daeb4 Overview home tab
     (Overview.js; HOME="overview", first in PAGES/ICONS/LABELS, t-nav updated;
