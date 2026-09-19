@@ -28,8 +28,8 @@ function shell({ title, body, script = "" }) {
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css">
 <script>try{var t=localStorage.getItem("al-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <style>
-:root,[data-theme=light]{--bg:#EEF0F5;--card:#F5F6FA;--in:#E7EAF1;--text:#191C24;--muted:#4C5364;--dim:#8A91A3;--line:#DFE3EC;--acc:#D92632;--accd:#B01824;--ok:#0A7C5C;--warn:#8A5A07;--warnbg:rgba(154,100,8,.10);--okbg:rgba(10,124,92,.10);--shd:rgba(166,173,192,.5);--shl:rgba(255,255,255,.95);color-scheme:light}
-[data-theme=dark]{--bg:#111318;--card:#191C24;--in:#15181F;--text:#EAECF2;--muted:#A9B0C0;--dim:#7C8496;--line:#252A35;--acc:#D92632;--accd:#B01824;--ok:#3FE0B4;--warn:#F5C25A;--warnbg:rgba(245,194,90,.12);--okbg:rgba(63,224,180,.12);--shd:rgba(0,0,0,.55);--shl:rgba(255,255,255,.05);color-scheme:dark}
+:root,[data-theme=light]{--bg:#F7F5F7;--card:#FFFFFF;--in:#F3EEF1;--text:#121116;--muted:#56505A;--dim:#8E8792;--line:#ECE6EA;--acc:#7B1C3E;--accd:#5C1430;--ok:#0A7C5C;--warn:#8A5A07;--warnbg:rgba(154,100,8,.10);--okbg:rgba(10,124,92,.10);--shd:rgba(18,17,22,.07);--shl:rgba(255,255,255,0);color-scheme:light}
+[data-theme=dark]{--bg:#121116;--card:#1B1920;--in:#16141B;--text:#F2EEF1;--muted:#B5ADB4;--dim:#857D86;--line:#2A2630;--acc:#C04A72;--accd:#7B1C3E;--ok:#3FE0B4;--warn:#F5C25A;--warnbg:rgba(245,194,90,.12);--okbg:rgba(63,224,180,.12);--shd:rgba(0,0,0,.45);--shl:rgba(255,255,255,0);color-scheme:dark}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%}
 body{background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center;padding:16px;-webkit-font-smoothing:antialiased}

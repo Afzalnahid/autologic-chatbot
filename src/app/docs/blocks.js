@@ -136,7 +136,7 @@ function Shot({ name, cap, ui }) {
 
 function Note({ text, kind }) {
   const warn = kind === "warn";
-  const tint = warn ? "#D92632" : P.blue;
+  const tint = warn ? "#7B1C3E" : P.blue;
   return (
     <div style={{ display: "flex", gap: 11, alignItems: "flex-start", margin: "22px 0", padding: "14px 16px",
       borderRadius: 13, background: `color-mix(in srgb, ${tint} 6%, transparent)`,

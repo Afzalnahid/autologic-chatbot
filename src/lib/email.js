@@ -13,7 +13,7 @@ const SUPER_ADMIN = "nahidafzal97@gmail.com";
 // too. "TellMore AI" → "Tell" + "More AI" in red.
 const BRAND_HTML = (() => {
   const m = COMPANY.name.match(/^(\w+?)(More\b.*|\s.*)$/i);
-  return m ? `${m[1]}<span style="color:#D92632">${m[2]}</span>` : COMPANY.name;
+  return m ? `${m[1]}<span style="color:#7B1C3E">${m[2]}</span>` : COMPANY.name;
 })();
 
 async function send({ to, subject, html }) {
@@ -41,7 +41,7 @@ async function send({ to, subject, html }) {
 
 function wrap(title, body) {
   return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0d1529;border-radius:12px;padding:28px;color:#e8e8ec">
-    <div style="font-size:20px;font-weight:700;margin-bottom:4px">TellMore AI <span style="color:#D92632">Admin</span></div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:4px">TellMore AI <span style="color:#7B1C3E">Admin</span></div>
     <div style="height:1px;background:#1a2744;margin:16px 0"></div>
     <div style="font-size:17px;font-weight:600;margin-bottom:12px">${title}</div>
     <div style="font-size:14px;line-height:1.7;color:#c9d3e6">${body}</div>
@@ -67,7 +67,7 @@ function clientWrap(title, body) {
     <div style="font-size:17px;font-weight:600;margin-bottom:12px">${title}</div>
     <div style="font-size:14px;line-height:1.7;color:#c9d3e6">${body}</div>
     <div style="height:1px;background:#1a2744;margin:22px 0"></div>
-    <div style="font-size:12px;color:#8b9cbd;line-height:1.7">You're receiving this because you use TellMore AI at <a href="https://www.tellmoreai.com" style="color:#D92632;text-decoration:none">tellmoreai.com</a>.<br/>Questions? Just reply to this email, or write to <a href="mailto:${COMPANY.email}" style="color:#D92632;text-decoration:none">${COMPANY.email}</a>.</div>
+    <div style="font-size:12px;color:#8b9cbd;line-height:1.7">You're receiving this because you use TellMore AI at <a href="https://www.tellmoreai.com" style="color:#7B1C3E;text-decoration:none">tellmoreai.com</a>.<br/>Questions? Just reply to this email, or write to <a href="mailto:${COMPANY.email}" style="color:#7B1C3E;text-decoration:none">${COMPANY.email}</a>.</div>
   </div>`;
 }
 
@@ -78,8 +78,8 @@ export async function notifyNewAdminSignup(newEmail) {
     subject: "New admin access request — TellMore AI",
     html: wrap(
       "New admin access request",
-      `<strong style="color:#D92632">${newEmail}</strong> has signed up and is awaiting approval.
-       <br/><br/>Open the <a href="https://www.tellmoreai.com/admin" style="color:#D92632">Admin panel</a>,
+      `<strong style="color:#7B1C3E">${newEmail}</strong> has signed up and is awaiting approval.
+       <br/><br/>Open the <a href="https://www.tellmoreai.com/admin" style="color:#7B1C3E">Admin panel</a>,
        enter your secret key, and assign them a role (Viewer, Editor, or Full Access) to approve — or leave them pending to deny.`
     ),
   });
@@ -96,7 +96,7 @@ export async function notifyAdminApproved(adminEmail, role) {
       `Your admin access has been approved with the role
        <strong style="color:#22c55e">${labels[role] || role}</strong>.
        <br/><br/>You can now sign in at the
-       <a href="https://www.tellmoreai.com/admin" style="color:#D92632">Admin panel</a>
+       <a href="https://www.tellmoreai.com/admin" style="color:#7B1C3E">Admin panel</a>
        using the email and password you registered with.`
     ),
   });
@@ -109,14 +109,14 @@ export async function notifyPaymentRequest({ business, email, plan, cycle, amoun
     subject: `Payment submitted: ${business} — ${plan}`,
     html: wrap(
       "New payment awaiting verification",
-      `<strong style="color:#D92632">${business}</strong> (${email}) submitted a payment.
+      `<strong style="color:#7B1C3E">${business}</strong> (${email}) submitted a payment.
        <br/><br/>
        Plan: <strong>${plan}</strong> (${cycle})<br/>
        Amount: <strong>৳${Number(amount).toLocaleString("en-IN")}</strong><br/>
        Method: <strong>${method}</strong><br/>
        Transaction ID: <strong>${txnId}</strong>
        <br/><br/>Verify the transaction, then approve it in the
-       <a href="https://www.tellmoreai.com/admin" style="color:#D92632">Admin panel</a>.`
+       <a href="https://www.tellmoreai.com/admin" style="color:#7B1C3E">Admin panel</a>.`
     ),
   });
 }
@@ -131,7 +131,7 @@ export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
       "\u{1F389} Payment confirmed",
       `Your payment has been verified and your <strong style="color:#22c55e">${planName}</strong> plan is now active.
        ${until ? `<br/><br/>Valid until <strong>${until}</strong>.` : ""}
-       <br/><br/>Open your <a href="https://www.tellmoreai.com/dashboard" style="color:#D92632">dashboard</a> to keep going.`
+       <br/><br/>Open your <a href="https://www.tellmoreai.com/dashboard" style="color:#7B1C3E">dashboard</a> to keep going.`
     ),
   });
 }
@@ -140,7 +140,7 @@ export async function notifyPaymentApproved(clientEmail, planName, expiresAt) {
 // An order and a booking are money; a customer waiting for a person is a
 // customer about to leave. One email each, on the event — no throttling, because
 // missing one costs more than reading one. Push goes out too (push.js notify).
-const dash = (tab) => `<a href="https://www.tellmoreai.com/dashboard#${tab}" style="color:#D92632">dashboard</a>`;
+const dash = (tab) => `<a href="https://www.tellmoreai.com/dashboard#${tab}" style="color:#7B1C3E">dashboard</a>`;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 export async function notifyNewOrder(clientEmail, { customer, products, total, orderCode, platform }) {
@@ -229,12 +229,12 @@ export async function notifyKeyFailing(clientEmail, { business, provider, model,
     html: clientWrap(
       "Your AI key stopped working",
       `Your bot runs on your own <strong>${prov}</strong> key${model ? ` (<strong>${model}</strong>)` : ""}, and it just failed —
-       so your bot has <strong style="color:#D92632">paused replying to customers</strong>.
+       so your bot has <strong style="color:#7B1C3E">paused replying to customers</strong>.
        <br/><br/>Most often this means the key ran out of quota or credit, or its billing needs attention.
        ${safeErr ? `<br/><br/>What the provider returned:<br/><span style="font-size:12px;color:#8b9cbd">${safeErr}</span>` : ""}
        <br/><br/>Top up or fix billing with your provider, or paste a new key — your bot resumes automatically once the key works again.
        <br/><br/>
-       <a href="https://www.tellmoreai.com/dashboard#ai" style="display:inline-block;background:#D92632;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Open AI Engine</a>
+       <a href="https://www.tellmoreai.com/dashboard#ai" style="display:inline-block;background:#7B1C3E;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Open AI Engine</a>
        <br/><br/><span style="font-size:12px;color:#8b9cbd">You'll get this once per outage, not for every message.</span>`
     ),
   });
@@ -297,11 +297,11 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
       detail.title,
       `${detail.body}
        <br/><br/>
-       <strong style="color:#D92632">Customers messaging you right now are not getting answers.</strong>
+       <strong style="color:#7B1C3E">Customers messaging you right now are not getting answers.</strong>
        They are not told why — your bot simply stays silent, so nothing tells a customer that a subscription has lapsed.
        Every message they send is still saved, and it will be waiting in your inbox the moment you renew.
        <br/><br/>
-       <a href="https://www.tellmoreai.com/dashboard#billing" style="display:inline-block;background:#D92632;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
+       <a href="https://www.tellmoreai.com/dashboard#billing" style="display:inline-block;background:#7B1C3E;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
        <br/><br/>
        <span style="font-size:12px;color:#8b9cbd">You will get this reminder at most once a day.</span>`
     ),
@@ -329,14 +329,14 @@ export async function notifyExpiringSoon(clientEmail, { business, plan, daysLeft
     html: clientWrap(
       `${label} ${inWords}`,
       `${final || daysLeft <= 0
-        ? `Today is the last day of your ${isTrial ? "free trial" : `${label} plan`}${when ? ` (${when})` : ""}. <strong style="color:#D92632">After today your bot stops replying to customers.</strong>`
+        ? `Today is the last day of your ${isTrial ? "free trial" : `${label} plan`}${when ? ` (${when})` : ""}. <strong style="color:#7B1C3E">After today your bot stops replying to customers.</strong>`
         : `Your ${isTrial ? "free trial" : `${label} plan`} ends${when ? ` on <strong>${when}</strong>` : " soon"}. When it does, your bot will stop replying to customers.`}
        <br/><br/>
        ${isTrial
          ? "Pick a plan to keep everything running — your products, knowledge base and conversations all stay exactly as they are."
          : "Renew to keep your bot answering without a break."}
        <br/><br/>
-       <a href="https://www.tellmoreai.com/dashboard#billing" style="display:inline-block;background:#D92632;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">${isTrial ? "Choose a plan" : "Renew now"}</a>`
+       <a href="https://www.tellmoreai.com/dashboard#billing" style="display:inline-block;background:#7B1C3E;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">${isTrial ? "Choose a plan" : "Renew now"}</a>`
     ),
   });
 }

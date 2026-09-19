@@ -36,11 +36,13 @@ Google Calendar · Vercel (`tellmoreai.com`)
 - Locked prompts (`FIXED_BASE`, `FIXED_ECOM`, `FIXED_AGENCY`) are enforced on the
   server and stay there.
 - Every feature answers for **both** `ecommerce` and `agency` business types.
-- Crimson `#D92632` (deep shade `#B01824`) on soft white is the brand palette
-  (owner's 2026-08-16 redesign). The SAME crimson is used in dark mode too — the
-  owner replaced the earlier lighter dark-mode red `#FF4D59` on 2026-08-23, so the
-  red looks identical in both themes. Periwinkle and gold were removed and never
-  return. Mint `#2ED3A7` means "bot is live" and nothing else.
+- Maroon `#7B1C3E` (deep shade `#5C1430`) on soft white `#F7F5F7`, white cards
+  with a hairline border, near-black `#121116` for dark sections — the owner's
+  2026-09-19 theme, taken from their Figma landing design. It replaces the
+  crimson `#D92632` of 2026-08-16. In dark mode the accent is lifted to
+  `#C04A72` (maroon itself is unreadable as text on `#121116`); filled controls
+  still end in `#7B1C3E`. Periwinkle and gold were removed and never return.
+  Mint `#2ED3A7` means "bot is live" and nothing else.
 - Design tokens are CSS variables: the dashboard's live in
   `src/app/dashboard/components/ui.js` (`PALETTE`), the public pages' in
   `src/lib/landing.js` (`THEME_CSS`). Never hard-code a brand colour in a component.

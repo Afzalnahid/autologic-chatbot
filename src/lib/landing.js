@@ -25,22 +25,22 @@ export const P = {
 // page (landing, pricing), so the whole site re-themes from one place.
 export const THEME_CSS = `
   :root, [data-theme="light"] {
-    --lp-bg:#EEF0F5; --lp-card:#F7F8FC; --lp-ink:#16181F; --lp-soft:#5A6170;
-    --lp-acc:#D92632; --lp-accDim:#B01824; --lp-accSoft:rgba(217,38,50,.08);
-    --lp-line:#DFE3EC; --lp-bubble:#FFFFFF;
-    --lp-shd:rgba(166,173,192,.5); --lp-shl:rgba(255,255,255,.95);
+    --lp-bg:#F7F5F7; --lp-card:#FFFFFF; --lp-ink:#121116; --lp-soft:#56505A;
+    --lp-acc:#7B1C3E; --lp-accDim:#5C1430; --lp-accSoft:rgba(123,28,62,.07);
+    --lp-line:#ECE6EA; --lp-bubble:#FFFFFF;
+    --lp-shd:rgba(18,17,22,.07); --lp-shl:rgba(255,255,255,0);
     color-scheme: light;
   }
   [data-theme="dark"] {
-    --lp-bg:#111318; --lp-card:#191C24; --lp-ink:#EAECF2; --lp-soft:#9AA1B2;
-    --lp-acc:#D92632; --lp-accDim:#B01824; --lp-accSoft:rgba(217,38,50,.11);
-    --lp-line:#252A35; --lp-bubble:#20242E;
-    --lp-shd:rgba(0,0,0,.55); --lp-shl:rgba(255,255,255,.05);
+    --lp-bg:#121116; --lp-card:#1B1920; --lp-ink:#F2EEF1; --lp-soft:#A69EA7;
+    --lp-acc:#C04A72; --lp-accDim:#7B1C3E; --lp-accSoft:rgba(192,74,114,.14);
+    --lp-line:#2A2630; --lp-bubble:#211E27;
+    --lp-shd:rgba(0,0,0,.45); --lp-shl:rgba(255,255,255,0);
     color-scheme: dark;
   }
   :root {
-    --lp-nm: 9px 9px 22px var(--lp-shd), -9px -9px 22px var(--lp-shl);
-    --lp-nm-sm: 4px 4px 12px var(--lp-shd), -4px -4px 12px var(--lp-shl);
+    --lp-nm: 0 12px 32px var(--lp-shd), 0 2px 6px var(--lp-shd);
+    --lp-nm-sm: 0 2px 10px var(--lp-shd);
     --lp-grad: linear-gradient(135deg, var(--lp-acc), var(--lp-accDim));
     --lp-glow: 0 10px 24px color-mix(in srgb, var(--lp-acc) 30%, transparent);
   }
@@ -84,7 +84,7 @@ export const CH = {
   whatsapp:  { icon: "ti-brand-whatsapp",  name: "WhatsApp Business",  short: "WhatsApp",  tint: "#25D366" },
   messenger: { icon: "ti-brand-messenger", name: "Facebook Messenger", short: "Messenger", tint: "#0084FF" },
   instagram: { icon: "ti-brand-instagram", name: "Instagram Business", short: "Instagram", tint: "#E1306C" },
-  website:   { icon: "ti-world",           name: "Your website",       short: "Website",   tint: "#D92632" },
+  website:   { icon: "ti-world",           name: "Your website",       short: "Website",   tint: "#7B1C3E" },
 };
 
 // Both languages, written rather than machine-translated, because the customer

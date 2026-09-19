@@ -454,7 +454,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             {(m.attachments||[]).length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4,alignItems:mine?"flex-end":"flex-start"}}>
               {m.attachments.map((u,j)=><img key={j} src={u} alt="" onLoad={onImgLoad} style={{maxWidth:220,borderRadius:16,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
             </div>}
-            {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?"#fff":T.text,background:mine?"#0084ff":T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{m.text}</div>}
+            {(!(m.attachments||[]).length||(m.text&&m.text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?"#fff":T.text,background:mine?T.accGrad:T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{m.text}</div>}
             {mine&&m.role==="agent"&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>You</div>}
           </div>
         </div>;})}
@@ -478,18 +478,18 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
           <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={e=>{sendMedia(e.target.files[0],"image");e.target.value="";}}/>
           <input ref={galleryRef} type="file" accept="image/*" hidden onChange={e=>{sendMedia(e.target.files[0],"image");e.target.value="";}}/>
           <button onClick={()=>cameraRef.current?.click()} title="Camera" aria-label="Camera" className="ui-sq"
-            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:"#0084ff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-camera"/></button>
+            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-camera"/></button>
           <button onClick={()=>galleryRef.current?.click()} title="Photo" aria-label="Photo" className="ui-sq"
-            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:"#0084ff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-photo"/></button>
+            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><i className="ti ti-photo"/></button>
           <button onClick={toggleRec} title="Voice" aria-label="Voice" className="ui-sq"
-            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:recording?T.danger:"#0084ff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,animation:recording?"pulse 1s infinite":"none"}}><i className={`ti ${recording?"ti-player-stop-filled":"ti-microphone"}`}/></button>
+            style={{width:36,height:36,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",color:recording?T.danger:T.gold,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,animation:recording?"pulse 1s infinite":"none"}}><i className={`ti ${recording?"ti-player-stop-filled":"ti-microphone"}`}/></button>
           <div style={{flex:1,display:"flex",alignItems:"center",background:T.bgAlt,border:`0.5px solid ${T.border}`,borderRadius:20,padding:"0 4px 0 12px",minWidth:0}}>
             <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Message" style={{flex:1,background:"none",border:"none",padding:"10px 0",color:T.text,fontSize:13,outline:"none",minWidth:0}}/>
             <button onClick={()=>setShowEmoji(s=>!s)} title="Emoji" aria-label="Emoji" className="ui-sq"
               style={{width:30,height:30,borderRadius:"50%",background:"none",border:"none",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>😊</button>
           </div>
           <button onClick={send} disabled={sending} aria-label="Send" className="ui-sq"
-            style={{width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer",background:"#0084ff",display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:16,color:"#fff"}}/></button>
+            style={{width:36,height:36,borderRadius:"50%",border:"none",cursor:"pointer",background:T.accGrad,display:"flex",alignItems:"center",justifyContent:"center",opacity:sending?.6:1,flexShrink:0}}><i className="ti ti-send" style={{fontSize:16,color:"#fff"}}/></button>
         </div>
       </div>
     </Card>}

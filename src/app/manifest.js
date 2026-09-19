@@ -4,7 +4,7 @@
 //     it full-screen (no address bar), and
 //   - a store package (Play Store APK / App Store) is generated from this same
 //     manifest by PWABuilder — no separate mobile codebase to maintain.
-// Colours follow the brand invariant: crimson #D92632 on the soft-white ground.
+// Colours follow the brand invariant: maroon #7B1C3E on the soft-white ground.
 export default function manifest() {
   return {
     name: "TellMore AI",
@@ -15,8 +15,8 @@ export default function manifest() {
     start_url: "/dashboard",
     id: "/dashboard",
     display: "standalone",
-    background_color: "#EEF0F5",
-    theme_color: "#D92632",
+    background_color: "#F7F5F7",
+    theme_color: "#7B1C3E",
     lang: "en",
     dir: "ltr",
     categories: ["business", "productivity", "shopping"],

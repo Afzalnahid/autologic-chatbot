@@ -532,24 +532,24 @@ export function Motion() {
 // Mint stays reserved for "the bot is live" and nothing else.
 export const PALETTE = {
   light: {
-    bg: "#EEF0F5", bgAlt: "#E7EAF1", card: "#F5F6FA", cardAlt: "#FBFCFE", inset: "#E3E7EF",
-    rail: "#F5F6FA", railHover: "#E9ECF3", railText: "#697083", railTextOn: "#FFFFFF",
-    gold: "#D92632", goldDim: "#B01824", goldBg: "rgba(217,38,50,0.08)",
-    text: "#191C24", textMuted: "#4C5364", textDim: "#8A91A3",
-    border: "#DFE3EC", borderStrong: "#C9CFDD",
+    bg: "#F7F5F7", bgAlt: "#F3EEF1", card: "#FFFFFF", cardAlt: "#FFFFFF", inset: "#F1ECEF",
+    rail: "#FFFFFF", railHover: "#F6EEF2", railText: "#6B6470", railTextOn: "#FFFFFF",
+    gold: "#7B1C3E", goldDim: "#5C1430", goldBg: "rgba(123,28,62,0.07)",
+    text: "#121116", textMuted: "#56505A", textDim: "#8E8792",
+    border: "#ECE6EA", borderStrong: "#DCD3D8",
     danger: "#C9273A", success: "#0A7C5C", warn: "#8A5A07", purple: "#6D3FD9",
     live: "#0FA97C", liveBg: "rgba(15,169,124,0.11)", warnBg: "rgba(154,100,8,0.10)", dangerBg: "rgba(201,39,58,0.09)",
-    shDark: "rgba(166,173,192,0.5)", shLight: "rgba(255,255,255,0.95)",
+    shDark: "rgba(18,17,22,0.07)", shLight: "rgba(255,255,255,0)",
   },
   dark: {
-    bg: "#111318", bgAlt: "#15181F", card: "#191C24", cardAlt: "#1F232D", inset: "#242936",
-    rail: "#191C24", railHover: "#232833", railText: "#8B93A6", railTextOn: "#FFFFFF",
-    gold: "#D92632", goldDim: "#B01824", goldBg: "rgba(217,38,50,0.12)",
-    text: "#EAECF2", textMuted: "#A9B0C0", textDim: "#7C8496",
-    border: "#252A35", borderStrong: "#333A49",
+    bg: "#121116", bgAlt: "#16141B", card: "#1B1920", cardAlt: "#211E27", inset: "#26232D",
+    rail: "#1B1920", railHover: "#26232D", railText: "#948C96", railTextOn: "#FFFFFF",
+    gold: "#C04A72", goldDim: "#7B1C3E", goldBg: "rgba(192,74,114,0.14)",
+    text: "#F2EEF1", textMuted: "#B5ADB4", textDim: "#857D86",
+    border: "#2A2630", borderStrong: "#3A3541",
     danger: "#FF7A82", success: "#3FE0B4", warn: "#F5C25A", purple: "#A78BFA",
     live: "#2ED3A7", liveBg: "rgba(46,211,167,0.13)", warnBg: "rgba(245,194,90,0.12)", dangerBg: "rgba(255,122,130,0.11)",
-    shDark: "rgba(0,0,0,0.55)", shLight: "rgba(255,255,255,0.05)",
+    shDark: "rgba(0,0,0,0.45)", shLight: "rgba(255,255,255,0)",
   },
 };
 
@@ -560,12 +560,15 @@ export function Theme() {
     <style dangerouslySetInnerHTML={{__html:`
       :root, [data-theme="light"] { ${vars(PALETTE.light)}; color-scheme: light }
       [data-theme="dark"] { ${vars(PALETTE.dark)}; color-scheme: dark }
-      /* Neumorphic depth, derived from the palette's shadow pair so both themes
-         carve the same shapes. --acc-grad is the one red every filled control uses. */
+      /* Depth: soft, even drop shadows on white cards with a hairline border —
+         the owner's 2026-09-19 theme (from the Figma landing design). The names
+         are still nm-* because every component reads them; the neumorphic
+         raised/pressed pair they used to carve is gone. --acc-grad is the one
+         maroon every filled control uses. */
       :root, [data-theme="light"], [data-theme="dark"] {
-        --nm-out: 9px 9px 20px var(--shDark), -9px -9px 20px var(--shLight);
-        --nm-sm: 4px 4px 10px var(--shDark), -4px -4px 10px var(--shLight);
-        --nm-in: inset 4px 4px 9px var(--shDark), inset -4px -4px 9px var(--shLight);
+        --nm-out: 0 12px 32px var(--shDark), 0 2px 6px var(--shDark);
+        --nm-sm: 0 2px 10px var(--shDark);
+        --nm-in: inset 0 1px 3px var(--shDark);
         --acc-grad: linear-gradient(135deg, var(--gold), var(--goldDim));
         --acc-glow: 0 10px 22px color-mix(in srgb, var(--gold) 32%, transparent);
       }
