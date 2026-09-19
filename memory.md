@@ -812,6 +812,19 @@ again?"
     Both films rendered and verified (EN 426.2 s -14.9 LUFS, BN 460.0 s -15.2
     LUFS; 0 black frames, 0 silences). 1080p masters are 51/54 MB — over the
     30 MB phone-upload limit, so 540p previews were sent; masters stay local.
+  - WHATSAPP REGISTER FIX (2026-09-20, bf9b3d4). /register errors were ignored
+    (false "Connected") and the PIN was random + never stored. Now PIN =
+    pinFor(phoneId, OAUTH_STATE_SECRET||FB_APP_SECRET||…) (lib/wa-register.js),
+    registerVerdict decides; failures show a plain reason and save nothing.
+    Tests t-wa-register (20). The Nandi number (connected 2026-09-19) still has
+    the OLD random PIN — if it is ever reconnected it will get the "turn the PIN
+    off in WhatsApp Manager" message; that is expected. Coexistence acceptance
+    (is_on_biz_app) is from Meta docs, not yet seen live.
+    STILL OPEN from the owner's WhatsApp list: (1) a "where does your number
+    live?" guide on the Connect WhatsApp page (normal WhatsApp → move to the
+    Business app → coexistence; other provider → turn PIN off, migrate);
+    (3) /api/wa/select bug (subscribes phoneId not WABA, never registers).
+    Also: home page now shows the free-trial card + "Buy <plan>" (dc9ef5d).
   - PRODUCT/DOCUMENT ALLOWANCE IS A TOTAL (2026-09-20, 46183fe). Owner: "500
     products" = 500 adds for as long as the client uses the package, never a
     monthly refill. addsTotal() counts all allowance_events (no date filter);

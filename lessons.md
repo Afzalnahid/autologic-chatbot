@@ -1471,3 +1471,13 @@ Rule: a flow that can take minutes on a phone must come back by REDIRECT to a
 server route that can finish from what the URL carries, never by messaging a
 page that has to stay alive in the background. And a signed state that expires
 must outlive the slowest real run of the flow, not a guess.
+
+## 2026-09-20 — an ignored error from a setup step became a false "Connected"
+WhatsApp connect called Meta's /register and only LOGGED a failure, then saved
+the channel and showed the owner "Connected". A number with someone else's
+two-step PIN could therefore look live while the bot could not send a single
+message. The same step set a fresh random PIN each time and kept it nowhere,
+so any number we had registered once could never be registered by us again.
+Rule: a step whose failure means the feature will not work must decide the
+outcome, not just the log — and any secret we set on a customer's asset must
+be reproducible (derived) or stored, never thrown away.
