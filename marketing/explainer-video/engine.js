@@ -4,15 +4,19 @@
 // a 2D canvas the particles — all three driven from the same t.
 import * as THREE from "three";
 import { makeStage, buildLogo, makeCoin, glyph, ease } from "./three-bits.js";
+import { adBuilders } from "./ads.js";
 import { markSvg } from "/src/lib/brand-mark.js";
 
 const qs = new URLSearchParams(location.search);
 const lang = qs.get("lang") === "bn" ? "bn" : "en";
+// ?film=<name> picks a short ad from films/<name>/; no film means the explainer here.
+const film = qs.get("film") || "explainer";
+const base = film === "explainer" ? "." : `films/${film}`;
 document.body.classList.toggle("bn", lang === "bn");
 const L = (en, bn) => (lang === "bn" ? bn : en);
 
 try {
-  const [script, durations, icons] = await Promise.all(["script.json", "durations.json", "icons.json"].map((f) => fetch(f).then((r) => r.json())));
+  const [script, durations, icons] = await Promise.all([`${base}/script.json`, `${base}/durations.json`, "icons.json"].map((f) => fetch(f).then((r) => { if (!r.ok) throw new Error(`${f}: ${r.status}`); return r.json(); })));
   const FPS = 30;
   const stage = document.getElementById("stage");
   const scenesRoot = document.getElementById("scenes");
@@ -38,14 +42,14 @@ try {
     vo.push({ id: sc.id, at: +(sc.t0 + 0.45).toFixed(3) });
   }
   const total = clock;
-  const DARK = new Set(["hook", "answer", "outro"]);
+  const DARK = new Set(["hook", "answer", "outro", "adHook", "adAnswer", "adOutro"]);
 
   // ── shared helpers ───────────────────────────────────────────────────────
   const words = (node) => { node.innerHTML = node.textContent.trim().split(/\s+/).map((w) => `<span class="w"><span class="wi">${w}</span></span>`).join(" "); return [...node.querySelectorAll(".wi")]; };
 
   function headline(ctx, { x = 110, y = 240, w = 780, size, eyebrow, at = 0.2, sub = true } = {}) {
     const box = el(`<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px"></div>`);
-    const eb = el(`<div class="eyebrow"><i></i>${eyebrow || `${L("Chapter", "অধ্যায়")} ${String(ctx.i + 1).padStart(2, "0")}`}</div>`);
+    const eb = el(`<div class="eyebrow"><i></i>${eyebrow || ctx.text.eyebrow || `${L("Chapter", "অধ্যায়")} ${String(ctx.i + 1).padStart(2, "0")}`}</div>`);
     const h = el(`<div class="h1"${size ? ` style="font-size:${size}px"` : ""}>${ctx.text.title}</div>`);
     box.append(eb, h);
     let s = null;
@@ -650,6 +654,10 @@ try {
       c.tl.to("#chrome, #progWrap", { opacity: 0, duration: 0.8 }, c.T(D - 1.3));
     },
   };
+  // The short ads' scene builders share every helper above.
+  Object.assign(build, adBuilders({ el, ico, L, lang, headline, chips, laptop, phone, voiceNote, makeStage, makeCoin, glyph, logoProto, icons, frames3d, ease, cue, script }));
+  // The brand bar appears from this scene on; the "03 / 19" counter only in the explainer.
+  const chromeFrom = script.chromeFrom ?? 2;
 
   // ── assemble ─────────────────────────────────────────────────────────────
   gsap.set("#blobA", { width: 900, height: 900, left: 1200, top: -400, background: "rgba(123,28,62,.16)" });
@@ -669,7 +677,7 @@ try {
     tl.set("#stage", { backgroundColor: dark ? "#121116" : "#F7F5F7", color: dark ? "#F2EEF1" : "#121116" }, B);
     tl.set("#bgDark", { autoAlpha: dark ? 1 : 0 }, B);
     tl.set("#blobA, #blobB", { opacity: dark ? 0 : 1 }, B);
-    tl.set("#count", { textContent: `${String(i + 1).padStart(2, "0")} / ${scenes.length}` }, B);
+    if (script.counter !== false) tl.set("#count", { textContent: `${String(i + 1).padStart(2, "0")} / ${scenes.length}` }, B);
     if (i > 0) {
       // Explicit sets around the sweep, so the panel is parked off-screen at
       // every other time no matter which way the playhead came from.
@@ -682,7 +690,8 @@ try {
       tl.to(prev, { scale: 0.96, opacity: 0.5, duration: 0.4, ease: "power2.in" }, B - 0.4);
       tl.fromTo(ctx.content, { scale: 1.04 }, { scale: 1, duration: 0.7, ease: "power3.out" }, B);
     }
-    if (i === 2) tl.fromTo("#chrome", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, B + 0.3);
+    if (i === chromeFrom) tl.fromTo("#chrome", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.8 }, B + 0.3);
+    if (!build[sc.template]) throw new Error(`no scene builder "${sc.template}" (scene ${sc.id})`);
     build[sc.template](ctx);
   });
 

@@ -28,6 +28,9 @@ The brief it follows is `MASTER_PROMPT.md` — read that first.
   from the cues the timeline exports.
 - `render.mjs` — frame-by-frame capture through Chrome DevTools → H.264, then
   the audio mix (narration at −16 LUFS, bed ducked under it, limiter) → MP4.
+  `--film <name>` renders a short ad from `films/<name>/` instead.
+- `ads.js` — the scene builders the short ads use (see below).
+- `films/<name>/script.json` — one short ad each.
 - `debug.mjs` — seeks to a few times and prints what is visible; for QA.
 
 ## Run (in this folder; Node 20+, Chrome installed, internet for fonts + voices)
@@ -41,6 +44,26 @@ The brief it follows is `MASTER_PROMPT.md` — read that first.
 
 Outputs: `tellmoreai-explainer-en.mp4`, `-bn.mp4`, and a `-poster.jpg` each.
 `node render.mjs en --from 60 --to 90` renders a slice for checking one scene.
+
+## The short ads (40–60 s)
+
+The same engine also makes short marketing cuts. Each one is a folder under
+`films/<name>/` holding only a `script.json`; the words, the on-screen text
+AND the timings live in that script, so a new ad is a new script, not code.
+The scene builders for ads are in `ads.js` (`adHook`, `adAnswer`, `adChat`,
+`adScreen`, `adPrice`, `adOutro`) and read the scene object: `chat` (bubbles
+with `at` seconds), `callouts` (rectangles in the screenshot's 1280×820
+space), `steps`, `tiles`, `chips`, `toast`, `cards`, `price`.
+
+    node tts.mjs --film midnight            # voices → films/midnight/audio/, durations.json
+    node render.mjs en --film midnight --stills 3,12,30
+    node render.mjs en --film midnight      # → tellmoreai-midnight-en.mp4 (+ poster)
+    node render.mjs bn --film midnight
+
+Current ads: `midnight` (the 24/7 promise), `photo-to-order` (shops),
+`book-meetings` (service businesses), `live-in-minutes` (setup + prices).
+Every ad ends on the same outro: tellmoreai.com, the 3-day trial, the
+Autolinium credit and contacts. Both languages, ~42–55 s each.
 
 ## How it stays exact
 

@@ -1,0 +1,79 @@
+{
+  "film": "book-meetings",
+  "about": "Ad 3 · for service businesses: answers from your documents, books meetings with a Meet link, the Bookings screen. ~50 s.",
+  "brand": { "site": "tellmoreai.com", "maroon": "#7B1C3E", "deep": "#5C1430", "paper": "#F7F5F7", "ink": "#121116", "mint": "#2ED3A7", "gold": "#F4C95D" },
+  "voices": { "en": "en-US-AndrewMultilingualNeural", "bn": "bn-BD-PradeepNeural" },
+  "rate": { "en": "-2%", "bn": "-2%" },
+  "company": {
+    "name": "Autolinium", "url": "www.autolinium.com", "email": "office@autolinium.com",
+    "phone": "+880 1533 633084", "address": "Chattogram Software Technology Park, Agrabad, Chattogram 4200, Bangladesh"
+  },
+  "chromeFrom": 0, "counter": false,
+  "scenes": [
+    {
+      "id": "01-docs", "template": "adScreen", "min": 11,
+      "shot": "knowledge", "head": { "x": 110, "y": 120, "w": 620, "size": 50 },
+      "win": { "x": 760, "y": 200, "w": 1080 },
+      "callouts": [
+        { "r": [1043, 125, 1136, 163], "at": 1.0, "hide": 4.4, "pos": "below right", "en": "Upload", "bn": "আপলোড" },
+        { "r": [131, 192, 1149, 442], "at": 2.6, "hide": 8.5, "pos": "below", "en": "PDF · Word · text — the bot reads them", "bn": "PDF · Word · লেখা — বট পড়ে নেয়" }
+      ],
+      "chips": [
+        { "x": 110, "y": 330, "at": 1.2, "stagger": 0.25, "items": [ { "icon": "file-spreadsheet", "en": "Rate card", "bn": "রেট কার্ড" }, { "en": "Brochure", "bn": "ব্রোশার" }, { "en": "Policies", "bn": "নিয়মকানুন" } ] },
+        { "x": 110, "y": 560, "at": 5.6, "stagger": 0.3, "width": 600, "items": [ { "icon": "brand-whatsapp", "en": "WhatsApp", "bn": "WhatsApp" }, { "icon": "brand-messenger", "en": "Facebook", "bn": "Facebook" }, { "icon": "brand-instagram", "en": "Instagram", "bn": "Instagram" }, { "icon": "world", "en": "Your website", "bn": "আপনার ওয়েবসাইট" } ] }
+      ],
+      "en": { "eyebrow": "For service businesses", "title": "It answers from your documents.",
+        "vo": "Run a service business? Upload your rate card, brochures or policies, and TellMore AI answers your customers from them, on WhatsApp, Facebook, Instagram and your website." },
+      "bn": { "eyebrow": "সেবার ব্যবসার জন্য", "title": "আপনার নথি থেকেই উত্তর দেয়।",
+        "vo": "সেবার ব্যবসা চালান? রেট কার্ড, ব্রোশার বা নিয়মকানুন আপলোড করুন — TellMore AI সেখান থেকেই কাস্টমারদের উত্তর দেবে, WhatsApp, Facebook, Instagram আর আপনার ওয়েবসাইটে।" }
+    },
+    {
+      "id": "02-booking", "template": "adChat", "min": 12,
+      "phone": { "name": "Farhan", "channel": "WhatsApp", "chIcon": "brand-whatsapp", "x": 560, "y": 120 },
+      "chat": [
+        { "k": "me", "at": 0.6, "en": "Do you do brand identity? What does it cost?", "bn": "ব্র্যান্ড আইডেন্টিটির কাজ করেন? খরচ কত?" },
+        { "k": "typing", "at": 1.6, "dur": 1.0 },
+        { "k": "bot", "at": 2.7, "en": "Yes — brand identity packages start at ৳25,000. Want a 20-minute call to discuss?", "bn": "জি — ব্র্যান্ড আইডেন্টিটি প্যাকেজ ৳২৫,০০০ থেকে শুরু। ২০ মিনিটের একটা কলে কথা বলবেন?" },
+        { "k": "me", "at": 5.8, "en": "Sure, Thursday?", "bn": "আচ্ছা, বৃহস্পতিবার?" },
+        { "k": "typing", "at": 6.5, "dur": 1.0 },
+        { "k": "card", "at": 7.6, "en": "Thursday 4:00 PM ✓", "bn": "বৃহস্পতিবার বিকেল ৪টা ✓", "sub_en": "Google Meet link sent · added to your calendar", "sub_bn": "Google Meet লিংক পাঠানো হলো · আপনার ক্যালেন্ডারে যোগ হলো" }
+      ],
+      "feats": [
+        { "at": 3.0, "icon": "file-spreadsheet", "en": "Answers from your documents", "bn": "আপনার নথি থেকে উত্তর" },
+        { "at": 7.9, "icon": "calendar-event", "en": "Checks your calendar, picks a free slot", "bn": "ক্যালেন্ডার দেখে খালি সময় বাছে" },
+        { "at": 9.8, "icon": "link", "en": "Meet link, sent automatically", "bn": "Meet লিংক, নিজে থেকেই পাঠায়" }
+      ],
+      "en": { "eyebrow": "Google Calendar", "title": "Meetings, booked for you.",
+        "vo": "Connect Google Calendar, and it books meetings for you: checks when you're free, picks a slot, creates the Meet link and sends it to the customer." },
+      "bn": { "eyebrow": "Google Calendar", "title": "মিটিং বুক হয়, আপনার হয়ে।",
+        "vo": "Google Calendar যুক্ত করুন, বট মিটিং বুক করে দেবে — আপনি কখন ফ্রি আছেন দেখে, একটা সময় বেছে, Meet লিংক বানিয়ে কাস্টমারকে পাঠিয়ে দেয়।" }
+    },
+    {
+      "id": "03-bookings", "template": "adScreen", "min": 9,
+      "shot": "bookings", "head": { "x": 110, "y": 120, "w": 560, "size": 52 },
+      "win": { "x": 700, "y": 200, "w": 1140 },
+      "callouts": [
+        { "r": [131, 330, 1149, 509], "at": 1.0, "hide": 5.0, "en": "Booked by the bot", "bn": "বট বুক করেছে" },
+        { "r": [150, 448, 278, 490], "at": 2.6, "hide": 5.0, "pos": "below", "en": "Meet link", "bn": "Meet লিংক" },
+        { "r": [1059, 419, 1130, 448], "at": 5.4, "pos": "right", "en": "Cancel → the customer is told", "bn": "বাতিল → কাস্টমার জানে" }
+      ],
+      "chips": { "x": 110, "y": 330, "at": 1.4, "stagger": 1.8, "dir": "column", "items": [
+        { "icon": "calendar-event", "en": "Free / busy checked first", "bn": "আগে দেখে আপনি ফ্রি কিনা" },
+        { "icon": "link", "en": "Meet link in the chat", "bn": "Meet লিংক চ্যাটেই" },
+        { "icon": "bell", "en": "Cancel → customer notified", "bn": "বাতিল → কাস্টমার জানে" }
+      ] },
+      "en": { "eyebrow": "Bookings", "title": "Your bookings, at a glance.",
+        "vo": "Every booking sits in your dashboard. Cancel one, and the customer is told automatically." },
+      "bn": { "eyebrow": "বুকিং", "title": "সব বুকিং, এক নজরে।",
+        "vo": "প্রতিটা বুকিং আপনার ড্যাশবোর্ডে। কোনোটা বাতিল করলে কাস্টমার নিজে থেকেই খবর পান।" }
+    },
+    {
+      "id": "04-outro", "template": "adOutro", "min": 11,
+      "price": { "en": "Service plans from ৳2,299 / month", "bn": "সেবার প্যাকেজ মাসে ৳২,২৯৯ থেকে" },
+      "en": { "title": "Let the assistant handle the questions.", "sub": "You handle the work.",
+        "vo": "Service plans from twenty-two ninety-nine taka a month. Start your free trial at tellmore A I dot com. Three days, no card. An Autolinium product." },
+      "bn": { "title": "প্রশ্নগুলো সহকারী সামলাক।", "sub": "আপনি সামলান কাজ।",
+        "vo": "সেবার প্যাকেজ মাসে দুই হাজার দুইশ নিরানব্বই টাকা থেকে। ফ্রি ট্রায়াল শুরু করুন tellmoreai.com-এ। তিন দিন, কার্ড লাগে না। একটি Autolinium পণ্য।" }
+    }
+  ]
+}

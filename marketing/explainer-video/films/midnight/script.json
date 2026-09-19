@@ -1,0 +1,56 @@
+{
+  "film": "midnight",
+  "about": "Ad 1 · the 24/7 promise: a missed midnight message, then the assistant answering on every channel. ~45 s.",
+  "brand": { "site": "tellmoreai.com", "maroon": "#7B1C3E", "deep": "#5C1430", "paper": "#F7F5F7", "ink": "#121116", "mint": "#2ED3A7", "gold": "#F4C95D" },
+  "voices": { "en": "en-US-AndrewMultilingualNeural", "bn": "bn-BD-PradeepNeural" },
+  "rate": { "en": "-2%", "bn": "-2%" },
+  "company": {
+    "name": "Autolinium", "url": "www.autolinium.com", "email": "office@autolinium.com",
+    "phone": "+880 1533 633084", "address": "Chattogram Software Technology Park, Agrabad, Chattogram 4200, Bangladesh"
+  },
+  "chromeFrom": 1, "counter": false,
+  "scenes": [
+    {
+      "id": "01-hook", "template": "adHook", "min": 9,
+      "en": { "eyebrow": "Tonight", "title": "12:07 AM. A customer is asking.", "sub": "Every message you miss is a sale someone else makes.",
+        "vo": "It's seven minutes past midnight. A customer just asked about your product. By morning, they've bought it from whoever answered first." },
+      "bn": { "eyebrow": "আজ রাতে", "title": "রাত ১২:০৭। একজন কাস্টমার জানতে চাইছেন।", "sub": "যে মেসেজ আপনি মিস করেন, সেটাই অন্য কারও বিক্রি।",
+        "vo": "রাত বারোটা সাত। একজন কাস্টমার এইমাত্র আপনার পণ্যের দাম জানতে চাইলেন। সকাল হতে হতে তিনি কিনে ফেলেছেন — যে আগে উত্তর দিয়েছে, তার কাছ থেকে।" }
+    },
+    {
+      "id": "02-answer", "template": "adAnswer", "min": 9,
+      "en": { "eyebrow": "TellMore AI", "title": "One assistant. Every channel. Day and night.", "sub": "Facebook · Instagram · WhatsApp · your website",
+        "vo": "TellMore AI answers for you, in seconds, on Facebook, Instagram, WhatsApp and your website. Day and night, every day." },
+      "bn": { "eyebrow": "TellMore AI", "title": "একটা সহকারী। সব চ্যানেল। দিনে-রাতে।", "sub": "Facebook · Instagram · WhatsApp · আপনার ওয়েবসাইট",
+        "vo": "TellMore AI আপনার হয়ে উত্তর দেয় — কয়েক সেকেন্ডে, Facebook, Instagram, WhatsApp আর আপনার ওয়েবসাইটে। দিনে-রাতে, প্রতিদিন।" }
+    },
+    {
+      "id": "03-chat", "template": "adChat", "min": 12,
+      "phone": { "name": "Tasnim", "channel": "Instagram", "chIcon": "brand-instagram", "x": 560, "y": 120 },
+      "chat": [
+        { "k": "me", "at": 0.6, "en": "Ei sharee tar dam koto?", "bn": "এই শাড়িটার দাম কত?" },
+        { "k": "typing", "at": 1.5, "dur": 1.0 },
+        { "k": "bot", "at": 2.6, "en": "Jamdani saree — ৳3,200, free delivery. Red and blue in stock 🙂", "bn": "জামদানি শাড়ি — ৳৩,২০০, ফ্রি ডেলিভারি। লাল আর নীল আছে 🙂" },
+        { "k": "me", "at": 5.2, "en": "M size ache?", "bn": "M সাইজ আছে?" },
+        { "k": "typing", "at": 6.0, "dur": 0.9 },
+        { "k": "bot", "at": 7.0, "en": "Yes, M is in stock. Delivery in Dhaka ৳60, 1–2 days. Shall I place the order?", "bn": "M আছে। ঢাকায় ডেলিভারি ৳৬০, ১–২ দিনে। অর্ডার করে দেব?" }
+      ],
+      "feats": [
+        { "at": 3.0, "icon": "language", "en": "Replies in the customer's language", "bn": "কাস্টমারের ভাষায় উত্তর" },
+        { "at": 7.3, "icon": "tag", "en": "Real prices, from your catalogue", "bn": "আপনার ক্যাটালগের আসল দাম" },
+        { "at": 9.4, "icon": "shopping-cart", "en": "Takes the order inside the chat", "bn": "অর্ডার নেয় চ্যাটের ভেতরেই" }
+      ],
+      "en": { "eyebrow": "In the inbox", "title": "Replies like a person. In seconds.",
+        "vo": "It replies in Bangla, English or Banglish, quotes real prices from your catalogue, and takes the order right inside the chat." },
+      "bn": { "eyebrow": "ইনবক্সে", "title": "মানুষের মতো উত্তর। কয়েক সেকেন্ডে।",
+        "vo": "বাংলা, ইংরেজি বা বাংলিশে উত্তর দেয়, আপনার ক্যাটালগের আসল দাম বলে, আর অর্ডারটাও নেয় চ্যাটের ভেতরেই।" }
+    },
+    {
+      "id": "04-outro", "template": "adOutro", "min": 10,
+      "en": { "title": "Let the assistant handle the questions.", "sub": "You handle the growth.",
+        "vo": "Start your free trial today at tellmore A I dot com. Three days, no card needed. TellMore AI, an Autolinium product." },
+      "bn": { "title": "প্রশ্নগুলো সহকারী সামলাক।", "sub": "আপনি সামলান ব্যবসার বৃদ্ধি।",
+        "vo": "আজই ফ্রি ট্রায়াল শুরু করুন tellmoreai.com-এ। তিন দিন, কার্ড লাগে না। TellMore AI — একটি Autolinium পণ্য।" }
+    }
+  ]
+}

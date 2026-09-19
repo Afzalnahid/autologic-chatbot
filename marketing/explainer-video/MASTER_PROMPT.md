@@ -156,7 +156,25 @@ studio (`/shots`), so they are the real UI with sample data.
 - a poster frame for each
 - this document, the script, and the generator, committed
 
-## 11. Acceptance
+## 11. Short ads (added 2026-09-19)
+
+The owner liked the explainer and asked for "3–4 more videos in marketing
+style, 40 seconds to 1 minute". Same rules as above (§3, §4, §7, §8), one
+message per film, four scenes each, the same outro on every one. Both
+languages. Scripts live in `films/<name>/script.json`.
+
+| Film | Message | Scenes |
+|---|---|---|
+| `midnight` | Every missed message is a sale someone else makes; the assistant answers 24/7 on every channel | hook (12:07 AM) → 3D logo + channel coins → phone demo → outro |
+| `photo-to-order` | For shops: a photo finds the product; the order is taken in chat; every way to add products | photo chat → Orders screen → Inventory + 8 ways → outro (Shop from ৳2,699) |
+| `book-meetings` | For service businesses: answers from documents; books meetings with a Meet link | Knowledge screen → WhatsApp booking chat → Bookings screen → outro (Service from ৳2,299) |
+| `live-in-minutes` | Live in minutes with no developer; teach it; the prices | Channels + 3 steps → Bot Training → price cards → outro |
+
+Acceptance for an ad: 40–60 s in both languages, the price and trial facts
+match the pricing page, the Autolinium credit and contacts are legible for
+at least 5 s, no black frames, no gaps.
+
+## 12. Acceptance (explainer)
 
 - Every row of §6 is on screen or in the narration (checked off in the script).
 - No frame is a plain static image for more than 2 seconds.

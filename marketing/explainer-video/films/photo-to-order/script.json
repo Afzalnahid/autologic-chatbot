@@ -1,0 +1,89 @@
+{
+  "film": "photo-to-order",
+  "about": "Ad 2 · for shops: a customer sends a photo, the bot finds the product and takes the order; the Orders tab; eight ways to add products. ~55 s.",
+  "brand": { "site": "tellmoreai.com", "maroon": "#7B1C3E", "deep": "#5C1430", "paper": "#F7F5F7", "ink": "#121116", "mint": "#2ED3A7", "gold": "#F4C95D" },
+  "voices": { "en": "en-US-AndrewMultilingualNeural", "bn": "bn-BD-PradeepNeural" },
+  "rate": { "en": "-2%", "bn": "-2%" },
+  "company": {
+    "name": "Autolinium", "url": "www.autolinium.com", "email": "office@autolinium.com",
+    "phone": "+880 1533 633084", "address": "Chattogram Software Technology Park, Agrabad, Chattogram 4200, Bangladesh"
+  },
+  "chromeFrom": 0, "counter": false,
+  "scenes": [
+    {
+      "id": "01-photo", "template": "adChat", "min": 14,
+      "phone": { "name": "Rahela", "channel": "Messenger", "chIcon": "brand-messenger", "x": 560, "y": 120 },
+      "chat": [
+        { "k": "photo", "at": 0.8, "en": "Ei design ta ache?", "bn": "এই ডিজাইনটা আছে?" },
+        { "k": "typing", "at": 2.0, "dur": 1.2 },
+        { "k": "bot", "at": 3.4, "en": "Matched — Cotton kurti, ৳1,450 · M and L in stock ✓", "bn": "মিলে গেছে — কটন কুর্তি, ৳১,৪৫০ · M আর L আছে ✓" },
+        { "k": "me", "at": 6.6, "en": "Order korte chai, M", "bn": "অর্ডার করতে চাই, M" },
+        { "k": "typing", "at": 7.4, "dur": 0.9 },
+        { "k": "bot", "at": 8.4, "en": "Great! Your name, phone and address please 🙂", "bn": "দারুণ! নাম, ফোন আর ঠিকানা দিন 🙂" },
+        { "k": "clear", "at": 10.2 },
+        { "k": "me", "at": 10.4, "en": "Rahela Khatun, 017…, Kandirpar, Cumilla", "bn": "রাহেলা খাতুন, ০১৭…, কান্দিরপাড়, কুমিল্লা" },
+        { "k": "typing", "at": 11.2, "dur": 0.9 },
+        { "k": "card", "at": 12.2, "en": "Order #AL2481 confirmed ✓", "bn": "অর্ডার #AL2481 নিশ্চিত ✓",
+          "sub_en": "Cotton kurti · M · ৳1,450 + ৳60 delivery = <b>৳1,510</b><br>Cash on delivery · 2 days",
+          "sub_bn": "কটন কুর্তি · M · ৳১,৪৫০ + ৳৬০ ডেলিভারি = <b>৳১,৫১০</b><br>ক্যাশ অন ডেলিভারি · ২ দিন" }
+      ],
+      "feats": [
+        { "at": 3.7, "icon": "photo", "en": "Photo → the exact product, real price, sizes in stock", "bn": "ছবি → ঠিক পণ্য, আসল দাম, স্টকের সাইজ" },
+        { "at": 8.7, "icon": "shopping-cart", "en": "Takes the order in the chat", "bn": "অর্ডার নেয় চ্যাটের ভেতরেই" },
+        { "at": 12.5, "icon": "check", "en": "Never the same order twice", "bn": "একই অর্ডার কখনো দুবার নয়" }
+      ],
+      "en": { "eyebrow": "For shops", "title": "They send a photo. It finds the product.",
+        "vo": "A customer sends a photo instead of a name. TellMore AI finds that exact product in your catalogue, quotes the real price and the sizes in stock, and takes the order right there in the chat." },
+      "bn": { "eyebrow": "দোকানের জন্য", "title": "ছবি পাঠালেই পণ্যটা খুঁজে পায়।",
+        "vo": "কাস্টমার নামের বদলে একটা ছবি পাঠালেন। TellMore AI আপনার ক্যাটালগ থেকে ঠিক সেই পণ্যটা খুঁজে নেয়, আসল দাম আর স্টকে থাকা সাইজ জানায়, আর অর্ডারটাও নিয়ে নেয় চ্যাটের ভেতরেই।" }
+    },
+    {
+      "id": "02-orders", "template": "adScreen", "min": 11,
+      "shot": "orders", "head": { "x": 110, "y": 120, "w": 560, "size": 52 },
+      "win": { "x": 700, "y": 330, "w": 1160, "h": 560 },
+      "callouts": [
+        { "r": [131, 256, 704, 291], "at": 1.0, "hide": 5.4, "pos": "below", "en": "Pending → Confirmed → Shipped → Delivered", "bn": "Pending → Confirmed → Shipped → Delivered" },
+        { "r": [1053, 192, 1136, 227], "at": 5.8, "hide": 9.4, "pos": "right", "en": "Export CSV", "bn": "CSV-তে নামান" }
+      ],
+      "chips": { "x": 110, "y": 330, "at": 2.2, "stagger": 0.35, "width": 540, "items": [
+        { "en": "Cash on delivery", "bn": "ক্যাশ অন ডেলিভারি" }, { "en": "bKash", "bn": "bKash" }, { "en": "Nagad", "bn": "Nagad" }, { "en": "Card", "bn": "কার্ড" }
+      ] },
+      "toast": { "x": 110, "y": 560, "at": 7.4, "icon": "bell", "en": "New order #A-1042", "bn": "নতুন অর্ডার #A-1042", "sub_en": "Tasnim Rahman · ৳1,510 · also emailed", "sub_bn": "Tasnim Rahman · ৳১,৫১০ · ইমেইলেও গেছে" },
+      "en": { "eyebrow": "Orders", "title": "Every order, in one place.",
+        "vo": "It lands in your Orders tab: confirm, ship, deliver, export. Cash on delivery, bKash, Nagad or card. And your phone buzzes the moment it comes in." },
+      "bn": { "eyebrow": "অর্ডার", "title": "প্রতিটা অর্ডার, এক জায়গায়।",
+        "vo": "অর্ডারটা চলে আসে আপনার Orders ট্যাবে — কনফার্ম, শিপ, ডেলিভার, এক্সপোর্ট। ক্যাশ অন ডেলিভারি, bKash, Nagad বা কার্ড। আর অর্ডার আসার সাথে সাথে আপনার ফোনে নোটিফিকেশন।" }
+    },
+    {
+      "id": "03-products", "template": "adScreen", "min": 11,
+      "shot": "inventory", "head": { "x": 110, "y": 120, "w": 680, "size": 52 },
+      "win": { "x": 840, "y": 180, "w": 1020, "h": 600 },
+      "callouts": [
+        { "r": [870, 176, 1002, 211], "at": 1.0, "hide": 6.0, "pos": "below", "en": "Add products", "bn": "পণ্য যোগ" },
+        { "r": [547, 35, 736, 99], "at": 7.0, "hide": 10.5, "pos": "below", "en": "Sizes & colours, own prices", "bn": "সাইজ ও রঙ, আলাদা দাম" }
+      ],
+      "tiles": { "x": 110, "y": 290, "cols": 2, "w": 340, "at": 1.4, "stagger": 0.85, "items": [
+        { "icon": "camera", "en": "Snap a photo", "bn": "ছবি তুলুন", "sub_en": "AI writes name & description", "sub_bn": "AI নাম ও বিবরণ লেখে" },
+        { "icon": "photo", "en": "A batch of photos", "bn": "অনেক ছবি একসাথে", "sub_en": "sorted into products", "sub_bn": "পণ্য ধরে ভাগ হয়" },
+        { "icon": "message-2", "en": "Describe it in chat", "bn": "চ্যাটে বলুন", "sub_en": "the AI interviews you", "sub_bn": "AI প্রশ্ন করে নেয়" },
+        { "icon": "link", "en": "Paste a website link", "bn": "ওয়েবসাইট লিংক", "sub_en": "one link, one product", "sub_bn": "এক লিংক, এক পণ্য" },
+        { "icon": "file-spreadsheet", "en": "Import a CSV", "bn": "CSV ইমপোর্ট", "sub_en": "many at once", "sub_bn": "একসাথে অনেক" },
+        { "icon": "building-store", "en": "Shopify", "bn": "Shopify", "sub_en": "pull the whole store", "sub_bn": "পুরো দোকান আনুন" },
+        { "icon": "shopping-cart", "en": "WooCommerce", "bn": "WooCommerce", "sub_en": "pull the whole store", "sub_bn": "পুরো দোকান আনুন" },
+        { "icon": "sparkles", "en": "Tell the AI Assistant", "bn": "AI Assistant-কে বলুন", "sub_en": "“add a red saree, 2,500”", "sub_bn": "“লাল শাড়ি যোগ করো, ২,৫০০”" }
+      ] },
+      "en": { "eyebrow": "Products", "title": "Add products any way you like.",
+        "vo": "Adding products is easy. Snap a photo and the AI writes the details. Paste a link, import a CSV, or pull your whole Shopify or WooCommerce store." },
+      "bn": { "eyebrow": "পণ্য", "title": "পণ্য যোগ করুন যেভাবে খুশি।",
+        "vo": "পণ্য যোগ করা সহজ। একটা ছবি তুলুন, AI নাম আর বিবরণ লিখে দেবে। লিংক দিন, CSV ইমপোর্ট করুন, বা Shopify কিংবা WooCommerce থেকে পুরো দোকান একবারে আনুন।" }
+    },
+    {
+      "id": "04-outro", "template": "adOutro", "min": 11,
+      "price": { "en": "Shop plans from ৳2,699 / month", "bn": "দোকানের প্যাকেজ মাসে ৳২,৬৯৯ থেকে" },
+      "en": { "title": "Let the assistant handle the questions.", "sub": "You handle the growth.",
+        "vo": "Shop plans from twenty-six ninety-nine taka a month. Start your free trial at tellmore A I dot com. Three days, no card. An Autolinium product." },
+      "bn": { "title": "প্রশ্নগুলো সহকারী সামলাক।", "sub": "আপনি সামলান ব্যবসার বৃদ্ধি।",
+        "vo": "দোকানের প্যাকেজ মাসে দুই হাজার ছয়শ নিরানব্বই টাকা থেকে। ফ্রি ট্রায়াল শুরু করুন tellmoreai.com-এ। তিন দিন, কার্ড লাগে না। একটি Autolinium পণ্য।" }
+    }
+  ]
+}

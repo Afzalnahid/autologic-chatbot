@@ -1,0 +1,84 @@
+{
+  "film": "live-in-minutes",
+  "about": "Ad 4 · getting started and the prices: one-click connect, teach it, two package sets, 3-day trial. ~55 s.",
+  "brand": { "site": "tellmoreai.com", "maroon": "#7B1C3E", "deep": "#5C1430", "paper": "#F7F5F7", "ink": "#121116", "mint": "#2ED3A7", "gold": "#F4C95D" },
+  "voices": { "en": "en-US-AndrewMultilingualNeural", "bn": "bn-BD-PradeepNeural" },
+  "rate": { "en": "-2%", "bn": "-2%" },
+  "company": {
+    "name": "Autolinium", "url": "www.autolinium.com", "email": "office@autolinium.com",
+    "phone": "+880 1533 633084", "address": "Chattogram Software Technology Park, Agrabad, Chattogram 4200, Bangladesh"
+  },
+  "chromeFrom": 0, "counter": false,
+  "scenes": [
+    {
+      "id": "01-start", "template": "adScreen", "min": 14,
+      "shot": "channels", "head": { "x": 110, "y": 130, "w": 620, "size": 54 },
+      "win": { "x": 770, "y": 200, "w": 1070 },
+      "steps": { "x": 110, "y": 330, "w": 600, "at": 0.8, "gap": 3.0, "items": [
+        { "en": "Sign up", "bn": "সাইন আপ করুন", "sub_en": "3-day free trial · no card", "sub_bn": "৩ দিনের ফ্রি ট্রায়াল · কার্ড লাগে না" },
+        { "en": "Connect a channel", "bn": "চ্যানেল যুক্ত করুন", "sub_en": "One click — log in, pick the Page", "sub_bn": "এক ক্লিক — লগইন করুন, পেজটা বাছুন" },
+        { "en": "The bot is live", "bn": "বট চালু", "sub_en": "Facebook · Instagram · WhatsApp · website", "sub_bn": "Facebook · Instagram · WhatsApp · ওয়েবসাইট" }
+      ] },
+      "callouts": [
+        { "r": [797, 45, 989, 83], "at": 3.4, "hide": 6.8, "pos": "below right", "en": "Connect in one click", "bn": "এক ক্লিকে যুক্ত করুন" },
+        { "r": [895, 188, 946, 226], "at": 7.0, "hide": 10.4, "pos": "right", "en": "Live", "bn": "চালু" }
+      ],
+      "chips": { "x": 110, "y": 760, "at": 9.8, "stagger": 0.22, "items": [
+        { "icon": "check", "cls": "mint", "en": "No tokens", "bn": "টোকেন নেই" }, { "icon": "check", "cls": "mint", "en": "No code", "bn": "কোড নেই" }, { "icon": "check", "cls": "mint", "en": "No developer", "bn": "ডেভেলপার লাগে না" }
+      ] },
+      "en": { "eyebrow": "Getting started", "title": "Live in minutes. No developer.",
+        "vo": "Getting started takes minutes. Sign up, and your three-day free trial begins, no card needed. Log in with your own Facebook, pick the Page, and the bot is live. No tokens, no code, no developer." },
+      "bn": { "eyebrow": "শুরু করা", "title": "কয়েক মিনিটেই চালু। ডেভেলপার লাগে না।",
+        "vo": "শুরু করতে কয়েক মিনিট লাগে। সাইন আপ করুন, তিন দিনের ফ্রি ট্রায়াল শুরু, কার্ড লাগে না। নিজের Facebook দিয়ে লগইন করুন, পেজটা বাছুন, বট চালু। টোকেন নেই, কোড নেই, ডেভেলপার লাগে না।" }
+    },
+    {
+      "id": "02-teach", "template": "adScreen", "min": 11,
+      "shot": "bot-training", "head": { "x": 1180, "y": 130, "w": 660, "size": 50 },
+      "win": { "x": 80, "y": 190, "w": 1040, "tilt": 6 },
+      "callouts": [
+        { "r": [291, 172, 730, 208], "at": 1.0, "hide": 4.4, "pos": "below", "en": "Train · Offers · Bargaining · Behavior", "bn": "Train · Offers · Bargaining · Behavior" },
+        { "r": [310, 394, 970, 522], "at": 5.0, "hide": 8.6, "en": "Describe your business", "bn": "আপনার ব্যবসার বর্ণনা" },
+        { "r": [861, 307, 957, 336], "at": 8.8, "pos": "right", "en": "AI fills it in for you", "bn": "AI নিজেই ভরে দেয়" }
+      ],
+      "pans": [ { "y": 180, "at": 4.4 } ],
+      "tiles": { "x": 1180, "y": 330, "cols": 1, "w": 660, "at": 1.4, "stagger": 2.6, "size": 19, "items": [
+        { "icon": "user", "en": "Name · greeting · tone · language", "bn": "নাম · অভিবাদন · ধরন · ভাষা" },
+        { "icon": "building-store", "en": "A short questionnaire: delivery, payment, hours…", "bn": "ছোট প্রশ্নমালা: ডেলিভারি, পেমেন্ট, সময়…" },
+        { "icon": "bolt", "en": "Add an instruction any time", "bn": "যেকোনো সময় নতুন নির্দেশ" },
+        { "icon": "sparkles", "en": "AI writes your whole business profile", "bn": "AI আপনার পুরো প্রোফাইল লিখে দেয়" }
+      ] },
+      "en": { "eyebrow": "Bot Training", "title": "Teach it your business.",
+        "vo": "Then teach it your business: a name, a greeting, a tone, and a short questionnaire. Give it a few facts, and the AI writes your whole profile." },
+      "bn": { "eyebrow": "বটের ট্রেনিং", "title": "আপনার ব্যবসা শেখান।",
+        "vo": "তারপর বটকে আপনার ব্যবসা শেখান — একটা নাম, অভিবাদন, কথার ধরন আর ছোট একটা প্রশ্নমালা। কয়েকটা তথ্য দিলে AI আপনার পুরো প্রোফাইল নিজেই লিখে দেয়।" }
+    },
+    {
+      "id": "03-price", "template": "adPrice", "min": 13,
+      "cards": [
+        { "en": "Free trial", "bn": "ফ্রি ট্রায়াল", "price_en": "Free", "price_bn": "ফ্রি", "small_en": "· 3 days", "small_bn": "· ৩ দিন", "sub_en": "Every feature switched on", "sub_bn": "সব ফিচার চালু",
+          "feats": [ { "en": "30 bot replies a day", "bn": "দিনে ৩০টা বট-উত্তর" }, { "en": "1 channel of your choice", "bn": "১টা চ্যানেল" }, { "en": "No card needed", "bn": "কার্ড লাগে না" } ] },
+        { "hl": true, "badge_en": "Shops", "badge_bn": "দোকান", "en": "Shop plans from", "bn": "দোকানের প্যাকেজ", "price_en": "৳2,699", "price_bn": "৳২,৬৯৯", "small_en": "/ month", "small_bn": "/ মাস", "sub_en": "Basic · Pro · Enterprise · own AI key from ৳1,999", "sub_bn": "Basic · Pro · Enterprise · নিজের AI কী থাকলে ৳১,৯৯৯ থেকে",
+          "feats": [ { "en": "Every plan has every feature", "bn": "প্রতিটা প্যাকেজে সব ফিচার" }, { "en": "Products, orders, offers, bargaining", "bn": "পণ্য, অর্ডার, অফার, দরদাম" }, { "en": "Yearly = 2 months free", "bn": "বছরে নিলে ২ মাস ফ্রি" } ] },
+        { "en": "Service plans from", "bn": "সেবার প্যাকেজ", "price_en": "৳2,299", "price_bn": "৳২,২৯৯", "small_en": "/ month", "small_bn": "/ মাস", "sub_en": "Basic · Pro · Enterprise · own AI key from ৳1,699", "sub_bn": "Basic · Pro · Enterprise · নিজের AI কী থাকলে ৳১,৬৯৯ থেকে",
+          "feats": [ { "en": "Every plan has every feature", "bn": "প্রতিটা প্যাকেজে সব ফিচার" }, { "en": "Documents, bookings, Meet links", "bn": "নথি, বুকিং, Meet লিংক" }, { "en": "Yearly = 2 months free", "bn": "বছরে নিলে ২ মাস ফ্রি" } ] }
+      ],
+      "chips": { "x": 110, "y": 760, "at": 6.0, "stagger": 1.2, "width": 1700, "items": [
+        { "icon": "check", "cls": "mint", "en": "Every plan has every feature", "bn": "প্রতিটা প্যাকেজে সব ফিচার" },
+        { "icon": "key", "en": "Own AI key → lower price", "bn": "নিজের AI কী → দাম কম" },
+        { "en": "bKash · Nagad · card", "bn": "bKash · Nagad · কার্ড" },
+        { "icon": "tag", "cls": "gold", "en": "Launch prices until 31 Dec 2026", "bn": "লঞ্চ দাম, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত" }
+      ] },
+      "en": { "eyebrow": "Pricing", "title": "Start free. Pick your size.",
+        "vo": "Shop plans from twenty-six ninety-nine taka a month, Service plans from twenty-two ninety-nine. Every plan has every feature, yearly gets two months free, and these are launch prices until the end of December." },
+      "bn": { "eyebrow": "দাম", "title": "ফ্রি-তে শুরু। নিজের মাপ বাছুন।",
+        "vo": "দোকানের প্যাকেজ মাসে দুই হাজার ছয়শ নিরানব্বই টাকা থেকে, সেবার প্যাকেজ দুই হাজার দুইশ নিরানব্বই থেকে। প্রতিটা প্যাকেজে সব ফিচার, বছরে নিলে দুই মাস ফ্রি, আর এগুলো লঞ্চ দাম — ডিসেম্বরের শেষ পর্যন্ত।" }
+    },
+    {
+      "id": "04-outro", "template": "adOutro", "min": 10,
+      "en": { "title": "Let the assistant handle the questions.", "sub": "You handle the growth.",
+        "vo": "Start your free trial today at tellmore A I dot com. Three days, no card needed. TellMore AI, an Autolinium product." },
+      "bn": { "title": "প্রশ্নগুলো সহকারী সামলাক।", "sub": "আপনি সামলান ব্যবসার বৃদ্ধি।",
+        "vo": "আজই ফ্রি ট্রায়াল শুরু করুন tellmoreai.com-এ। তিন দিন, কার্ড লাগে না। TellMore AI — একটি Autolinium পণ্য।" }
+    }
+  ]
+}

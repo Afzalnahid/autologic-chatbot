@@ -2,15 +2,24 @@
 // free), then the exact length of each clip so the timeline can be built to
 // the narration. Re-runs only make the clips that are missing or whose text
 // changed (a hash of the text sits beside each clip).
+//   node tts.mjs [en|bn] [--film <name>]     default: both languages, the explainer
+// A film other than the explainer lives in films/<name>/ (script, audio, durations).
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 
-const script = JSON.parse(fs.readFileSync("script.json", "utf8"));
-const langs = process.argv[2] ? [process.argv[2]] : ["en", "bn"];
-const durations = fs.existsSync("durations.json") ? JSON.parse(fs.readFileSync("durations.json", "utf8")) : {};
+const args = process.argv.slice(2);
+const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
+const positional = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--")));
+const film = opt("--film") || "explainer";
+const base = film === "explainer" ? "." : path.join("films", film);
+if (!fs.existsSync(path.join(base, "script.json"))) { console.error(`no script at ${base}/script.json`); process.exit(1); }
+const script = JSON.parse(fs.readFileSync(path.join(base, "script.json"), "utf8"));
+const langs = positional[0] ? [positional[0]] : ["en", "bn"];
+const durFile = path.join(base, "durations.json");
+const durations = fs.existsSync(durFile) ? JSON.parse(fs.readFileSync(durFile, "utf8")) : {};
 
 function durationOf(file) {
   const out = execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", file]).toString();
@@ -18,9 +27,9 @@ function durationOf(file) {
 }
 
 for (const lang of langs) {
-  fs.mkdirSync(path.join("audio", lang), { recursive: true });
+  fs.mkdirSync(path.join(base, "audio", lang), { recursive: true });
   for (const sc of script.scenes) {
-    const out = path.join("audio", lang, sc.id + ".mp3");
+    const out = path.join(base, "audio", lang, sc.id + ".mp3");
     const hashFile = out + ".txt";
     const text = sc[lang].vo;
     const hash = createHash("sha1").update(script.voices[lang] + script.rate[lang] + text).digest("hex");
@@ -43,9 +52,9 @@ for (const lang of langs) {
       fs.writeFileSync(hashFile, hash);
     }
     durations[`${lang}/${sc.id}`] = durationOf(out);
-    console.log(lang, sc.id, durations[`${lang}/${sc.id}`].toFixed(1) + "s", fresh ? "(kept)" : "");
+    console.log(film, lang, sc.id, durations[`${lang}/${sc.id}`].toFixed(1) + "s", fresh ? "(kept)" : "");
   }
 }
-fs.writeFileSync("durations.json", JSON.stringify(durations, null, 2));
+fs.writeFileSync(durFile, JSON.stringify(durations, null, 2));
 const total = (l) => Object.entries(durations).filter(([k]) => k.startsWith(l + "/")).reduce((a, [, v]) => a + v, 0);
-console.log("TOTAL narration  en", total("en").toFixed(0) + "s", " bn", total("bn").toFixed(0) + "s");
+console.log(`TOTAL narration (${film})  en`, total("en").toFixed(0) + "s", " bn", total("bn").toFixed(0) + "s");
