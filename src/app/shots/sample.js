@@ -66,21 +66,21 @@ const CONVOS = [
 
 // ---------------------------------------------------------------- products
 const PRODUCTS = [
-  { id: "p1", created_at: iso(60 * 30), product_name: "Cotton panjabi — navy", product_code: "PJ-NVY-01",
-    brand: "Nokshi", category: "Men › Panjabi", tags: "cotton, summer, eid",
+  { id: "p1", created_at: iso(60 * 30), product_name: "Cotton panjabi — navy", product_code: "PJ-NVY-01", hidden: false,
+    brand: "Nokshi", category: "Men › Panjabi", tags: ["cotton","summer","eid"],
     regular_price: 1650, sale_price: 1450, stock_qty: 12, stock_status: "instock",
     description: "Soft cotton panjabi that does not shrink. Comfortable in summer heat.",
     variants: [{ name: "M" }, { name: "L" }, { name: "XL" }] },
   { id: "p2", created_at: iso(60 * 90), product_name: "Half-sleeve polo — olive", product_code: "PL-OLV-04",
-    brand: "Nokshi", category: "Men › Polo", tags: "cotton, casual",
+    brand: "Nokshi", category: "Men › Polo", tags: ["cotton","casual"],
     regular_price: 850, stock_qty: 3, stock_status: "instock",
     description: "Everyday polo in breathable pique cotton." },
   { id: "p3", created_at: iso(60 * 200), product_name: "Kids' kurta set — mustard", product_code: "KD-MST-02",
-    brand: "Nokshi", category: "Kids", tags: "eid, gift",
+    brand: "Nokshi", category: "Kids", tags: ["eid","gift"],
     regular_price: 1200, sale_price: 990, stock_qty: 0, stock_status: "outofstock",
     description: "Two-piece kurta and pyjama set for ages 4 to 8." },
   { id: "p4", created_at: iso(60 * 300), product_name: "Handloom shawl", product_code: "SH-HND-11",
-    brand: "Nokshi", category: "Winter", tags: "handloom, winter, gift",
+    brand: "Nokshi", category: "Winter", tags: ["handloom","winter","gift"],
     regular_price: 2400, stock_qty: 7, stock_status: "instock",
     description: "Woven by hand in Tangail. Warm without being heavy." },
 ];

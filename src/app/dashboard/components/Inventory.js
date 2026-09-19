@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { T, Card, Btn, Inp, Badge, Select, Segmented, useIsMobile, taka } from "./ui.js";
+import { T, Card, Btn, Inp, Badge, Select, Segmented, Switch, useIsMobile, taka } from "./ui.js";
+import { isHidden } from "@/lib/product-visibility.js";
 import { api, apiJson } from "./session.js";
 import { parseCsv, autoMap, toProducts, COLUMNS, SAMPLE_CSV } from "@/lib/csv.js";
 import { shrinkBatch, fileSize } from "@/lib/shrink-image.js";
@@ -139,6 +140,7 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
       // Not a stock state at all — it shares the filter because it answers the
       // same shape of question: which of these can the bot actually sell?
       if (stock === "notready" && productState(p).state === "ready") return false;
+      if (stock === "hidden" && !isHidden(p)) return false;
       if (!q) return true;
       const hay = [p.product_name, p.product_code, p.category, p.brand, p.description, ...(p.tags || []), ...(p.variants || []).map((v) => `${v.name} ${v.sku}`)].join(" ").toLowerCase();
       return hay.includes(q);
@@ -156,7 +158,18 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
     out: products.filter((p) => stockOf(p) === "out").length,
     low: products.filter((p) => stockOf(p) === "low").length,
     variants: products.reduce((n, p) => n + (p.variants?.length || 0), 0),
+    hidden: products.filter(isHidden).length,
   }), [products, catNames.length]);
+
+  // The "bot sells" switch (design handoff Part 3). Off keeps the product and
+  // everything on it, but the bot stops offering it — see product-visibility.js.
+  const setHidden = async (p, hidden) => {
+    const fd = new FormData(); fd.append("id", p.id); fd.append("hidden", hidden ? "1" : "0");
+    const r = await apiJson("/api/products", { method: "PATCH", body: fd }).catch(() => ({ error: "network" }));
+    if (r?.error) { setToast("Could not save: " + r.error); return; }
+    setToast(hidden ? `"${p.product_name || "Product"}" is hidden from the bot` : `The bot sells "${p.product_name || "this product"}" again`);
+    refresh();
+  };
 
   const toggle = (id) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const allVisible = list.length > 0 && list.every((p) => sel.has(p.id));
@@ -188,7 +201,8 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
   const notReady = useMemo(() => products.map((p) => ({ p, ...productState(p) })).filter((x) => x.state !== "ready"), [products]);
 
   const stockItems = [{ value: "all", label: "All" }, { value: "instock", label: "In stock" }, { value: "low", label: "Low", badge: stats.low || undefined }, { value: "outofstock", label: "Out", badge: stats.out || undefined },
-    ...(notReady.length ? [{ value: "notready", label: "Not ready", badge: notReady.length }] : [])];
+    ...(notReady.length ? [{ value: "notready", label: "Not ready", badge: notReady.length }] : []),
+    ...(stats.hidden ? [{ value: "hidden", label: "Hidden", badge: stats.hidden }] : [])];
   const catItems = [{ value: "all", label: "All products", icon: "ti-layout-grid", badge: products.length }, ...cats.map(([c, n]) => ({ value: c, label: c, icon: c === "Uncategorized" ? "ti-folder-question" : "ti-folder", badge: n }))];
   const wide = !isMobile;
 
@@ -344,15 +358,16 @@ export default function Inventory({ products, refresh, intent, onIntentDone }) {
                 : <Card style={{ padding: 0, overflow: "hidden" }}>
                     <div style={{ overflowX: "auto" }}><table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse", fontSize: 13 }}>
                       <thead><tr style={{ borderBottom: `1px solid ${T.border}` }}>
-                        {["", "Product", "Category", "Price", "Stock", "Variants", ""].map((h, i) => <th key={i} style={{ padding: "11px 14px", textAlign: "left", color: T.textMuted, fontWeight: 600, fontSize: 10.5, textTransform: "uppercase", letterSpacing: .8, width: i === 0 ? 36 : undefined }}>{h}</th>)}
+                        {["", "Product", "Category", "Price", "Stock", "Variants", "Bot sells", ""].map((h, i) => <th key={i} style={{ padding: "11px 14px", textAlign: "left", color: T.textMuted, fontWeight: 600, fontSize: 10.5, textTransform: "uppercase", letterSpacing: .8, width: i === 0 ? 36 : undefined }}>{h}</th>)}
                       </tr></thead>
                       <tbody>{list.map((p) => <tr key={p.id} className="ui-row" onClick={() => setEditor({ mode: "edit", p })} style={{ borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
                         <td style={{ padding: "10px 14px" }} onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={sel.has(p.id)} onChange={() => toggle(p.id)} style={{ accentColor: T.gold, width: 15, height: 15 }} /></td>
                         <td style={{ padding: "10px 14px" }}><div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}><Thumb p={p} size={40} radius={10} /><div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>{p.product_name || "Unnamed"}</div><div style={{ fontSize: 11.5, color: T.textDim, fontFamily: "monospace" }}>{p.product_code || "—"}{p.brand ? ` · ${p.brand}` : ""}</div></div></div></td>
-                        <td style={{ padding: "10px 14px" }}><Badge color={T.purple}>{catOf(p)}</Badge></td>
-                        <td style={{ padding: "10px 14px" }}><PriceTag p={p} /></td>
-                        <td style={{ padding: "10px 14px" }}><StockBadge p={p} /></td>
-                        <td style={{ padding: "10px 14px", color: T.textMuted }}>{p.variants?.length ? `${p.variants.length} variant${p.variants.length > 1 ? "s" : ""}` : "—"}</td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}><Badge color={T.purple}>{catOf(p)}</Badge></td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}><PriceTag p={p} /></td>
+                        <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}><StockBadge p={p} /></td>
+                        <td style={{ padding: "10px 14px", color: T.textMuted, whiteSpace: "nowrap" }}>{p.variants?.length ? `${p.variants.length} variant${p.variants.length > 1 ? "s" : ""}` : "—"}</td>
+                        <td style={{ padding: "10px 14px" }} onClick={(e) => e.stopPropagation()}><Switch size="sm" on={!isHidden(p)} onClick={() => setHidden(p, !isHidden(p))} title={isHidden(p) ? "Hidden from the bot — switch on to sell it again" : "The bot sells this — switch off to hide it"} /></td>
                         <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => setEditor({ mode: "edit", p })} className="ui-btn" title="Edit" style={{ background: "none", border: "none", cursor: "pointer", color: T.gold, fontSize: 17, minHeight: 0, padding: 6 }}><i className="ti ti-pencil" /></button>
                           <button onClick={() => del(p)} className="ui-btn" title="Delete" style={{ background: "none", border: "none", cursor: "pointer", color: T.danger, fontSize: 17, minHeight: 0, padding: 6 }}><i className="ti ti-trash" /></button>
@@ -417,6 +432,7 @@ function ProductCard({ p, on, toggle, open, isMobile }) {
       </label>
       {nv > 0 && <span style={{ position: "absolute", top: 8, right: 8, background: "rgba(25,28,36,.72)", color: "#fff", fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)" }}><i className="ti ti-versions" style={{ fontSize: 11, marginRight: 4 }} />{nv}</span>}
       {s !== "in" && <span style={{ position: "absolute", bottom: 8, left: 8, background: s === "out" ? T.danger : T.warn, color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999 }}>{s === "out" ? "Out of stock" : "Low stock"}</span>}
+      {isHidden(p) && <span title="The bot does not offer this product" style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(25,28,36,.72)", color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, backdropFilter: "blur(6px)" }}><i className="ti ti-eye-off" style={{ fontSize: 11, marginRight: 4 }} />Hidden from bot</span>}
     </div>
     <div style={{ padding: isMobile ? "10px 11px 11px" : "12px 13px 13px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
       <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: 35 }}>{p.product_name || "Unnamed"}</div>
@@ -448,6 +464,7 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     product_name: p?.product_name || "", product_code: p?.product_code || "", category: p?.category || "", brand: p?.brand || "",
     tags: (p?.tags || []).join(", "), regular_price: p?.regular_price || "", sale_price: p?.sale_price || "",
     stock_status: p?.stock_status === "outofstock" ? "outofstock" : "instock", stock_qty: p?.stock_qty ?? "", description: p?.description || "",
+    hidden: isHidden(p),
     options: (p?.options || []).map((o) => ({ name: o.name, values: [...(o.values || [])] })),
     variants: (p?.variants || []).map((v) => ({ ...v, attrs: { ...(v.attrs || {}) } })),
   }));
@@ -569,6 +586,7 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
     if (force) fd.append("allow_duplicate", "1");
     if (edit) fd.append("id", p.id);
     for (const k of ["product_name", "product_code", "category", "brand", "tags", "regular_price", "sale_price", "stock_status", "description"]) fd.append(k, f[k] ?? "");
+    fd.append("hidden", f.hidden ? "1" : "0");
     fd.append("stock_qty", f.stock_qty === "" || f.stock_qty === null ? "" : String(f.stock_qty));
     fd.append("options", JSON.stringify(f.options.filter((o) => o.name.trim() && o.values.length)));
 
@@ -673,6 +691,17 @@ function ProductEditor({ mode, p, categories, isMobile, onClose, onSaved, onDele
                   items={[{ value: "instock", label: "In stock", icon: "ti-check" }, { value: "outofstock", label: "Out of stock", icon: "ti-circle-x" }]} />
               </div>
               <Inp emb label="Quantity (optional)" inputMode="numeric" value={f.stock_qty} onChange={(e) => set("stock_qty", e.target.value.replace(/[^\d]/g, ""))} placeholder="Leave empty if not tracked" />
+            </div>
+            {/* Different from "out of stock": out of stock is a fact the bot tells
+                customers; hidden means the bot does not bring the product up at
+                all — a seasonal line, a wholesale-only item, something being
+                photographed again. */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", borderRadius: 12, background: T.bgAlt, boxShadow: T.nmIn, marginBottom: 16 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Bot sells this product</div>
+                <div style={{ fontSize: 11.5, color: T.textMuted, marginTop: 2, lineHeight: 1.45 }}>{f.hidden ? "Hidden: the bot will not offer it, match a photo to it, or take an order for it. It stays in your catalogue." : "The bot offers it, matches photos to it and takes orders for it."}</div>
+              </div>
+              <Switch on={!f.hidden} onClick={() => set("hidden", !f.hidden)} />
             </div>
             <div style={{ fontSize: 11, color: T.textDim, marginTop: -6 }}>With a quantity, {LOW} or fewer shows as low stock and 0 as out of stock.</div>
           </Card>

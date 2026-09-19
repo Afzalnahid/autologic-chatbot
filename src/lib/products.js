@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase.js";
 import { generateEmbedding } from "@/lib/gemini.js";
 import { embedMeter } from "@/lib/usage.js";
 import { getClientAI } from "@/lib/ai.js";
+import { parseHidden } from "@/lib/product-visibility.js";
 
 // Must stay identical to the prompt used at message time (docs/prompts.md):
 // both descriptions are embedded and compared, so any drift breaks matching.
@@ -202,6 +203,8 @@ export function readProductForm(form) {
   // save does not repeat work that has been done and paid for.
   if (has("visuals")) set("visuals", parseJSON(g("visuals"), []).map((v) => str(v).slice(0, 4000)).slice(0, 12));
   if (has("stock_status")) set("stock_status", str(g("stock_status")) === "outofstock" ? "outofstock" : "instock");
+  // The "bot sells" switch (product-visibility.js): off = hidden from the bot.
+  if (has("hidden")) set("hidden", parseHidden(g("hidden")));
   if (has("stock_qty")) { const q = str(g("stock_qty")); set("stock_qty", q === "" ? null : Math.max(0, Math.floor(num(q)))); }
   if (has("options")) set("options", normalizeOptions(parseJSON(g("options"), [])));
   if (has("variants")) set("variants", normalizeVariants(parseJSON(g("variants"), [])));

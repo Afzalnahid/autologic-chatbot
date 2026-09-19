@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
 import { chatWithGemini, UNCLEAR_AUDIO } from "@/lib/gemini.js";
 import { productsBlock } from "@/lib/prompt-parts.js";
+import { dropHidden } from "@/lib/product-visibility.js";
 import { limitsFor, messageAllowance, quotaWindowStart, can } from "@/lib/plan-limits.js";
 import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyping } from "@/lib/messenger.js";
 import { searchKnowledge } from "@/lib/knowledge.js";
@@ -430,11 +431,13 @@ async function searchProducts(clientId, query, k = 3, pageId = "") {
     // Embeds the search query on the client's own key when they are a Gemini
     // BYOK client (same model, same vector space), else the platform key.
     const emb = await (await getClientAI(clientId, "bot", pageId)).embed(query);
+    // A few more than asked for, so dropping the products the owner has
+    // switched off ("bot sells" off, product-visibility.js) still leaves k.
     const { data, error } = await sb().rpc("match_documents", {
-      query_embedding: emb, match_count: k, filter: { client_id: String(clientId) },
+      query_embedding: emb, match_count: k + 4, filter: { client_id: String(clientId) },
     });
     if (error) { console.error("match_documents:", error.message); return []; }
-    return data || [];
+    return dropHidden(data || [], k);
   } catch (e) { console.error("search:", e.message); return []; }
 }
 

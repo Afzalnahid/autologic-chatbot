@@ -813,6 +813,13 @@ export const DOCS = {
       { note: "Marking something **out of stock** is better than deleting it. The bot then tells customers it is unavailable instead of pretending it never existed, and you can bring it back with one tap when it returns.",
         kind: "tip" },
 
+      { h: "Hiding a product from the bot",
+        p: [
+          "Every product has a **Bot sells** switch — in the table view, and inside the product panel next to Availability. Switch it off and the bot stops offering that product: it will not bring it up, match a customer's photo to it, or take an order for it. Nothing is deleted; the photos, prices and variants stay exactly as they were, and the **Hidden** filter lists them.",
+          "This is different from **Out of stock**. Out of stock is a fact the bot tells customers who ask. Hidden means the bot behaves as if the product were not there — a seasonal line you are resting, a wholesale-only item, something being photographed again.",
+        ],
+        biz: "ecommerce" },
+
       { h: "Uploading documents",
         p: [
           "An agency's bot answers from your own documents rather than a price list. Press **Upload** and pick a **PDF**, **Word (DOCX)**, text, Markdown or CSV file — or, on a computer, drop the files onto the dashed strip above the list. Several at once is fine; they are read one after another.",
