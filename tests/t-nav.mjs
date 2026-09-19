@@ -16,9 +16,9 @@ const arr = (name) => {
   return JSON.parse(m[1]);
 };
 const PAGES = arr("PAGES"), ICONS = arr("ICONS"), LABELS = arr("LABELS");
-// NAV is the sidebar's order — one flat list since the design deck of
-// 2026-09-20 (the grouped sidebar it replaced read the same way here).
-const groups = arr("NAV");
+// GROUPS is the sidebar: headings, each with its pages (the owner's final
+// design deck, 2026-09-20). NAV is derived from it, so the groups are read.
+const groups = [...s.matchAll(/pages:\s*(\[[^\]]*\])/g)].flatMap((m) => JSON.parse(m[1]));
 
 let bad = 0;
 const say = (ok, msg) => { if (!ok) { bad++; console.log("FAIL " + msg); } };

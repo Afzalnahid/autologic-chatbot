@@ -37,11 +37,19 @@ import { runBack, useBackClose } from "./dashboard/components/back.js";
 // Exported so the screenshot studio can list exactly these tabs rather than
 // keeping a copy that falls behind.
 export const PAGES = ["overview","assistant","analytics","conversations","comments","broadcast","inventory","orders","channels","billing","settings","profile","ai"];
-// The sidebar's order — one plain list, no group headings, the way the owner's
-// design deck draws it (2026-09-20): the home tab, then the day's work (the
-// assistant, people, orders, the catalogue), then reaching out, then how it is
-// going, then everything that tunes the bot and the account.
-export const NAV = ["overview","assistant","conversations","comments","orders","inventory","broadcast","channels","analytics","settings","ai","billing","profile"];
+// The sidebar, under the headings the owner's final design deck uses
+// (2026-09-20): Workspace is the day's work, Grow is reaching out and
+// reading the numbers, Train is everything that teaches or connects the bot,
+// Account is the plumbing. Inventory reads as Knowledge base and Orders as
+// Bookings for an agency (navLabel). NAV is the same list, flat, for the
+// studio and the tests.
+export const GROUPS = [
+  { title: "Workspace", pages: ["overview","assistant","conversations","orders","comments"] },
+  { title: "Grow",      pages: ["broadcast","analytics"] },
+  { title: "Train",     pages: ["inventory","channels","settings","ai"] },
+  { title: "Account",   pages: ["billing","profile"] },
+];
+export const NAV = GROUPS.flatMap((g) => g.pages);
 export const ICONS = ["ti-layout-dashboard","ti-sparkles","ti-chart-bar","ti-messages","ti-message-circle-2","ti-speakerphone","ti-package","ti-shopping-cart","ti-plug","ti-credit-card","ti-wand","ti-user","ti-cpu"];
 // "Bot Training" is the settings page: everything on it teaches or tunes the
 // bot, and owners looked straight past a tab called "Settings" for exactly
@@ -893,7 +901,7 @@ export default function Dashboard() {
     else if(kind==="order") goTo("orders",id);
     else if(kind==="product"){ setInvIntent({search:q,at:Date.now()}); setPage("inventory"); }
   };
-  return <Shell {...{isMobile,sidebarOpen,setSidebarOpen,fullBleed,me,nav:NAV,PAGES,ICONS,page,setPage,HOME,navLabel,t,isAgency,activeCount,pendingOrders,onLogout,load,loading,mode,toggleTheme,convos,feed,goTo,orders,products,onFind}}>
+  return <Shell {...{isMobile,sidebarOpen,setSidebarOpen,fullBleed,me,groups:GROUPS,PAGES,ICONS,page,setPage,HOME,navLabel,t,isAgency,activeCount,pendingOrders,onLogout,load,loading,mode,toggleTheme,convos,feed,goTo,orders,products,channels:dashChannels,onFind}}>
       {/* "ui-scroll": the tab's scroll box, which a phone's inbox list measures
           itself against so it ends where the bottom bar begins. */}
       <div className="ui-scroll" style={{flex:1,overflow:"auto",padding:fullBleed?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
