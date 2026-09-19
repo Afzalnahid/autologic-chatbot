@@ -829,6 +829,13 @@ again?"
     14:36:34 got a bot reply at 14:36:47 — WITH NO CARD in Meta: card test PASSED. Risks to watch: Meta may not run the ES wizard in redirect mode
     exactly like the popup; granular_scopes might omit a WABA. Nandi's WABA
     already exists in Meta — on retry, pick it rather than creating a new one.
+    APP FOLLOW-UP (a8c693b, live): in the Android app the WebView hands
+    facebook.com to the phone's browser, so the signup finished there and the
+    app sat on "Opening Meta…" until killed. Now wa/embedded (native only) goes
+    to /dashboard#channels when the app returns to the foreground, and the
+    Channels tab reloads on focus/visibilitychange/appStateChange (also fixes
+    FB/IG connects from the app). Simulated with a fake Capacitor bridge in the
+    browser; NOT yet confirmed on the real phone.
     FOUND, NOT FIXED: /api/wa/select subscribes `${phoneId}/subscribed_apps`
     (should be the WABA) and never calls /register — the "find my number" and
     manual-ID paths may save a number that cannot receive/send. Docs page also
