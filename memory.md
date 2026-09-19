@@ -816,6 +816,17 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
+  - DESIGN HANDOFF PART 3 received (2026-09-20; saved over "Claude outputs/
+    CLAUDE-CODE-HANDOFF.md", untracked). Screens in build order: Overview,
+    Orders, Bookings, Inventory/Knowledge/Channels, Analytics/Broadcasts/
+    Settings, Onboarding + public site, Comments/AI Engine/Admin. Gap check
+    done: NEW STORAGE needed only for per-product "bot sells" switch
+    (products has no flag) and reply "source" (catalogue/documents) caption.
+    Reply speed, hour×day heatmap, chats today, broadcast "replied" can be
+    COMPUTED from message_buffer / broadcast_recipients. NEW AI COST: reply
+    chips, AI summary card, Knowledge "try a question" tester. Dashboard
+    already uses Geist; public site uses Inter. No build started — owner
+    decides order and the storage/cost items.
   - OBSIDIAN THEME + INBOX PANEL (2026-09-20, 192e718, Vercel READY). Written
     by a Claude Design session straight into the working copy, left
     uncommitted; the owner asked to push it. Reviewed (API ?sender_id= filters
