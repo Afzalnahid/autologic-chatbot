@@ -888,7 +888,10 @@ export const DOCS = {
         biz: "ecommerce" },
 
       { h: "Opening one order",
-        p: ["Tap an order and a panel slides in with everything about it — customer, address, items, subtotal, delivery, discount, payment method and which channel it came from."],
+        p: [
+          "On a laptop the orders are a table — one row each, with the next step's button at the end of the row. On a phone they are cards. Either way, tap an order and a panel slides in with everything about it — customer, address, items, subtotal, delivery, discount, payment method and which channel it came from.",
+          "Three buttons sit at the top of the panel: the **next step** (Confirm, Mark shipped, Mark delivered), **Call**, which dials the customer's number, and **Chat**, which opens their conversation in the Inbox — handy when you need to ask about a size or an address before you ship.",
+        ],
         biz: "ecommerce" },
 
       { table: { head: ["What you can do", "Why"],

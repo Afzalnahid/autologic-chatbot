@@ -40,7 +40,9 @@ function Money({ o, compact }) {
   </div>;
 }
 
-export default function Orders({ orders, refresh, focus = null }) {
+// onGo(tab, id) opens another tab — the drawer's Chat button uses it to open
+// the customer's conversation in the Inbox (design handoff Part 3, stage 2).
+export default function Orders({ orders, refresh, focus = null, onGo }) {
   const isMobile = useIsMobile();
   const [filter, setFilter] = useState("All");
   const [q, setQ] = useState("");
@@ -131,7 +133,9 @@ export default function Orders({ orders, refresh, focus = null }) {
           <div style={{ fontSize: 17, fontWeight: 700 }}>{orders.length ? "No orders match" : "No orders yet"}</div>
           <div style={{ fontSize: 13, color: T.textMuted, marginTop: 6, lineHeight: 1.6 }}>{orders.length ? "Try another filter or search." : "When a customer confirms an order in chat, the bot records it here with the items, address, phone and total."}</div>
         </Card>
-      : <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
+      : !isMobile
+      ? <OrderTable list={list} open={open} onOpen={setOpen} update={update} busy={busy} />
+      : <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
           {list.map(o => { const st = STATUS[o.status] || STATUS.Pending; const pl = PLAT[o.platform]; return <Card key={o.id} className="ui-card" style={{ padding: 0, overflow: "hidden", cursor: "pointer", display: "flex", flexDirection: "column" }} onClick={() => setOpen(o)}>
             <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, borderBottom: `1px solid ${T.border}` }}>
               <span style={{ width: 34, height: 34, borderRadius: 11, background: `color-mix(in srgb, ${st.color} 12%, transparent)`, color: st.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}><i className={`ti ${st.icon}`} /></span>
@@ -170,11 +174,62 @@ export default function Orders({ orders, refresh, focus = null }) {
         </div>}
 
     {toast && <div style={{ position: "fixed", left: "50%", top: 14, transform: "translateX(-50%)", zIndex: 90, background: T.text, color: T.bg, borderRadius: 12, padding: "9px 14px", fontSize: 13, fontWeight: 500, boxShadow: T.nmOut }}>{toast}</div>}
-    {open && <OrderDrawer o={orders.find(x => x.id === open.id) || open} onClose={() => setOpen(null)} update={update} remove={remove} busy={busy} isMobile={isMobile} />}
+    {open && <OrderDrawer o={orders.find(x => x.id === open.id) || open} onClose={() => setOpen(null)} update={update} remove={remove} busy={busy} isMobile={isMobile} onGo={onGo} />}
   </div>;
 }
 
-function OrderDrawer({ o, onClose, update, remove, busy, isMobile }) {
+// The desktop list (design handoff Part 3): one row per order, scannable as a
+// table, with the next status one click away. A phone keeps the cards above —
+// a seven-column row does not fit a phone, and the cards already carry the
+// same facts. Rows are keyboard-reachable and the open order is marked, so the
+// panel and the list read as one thing.
+function OrderTable({ list, open, onOpen, update, busy }) {
+  const th = { textAlign: "left", fontSize: 11, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: T.textDim, padding: "10px 12px", borderBottom: `1px solid ${T.border}`, whiteSpace: "nowrap" };
+  const td = { padding: "11px 12px", fontSize: 13, verticalAlign: "middle", borderBottom: `1px solid ${T.border}` };
+  return <Card style={{ padding: 0, overflow: "hidden" }}>
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+        <thead><tr>
+          <th style={th}>Order</th><th style={th}>Customer</th><th style={th}>Items</th><th style={th}>Placed</th><th style={th}>Status</th><th style={{ ...th, textAlign: "right" }}>Total</th><th style={th} aria-label="Next step" />
+        </tr></thead>
+        <tbody>
+          {list.map(o => { const st = STATUS[o.status] || STATUS.Pending; const pl = PLAT[o.platform]; const on = open && open.id === o.id; const first = (o.items || [])[0];
+            return <tr key={o.id} onClick={() => onOpen(o)} tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(o); } }}
+              className="ord-row" style={{ cursor: "pointer", background: on ? T.goldBg : "transparent", boxShadow: on ? `inset 3px 0 0 ${T.gold}` : "none" }}>
+              <td style={{ ...td, whiteSpace: "nowrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: `color-mix(in srgb, ${st.color} 12%, transparent)`, color: st.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}><i className={`ti ${st.icon}`} /></span>
+                  <span><span style={{ fontFamily: "monospace", fontWeight: 700 }}>#{o.order_code}</span>{pl && <span style={{ display: "block", fontSize: 11, color: T.textDim }}><i className={`ti ${pl.icon}`} style={{ color: pl.color, marginRight: 3 }} />{pl.label}</span>}</span>
+                </div>
+              </td>
+              <td style={{ ...td, maxWidth: 220 }}>
+                <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.customer_name || "Customer"}</div>
+                <div style={{ fontSize: 11.5, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.phone_number || "no phone"}{o.delivery_area ? ` · ${o.delivery_area}` : ""}</div>
+              </td>
+              <td style={{ ...td, maxWidth: 240 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <Thumb url={first?.image_url} size={30} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{first ? (first.name || first.code || "Item") : (o.product_names || "No items recorded")}</div>
+                    <div style={{ fontSize: 11.5, color: T.textDim }}>{o.qty_total || 0} item{o.qty_total === 1 ? "" : "s"}{(o.items || []).length > 1 ? ` · ${o.items.length} lines` : ""}</div>
+                  </div>
+                </div>
+              </td>
+              <td style={{ ...td, whiteSpace: "nowrap", color: T.textMuted }}>{ago(o.created_at)}</td>
+              <td style={{ ...td, whiteSpace: "nowrap" }}><StatusBadge s={o.status} />{o.delivery_charge === null || o.delivery_charge === undefined ? <div style={{ fontSize: 11, color: T.warn, marginTop: 3 }}>delivery to confirm</div> : null}</td>
+              <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}><span style={{ fontWeight: 700, color: T.gold, fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{money(o.total)}</span>{o.payment_method && <div style={{ fontSize: 11, color: T.textDim }}>{o.payment_method}</div>}</td>
+              <td style={{ ...td, whiteSpace: "nowrap", textAlign: "right" }} onClick={e => e.stopPropagation()}>
+                {st.next && <Btn gold small onClick={() => update(o.id, { status: st.next })} disabled={busy === o.id} style={{ borderRadius: 8, padding: "6px 12px" }}><i className={`ti ${STATUS[st.next].icon}`} style={{ marginRight: 5 }} />{busy === o.id ? "Saving…" : st.verb}</Btn>}
+              </td>
+            </tr>; })}
+        </tbody>
+      </table>
+    </div>
+    <style dangerouslySetInnerHTML={{ __html: `@media (hover:hover){ .ord-row:hover { background: ${T.bgAlt} } } .ord-row:focus-visible { outline: 2px solid ${T.gold}; outline-offset: -2px }` }} />
+  </Card>;
+}
+
+function OrderDrawer({ o, onClose, update, remove, busy, isMobile, onGo }) {
   const [note, setNote] = useState(o.owner_note || "");
   const [edit, setEdit] = useState(null); // {phone_number, address, delivery_charge, payment_method}
   useEffect(() => { const k = (e) => { if (e.key === "Escape") onClose(); }; document.addEventListener("keydown", k); document.body.style.overflow = "hidden"; return () => { document.removeEventListener("keydown", k); document.body.style.overflow = ""; }; }, []);
@@ -196,6 +251,19 @@ function OrderDrawer({ o, onClose, update, remove, busy, isMobile }) {
         <button onClick={onClose} className="pbtn" aria-label="Close" style={{ width: 36, height: 36, borderRadius: 11 }}><i className="ti ti-x" style={{ fontSize: 17 }} /></button>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: isMobile ? "14px 12px calc(24px + env(safe-area-inset-bottom))" : "18px 22px calc(30px + env(safe-area-inset-bottom))", display: "flex", flexDirection: "column", gap: 12 }}>
+        {/* The three things done most often, before anything has to be read:
+            move the order on, ring the customer, or open their chat. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          {st.next
+            ? <Btn gold onClick={() => update(o.id, { status: st.next })} disabled={busy === o.id} style={{ borderRadius: 10, padding: "10px 8px", fontSize: 12.5 }}><i className={`ti ${STATUS[st.next].icon}`} style={{ marginRight: 5 }} />{busy === o.id ? "Saving…" : st.verb}</Btn>
+            : <Btn disabled style={{ borderRadius: 10, padding: "10px 8px", fontSize: 12.5, opacity: .6 }}><i className={`ti ${st.icon}`} style={{ marginRight: 5 }} />{o.status}</Btn>}
+          {o.phone_number
+            ? <a href={`tel:${o.phone_number}`} className="ui-btn" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px 8px", borderRadius: 10, background: T.goldBg, color: T.gold, fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}><i className="ti ti-phone" />Call</a>
+            : <Btn disabled style={{ borderRadius: 10, padding: "10px 8px", fontSize: 12.5, opacity: .6 }}><i className="ti ti-phone-off" style={{ marginRight: 5 }} />No phone</Btn>}
+          {o.sender_id && onGo
+            ? <Btn onClick={() => { onClose(); onGo("conversations", o.sender_id); }} style={{ borderRadius: 10, padding: "10px 8px", fontSize: 12.5 }}><i className="ti ti-message-2" style={{ marginRight: 5 }} />Chat</Btn>
+            : <Btn disabled style={{ borderRadius: 10, padding: "10px 8px", fontSize: 12.5, opacity: .6 }} title="This order was not taken in a chat"><i className="ti ti-message-off" style={{ marginRight: 5 }} />No chat</Btn>}
+        </div>
         {/* Progress */}
         {o.status !== "Cancelled" && o.status !== "Returned" && <Card style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 0 }}>

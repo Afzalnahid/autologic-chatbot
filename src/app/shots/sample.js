@@ -90,12 +90,12 @@ const order = (o) => ({
   subtotal: 0, delivery_charge: null, discount: 0, items: [], qty_total: 0, ...o,
 });
 const ORDERS = [
-  order({ id: "o1", order_code: "A-1042", customer_name: "Tasnim Rahman", phone_number: "017XXXXXXXX",
+  order({ id: "o1", order_code: "A-1042", sender_id: "u1", customer_name: "Tasnim Rahman", phone_number: "017XXXXXXXX",
     address: "House 12, Road 4, Dhanmondi, Dhaka", delivery_area: "inside Dhaka",
     status: "Pending", platform: "instagram", created_at: iso(20),
     items: [{ code: "PJ-NVY-01", name: "Cotton panjabi — navy", variant: "M", qty: 1, unit_price: 1450 }],
     subtotal: 1450, delivery_charge: 60, total: 1510, qty_total: 1, payment_method: "Cash on delivery" }),
-  order({ id: "o2", order_code: "A-1041", customer_name: "Rahim Uddin", phone_number: "018XXXXXXXX",
+  order({ id: "o2", order_code: "A-1041", sender_id: "u2", customer_name: "Rahim Uddin", phone_number: "018XXXXXXXX",
     address: "Kandirpar, Cumilla", delivery_area: "outside Dhaka",
     status: "Shipped", platform: "facebook", created_at: iso(60 * 26),
     items: [{ code: "PL-OLV-04", name: "Half-sleeve polo — olive", variant: "L", qty: 2, unit_price: 850 }],

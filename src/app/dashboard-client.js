@@ -1068,7 +1068,7 @@ export default function Dashboard() {
             {page==="broadcast"&&<Broadcast/>}
             {page==="comments"&&<Comments/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent} onIntentDone={()=>setInvIntent(null)}/>)}
-            {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load} focus={focus?.tab==="orders"?focus:null}/>)}
+            {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load} focus={focus?.tab==="orders"?focus:null} onGo={goTo}/>)}
             {page==="channels"&&<Channels onConnect={()=>setStage("connect")} justConnected={justConnected} onDismissConnected={()=>setJustConnected(null)}/>}
             {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}
             {page==="profile"&&<Profile/>}

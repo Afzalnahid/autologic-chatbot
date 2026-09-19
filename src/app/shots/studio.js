@@ -97,7 +97,7 @@ const TABS = {
   inventory:        () => <Inventory products={PROPS.products} refresh={noop} />,
   assistant:        () => <InventoryAssistant fullPage products={PROPS.products} settings={PROPS.settings} refresh={noop} onGo={noop} onImport={noop} />,
   knowledge:        () => <KnowledgeBase />,
-  orders:           () => <Orders orders={PROPS.orders} refresh={noop} />,
+  orders:           () => <Orders orders={PROPS.orders} refresh={noop} onGo={noop} />,
   bookings:         () => <Bookings calConnected clientId="demo" />,
   channels:         () => <Channels onConnect={noop} onDismissConnected={noop} />,
   "website-widget": () => <WebsiteWidget />,
