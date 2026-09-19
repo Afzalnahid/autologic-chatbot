@@ -6,6 +6,28 @@ import { BotMark } from "@/lib/brand.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
+import { PLANS, PLAN_ORDER, formatMoney } from "@/lib/plans.js";
+import { loadPlans } from "@/lib/plan-limits.js";
+
+// Four facts for the strip under the features — each one true of the product
+// today. The owner's Figma draft had revenue and conversion percentages and a
+// store count in this place; none of those have been measured, so none are here.
+const FACTS = {
+  en: [["4", "Channels: Messenger, Instagram, WhatsApp, your website"], ["24/7", "Answers while you sleep"], ["2", "Languages: Bangla and English"], ["3 days", "Free trial, no card needed"]],
+  bn: [["৪", "চ্যানেল: মেসেঞ্জার, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ, ওয়েবসাইট"], ["২৪/৭", "আপনি ঘুমালেও উত্তর দেয়"], ["২", "ভাষা: বাংলা ও ইংরেজি"], ["৩ দিন", "ফ্রি ট্রায়াল, কার্ড লাগবে না"]],
+};
+
+// The paid packages for the pricing section, live from the database so a
+// re-price in the admin panel shows here without a deploy; the code catalogue
+// if the database cannot be read.
+async function paidPlans() {
+  try {
+    const all = await loadPlans();
+    const list = Object.values(all).filter((p) => p.active !== false && p.public !== false && Number(p.monthly) > 0);
+    if (list.length) return list.sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0));
+  } catch { /* fall through */ }
+  return PLAN_ORDER.filter((id) => PLANS[id].monthly > 0).map((id) => ({ ...PLANS[id], feature_list: PLANS[id].features }));
+}
 
 // Google indexes the Bangla home page separately from the English one, so both
 // need their own title, sentence and share picture rather than one set of tags
@@ -33,11 +55,10 @@ const mono = { fontFamily: "'IBM Plex Mono', 'Plex Mono Fallback', ui-monospace,
 const wrap = { maxWidth: 1240, margin: "0 auto", padding: "0 clamp(16px, 4vw, 26px)" };
 
 function Label({ children }) {
-  // "lbl" is the hook the .bn rule needs; without it a Bangla label keeps the
-  // Latin font, the capitals and the tracking. Every mono label that can hold
-  // Bangla carries it. The ones that are always Latin — the step numbers, the
-  // channel names, the copyright line — deliberately do not.
-  return <div className="lbl" style={{ ...mono, color: P.inkSoft, marginBottom: 18 }}>⌗ {children}</div>;
+  // The eyebrow over each section heading — small maroon capitals, as in the
+  // owner's Figma layout. "lbl" is the hook the .bn rule needs; without it a
+  // Bangla label keeps the Latin font, the capitals and the tracking.
+  return <div className="lbl eyebrow" style={{ ...mono, color: P.accent, marginBottom: 14, fontWeight: 500 }}>{children}</div>;
 }
 
 function Slide({ conv, c, k }) {
@@ -176,13 +197,14 @@ function Flow({ lang }) {
   );
 }
 
-export default function Home({ searchParams }) {
+export default async function Home({ searchParams }) {
   const lang = searchParams?.lang === "bn" ? "bn" : "en";
   const isProd = process.env.VERCEL_ENV === "production";
   const cases = isProd ? publishedCaseStudies() : CASE_STUDIES;
   const c = COPY[lang];
   const bn = lang === "bn";
   const other = lang === "bn" ? "/" : "/?lang=bn";
+  const plans = await paidPlans();
 
   return (
     // The "bn" class is what every Bangla rule below hangs off. Without it the
@@ -244,7 +266,8 @@ export default function Home({ searchParams }) {
     size-adjust: 100.6%; ascent-override: 96.4%; descent-override: 23.9%; line-gap-override: 0% }
   @font-face { font-family: "Fraunces Fallback"; src: local("Georgia"), local("Times New Roman"), local("Times");
     size-adjust: 77%; ascent-override: 127%; descent-override: 34%; line-gap-override: 0% }
-  .fr { font-family: 'Fraunces', 'Fraunces Fallback', Georgia, serif; font-weight: 700; letter-spacing: -0.02em; overflow-wrap: normal; hyphens: none }
+  /* Headings: a heavy sans, as in the owner's Figma layout (2026-09-19). */
+  .fr { font-family: Inter, 'Inter Fallback', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; overflow-wrap: normal; hyphens: none }
         .bn .fr { font-family: 'Anek Bangla', sans-serif; font-weight: 700 }
         /* Bangla headings need leading Latin ones do not. Anek Bangla's ink
            runs 1.33em from the top of a stacked conjunct to the bottom of a
@@ -354,6 +377,57 @@ export default function Home({ searchParams }) {
           border-color: color-mix(in srgb, ${P.blue} 33%, transparent);
           box-shadow: 0 14px 40px color-mix(in srgb, ${P.blue} 12%, transparent) }
         a:focus-visible { outline: 2px solid ${P.accent}; outline-offset: 3px }
+
+        /* ── The Figma layout (2026-09-19) ─────────────────────────────── */
+        .navlink { font-size: 14px; font-weight: 500; color: ${P.inkSoft}; text-decoration: none; transition: color .15s ease-out }
+        .navlink:hover { color: ${P.accent} }
+        @media (max-width: 1080px) { .navlinks { display: none !important } }
+        .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: ${P.accent};
+          background: ${P.blueSoft}; border: 1px solid color-mix(in srgb, ${P.accent} 22%, transparent); border-radius: 999px; padding: 6px 13px }
+        .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: ${P.live}; box-shadow: 0 0 0 3px color-mix(in srgb, ${P.live} 25%, transparent) }
+        .btn-main { background: var(--lp-grad); color: #fff; font-weight: 700; font-size: 14.5px; padding: 14px 26px; text-decoration: none; box-shadow: var(--lp-glow) }
+        .btn-ghost { border: 1px solid ${P.line}; background: ${P.paper2}; color: ${P.ink}; font-weight: 600; font-size: 14.5px; padding: 14px 22px;
+          text-decoration: none; display: inline-flex; align-items: center; gap: 7px }
+        .ficon { width: 44px; height: 44px; border-radius: 12px; background: ${P.blueSoft}; color: ${P.accent};
+          display: flex; align-items: center; justify-content: center; font-size: 22px }
+        .fact { border: 1px solid ${P.line}; border-radius: 16px; padding: 20px; text-align: center;
+          background: linear-gradient(180deg, ${P.blueSoft}, transparent), ${P.paper2} }
+        /* The dark band: the same near-black in both themes, a step darker in dark
+           mode so it still reads as a band against the page. */
+        .band { background: #121116; color: #F2EEF1 }
+        [data-theme="dark"] .band { background: #0B0A0E; border-top: 1px solid ${P.line}; border-bottom: 1px solid ${P.line} }
+        .band .eyebrow { color: #E08BA6 !important }
+        .step { display: flex; gap: 14px; padding: 18px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08) }
+        .step-n { flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; background: #7B1C3E; color: #fff; font-size: 12.5px; font-weight: 700;
+          display: flex; align-items: center; justify-content: center }
+        .ptabs > input { position: absolute; opacity: 0; pointer-events: none }
+        .ptab-row { display: flex; justify-content: center; gap: 4px; margin: 0 auto 26px; width: fit-content; padding: 4px;
+          background: ${P.paper}; border: 1px solid ${P.line}; border-radius: 12px }
+        .ptab-row label { padding: 9px 20px; border-radius: 9px; font-size: 13.5px; font-weight: 600; color: ${P.inkSoft}; cursor: pointer }
+        #al-biz-shop:checked ~ .ptab-row label[for="al-biz-shop"],
+        #al-biz-svc:checked ~ .ptab-row label[for="al-biz-svc"] { background: var(--lp-grad); color: #fff }
+        #al-biz-shop:focus-visible ~ .ptab-row label[for="al-biz-shop"],
+        #al-biz-svc:focus-visible ~ .ptab-row label[for="al-biz-svc"] { outline: 2px solid ${P.accent}; outline-offset: 2px }
+        .pgrid { display: none; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 16px; align-items: stretch }
+        #al-biz-shop:checked ~ .p-shop, #al-biz-svc:checked ~ .p-svc { display: grid }
+        .pcard { position: relative; display: flex; flex-direction: column; background: ${P.paper}; color: ${P.ink};
+          border: 1px solid ${P.line}; border-radius: 20px; padding: 26px; box-shadow: var(--lp-nm-sm) }
+        .pcard ul { flex: 1 }
+        .pcard.hl { background: #7B1C3E; color: #fff; border-color: #7B1C3E; box-shadow: 0 18px 44px rgba(123,28,62,.35) }
+        .pbadge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: #F4C95D; color: #3A2A06;
+          font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap }
+        .pbtn { display: block; text-align: center; text-decoration: none; font-weight: 700; font-size: 14px; padding: 13px 16px;
+          background: var(--lp-grad); color: #fff }
+        .pcard.hl .pbtn { background: #fff; color: #7B1C3E }
+        .foot { background: #121116; color: #F2EEF1 }
+        [data-theme="dark"] .foot { background: #0B0A0E; border-top: 1px solid ${P.line} }
+        .foot-grid { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr 1fr; gap: 28px }
+        @media (max-width: 860px) { .foot-grid { grid-template-columns: 1fr 1fr } }
+        @media (max-width: 480px) { .foot-grid { grid-template-columns: 1fr } }
+        .foot-h { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #F2EEF1; margin-bottom: 12px }
+        .foot-a { display: block; font-size: 13.5px; color: #B5ADB4; text-decoration: none; margin-bottom: 9px }
+        .foot-a:hover { color: #fff }
+        .bn .foot-h, .bn .pcard div { letter-spacing: 0; text-transform: none }
         @media (max-width: 900px) { .two { grid-template-columns: 1fr !important } .hide-sm { display: none } }
         @media (prefers-reduced-motion: reduce) { .r, .card, .btn { animation: none !important; transition: none !important } .al-obs { opacity: 1 !important; transform: none !important } }
 
@@ -440,25 +514,28 @@ export default function Home({ searchParams }) {
         }
         if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
       })();` }} />
-      <div className="sheet"><i /><i /><i /><i /></div>
-
-      <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 4, background: P.paper }}>
+      <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 4,
+        background: "color-mix(in srgb, var(--lp-bg) 88%, transparent)", WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)" }}>
         <div className="navwrap" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0, minWidth: 0 }}>
-            <div className="navmark" style={{ width: 28, height: 28, background: "#fff", borderRadius: 9, flexShrink: 0,
-              boxShadow: "0 1px 4px rgba(22,24,31,.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <BotMark size={24} />
+            <div className="navmark" style={{ width: 30, height: 30, background: "#fff", borderRadius: 9, flexShrink: 0,
+              boxShadow: "0 1px 4px rgba(18,17,22,.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <BotMark size={25} />
             </div>
-            <span className="fr navword" style={{ fontSize: 19 }}>TellMore AI</span>
+            <span className="fr navword" style={{ fontSize: 18 }}>TellMore AI</span>
           </a>
 
-          {/* Four controls that stay controls: nothing wraps, nothing collides. */}
-          <div className="navbtns" style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
-            <a href="/pricing" className="navbtn hide-sm">{lang === "bn" ? "দাম" : "Pricing"}</a>
+          {/* The section links, as in the owner's Figma layout. Desktop only: on
+              a phone the four controls beside them already fill the row. */}
+          <div className="navlinks hide-sm" style={{ display: "flex", gap: 26 }}>
+            <a href="#features" className="navlink">{bn ? "ফিচার" : "Features"}</a>
+            <a href="#how" className="navlink">{bn ? "কীভাবে কাজ করে" : "How it works"}</a>
+            <a href="#plans" className="navlink">{bn ? "দাম" : "Pricing"}</a>
+            <a href="#film" className="navlink">{bn ? "ভিডিও" : "Demo"}</a>
+          </div>
 
-            {/* Four buttons, four different jobs: switch theme, change language,
-                come back, or start. */}
+          <div className="navbtns" style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
             <button id="al-mode" type="button" className="navbtn" aria-label="Switch theme"
               style={{ display: "inline-flex", alignItems: "center", fontFamily: "inherit" }}>
               <i id="al-mode-ic" className="ti ti-moon" style={{ fontSize: 13 }} />
@@ -466,97 +543,46 @@ export default function Home({ searchParams }) {
             <a href={other} className="navbtn" aria-label="Change language"
               style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               <i className="ti ti-language" style={{ fontSize: 13 }} />
-              {lang === "bn" ? "EN" : "বাং"}
+              {bn ? "EN" : "বাং"}
             </a>
-            <a href="/dashboard?auth=signin" className="navbtn navlogin" aria-label={lang === "bn" ? "লগ ইন" : "Log in"}
+            <a href="/dashboard?auth=signin" className="navbtn navlogin" aria-label={bn ? "লগ ইন" : "Log in"}
               style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               <i className="ti ti-user" style={{ fontSize: 13 }} />
-              <span>{lang === "bn" ? "লগ ইন" : "Log in"}</span>
+              <span>{bn ? "লগ ইন" : "Log in"}</span>
             </a>
             <a href="/dashboard?auth=signup" className="navbtn navcta">
-              {lang === "bn" ? "ফ্রি ট্রায়াল" : "Start free"}
+              {bn ? "ফ্রি ট্রায়াল" : "Start free"}
             </a>
           </div>
         </div>
       </nav>
 
-      <section style={{ ...wrap, padding: "clamp(40px,8vw,86px) clamp(16px,4vw,26px) clamp(30px,5vw,50px)" }}>
-        <div className="two" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "clamp(28px,5vw,44px)" }}>
+      {/* Hero — the Figma layout: the promise on the left, the product on the
+          right. The right side is the real conversation board, not a drawing. */}
+      <section style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px) clamp(28px,4vw,44px)" }}>
+        <div className="two" style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "clamp(30px,5vw,56px)", alignItems: "center" }}>
           <div>
-            <div className="r"><Label>{lang === "bn" ? "চার চ্যানেল, এক সহকারী" : "Four channels, one assistant"}</Label></div>
-            <h1 className="r fr" style={{ animationDelay: ".07s", fontSize: "clamp(34px, 7.4vw, 78px)", lineHeight: 0.98, margin: "0 0 22px" }}
+            <div className="r pill"><span className="pill-dot" />{c.eyebrow}</div>
+            <h1 className="r fr" style={{ animationDelay: ".07s", fontSize: "clamp(34px, 5.6vw, 62px)", lineHeight: 1.04, margin: "18px 0 20px" }}
               dangerouslySetInnerHTML={{ __html: c.h1.replace(/<em>|<\/em>/g, "") }} />
-            <p className="r" style={{ animationDelay: ".14s", fontSize: 17, lineHeight: 1.6, color: P.inkSoft, maxWidth: 560, margin: "0 0 28px" }}>{c.lead}</p>
+            <p className="r" style={{ animationDelay: ".14s", fontSize: 17, lineHeight: 1.65, color: P.inkSoft, maxWidth: 540, margin: "0 0 28px" }}>{c.lead}</p>
             <div className="r" style={{ animationDelay: ".2s", display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <a href="/dashboard?auth=signup" className="btn lbl" style={{ ...mono, fontSize: 11.5, background: P.accent,
-                color: P.onAccent, padding: "14px 26px", textDecoration: "none" }}>{c.cta}</a>
-              <a href="/pricing" className="btn lbl" style={{ ...mono, fontSize: 11.5, border: `1px solid ${P.line}`,
-                color: P.ink, padding: "14px 26px", textDecoration: "none" }}>{c.cta2}</a>
+              <a href="/dashboard?auth=signup" className="btn btn-main">{c.cta}</a>
+              <a href="#plans" className="btn btn-ghost">{c.cta2} <i className="ti ti-arrow-right" style={{ fontSize: 15 }} /></a>
             </div>
-            <div className="r" style={{ animationDelay: ".26s", marginTop: 26, display: "flex", gap: 14, flexWrap: "wrap" }}>
-              {Object.values(CH).map((x) => (
-                <span key={x.name} style={{ ...mono, fontSize: 9.5, color: P.inkSoft, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <i className={`ti ${x.icon}`} style={{ fontSize: 14, color: P.blue }} />{x.short}
+            {/* What is true, where the Figma draft had star ratings and a store count. */}
+            <div className="r" style={{ animationDelay: ".26s", marginTop: 24, display: "flex", gap: "8px 18px", flexWrap: "wrap" }}>
+              {c.proof.map((t) => (
+                <span key={t} style={{ fontSize: 13, color: P.inkSoft, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <i className="ti ti-circle-check" style={{ fontSize: 16, color: P.accent }} />{t}
                 </span>
               ))}
             </div>
           </div>
           <div className="r" style={{ animationDelay: ".1s" }}>
-            <Flow lang={lang} />
-          </div>
-        </div>
-      </section>
-
-      {/* The film. It sits between the promise and the proof: someone who
-          watched it already understands the product, and someone who did not
-          still has the conversations below. The section removes itself if the
-          file is not there, so the page never shows a broken player. */}
-      <section id="film" style={{ borderTop: `1px solid ${P.line}`, background: P.paper }}>
-        <div style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
-          <div data-reveal="0" style={{ marginBottom: 24, maxWidth: 620 }}>
-            <Label>{bn ? "৪৭ সেকেন্ডে" : "In 47 seconds"}</Label>
-            <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>
-              {bn ? "পুরোটা কীভাবে কাজ করে" : "The whole thing, working"}
-            </h2>
-          </div>
-
-          <div data-reveal="80" style={{ position: "relative", border: `1px solid ${P.line}`,
-            borderRadius: 20, overflow: "hidden", background: "#000", aspectRatio: "16 / 9",
-            boxShadow: "var(--lp-nm)" }}>
-            {/* The film is 3 MB and 47 seconds long. Autoplaying it cost every
-                visitor that download before they had read a line — measured at
-                4.2 MB of page weight and a 7.8 s largest paint on a phone
-                (Lighthouse, 2026-09-18). It now shows a 23 KB still frame and
-                loads the file only when someone presses play. */}
-            <video id="al-film" playsInline preload="none" controls
-              poster={bn ? "/film-bn-poster.jpg" : "/film-en-poster.jpg"}
-              data-src={bn ? "/film-bn.mp4" : "/film-en.mp4"}
-              style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
-
-            {/* Sound is off by default because browsers demand it; the control is
-                here for anyone who wants it. */}
-            <button id="al-film-play" type="button" aria-label={bn ? "ভিডিও চালান" : "Play the film"}
-              style={{ position: "absolute", inset: 0, margin: "auto", width: 66, height: 66, borderRadius: 33,
-                border: "1px solid rgba(255,255,255,.28)", background: "rgba(10,13,20,.55)",
-                WebkitBackdropFilter: "blur(10px)", backdropFilter: "blur(10px)", color: "#fff", cursor: "pointer", display: "flex",
-                alignItems: "center", justifyContent: "center" }}>
-              <i className="ti ti-player-play-filled" style={{ fontSize: 24, marginLeft: 3 }} />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section style={{ borderTop: `1px solid ${P.line}`, borderBottom: `1px solid ${P.line}`, background: P.paper2 }}>
-        <div style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
-          <div className="two" style={{ display: "grid", gridTemplateColumns: "0.85fr 1.15fr", gap: "clamp(28px,5vw,56px)", alignItems: "center" }}>
-            <div data-reveal="0">
-              <Label>{c.convLabel}</Label>
-              <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: "0 0 16px" }}>{c.convTitle}</h2>
-              <p style={{ fontSize: 15.5, lineHeight: 1.65, color: P.inkSoft, margin: 0, maxWidth: 420 }}>{c.convLead}</p>
-            </div>
             <div className="board-wrap" style={{ maxWidth: 330, margin: "0 auto", width: "100%" }}>
               <div className="al-bars"><span /><span /><span /><span /></div>
-              <div className="al-phone" style={{ background: "linear-gradient(160deg, #232B3D, #10151F)" }}>
+              <div className="al-phone" style={{ background: "linear-gradient(160deg, #2A2230, #121116)" }}>
                 <div className="al-screen" style={{ background: P.paper2 }}>
                   <div className="al-notch" />
                   <div className="al-status" style={{ color: P.inkSoft }}>
@@ -571,31 +597,159 @@ export default function Home({ searchParams }) {
             </div>
           </div>
         </div>
+
+        {/* The channels it answers on — where the Figma draft listed other
+            companies' logos as "trusted by". */}
+        <div style={{ marginTop: "clamp(36px,5vw,56px)", paddingTop: 22, borderTop: `1px solid ${P.line}`,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: "12px 30px", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12.5, color: P.inkSoft }}>{bn ? "যেখানে উত্তর দেয়:" : "Answers on:"}</span>
+          {Object.values(CH).map((x) => (
+            <span key={x.name} style={{ fontSize: 14, fontWeight: 600, color: P.ink, display: "inline-flex", alignItems: "center", gap: 7 }}>
+              <i className={`ti ${x.icon}`} style={{ fontSize: 19, color: P.inkSoft }} />{x.short}
+            </span>
+          ))}
+        </div>
       </section>
 
-      <section style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
-        <div data-reveal="0" style={{ marginBottom: 34, maxWidth: 620 }}>
+      <section id="features" style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
+        <div data-reveal="0" style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 36px" }}>
           <Label>{c.featLabel}</Label>
-          <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>{c.featTitle}</h2>
+          <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: "0 0 12px" }}>{c.featTitle}</h2>
+          <p style={{ fontSize: 15.5, lineHeight: 1.65, color: P.inkSoft, margin: 0 }}>{c.convLead}</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: 16 }}>
           {c.features.map((f, i) => (
-            <div key={f.title} className="card" data-reveal={(i % 3) * 70}
-              style={{ padding: 28 }}>
-              <div style={{ ...mono, fontSize: 9.5, color: P.accent, marginBottom: 16 }}>{String(i + 1).padStart(2, "0")}</div>
-              <i className={`ti ${f.icon}`} style={{ fontSize: 22, color: P.blue }} />
-              <div className="fr" style={{ fontSize: 21, margin: "12px 0 8px", lineHeight: 1.15 }}>{f.title}</div>
+            <div key={f.title} className="card" data-reveal={(i % 3) * 70} style={{ padding: 26 }}>
+              <div className="ficon"><i className={`ti ${f.icon}`} /></div>
+              <div className="fr" style={{ fontSize: 18, margin: "16px 0 8px", lineHeight: 1.25 }}>{f.title}</div>
               <div style={{ fontSize: 14.5, lineHeight: 1.7, color: P.inkSoft }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Four numbers, every one of them true — where the Figma draft had
+            revenue and conversion percentages nobody has measured. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 14, marginTop: 22 }}>
+          {FACTS[lang].map(([n, t]) => (
+            <div key={t} className="fact" data-reveal="0">
+              <div className="fr" style={{ fontSize: 30, color: P.accent, lineHeight: 1.1 }}>{n}</div>
+              <div style={{ fontSize: 13, color: P.inkSoft, marginTop: 6 }}>{t}</div>
             </div>
           ))}
         </div>
       </section>
 
+      {/* See it in action — the dark band of the Figma layout. */}
+      <section id="how" className="band">
+        <div style={{ ...wrap, padding: "clamp(44px,7vw,84px) clamp(16px,4vw,26px)" }}>
+          <div data-reveal="0" style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 34px" }}>
+            <Label>{c.convLabel}</Label>
+            <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: "0 0 12px", color: "#F2EEF1" }}>{c.convTitle}</h2>
+            <p style={{ fontSize: 15.5, lineHeight: 1.65, color: "#B5ADB4", margin: 0 }}>{c.lead}</p>
+          </div>
+          <div data-reveal="60"><Flow lang={lang} /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 250px), 1fr))", gap: 14, marginTop: 26 }}>
+            {STAGES.map((s2, k) => (
+              <div key={k} className="step" data-reveal={(k % 4) * 60}>
+                <span className="step-n">{String(k + 1).padStart(2, "0")}</span>
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#F2EEF1", marginBottom: 5 }}>{CH[s2.ch].short} — {bn ? s2.didBn : s2.did}</div>
+                  <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "#B5ADB4" }}>{bn ? s2.capBn : s2.cap}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* The film. The section removes itself if the file is not there, so the
+          page never shows a broken player. */}
+      <section id="film" style={{ background: P.paper }}>
+        <div style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
+          <div data-reveal="0" style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 28px" }}>
+            <Label>{bn ? "৪৭ সেকেন্ডে" : "In 47 seconds"}</Label>
+            <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: 0 }}>
+              {bn ? "পুরোটা কীভাবে কাজ করে" : "The whole thing, working"}
+            </h2>
+          </div>
+
+          <div data-reveal="80" style={{ position: "relative", border: `1px solid ${P.line}`, maxWidth: 980, margin: "0 auto",
+            borderRadius: 20, overflow: "hidden", background: "#000", aspectRatio: "16 / 9",
+            boxShadow: "var(--lp-nm)" }}>
+            {/* 3 MB and 47 seconds: a 23 KB still frame until someone presses play
+                (autoplay cost 4.2 MB and a 7.8 s largest paint, 2026-09-18). */}
+            <video id="al-film" playsInline preload="none" controls
+              poster={bn ? "/film-bn-poster.jpg" : "/film-en-poster.jpg"}
+              data-src={bn ? "/film-bn.mp4" : "/film-en.mp4"}
+              style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+            <button id="al-film-play" type="button" aria-label={bn ? "ভিডিও চালান" : "Play the film"}
+              style={{ position: "absolute", inset: 0, margin: "auto", width: 66, height: 66, borderRadius: 33,
+                border: "1px solid rgba(255,255,255,.28)", background: "rgba(18,17,22,.55)",
+                WebkitBackdropFilter: "blur(10px)", backdropFilter: "blur(10px)", color: "#fff", cursor: "pointer", display: "flex",
+                alignItems: "center", justifyContent: "center" }}>
+              <i className="ti ti-player-play-filled" style={{ fontSize: 24, marginLeft: 3 }} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Plans — read live from the database, shop and service side by side
+          (the owner's two package sets). CSS-only switch: no script to fail. */}
+      <section id="plans" style={{ borderTop: `1px solid ${P.line}`, background: P.paper2 }}>
+        <div style={{ ...wrap, padding: "clamp(44px,7vw,84px) clamp(16px,4vw,26px)" }}>
+          <div data-reveal="0" style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 26px" }}>
+            <Label>{bn ? "প্যাকেজ ও দাম" : "Plans & pricing"}</Label>
+            <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: "0 0 12px" }}>
+              {bn ? "আপনার ব্যবসার মাপে প্যাকেজ" : "A plan the size of your business"}
+            </h2>
+            <p style={{ fontSize: 15.5, lineHeight: 1.65, color: P.inkSoft, margin: 0 }}>
+              {bn ? "৩ দিনের ফ্রি ট্রায়াল, কার্ড লাগবে না। প্রতিটা প্যাকেজে সব ফিচার — বদলায় শুধু পরিমাণ।"
+                  : "A 3-day free trial, no card needed. Every plan has every feature — what changes is how much."}
+            </p>
+          </div>
+          <div className="ptabs">
+            <input type="radio" name="al-biz" id="al-biz-shop" defaultChecked />
+            <input type="radio" name="al-biz" id="al-biz-svc" />
+            <div className="ptab-row">
+              <label htmlFor="al-biz-shop">{bn ? "দোকানের জন্য" : "For shops"}</label>
+              <label htmlFor="al-biz-svc">{bn ? "সেবার জন্য" : "For services"}</label>
+            </div>
+            {[["ecommerce", "p-shop"], ["agency", "p-svc"]].map(([biz, cls]) => (
+              <div key={biz} className={`pgrid ${cls}`}>
+                {plans.filter((p) => p.biz === biz).map((p) => (
+                  <div key={p.id} className={`pcard${p.highlight ? " hl" : ""}`}>
+                    {p.highlight && <span className="pbadge">{bn ? "সবচেয়ে জনপ্রিয়" : "Most popular"}</span>}
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", opacity: .8 }}>{p.name}</div>
+                    <div style={{ margin: "10px 0 4px", display: "flex", alignItems: "baseline", gap: 4 }}>
+                      <span className="fr" style={{ fontSize: 36 }}>{formatMoney(p.monthly)}</span>
+                      <span style={{ fontSize: 13, opacity: .75 }}>{bn ? "/মাস" : "/mo"}</span>
+                    </div>
+                    <div style={{ fontSize: 13, opacity: .8, minHeight: 38, lineHeight: 1.5 }}>{p.tagline}</div>
+                    <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 22px", display: "grid", gap: 9 }}>
+                      {(p.feature_list || []).map((f) => (
+                        <li key={f} style={{ display: "flex", gap: 8, fontSize: 13.5, lineHeight: 1.45 }}>
+                          <i className="ti ti-check" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />{f}
+                        </li>
+                      ))}
+                    </ul>
+                    <a href="/dashboard?auth=signup" className="btn pbtn">{bn ? "ফ্রি ট্রায়াল শুরু করুন" : "Start free trial"}</a>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <p style={{ textAlign: "center", fontSize: 13, color: P.inkSoft, margin: "22px 0 0" }}>
+            {bn ? "লঞ্চ দাম, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত। নিজের AI কী, বছরের দাম আর পুরো তুলনা — " : "Launch prices, valid until 31 December 2026. Own-AI-key prices, yearly billing and the full comparison — "}
+            <a href="/pricing" style={{ color: P.accent, fontWeight: 600 }}>{bn ? "দামের পাতায়" : "on the pricing page"}</a>
+          </p>
+        </div>
+      </section>
+
       {cases.length > 0 && (
-        <section id="case-studies" style={{ ...wrap, padding: "0 clamp(16px,4vw,26px) clamp(40px,7vw,80px)" }}>
-          <div data-reveal="0" style={{ marginBottom: 30, maxWidth: 620 }}>
+        <section id="case-studies" style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
+          <div data-reveal="0" style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 30px" }}>
             <Label>{bn ? "যাঁরা ব্যবহার করছেন" : "In production"}</Label>
-            <h2 className="fr" style={{ fontSize: "clamp(30px,5vw,50px)", lineHeight: 1.02, margin: 0 }}>
+            <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: 0 }}>
               {bn ? "যেসব ব্যবসা TellMore AI-এ চলছে" : "Businesses running on TellMore AI"}
             </h2>
           </div>
@@ -626,27 +780,58 @@ export default function Home({ searchParams }) {
         </section>
       )}
 
-      <footer style={{ borderTop: `1px solid ${P.line}` }}>
-        <div style={{ ...wrap, padding: "26px clamp(16px,4vw,26px) 30px" }}>
-          {/* These are not decoration: Meta's review requires the privacy and terms
-              URLs to be reachable, and dropping them once already nearly cost a
-              submission. */}
-          {/* The solution pages, linked from every page: a reader finds the one
-              that matches what they came for, and a crawler finds all of them. */}
-          <div style={{ display: "flex", gap: "12px 22px", flexWrap: "wrap", marginBottom: 14 }}>
-            {FOOTER_LINKS[bn ? "bn" : "en"].map(([slug, label]) => (
-              <a key={slug} href={solutionHref(slug, bn ? "bn" : "en")} className="flink">{label}</a>
-            ))}
+      {/* The maroon call to action of the Figma layout. */}
+      <section style={{ background: "#7B1C3E", color: "#fff" }}>
+        <div style={{ ...wrap, padding: "clamp(44px,7vw,78px) clamp(16px,4vw,26px)", textAlign: "center" }}>
+          <h2 className="fr" style={{ fontSize: "clamp(26px,4vw,40px)", lineHeight: 1.12, margin: "0 0 12px", color: "#fff" }}>
+            {bn ? "প্রতিটা গ্রাহকের উত্তর, এখনই" : "Answer every customer, starting today"}
+          </h2>
+          <p style={{ fontSize: 15.5, lineHeight: 1.6, color: "rgba(255,255,255,.82)", margin: "0 auto 26px", maxWidth: 560 }}>
+            {c.proof.join(" · ")}
+          </p>
+          <a href="/dashboard?auth=signup" className="btn" style={{ display: "inline-block", background: "#fff", color: "#7B1C3E",
+            fontWeight: 700, fontSize: 14.5, padding: "14px 28px", textDecoration: "none" }}>{c.cta}</a>
+        </div>
+      </section>
+
+      <footer className="foot">
+        <div style={{ ...wrap, padding: "clamp(40px,6vw,64px) clamp(16px,4vw,26px) 26px" }}>
+          <div className="foot-grid">
+            <div>
+              <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 9, textDecoration: "none", color: "#F2EEF1" }}>
+                <div style={{ width: 30, height: 30, background: "#fff", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <BotMark size={25} />
+                </div>
+                <span className="fr" style={{ fontSize: 18 }}>TellMore AI</span>
+              </a>
+              <p style={{ fontSize: 13.5, lineHeight: 1.65, color: "#B5ADB4", margin: "14px 0 0", maxWidth: 300 }}>{c.lead}</p>
+            </div>
+            <div>
+              <div className="foot-h">{bn ? "পণ্য" : "Product"}</div>
+              <a href="#features" className="foot-a">{bn ? "ফিচার" : "Features"}</a>
+              <a href="/pricing" className="foot-a">{bn ? "দাম" : "Pricing"}</a>
+              <a href="#film" className="foot-a">{bn ? "ভিডিও" : "Demo"}</a>
+              <a href="/google-calendar" className="foot-a">Google Calendar</a>
+            </div>
+            {/* The solution pages, linked from every page: a reader finds the one
+                that matches what they came for, and a crawler finds all of them. */}
+            <div>
+              <div className="foot-h">{bn ? "সমাধান" : "Solutions"}</div>
+              {FOOTER_LINKS[bn ? "bn" : "en"].map(([slug, label]) => (
+                <a key={slug} href={solutionHref(slug, bn ? "bn" : "en")} className="foot-a">{label}</a>
+              ))}
+            </div>
+            {/* Not decoration: Meta's review requires the privacy and terms URLs
+                to be reachable, and dropping them once nearly cost a submission. */}
+            <div>
+              <div className="foot-h">{bn ? "প্রতিষ্ঠান" : "Company"}</div>
+              <a href="/contact" className="foot-a">{bn ? "যোগাযোগ" : "Contact"}</a>
+              <a href="/privacy" className="foot-a">{bn ? "প্রাইভেসি পলিসি" : "Privacy Policy"}</a>
+              <a href="/terms" className="foot-a">{bn ? "শর্তাবলি" : "Terms of Service"}</a>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: "14px 26px", flexWrap: "wrap", marginBottom: 18 }}>
-            <a href="/pricing" className="flink">{bn ? "দাম" : "Pricing"}</a>
-            <a href="/google-calendar" className="flink">Google Calendar</a>
-            <a href="/privacy" className="flink">{bn ? "প্রাইভেসি পলিসি" : "Privacy Policy"}</a>
-            <a href="/terms" className="flink">{bn ? "শর্তাবলি" : "Terms of Service"}</a>
-            <a href="/contact" className="flink">{bn ? "যোগাযোগ" : "Contact"}</a>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
-            ...mono, fontSize: 9.5, color: P.inkSoft, borderTop: `1px solid ${P.line}`, paddingTop: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontSize: 12.5,
+            color: "#857D86", borderTop: "1px solid rgba(255,255,255,.1)", paddingTop: 18, marginTop: 34 }}>
             <span>{COPYRIGHT}</span>
             <span>{ADDRESS_SHORT}</span>
           </div>

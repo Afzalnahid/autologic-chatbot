@@ -60,7 +60,9 @@ export const THEME_BOOT_JS = `(function(){
   function apply(t){
     document.documentElement.setAttribute("data-theme", t);
     var ic = document.getElementById("al-mode-ic");
-    if (ic) ic.className = "ti ti-" + (t === "dark" ? "sun" : "moon");
+    // Whole names, not "ti-" + name: scripts/make-icon-font.mjs finds icons by their
+    // full name, and a built one was left out of the subset (a blank sun in dark mode).
+    if (ic) ic.className = t === "dark" ? "ti ti-sun" : "ti ti-moon";
   }
   apply(current());
   // Delegated, so it survives React replacing the button during hydration.
