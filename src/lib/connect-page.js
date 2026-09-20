@@ -45,7 +45,7 @@ function shell({ title, body, script = "" }) {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css">
-<script>try{var t=localStorage.getItem("al-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<script>try{var s=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light",t=localStorage.getItem("al-theme");if(!(t&&localStorage.getItem("al-theme-sys")===s))t=s;document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <style>
 :root,[data-theme=light]{--bg:#F7F5F7;--card:#FFFFFF;--in:#F3EEF1;--text:#121116;--muted:#56505A;--dim:#8E8792;--line:#ECE6EA;--acc:#7B1C3E;--accd:#5C1430;--ok:#0A7C5C;--warn:#8A5A07;--warnbg:rgba(154,100,8,.10);--okbg:rgba(10,124,92,.10);--shd:rgba(18,17,22,.07);--shl:rgba(255,255,255,0);color-scheme:light}
 [data-theme=dark]{--bg:#121116;--card:#1B1920;--in:#16141B;--text:#F2EEF1;--muted:#B5ADB4;--dim:#857D86;--line:#2A2630;--acc:#C04A72;--accd:#7B1C3E;--ok:#3FE0B4;--warn:#F5C25A;--warnbg:rgba(245,194,90,.12);--okbg:rgba(63,224,180,.12);--shd:rgba(0,0,0,.45);--shl:rgba(255,255,255,0);color-scheme:dark}

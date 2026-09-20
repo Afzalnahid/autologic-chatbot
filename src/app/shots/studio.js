@@ -177,7 +177,13 @@ export default function Studio({ tab, theme }) {
   // choice on a few timers, and would otherwise undo this a second later.
   useEffect(() => {
     if (theme !== "light" && theme !== "dark") return;
-    try { localStorage.setItem("al-theme", theme); } catch {}
+    // Stored the way the toggle stores it (src/lib/theme-pref.js): a choice is
+    // kept beside the machine's own mode, and is only a choice when it differs.
+    try {
+      const system = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      if (theme === system) { localStorage.removeItem("al-theme"); localStorage.removeItem("al-theme-sys"); }
+      else { localStorage.setItem("al-theme", theme); localStorage.setItem("al-theme-sys", system); }
+    } catch {}
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 

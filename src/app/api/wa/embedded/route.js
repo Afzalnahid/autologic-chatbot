@@ -85,7 +85,7 @@ export async function GET(request) {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Connect WhatsApp</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css">
-<script>try{var t=localStorage.getItem("al-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<script>try{var s=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light",t=localStorage.getItem("al-theme");if(!(t&&localStorage.getItem("al-theme-sys")===s))t=s;document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <style>
 /* Brand chrome — maroon #7B1C3E on soft white, a lifted #C04A72 in dark mode, honouring the
    owner's saved al-theme. Matches src/lib/connect-page.js and the WhatsApp

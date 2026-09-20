@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { PLANS, PLAN_ORDER, formatMoney, yearlySavingMonths } from "@/lib/plans.js";
+import { resolveTheme } from "@/lib/theme-pref.js";
 import { THEME_CSS } from "@/lib/landing.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 
@@ -116,12 +117,14 @@ export default function PricingClient() {
   const wrap = { maxWidth: 1120, margin: "0 auto", padding: "0 20px" };
   const yearly = cycle === "yearly";
 
-  // Same boot as the landing page: saved choice first, then the machine's.
+  // Same boot as the landing page: the device's mode, unless a choice was made
+  // while the device was in this same mode (src/lib/theme-pref.js).
   useEffect(() => {
     try {
-      const t = localStorage.getItem("al-theme")
-        || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      document.documentElement.dataset.theme = t;
+      const system = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.dataset.theme = resolveTheme({
+        saved: localStorage.getItem("al-theme"), savedSys: localStorage.getItem("al-theme-sys"), system,
+      }).mode;
     } catch {}
     // Live packages from the admin panel — so a new or re-priced plan appears
     // here without a deploy. Falls back to the code catalogue on any error.

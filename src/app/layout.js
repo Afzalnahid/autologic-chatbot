@@ -7,6 +7,13 @@ export const viewport = {
   initialScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
+  // The browser's own bar (mobile Chrome, an installed web app) takes the page's
+  // background in the device's mode, so it reads as one surface with the page —
+  // the same thing the Android app does natively (mobile/scripts/patch-manifest.mjs).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FCFCFD" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0B0E" },
+  ],
 };
 
 export const metadata = {

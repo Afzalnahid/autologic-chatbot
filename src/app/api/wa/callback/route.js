@@ -66,7 +66,7 @@ function page(bodyHtml, title = "Connect WhatsApp") {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/dist/tabler-icons.min.css">
-<script>try{var t=localStorage.getItem("al-theme");if(!t)t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<script>try{var s=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light",t=localStorage.getItem("al-theme");if(!(t&&localStorage.getItem("al-theme-sys")===s))t=s;document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <style>${STYLE}</style></head><body>${bodyHtml}</body></html>`,
     { headers: { "Content-Type": "text/html; charset=utf-8" } }
   );

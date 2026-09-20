@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { BotMark } from "@/lib/brand.js";
+import { resolveTheme, toggleTheme as pickTheme, THEME_KEY, THEME_SYS_KEY } from "@/lib/theme-pref.js";
 
 // Shared presentational building blocks. Each tab imports from here, so the
 // design tokens have exactly one definition.
@@ -583,20 +584,42 @@ export function Theme() {
 
 export function useTheme() {
   const [mode, setMode] = useState("light");
+  // The app follows the device — at launch AND while it is open (a phone flips
+  // to dark at sunset with the app on screen). A choice made with the toggle
+  // stands only until the device changes mode; the rule, and why, is in
+  // src/lib/theme-pref.js.
   useEffect(() => {
-    let saved = null;
-    try { saved = localStorage.getItem("al-theme"); } catch {}
-    // No stored choice means follow the machine — someone who runs their laptop
-    // dark should not be handed a white screen.
-    const start = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    setMode(start);
-    document.documentElement.dataset.theme = start;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const system = () => (mq.matches ? "dark" : "light");
+    const apply = () => {
+      let saved = null, savedSys = null;
+      try { saved = localStorage.getItem(THEME_KEY); savedSys = localStorage.getItem(THEME_SYS_KEY); } catch {}
+      const r = resolveTheme({ saved, savedSys, system: system() });
+      if (!r.keep && (saved || savedSys)) { try { localStorage.removeItem(THEME_KEY); localStorage.removeItem(THEME_SYS_KEY); } catch {} }
+      setMode(r.mode);
+      document.documentElement.dataset.theme = r.mode;
+    };
+    apply();
+    // addListener is the spelling old Android WebViews and Safari < 14 know.
+    if (mq.addEventListener) mq.addEventListener("change", apply); else if (mq.addListener) mq.addListener(apply);
+    // A WebView left in the background can miss the change event; coming back
+    // to the app re-reads the device.
+    const onShow = () => { if (document.visibilityState === "visible") apply(); };
+    document.addEventListener("visibilitychange", onShow);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", apply); else if (mq.removeListener) mq.removeListener(apply);
+      document.removeEventListener("visibilitychange", onShow);
+    };
   }, []);
   const toggle = () => {
-    const next = mode === "dark" ? "light" : "dark";
-    setMode(next);
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem("al-theme", next); } catch {}
+    const system = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    const r = pickTheme({ current: mode, system });
+    setMode(r.mode);
+    document.documentElement.dataset.theme = r.mode;
+    try {
+      if (r.store) { localStorage.setItem(THEME_KEY, r.store.saved); localStorage.setItem(THEME_SYS_KEY, r.store.savedSys); }
+      else { localStorage.removeItem(THEME_KEY); localStorage.removeItem(THEME_SYS_KEY); }
+    } catch {}
   };
   return [mode, toggle];
 }

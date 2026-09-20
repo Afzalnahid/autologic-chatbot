@@ -49,15 +49,21 @@ export const THEME_CSS = `
   body { background: var(--lp-bg) }
 `;
 
-// Applies the saved theme before first paint and wires the nav toggle. The
-// storage key is shared with the dashboard, so one choice follows the visitor
-// across the whole site.
+// Applies the theme before first paint and wires the nav toggle. The storage
+// keys are shared with the dashboard, so one choice follows the visitor across
+// the whole site. The rule is src/lib/theme-pref.js, written out by hand because
+// an inline script cannot import: follow the device; a choice made with the
+// toggle stands only while the device stays in the mode it was made under.
 export const THEME_BOOT_JS = `(function(){
-  var KEY = "al-theme";
+  var KEY = "al-theme", SYS = "al-theme-sys";
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  function system(){ return mq.matches ? "dark" : "light"; }
   function current(){
-    var t = null;
-    try { t = localStorage.getItem(KEY); } catch(e){}
-    return t || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var t = null, s = null, sys = system();
+    try { t = localStorage.getItem(KEY); s = localStorage.getItem(SYS); } catch(e){}
+    if ((t === "light" || t === "dark") && s === sys && t !== sys) return t;
+    if (t || s) { try { localStorage.removeItem(KEY); localStorage.removeItem(SYS); } catch(e3){} }
+    return sys;
   }
   function apply(t){
     document.documentElement.setAttribute("data-theme", t);
@@ -73,8 +79,14 @@ export const THEME_BOOT_JS = `(function(){
     if (!b) return;
     var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
     apply(next);
-    try { localStorage.setItem(KEY, next); } catch(e2){}
+    try {
+      if (next === system()) { localStorage.removeItem(KEY); localStorage.removeItem(SYS); }
+      else { localStorage.setItem(KEY, next); localStorage.setItem(SYS, system()); }
+    } catch(e2){}
   }, true);
+  // The device changed mode with the page open: follow it.
+  function follow(){ apply(current()); }
+  if (mq.addEventListener) mq.addEventListener("change", follow); else if (mq.addListener) mq.addListener(follow);
   // Hydration can rewrite <html>'s attributes from the server markup (which
   // has none); re-assert the choice once it settles, and whenever the icon
   // node is swapped in.
