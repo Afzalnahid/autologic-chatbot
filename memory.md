@@ -816,6 +816,34 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
+  - ★★ LATEST (2026-09-21, later) — ANDROID APP FIXES, WAITING FOR AN APK BUILD.
+    Owner reported six app problems; causes, checks and a master prompt for
+    each are in docs/mobile-app-fixes-2026-09-21.md. Shipped in two commits,
+    pushed, 65/65: 3016bf3 (web half, live) and 026a59f (mobile/ + workflow).
+    THE OWNER MUST NOW RUN: GitHub → Actions → "Build Android APK" → Run
+    workflow, install the APK over the current app, and run the six checks
+    in that doc. NOTHING in mobile/ was built or run on a device here (no
+    Android SDK, no gh) — if the build fails, read the failing step's log.
+    What was verified here: patch-manifest.mjs against @capacitor/cli
+    6.2.2's real template (idempotent, well-formed, tellmoreai:// filter on
+    MainActivity, backup off); plugin versions against npm (voice recorder
+    PINNED 6.0.3 — 6.1.0 needs Capacitor 7); /api/app/connect and the 302
+    to tellmoreai:// against the local server; icon previewed masked.
+    Causes found: (1)(2) window.open() in the WebView replaced the dashboard
+    with the login route → Capacitor sent facebook.com/google to Chrome and
+    nothing came back; the "logout" was the first-run signup back handler
+    (stage connect/connect-cal) firing for an already-onboarded owner —
+    fixed with the everInApp ref. (3) allowBackup=true restored the
+    WebView's session on reinstall. (4) shell returned null after the
+    splash. (5) thin plum outline on white at 1.0x. (6) one catch reported
+    every recorder failure as "Microphone access denied" (real fault not
+    confirmed — no device log; native recorder + specific errors now).
+    The trip: native-connect.js openConnect → /api/app/connect?to= (cookie
+    tm_app) → login → connect-page.js 302 tellmoreai://connected|
+    connect-failed → App.appUrlOpen → same postMessage events as the popup.
+    IF THE OWNER SAYS the sheet does not return to the app: check the
+    default browser supports Custom Tabs, and that the APK is the NEW one
+    (the old APK has no Browser plugin, so it keeps the old behaviour).
   - ★ WHERE WE STOPPED (2026-09-21) — read this first when resuming.
     OWNER'S STANDING RULE (2026-09-21): update this file after EVERY stage
     and push it, so another Claude can resume if the usage limit cuts a

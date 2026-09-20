@@ -1481,3 +1481,25 @@ so any number we had registered once could never be registered by us again.
 Rule: a step whose failure means the feature will not work must decide the
 outcome, not just the log — and any secret we set on a customer's asset must
 be reproducible (derived) or stored, never thrown away.
+
+## 2026-09-21 — a handler written for one screen fired on the same screen reached another way
+The connect screens (stage "connect" / "connect-cal") had a back-button handler
+meaning "I changed my mind about signing up → sign out". The same screens are
+also opened from the Channels tab by an owner who has used the app for months,
+so in the Android app — where a channel login ended in the phone's browser and
+the way home was the back button — the owner was signed out after every
+connect. It looked like a session bug and was a navigation rule applied in the
+wrong context. Rule: a handler that does something destructive (sign out,
+discard, delete) must check the CONTEXT it was written for, not only the screen
+it happens to be on; and one catch block must never cover steps with different
+causes — "Microphone access denied" was shown for a recorder failure, which
+sent the owner to the permission settings for a fault that was not there.
+
+## 2026-09-21 — in a WebView, window.open() is not a popup
+A Capacitor WebView has no second window: window.open() REPLACED the dashboard
+with the login route, and the first off-site redirect was handed to the phone's
+browser, where the flow ended with no way back to the app. OAuth providers
+refuse WebViews anyway. Rule: from a native shell, a third-party login opens in
+a browser sheet (Custom Tab / SFSafariViewController) and ends by redirecting to
+the app's own address (RFC 8252); never navigate the WebView to it, and never
+test such a flow only in a desktop browser.
