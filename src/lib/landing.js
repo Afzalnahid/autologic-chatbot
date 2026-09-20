@@ -148,7 +148,7 @@ export const CONVOS = [
   { ch: "instagram", kind: "shop", note: "photo", photo: "/demo/dress.svg",
     lines: [["me","📷 এই ড্রেসটা আপনাদের আছে?"],["bot","ছবির সাথে মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। M ও L আছে।"],["me","Do you deliver outside Dhaka?"],["bot","Yes — nationwide, 2–3 days outside Dhaka."]] },
   { ch: "whatsapp", kind: "service", note: "docs",
-    lines: [["me","আপনাদের সার্ভিস প্যাকেজ কত?"],["bot","স্টার্টার ১,৫০০৳, প্রো ৩,৫০০৳ এবং এজেন্সি ৬,০০০৳ প্রতি মাসে।"],["me","বৃহস্পতিবার একটা মিটিং করা যাবে?"],["bot","বৃহস্পতিবার বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়ে দিয়েছি। ✅"]] },
+    lines: [["me","একটা ওয়েবসাইট বানাতে কত খরচ হবে?"],["bot","বিজনেস ওয়েবসাইট ১৫,০০০৳ থেকে, ই-কমার্স সাইট ৪০,০০০৳ থেকে। সময় লাগে ২–৩ সপ্তাহ।"],["me","বৃহস্পতিবার একটা মিটিং করা যাবে?"],["bot","বৃহস্পতিবার বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়ে দিয়েছি। ✅"]] },
   { ch: "website", kind: "service", note: "code",
     lines: [["me","Hi, I run a small clothing store. Can this handle my Facebook page?"],["bot","Yes — Messenger, Instagram, WhatsApp and this website widget, all from one dashboard."],["me","How do I add it to my site?"],["bot","One line of code, copied from your dashboard. It takes about a minute."]] },
 ];

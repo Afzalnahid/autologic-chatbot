@@ -5,6 +5,8 @@
 // language switch) does not apply here: these are public marketing pages and
 // the Bangla one is served only at ?lang=bn.
 
+import { lowestMonthly, bnNumber } from "../plans.js";
+
 export const UI = {
   cta: "ফ্রি ট্রায়াল শুরু করুন",
   ctaNote: "৩ দিন ফ্রি। কার্ড লাগবে না।",
@@ -81,7 +83,7 @@ export const PAGES = {
         ] },
       { h: "খরচ আগে থেকেই জানা",
         p: [
-          "আমাদের খরচ মাসে নির্দিষ্ট, প্রতি মেসেজে নয় — মাসিক ১,৫০০ টাকা থেকে শুরু, সঙ্গে ৩ দিনের ফ্রি ট্রায়াল। Meta-র নিজস্ব কথোপকথন চার্জ (যেখানে প্রযোজ্য) Meta আপনার অ্যাকাউন্টে নেয়।",
+          `আমাদের খরচ মাসে নির্দিষ্ট, প্রতি মেসেজে নয় — মাসিক ${bnNumber(lowestMonthly())} টাকা থেকে শুরু, সঙ্গে ৩ দিনের ফ্রি ট্রায়াল। Meta-র নিজস্ব কথোপকথন চার্জ (যেখানে প্রযোজ্য) Meta আপনার অ্যাকাউন্টে নেয়।`,
         ] },
     ],
     faq: [

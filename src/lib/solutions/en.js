@@ -5,6 +5,8 @@
 // Shape: { metaTitle, description, eyebrow, title, lead, sections:[{h,p,list}],
 //          faq:[{q,a}], related:[slug] }
 
+import { lowestMonthly, formatMoney } from "../plans.js";
+
 export const UI = {
   cta: "Start the free trial",
   ctaNote: "3 days free. No card needed.",
@@ -83,7 +85,7 @@ export const PAGES = {
         ] },
       { h: "Costs you can predict",
         p: [
-          "TellMore AI charges a flat monthly package, not a fee per message, starting at ৳1,500 a month with a three-day free trial. Meta's own conversation charges, where they apply, are billed by Meta to your WhatsApp account.",
+          `TellMore AI charges a flat monthly package, not a fee per message, starting at ${formatMoney(lowestMonthly())} a month with a three-day free trial. Meta's own conversation charges, where they apply, are billed by Meta to your WhatsApp account.`,
         ] },
     ],
     faq: [

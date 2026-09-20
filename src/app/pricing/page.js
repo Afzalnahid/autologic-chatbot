@@ -1,11 +1,13 @@
 import PricingClient from "./pricing-client.js";
 import { pageMeta, productJsonLd, jsonLdProps, breadcrumbJsonLd } from "@/lib/seo.js";
-import { PLANS, PAID_PLANS, TRIAL_DAYS } from "@/lib/plans.js";
+import { PLANS, PAID_PLANS, TRIAL_DAYS, lowestMonthly, formatMoney } from "@/lib/plans.js";
 
 // Not marked bilingual: this page has no Bangla copy, unlike the home page.
 export const metadata = pageMeta({
   title: "Pricing — TellMore AI AI Chatbot for Facebook, Instagram & WhatsApp",
-  description: "Simple BDT pricing for Bangladeshi businesses. Start with a free 3-day trial, then from ৳1,500/month. Pay with bKash, Nagad or Rocket.",
+  // Built from the price list: this sentence is the snippet Google prints under
+  // the result, and a typed-in figure went stale there once.
+  description: `Simple BDT pricing for Bangladeshi businesses. Start with a free ${TRIAL_DAYS}-day trial, then from ${formatMoney(lowestMonthly())}/month. Pay with bKash, Nagad or Rocket.`,
   path: "/pricing",
 });
 

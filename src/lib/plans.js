@@ -235,6 +235,19 @@ export const PAID_PLANS = [
   "svc_basic", "svc_pro", "svc_enterprise",
 ];
 
+// The "from ৳…" figure a public page or a search result quotes: the cheapest
+// standard monthly price on sale. It lives here because it was once typed by
+// hand into a page description and two solution pages, and stayed at the old
+// ৳1,500 in Google's results after the price list changed (2026-09-20).
+export function lowestMonthly() {
+  return Math.min(...PAID_PLANS.map((id) => PLANS[id]?.monthly).filter((n) => typeof n === "number" && n > 0));
+}
+
+// The same number in Bangla digits with Bangla grouping, for Bangla copy.
+export function bnNumber(n) {
+  return Number(n || 0).toLocaleString("en-IN").replace(/\d/g, (d) => "০১২৩৪৫৬৭৮৯"[d]);
+}
+
 export function planOf(id) {
   return PLANS[id] || null;
 }

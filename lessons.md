@@ -1503,3 +1503,13 @@ refuse WebViews anyway. Rule: from a native shell, a third-party login opens in
 a browser sheet (Custom Tab / SFSafariViewController) and ends by redirecting to
 the app's own address (RFC 8252); never navigate the WebView to it, and never
 test such a flow only in a desktop browser.
+
+## 2026-09-21 — a price typed into a page description outlives the price list
+The pricing page's meta description said "from ৳1,500/month" by hand. The price
+list changed, the page and its JSON-LD followed (they read plans.js), the
+sentence did not — and that sentence is exactly what Google prints under the
+result, so the owner saw old prices in search weeks later. Rule: public copy
+that quotes OUR price takes it from plans.js (lowestMonthly(), formatMoney(),
+bnNumber()); tests/t-public-prices.mjs fails on a typed-in figure. When a number
+changes, search the whole repo for the OLD figure in every script it can be
+written in (৳1,500 · 1500 · ১,৫০০), not just the page that shows it.

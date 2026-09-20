@@ -816,6 +816,21 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
+  - ★★★ NEWEST (2026-09-21, after the app fixes) — OLD PRICE IN GOOGLE.
+    Owner saw the old price list in Google's results. Cause found on the live
+    site: /pricing's meta description was typed by hand and still said "from
+    ৳1,500/month" (that sentence IS Google's snippet); the WhatsApp solution
+    page said the same in EN and BN. The JSON-LD prices and /api/plans were
+    already right (2,299–11,999). Fixed: plans.js gained lowestMonthly() and
+    bnNumber(); all three sentences are built from them; the home page's demo
+    service chat no longer reads like our old package list.
+    tests/t-public-prices.mjs (36) fails on any typed-in price in those files
+    and holds the manual's package table to plans.js. 66/66.
+    OWNER'S PART (Search Console, cannot be done from here): URL Inspection →
+    https://www.tellmoreai.com/pricing → Request indexing; same for / and
+    /solutions/whatsapp-chatbot; Sitemaps → resubmit sitemap.xml. Google
+    refreshes the snippet in a few days to ~2 weeks; nothing forces it sooner.
+    Do NOT use "Removals" — that hides the page from Google for 6 months.
   - ★★ LATEST (2026-09-21, later) — ANDROID APP FIXES, WAITING FOR AN APK BUILD.
     Owner reported six app problems; causes, checks and a master prompt for
     each are in docs/mobile-app-fixes-2026-09-21.md. Shipped in two commits,
