@@ -841,6 +841,11 @@ again?"
       @capacitor/cli 6.2.1's real template: applies, second run changes nothing,
       XML well-formed. The Java has never been compiled — if "Build the debug
       APK" fails in MainActivity.java, that is the first place to look.
+    · First paint: src/app/dashboard/layout.js paints html/body in the page's
+      own background per data-theme. globals.css paints body an old navy
+      (#0A0D14) in every mode, and the dashboard is client-only, so the opening
+      went splash → navy page → launch screen. Measured with the app chunk held
+      back: #FCFCFD in light, #0B0B0E in dark.
     · 67/67. The web half works in the APK already installed; the bars need
       the new build (same pending run as the six app fixes).
   - ★★★ (2026-09-21, after the app fixes) — OLD PRICE IN GOOGLE.
