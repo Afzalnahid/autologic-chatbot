@@ -827,14 +827,21 @@ again?"
     arrow keys, swipe, open-original, Escape/X/backdrop/back button), and
     the tablet rail's footer controls stack inside the 96px rail (touch
     screens force 44px square buttons). 63/63 suites, pushed.
-    OPEN QUESTION FOR THE OWNER (asked, not answered yet): after a package
-    expires the BOT stops (botAllowed/planActive) but the inbox still
-    STORES customer messages and the owner's own replies, and the owner
-    can still reply by hand from the dashboard. The owner flagged "after
-    expired the package still capture the replies". Recommended: keep
-    storing (nothing is lost if they renew) but lock the Inbox behind the
-    renew banner and block /api/send-message + /api/send-media for an
-    inactive plan. Do NOT build until the owner picks an option.
+    THEN SHIPPED (owner chose option 1): "A lapsed plan locks the inbox;
+    messages are still saved" — src/lib/inbox-lock.js (inboxLocked =
+    !planActive, lockedSince, LOCKED; t-inbox-lock 17). Webhook untouched,
+    so messages keep landing in message_buffer. HTTP 402 on POST
+    /api/send-message, /api/send-media, GET /api/conversations/messages,
+    DELETE /api/conversations; GET /api/conversations answers [] with
+    X-Inbox-Locked. /api/me returns inbox:{locked,since,waiting}. UI:
+    InboxLocked card in Conversations.js (props locked/lockInfo/onRenew
+    from dashboard-client, locked = me.active===false), Overview "Needs
+    you" says locked. Studio scene "conversations-locked". 64/64, pushed.
+    NOT verified against a real expired account — the owner's test
+    account "Broker's BD" is expired and is the one to check it on: the
+    Inbox should show the lock card, and renewing should bring every chat
+    back. Known cosmetic: the ti-arrow-up-circle glyph on "Renew or
+    upgrade" renders as an up-down arrow (same in BotOffBanner).
     NOT BUILT, owner's call: reply-suggestion chips + AI summary card (AI
     cost); "from your catalogue" caption (no stored source). The studio
     cannot test the phone back button (no popstate handler there) — the
