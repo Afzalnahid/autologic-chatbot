@@ -483,6 +483,7 @@ export const DOCS = {
       { p: [
           "Your messages and the bot's sit on the right, the customer's on the left in grey. Anything you sent by hand is marked **You** underneath; under the bot's reply you see how fast it came — **answered in 3 s**. The day and time sit above the first message of each day.",
           "When the bot shows a product, the picture appears as a **card** with the product's name, stock and price, read from your catalogue at that moment.",
+          "Photos work the way they do in Messenger. Several sent together — by the customer or by you — appear as **one group** of small squares rather than a long column, with **+N** on the last square when there are more than nine. Tap any picture and it opens **full screen**: arrows, the arrow keys or a swipe move through the group, the counter says which one you are on, the square-with-arrow button opens the original, and Escape, the ✕, a tap outside or your phone's back button closes it.",
         ] },
 
       { note: "The **Inbox** number on the sidebar is the count of unread chats — the same ones shown bold. Opening a chat, or **Mark all as read** in the bell at the top, clears it. It is remembered per device, so your phone and your computer each keep their own.",

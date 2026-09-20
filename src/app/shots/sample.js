@@ -38,6 +38,7 @@ const CHANNELS = [
 // The navy panjabi's picture: the bot sends a product's own image, and the
 // inbox turns that picture into a product card when the address matches.
 const PIMG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='%23E6E6EA'/></svg>";
+const PIC = (hex) => `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23${hex}'/><circle cx='120' cy='104' r='46' fill='%23ffffff' fill-opacity='.55'/><rect x='52' y='168' width='136' height='22' rx='11' fill='%23ffffff' fill-opacity='.55'/></svg>`;
 const CONVOS = [
   { id: "u1", sender: "Tasnim Rahman", platform: "instagram", page_id: "17841400000000000",
     status: "active", lastMsg: "Ei design ta ki M size e ache?", time: iso(4),
@@ -49,6 +50,9 @@ const CONVOS = [
   { id: "u2", sender: "Rahim Uddin", platform: "facebook", page_id: "102938475610293",
     status: "active", lastMsg: "Delivery charge koto Cumilla te?", time: iso(58),
     messages: [
+      // Five photos sent in one go — each arrives as its own message, and the
+      // inbox shows them as one group, the way Messenger does.
+      ...["C9B8A8", "A8B5C9", "B8C9A8", "C9A8C0", "C9C3A8"].map((c, i) => ({ role: "customer", text: "📷 Photo", attachments: [PIC(c)], time: iso(64 - i * 0.05) })),
       { role: "customer", text: "Delivery charge koto Cumilla te?", attachments: [], time: iso(62) },
       { role: "bot", text: "Outside Dhaka the delivery charge is 120 taka and it usually takes two to three days.", attachments: [], time: iso(58) },
     ] },

@@ -5,6 +5,7 @@ import { api, getSb, apiJson } from "./session.js";
 import { useBackClose } from "./back.js";
 import { useConvoRead, markConvoSeen } from "./convo-read.js";
 import { useT } from "./i18n.js";
+import { groupThread } from "@/lib/thread-groups.js";
 
 // The Inbox. Laid out the way the owner's design deck draws it (2026-09-20):
 // four numbers across the top, the list with an avatar and a channel dot per
@@ -27,6 +28,60 @@ const dayLabel = (x, t) => {
   const day=same(d,n)?t("inbox.today"):same(d,y)?t("inbox.yesterday"):d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
   return `${day}, ${d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).toLowerCase()}`;
 };
+
+// One picture, or a grid of them: two side by side, three and more as small
+// squares in rows of three, a "+N" over the ninth when there are more. Each
+// opens the viewer.
+function ImageGroup({urls,mine,onOpen,onLoad}){
+  const n=urls.length;
+  if(n===1) return <button type="button" onClick={()=>onOpen(0)} aria-label="Open image" style={{padding:0,border:"none",background:"none",cursor:"zoom-in",display:"block",borderRadius:16,overflow:"hidden"}}>
+    <img src={urls[0]} alt="" onLoad={onLoad} style={{maxWidth:220,maxHeight:300,borderRadius:16,display:"block",objectFit:"cover"}} onError={e=>{e.target.style.display="none"}}/>
+  </button>;
+  const cols=n===2||n===4?2:3, size=cols===2?112:84, shown=urls.slice(0,9), more=n-shown.length;
+  return <div style={{display:"grid",gridTemplateColumns:`repeat(${cols}, ${size}px)`,gap:3,borderRadius:14,overflow:"hidden",justifyContent:mine?"end":"start"}}>
+    {shown.map((u,i)=><button key={i} type="button" onClick={()=>onOpen(i)} aria-label={`Open image ${i+1} of ${n}`}
+      style={{position:"relative",padding:0,border:"none",background:T.inset,cursor:"zoom-in",width:size,height:size,minHeight:0,display:"block"}}>
+      <img src={u} alt="" onLoad={onLoad} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>{e.target.style.visibility="hidden"}}/>
+      {more>0&&i===shown.length-1&&<span style={{position:"absolute",inset:0,background:"rgba(11,11,14,.55)",color:"#fff",fontSize:18,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>+{more}</span>}
+    </button>)}
+  </div>;
+}
+
+// The picture, full screen, the way Messenger opens one: dark backdrop, the
+// image fitted to the screen, arrows and a counter when it came in a group,
+// and a link to the original. Escape, the backdrop, the X and the phone's
+// back button all close it.
+function ImageViewer({urls,index,onIndex,onClose}){
+  const n=urls.length;
+  const go=(d)=>onIndex((index+d+n)%n);
+  useEffect(()=>{
+    const k=(e)=>{ if(e.key==="Escape") onClose(); else if(e.key==="ArrowRight"&&n>1) go(1); else if(e.key==="ArrowLeft"&&n>1) go(-1); };
+    window.addEventListener("keydown",k);
+    return ()=>window.removeEventListener("keydown",k);
+  }); // eslint-disable-line
+  const sq={width:44,height:44,borderRadius:"50%",border:"none",cursor:"pointer",background:"rgba(255,255,255,.14)",color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0};
+  // A finger swipe moves between the pictures of a group, as it does in Messenger.
+  const touch=useRef(null);
+  const onTouchStart=(e)=>{ const p=e.touches[0]; touch.current={x:p.clientX,y:p.clientY}; };
+  const onTouchEnd=(e)=>{ const s0=touch.current; touch.current=null; if(!s0||n<2) return; const p=e.changedTouches[0]; const dx=p.clientX-s0.x, dy=p.clientY-s0.y;
+    if(Math.abs(dx)>48&&Math.abs(dx)>Math.abs(dy)*1.5) go(dx<0?1:-1); };
+  return <div role="dialog" aria-modal="true" aria-label="Image" onClick={onClose} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+    style={{position:"fixed",inset:0,height:"100dvh",zIndex:95,background:"rgba(11,11,14,.94)",display:"flex",flexDirection:"column",
+      paddingTop:"env(safe-area-inset-top)",paddingBottom:"env(safe-area-inset-bottom)"}}>
+    <div onClick={e=>e.stopPropagation()} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:"10px 12px",flexShrink:0}}>
+      <span style={{color:"#fff",fontSize:13,fontWeight:600,fontVariantNumeric:"tabular-nums",minWidth:44}}>{n>1?`${index+1} / ${n}`:""}</span>
+      <span style={{display:"flex",gap:8}}>
+        <a href={urls[index]} target="_blank" rel="noopener noreferrer" aria-label="Open original" title="Open original" className="ui-sq" style={{...sq,textDecoration:"none"}}><i className="ti ti-external-link"/></a>
+        <button type="button" onClick={onClose} aria-label="Close" className="ui-sq" style={sq}><i className="ti ti-x"/></button>
+      </span>
+    </div>
+    <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"0 8px 12px"}}>
+      {n>1&&<button type="button" onClick={e=>{e.stopPropagation();go(-1);}} aria-label="Previous image" className="ui-sq" style={sq}><i className="ti ti-chevron-left"/></button>}
+      <img src={urls[index]} alt="" onClick={e=>e.stopPropagation()} style={{maxWidth:"100%",maxHeight:"100%",minWidth:0,objectFit:"contain",borderRadius:8,flex:"0 1 auto"}}/>
+      {n>1&&<button type="button" onClick={e=>{e.stopPropagation();go(1);}} aria-label="Next image" className="ui-sq" style={sq}><i className="ti ti-chevron-right"/></button>}
+    </div>
+  </div>;
+}
 
 // The four numbers above the inbox. Conversations today and the first-reply
 // time come from the chats already loaded (a customer message followed by the
@@ -210,6 +265,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
   useEffect(()=>{ if(c) markConvoSeen(c); },[c?.id,cLastCustomerAt]); // eslint-disable-line
   const [input,setInput]=useState("");
   const [sending,setSending]=useState(false);
+  // The picture open full screen: the group it came in, and which one.
+  const [viewer,setViewer]=useState(null);
+  useBackClose(!!viewer,()=>setViewer(null));
   // null = not loaded yet. Starting at `true` painted a green "Bot ON" for the
   // first seconds after a reload (a cold API call can take 5s), which read as
   // "my OFF turned itself back on". No state is shown until the truth arrives.
@@ -587,28 +645,25 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
         </div>}
       </div>
       <div ref={chatRef} onScroll={onChatScroll} style={{flex:1,overflow:"auto",overscrollBehavior:"contain",WebkitOverflowScrolling:"touch",padding:20,display:"flex",flexDirection:"column",gap:12}}>
-        {shownMsgs.map((m,i)=>{
+        {groupThread(shownMsgs,productFor).map((g,i,all)=>{
+          const m=g.m;
           const mine=m.role!=="customer";
-          const prev=i?shownMsgs[i-1]:null;
+          const prev=i?all[i-1].m:null;
           const dayOf=(x)=>{ const d=new Date(x); return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate(); };
           const newDay=!prev||dayOf(prev.time)!==dayOf(m.time);
           // The bot's first bubble after a customer's message says how fast it came.
           const secs=m.role==="bot"&&prev&&prev.role==="customer"?Math.round((new Date(m.time)-new Date(prev.time))/1000):null;
           const atts=m.attachments||[];
-          // A bot picture that is a product's own image becomes a product card;
-          // the "🖼️ Image" line the stored reply carries for it is not shown.
-          const cards=atts.map(u=>[u,m.role==="bot"?productFor(u):null]);
-          const text=atts.length?String(m.text||"").split("\n").filter(l=>l.trim()!=="🖼️ Image").join("\n").trim():m.text;
+          const text=g.text;
           return <div key={i}>
           {newDay&&<div style={{textAlign:"center",fontSize:11,color:T.textDim,margin:"2px 0 8px"}}>{dayLabel(m.time,t)}</div>}
           <div style={{display:"flex",justifyContent:mine?"flex-end":"flex-start"}}>
-          <div style={{maxWidth:"70%"}}>
-            {cards.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4,alignItems:mine?"flex-end":"flex-start"}}>
-              {cards.map(([u,p],j)=>p
-                ?<ProductCard key={j} p={p} t={t} onLoad={onImgLoad}/>
-                :<img key={j} src={u} alt="" onLoad={onImgLoad} style={{maxWidth:220,borderRadius:16,display:"block"}} onError={e=>{e.target.style.display="none"}}/>)}
+          <div style={{maxWidth:g.imgs.length>1?"86%":"70%"}}>
+            {(g.cards.length>0||g.imgs.length>0)&&<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:4,alignItems:mine?"flex-end":"flex-start"}}>
+              {g.cards.map((p,j)=><ProductCard key={"c"+j} p={p} t={t} onLoad={onImgLoad}/>)}
+              {g.imgs.length>0&&<ImageGroup urls={g.imgs} mine={mine} onLoad={onImgLoad} onOpen={(k)=>setViewer({urls:g.imgs,index:k})}/>}
             </div>}
-            {(!atts.length||(text&&text!=="📷 Photo"))&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?T.onGold:T.text,background:mine?T.accGrad:T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{text}</div>}
+            {(!atts.length||text)&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?T.onGold:T.text,background:mine?T.accGrad:T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{text}</div>}
             {mine&&m.role==="agent"&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>You</div>}
             {m.role==="bot"&&secs!=null&&secs>=0&&secs<=600&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>TellMore AI · {t("inbox.answeredIn",{s:secs})}</div>}
           </div>
@@ -654,6 +709,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
       icon={PICON[c.platform]||CH_ICON[c.platform]||"ti-message"} tags={tagsOf(c.id)} complaintTag={tagData?.complaint_tag}
       businessType={businessType}/>}
     </div>
+    {viewer&&<ImageViewer urls={viewer.urls} index={viewer.index} onIndex={(k)=>setViewer(v=>v?{...v,index:k}:v)} onClose={()=>setViewer(null)}/>}
   </div>;
 }
 

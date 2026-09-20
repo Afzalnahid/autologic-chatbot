@@ -195,13 +195,16 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
         {!rail && <PlanMeter me={me} t={t} onClick={() => go("billing")} />}
         {/* Language, sync, theme and Log out, small, under the meter. Log out
             lands on the app's own sign-in screen. */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: rail ? "center" : "space-between", gap: 6, flexWrap: "wrap" }}>
+        {/* The rail is 96px wide, and a touch screen makes every square button
+            44px — a row of them spilled out of the panel. On the rail the
+            controls stack; refresh stays on the full sidebar. */}
+        <div style={{ display: "flex", flexDirection: rail ? "column" : "row", alignItems: "center", justifyContent: rail ? "center" : "space-between", gap: 6, flexWrap: rail ? "nowrap" : "wrap", minWidth: 0 }}>
           <LangToggle compact />
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <button onClick={() => load(false)} disabled={loading} className={`pbtn${loading ? " is-busy" : ""}`}
+          <div style={{ display: "flex", flexDirection: rail ? "column" : "row", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+            {!rail && <button onClick={() => load(false)} disabled={loading} className={`pbtn${loading ? " is-busy" : ""}`}
               title={t("shell.sync")} aria-label={t("shell.sync")} style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent" }}>
               <i className="ti ti-refresh" style={{ animation: loading ? "spin 0.8s linear infinite" : "none", fontSize: 17 }} />
-            </button>
+            </button>}
             <ThemeToggle mode={mode} toggle={toggleTheme} style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent" }} />
             <button onClick={onLogout} className="pbtn" title={t("shell.logout")} aria-label={t("shell.logout")}
               style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent" }}>
