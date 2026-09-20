@@ -816,7 +816,29 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★ NEWEST OF ALL (2026-09-21, evening) — OPENING ANIMATION + APP FOLLOWS
+  - ★★★★★ NEWEST OF ALL (2026-09-21, night) — SIGN-IN / CREATE ACCOUNT NOW
+    REQUIRES A VALID-LOOKING EMAIL. Owner: "in time of login there should be
+    authentication mendetory like valid email adress only login or create
+    account". Live, no APK needed (web only).
+    · src/lib/valid-email.js (pure, tests/t-valid-email.mjs, 25): isValidEmail() —
+      catches no "@", no dot in the domain, a stray space, an empty field. NOT
+      full RFC 5322 on purpose (that standard accepts strings no mailbox uses).
+    · AuthGate (dashboard-client.js): email field turns red + a plain hint
+      ("Enter a valid email address, like name@example.com.") on blur, once —
+      not while still typing. go(), forgot() and the admin console's auth() all
+      trim the address and refuse a bad one BEFORE calling Supabase, on both
+      sign-in and create-account (the owner asked for both directions). A
+      real-looking address is NOT blocked here — confirmed with the local
+      Supabase call still attempted (network call, not the format message).
+    · What this does NOT do: prove the address is real / owned by the typer.
+      That is Supabase's "Confirm email" project setting (Authentication →
+      Providers → Email) — src/app/dashboard-client.js already shows "Check
+      your email to confirm, then sign in" when it is ON, but I have no tool
+      access to check or change that setting from here. WORTH ASKING THE OWNER
+      to confirm it is ON in the Supabase dashboard, since format-valid and
+      real are two different gates and only the format one was missing.
+    · 68/68.
+  - ★★★★ (2026-09-21, evening) — OPENING ANIMATION + APP FOLLOWS
     THE PHONE'S LIGHT/DARK MODE. Owner asked for a professional opening (the
     name arriving letter by letter) and the app in the phone's mode by itself.
     Written up as section 7 of docs/mobile-app-fixes-2026-09-21.md.

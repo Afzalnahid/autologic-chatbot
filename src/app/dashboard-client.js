@@ -34,6 +34,7 @@ import Shell from "./dashboard/components/Shell.js";
 import { useT } from "./dashboard/components/i18n.js";
 import { runBack, useBackClose } from "./dashboard/components/back.js";
 import { openConnect, hideNativeSplash } from "./dashboard/components/native-connect.js";
+import { isValidEmail } from "@/lib/valid-email.js";
 
 // Exported so the screenshot studio can list exactly these tabs rather than
 // keeping a copy that falls behind.
@@ -82,24 +83,33 @@ function AuthGate({onReady}) {
   const [err,setErr]=useState("");
   const [msg,setMsg]=useState("");
   const [busy,setBusy]=useState(false);
+  // A red field and a plain-language hint once the owner has actually left the
+  // field — not on every keystroke, which would flag "n" while they are still
+  // typing "nahid@…". Clears the moment the address looks right again.
+  const [emailTouched,setEmailTouched]=useState(false);
+  const emailBad = emailTouched && email.trim().length>0 && !isValidEmail(email);
   // Terms are agreed to at signup, and the links have to work — Meta's review
   // checks them, and this is the only place a customer is asked to accept them.
   const [agreed,setAgreed]=useState(false);
   const go=async()=>{
     if(busy) return;
-    if(!email||!pw){ setErr("Enter your email and password."); return; }
+    const cleanEmail=email.trim();
+    if(!cleanEmail||!pw){ setErr("Enter your email and password."); return; }
+    // Mandatory, both directions — a made-up address cannot create an account,
+    // and it cannot be typed to try signing in either (owner, 2026-09-21).
+    if(!isValidEmail(cleanEmail)){ setEmailTouched(true); setErr("Enter a valid email address, like name@example.com."); return; }
     if(mode==="signup"&&!agreed){ setErr("Please accept the terms to continue."); return; }
     setBusy(true); setErr(""); setMsg("");
     try{
       let res;
-      if(mode==="signup") res=await getSb().auth.signUp({email,password:pw});
-      else res=await getSb().auth.signInWithPassword({email,password:pw});
+      if(mode==="signup") res=await getSb().auth.signUp({email:cleanEmail,password:pw});
+      else res=await getSb().auth.signInWithPassword({email:cleanEmail,password:pw});
       if(res.error) throw res.error;
       const session=res.data.session;
       if(!session){setErr("Check your email to confirm, then sign in.");setBusy(false);return;}
       setAuthToken(session.access_token);
       try { localStorage.setItem("autologic_visited","1"); } catch {}
-      if(mode==="signup") await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:biz||email.split("@")[0]})});
+      if(mode==="signup") await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:biz||cleanEmail.split("@")[0]})});
       onReady();
     }catch(e){
       // Supabase gives one generic message for both a wrong password and an
@@ -115,8 +125,10 @@ function AuthGate({onReady}) {
   };
   const forgot=async()=>{
     setErr("");setMsg("");
-    if(!email){setErr("Enter your email first, then tap reset.");return;}
-    const {error}=await getSb().auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/reset`});
+    const cleanEmail=email.trim();
+    if(!cleanEmail){setErr("Enter your email first, then tap reset.");return;}
+    if(!isValidEmail(cleanEmail)){setEmailTouched(true);setErr("Enter a valid email address, like name@example.com.");return;}
+    const {error}=await getSb().auth.resetPasswordForEmail(cleanEmail,{redirectTo:`${window.location.origin}/reset`});
     if(error) setErr(error.message);
     else setMsg("Password reset link sent — check your email.");
   };
@@ -154,7 +166,12 @@ function AuthGate({onReady}) {
         <p className="auth-sub">{signup?"Sign up and begin your experience":"Sign in to your dashboard"}</p>
 
         {signup&&<div className="emb"><input value={biz} onChange={e=>setBiz(e.target.value)} placeholder="Business name"/></div>}
-        <div className="emb"><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address"/></div>
+        <div className={`emb${emailBad?" emb-err":""}`}>
+          <input type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" value={email}
+            onChange={e=>{setEmail(e.target.value); if(emailTouched) setEmailTouched(false);}}
+            onBlur={()=>setEmailTouched(true)} placeholder="Email address"/>
+          {emailBad&&<div className="emb-hint">Enter a valid email address, like name@example.com.</div>}
+        </div>
         <div className="emb">
           <input type={showPw?"text":"password"} value={pw} onChange={e=>setPw(e.target.value)}
             onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); e.currentTarget.blur(); } }} placeholder={signup?"Create password":"Password"} style={{paddingRight:52}}/>
@@ -223,6 +240,9 @@ function AuthGate({onReady}) {
         box-shadow: 0 0 0 3px color-mix(in srgb, ${T.gold} 22%, transparent) }
       .emb-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
         background: none; border: none; cursor: pointer; color: ${T.textMuted}; font-size: 12px; padding: 6px }
+      .emb-err input, .emb-err input:focus { border-color: ${T.danger};
+        box-shadow: 0 0 0 3px color-mix(in srgb, ${T.danger} 18%, transparent) }
+      .emb-hint { font-size: 11.5px; color: ${T.danger}; margin: 6px 2px 0; text-align: left }
 
       .auth-terms { display: flex; align-items: flex-start; gap: 9px; text-align: left;
         font-size: 12.5px; color: ${T.textMuted}; margin: 4px 0 18px; cursor: pointer; line-height: 1.5 }

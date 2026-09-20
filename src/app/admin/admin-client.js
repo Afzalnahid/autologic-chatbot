@@ -7,6 +7,7 @@ import Webhooks from "./Webhooks.js";
 import { useWhere } from "./where.js";
 import { planOptions } from "@/lib/plan-options.js";
 import { featureList } from "@/lib/features.js";
+import { isValidEmail } from "@/lib/valid-email.js";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
 
 // The super-admin console. Same design system as the customer dashboard —
@@ -123,9 +124,14 @@ export default function AdminClient() {
   useEffect(() => { if (!session) return; const t = setInterval(() => load(true), 15000); return () => clearInterval(t); }, [session, load]);
 
   const auth = async () => {
-    if (authBusy) return; setAuthMsg(""); setAuthBusy(true);
+    if (authBusy) return; setAuthMsg("");
+    const cleanEmail = email.trim();
+    // Mandatory here too — the console is only a stricter door, not an
+    // exception to it (owner, 2026-09-21).
+    if (!isValidEmail(cleanEmail)) { setAuthMsg("Enter a valid email address, like name@example.com."); return; }
+    setAuthBusy(true);
     const fn = mode === "signup" ? "signUp" : "signInWithPassword";
-    const { error } = await getSb().auth[fn]({ email, password });
+    const { error } = await getSb().auth[fn]({ email: cleanEmail, password });
     setAuthBusy(false);
     if (error) setAuthMsg(error.message);
     else if (mode === "signup") setAuthMsg("Account created. If email confirmation is on, verify then sign in.");
