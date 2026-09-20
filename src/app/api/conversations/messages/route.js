@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
 import { pageAll } from "@/lib/page.js";
 import { shapeMessage } from "@/lib/messages-view.js";
+import { inboxLocked, LOCKED } from "@/lib/inbox-lock.js";
 
 // The FULL history of ONE conversation, oldest → newest. The list endpoint
 // (/api/conversations) reads only a recent window across the whole account, so a
@@ -14,6 +15,9 @@ import { shapeMessage } from "@/lib/messages-view.js";
 export async function GET(request) {
   const { client } = await requireClient(request);
   if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // A lapsed plan locks the inbox: messages are still saved, but they cannot be
+  // read, answered or deleted until the owner renews (inbox-lock.js).
+  if (inboxLocked(client)) return NextResponse.json(LOCKED, { status: 402 });
   const sid = new URL(request.url).searchParams.get("sender_id");
   if (!sid) return NextResponse.json({ error: "missing sender_id" }, { status: 400 });
   try {

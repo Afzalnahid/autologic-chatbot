@@ -929,9 +929,9 @@ export default function Dashboard() {
               businessType={bt} settings={settings} onMenu={isMobile?()=>setSidebarOpen(true):undefined}
               onGo={(to,intent)=>{ if(intent) setInvIntent({...intent,at:Date.now()}); setPage(to); }}
               onImport={(kind,prefill)=>{ setInvIntent({importer:kind,prefill,at:Date.now()}); setPage("inventory"); }}/>}
-            {page==="overview"&&<Overview me={me} convos={convos} orders={orders} channels={dashChannels} businessType={bt} onGo={goTo}/>}
+            {page==="overview"&&<Overview me={me} convos={convos} orders={orders} channels={dashChannels} businessType={bt} onGo={goTo} locked={me?.active===false}/>}
             {page==="analytics"&&<Analytics isAgency={isAgency}/>}
-            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels} focus={focus?.tab==="conversations"?focus:null} businessType={bt} products={products}/>}
+            {page==="conversations"&&<Conversations convos={convos} refresh={load} onChatOpen={setChatOpen} channels={dashChannels} focus={focus?.tab==="conversations"?focus:null} businessType={bt} products={products} locked={me?.active===false} lockInfo={me?.inbox} onRenew={()=>setPage("billing")}/>}
             {page==="broadcast"&&<Broadcast/>}
             {page==="comments"&&<Comments/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent} onIntentDone={()=>setInvIntent(null)}/>)}

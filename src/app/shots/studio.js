@@ -94,6 +94,8 @@ const TABS = {
   "overview-agency": () => <Overview me={{ client: { business_name: "Pixel Studio" } }} convos={PROPS.convos} orders={[]} channels={PROPS.channels} businessType="agency" onGo={noop} />,
   analytics:        () => <Analytics isAgency={false} />,
   conversations:    () => <Conversations convos={PROPS.convos} channels={PROPS.channels} products={PROPS.products} refresh={noop} />,
+  // A lapsed plan: the lock screen, with customers waiting.
+  "conversations-locked": () => <Conversations convos={[]} channels={PROPS.channels} refresh={noop} locked lockInfo={{ locked: true, waiting: 7, since: new Date(Date.now() - 3 * 86400000).toISOString() }} onRenew={noop} />,
   comments:         () => <Comments />,
   broadcast:        () => <Broadcast />,
   inventory:        () => <Inventory products={PROPS.products} refresh={noop} />,

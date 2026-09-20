@@ -5,6 +5,7 @@ import { pageAll } from "@/lib/page.js";
 import { requireClient } from "@/lib/auth.js";
 import { runFollowups } from "@/lib/followup.js";
 import { shapeMessage } from "@/lib/messages-view.js";
+import { inboxLocked, LOCKED } from "@/lib/inbox-lock.js";
 
 export async function DELETE(request) {
   try {
@@ -12,6 +13,9 @@ export async function DELETE(request) {
     if (!sender_id) return NextResponse.json({ error: "missing sender_id" }, { status: 400 });
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // A lapsed plan locks the inbox: messages are still saved, but they cannot be
+    // read, answered or deleted until the owner renews (inbox-lock.js).
+    if (inboxLocked(client)) return NextResponse.json(LOCKED, { status: 402 });
     await supabase.from("message_buffer").delete().eq("sender_id", sender_id).eq("client_id", client.id);
     await supabase.from("chat_memory").delete().eq("session_id", sender_id).eq("client_id", client.id);
     return NextResponse.json({ ok: true });
@@ -23,6 +27,10 @@ export async function DELETE(request) {
 export async function GET(request) {
   const { client, error: authErr } = await requireClient(request);
   if (authErr || !client) return NextResponse.json([], { status: authErr ? 401 : 200 });
+  // A lapsed plan locks the inbox (inbox-lock.js). The list answers empty —
+  // the dashboard shell expects an array here — and /api/me says why and how
+  // many customers are waiting. Nothing is deleted; renewing brings it all back.
+  if (inboxLocked(client)) return NextResponse.json([], { headers: { "X-Inbox-Locked": "1", "Cache-Control": "no-store" } });
 
   // Follow-ups are evaluated here rather than on a schedule. The function
   // throttles itself, so most dashboard loads do nothing at all.

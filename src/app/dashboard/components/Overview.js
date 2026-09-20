@@ -84,7 +84,7 @@ const Empty = ({ icon, text }) => <div style={{ padding: "18px 6px", textAlign: 
 
 const OpenBtn = ({ onClick, label }) => <button onClick={onClick} className="ui-btn" style={{ padding: "7px 13px", borderRadius: 8, border: `1px solid ${T.borderStrong}`, background: T.card, color: T.text, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap" }}>{label}</button>;
 
-export default function Overview({ me, convos = [], orders = [], channels = [], businessType = "ecommerce", onGo }) {
+export default function Overview({ me, convos = [], orders = [], channels = [], businessType = "ecommerce", onGo, locked = false }) {
   const t = useT();
   const isMobile = useIsMobile();
   const isAgency = businessType === "agency";
@@ -231,7 +231,8 @@ export default function Overview({ me, convos = [], orders = [], channels = [], 
       </Section>
 
       <Section title={t("ov.needs")} action={t("ov.openInbox")} onAction={() => onGo?.("conversations")}>
-        {needs.length ? <div>
+        {/* A lapsed plan locks the inbox; "nothing is waiting" would be untrue. */}
+        {locked ? <Empty icon="ti-lock" text={t("ov.needsLocked")} /> : needs.length ? <div>
           {needs.slice(0, 5).map(({ c, why }, i, a) => {
             const w = WHY[why];
             return <div key={c.id} style={{ ...row, borderBottom: i === a.length - 1 ? "none" : row.borderBottom }}>

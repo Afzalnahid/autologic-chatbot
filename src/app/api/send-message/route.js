@@ -4,11 +4,15 @@ import { supabase } from "@/lib/supabase.js";
 import { requireClient } from "@/lib/auth.js";
 import { sendAgentMessage } from "@/lib/messenger.js";
 import { saveAgentTurn } from "@/lib/bot.js";
+import { inboxLocked, LOCKED } from "@/lib/inbox-lock.js";
 
 export async function POST(request) {
   try {
     const { client } = await requireClient(request);
     if (!client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // A lapsed plan locks the inbox: messages are still saved, but they cannot be
+    // read, answered or deleted until the owner renews (inbox-lock.js).
+    if (inboxLocked(client)) return NextResponse.json(LOCKED, { status: 402 });
     const { sender_id, text } = await request.json();
     if (!sender_id || !text) return NextResponse.json({ error: "missing fields" }, { status: 400 });
 

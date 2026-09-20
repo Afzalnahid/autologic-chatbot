@@ -527,6 +527,12 @@ export const DOCS = {
       { h: "Deleting a chat",
         p: ["The red bin in the chat header removes the conversation from your dashboard. It does **not** delete anything from Facebook, Instagram or WhatsApp — the customer still has the thread on their side, and if they write again a fresh conversation appears."] },
 
+      { h: "When your plan has ended",
+        p: [
+          "The bot stops answering the moment a plan lapses, and the **Inbox locks** with it: the chats cannot be listed or opened, and you cannot send a reply from the dashboard. The page says so, with a **Renew or upgrade** button and how many customers have written since.",
+          "**Nothing is lost.** Every message a customer sends while the inbox is locked is still saved. Renew, and all of them are there — including the ones that arrived in between — and the bot picks up again.",
+        ] },
+
       { h: "On a phone",
         p: ["The list fills the screen; tap a chat to open it and the back button brings you to the list. One back press closes the chat, the next leaves the tab — so you never fall out of the dashboard by accident."] },
 

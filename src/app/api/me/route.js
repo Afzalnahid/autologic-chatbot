@@ -7,6 +7,7 @@ import { withErrors } from "@/lib/route-errors.js";
 import { startOfDayDhaka } from "@/lib/time.js";
 import { trialDays, limitsFor } from "@/lib/plan-limits.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
+import { inboxLocked, lockedSince } from "@/lib/inbox-lock.js";
 
 export const GET = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
@@ -25,10 +26,28 @@ export const GET = withErrors(async (request) => {
   // duplicate email.
   warnIfExpiringSoon(client).catch(() => {});
 
+  // A lapsed plan locks the inbox, but every message is still saved. Say how
+  // many different customers have written since the lock began, so the lock
+  // screen can tell the owner what is waiting for them. One query, and only
+  // for a locked account; client_id filtered at the database.
+  let inbox = { locked: false };
+  if (inboxLocked(client)) {
+    const since = lockedSince(client);
+    let waiting = null;
+    try {
+      let q = supabase.from("message_buffer").select("sender_id").eq("client_id", client.id).eq("role", "customer").limit(5000);
+      if (since) q = q.gte("created_at", since);
+      const { data } = await q;
+      waiting = new Set((data || []).map((r) => r.sender_id)).size;
+    } catch { /* the lock screen simply leaves the count out */ }
+    inbox = { locked: true, since, waiting };
+  }
+
   return NextResponse.json({
     client: { id: client.id, business_name: client.business_name, plan: client.plan, trial_end: client.trial_end, business_type: client.business_type || "ecommerce", item_label: client.item_label || "", logo_url: client.logo_url || "" },
     email,
     active: trialActive(client),
+    inbox,
     // The daily ceiling comes from the package (and any per-client override),
     // the same merge the bot enforces. It was written here as a literal 30,
     // so raising the trial's daily allowance in the admin panel changed what

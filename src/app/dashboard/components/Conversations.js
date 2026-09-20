@@ -142,7 +142,26 @@ function ProductCard({p,t,onLoad}){
   </div>;
 }
 
-export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[],focus=null,businessType="ecommerce",products=[]}) {
+// What the Inbox shows while a lapsed plan has it locked: the reason, how many
+// customers have written since, that nothing is lost, and the way out.
+function InboxLocked({info,onRenew,t}){
+  const since=info?.since?new Date(info.since).toLocaleDateString("en-GB",{day:"numeric",month:"long"}):null;
+  return <Card style={{textAlign:"center",padding:"44px 24px"}}>
+    <span style={{width:56,height:56,borderRadius:16,background:T.goldBg,color:T.gold,display:"inline-flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-lock" style={{fontSize:26}}/></span>
+    <div style={{fontSize:17,fontWeight:700,color:T.text,margin:"16px 0 8px",letterSpacing:"-0.01em"}}>{t("inbox.locked.title")}</div>
+    <div style={{fontSize:13.5,color:T.textMuted,lineHeight:1.65,maxWidth:440,margin:"0 auto"}}>{t("inbox.locked.body")}</div>
+    {typeof info?.waiting==="number"&&info.waiting>0&&<div style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:16,padding:"8px 14px",borderRadius:999,background:T.warnBg,color:T.warn,fontSize:13,fontWeight:600}}>
+      <i className="ti ti-messages" style={{fontSize:15}}/>{since?t("inbox.locked.waitingSince",{n:info.waiting,date:since}):t("inbox.locked.waiting",{n:info.waiting})}
+    </div>}
+    <div style={{marginTop:20}}>
+      <button onClick={onRenew} className="ui-btn" style={{display:"inline-flex",alignItems:"center",gap:8,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:14,fontWeight:600,borderRadius:8,height:42,padding:"0 20px",background:T.accGrad,color:T.onGold,boxShadow:T.accGlow}}>
+        <i className="ti ti-arrow-up-circle" style={{fontSize:17}}/>{t("inbox.locked.cta")}
+      </button>
+    </div>
+  </Card>;
+}
+
+export default function Conversations({convos:allConvos,refresh,onChatOpen,channels=[],focus=null,businessType="ecommerce",products=[],locked=false,lockInfo=null,onRenew}) {
   const cap=(w)=>String(w||"").charAt(0).toUpperCase()+String(w||"").slice(1);
   const t=useT();
   const productFor=(u)=>{ const s=String(u||"").trim(); if(!s) return null; return products.find(p=>p.image_url===s||(p.images||[]).includes(s)||(p.variants||[]).some(v=>v.image_url===s))||null; };
@@ -433,6 +452,9 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     }
   };
 
+  // A lapsed plan locks the inbox (src/lib/inbox-lock.js): the server no longer
+  // lists or opens chats, so there is nothing to draw but why, and the way out.
+  if(locked) return <InboxLocked info={lockInfo} onRenew={onRenew} t={t}/>;
   const filtered = chFilter!=="all"||tagFilter!=="all"||view!=="all"||!!q;
   if(!convos.length&&!filtered) return <Card style={{textAlign:"center",padding:"48px 24px"}}>
     <i className="ti ti-inbox" style={{fontSize:32,color:T.textDim}}/>
