@@ -30,6 +30,18 @@ ok("the forgot-password flow also validates the address", (() => {
   return i > -1 && /isValidEmail\(/.test(dash.slice(i, i + 500));
 })());
 
+// The second gate — Supabase's "Confirm email" — is a project setting, but the
+// screen has to behave when it is on (docs/email-confirmation-setup.md).
+const gate = dash.slice(dash.indexOf("function AuthGate"), dash.indexOf("function Onboarding"));
+ok("sign-up stores the business name in the account and says where the link lands",
+  /options:\{emailRedirectTo:`[^`]*\/dashboard`,data:\{business_name:/.test(gate));
+ok("a sign-up with no session is a green message, not a red error",
+  /if\(!session\)\{[\s\S]{0,200}setMsg\(`We sent a confirmation link/.test(gate));
+ok("'Email not confirmed' is said plainly, with a way to resend",
+  /email not confirmed/i.test(gate) && /auth\.resend\(\{type:"signup"/.test(gate) && gate.includes("auth-resend"));
+ok("the first sign-in after confirming uses the name typed at sign-up",
+  /user_metadata\?\.business_name/.test(dash.slice(dash.indexOf("const loadMe=async"), dash.indexOf("const loadMe=async") + 1200)));
+
 const admin = readFileSync(join(root, "src", "app", "admin", "admin-client.js"), "utf8");
 ok("the admin console's sign-in imports the check", /import\s*\{\s*isValidEmail\s*\}\s*from\s*"@\/lib\/valid-email\.js"/.test(admin));
 ok("the admin console validates before Supabase", (() => {

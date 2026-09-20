@@ -86,6 +86,9 @@ function AuthGate({onReady}) {
   // A red field and a plain-language hint once the owner has actually left the
   // field — not on every keystroke, which would flag "n" while they are still
   // typing "nahid@…". Clears the moment the address looks right again.
+  // Set once Supabase has answered "confirm your email first" — for a new
+  // account or a sign-in to an unconfirmed one. Shows the resend link.
+  const [awaiting,setAwaiting]=useState("");
   const [emailTouched,setEmailTouched]=useState(false);
   const emailBad = emailTouched && email.trim().length>0 && !isValidEmail(email);
   // Terms are agreed to at signup, and the links have to work — Meta's review
@@ -102,11 +105,22 @@ function AuthGate({onReady}) {
     setBusy(true); setErr(""); setMsg("");
     try{
       let res;
-      if(mode==="signup") res=await getSb().auth.signUp({email:cleanEmail,password:pw});
+      // The business name rides along in the account itself: with "Confirm
+      // email" on there is no session yet, so it cannot be saved now, and the
+      // link may be opened on another device. loadMe() reads it back at the
+      // first real sign-in.
+      if(mode==="signup") res=await getSb().auth.signUp({email:cleanEmail,password:pw,
+        options:{emailRedirectTo:`${window.location.origin}/dashboard`,data:{business_name:biz.trim()}}});
       else res=await getSb().auth.signInWithPassword({email:cleanEmail,password:pw});
       if(res.error) throw res.error;
       const session=res.data.session;
-      if(!session){setErr("Check your email to confirm, then sign in.");setBusy(false);return;}
+      // No session = Supabase wants the address proven first. Not an error:
+      // say where the link went, and turn the form to "sign in" for afterwards.
+      if(!session){
+        setAwaiting(cleanEmail); setMode("signin"); setPw("");
+        setMsg(`We sent a confirmation link to ${cleanEmail}. Open it, then come back here and sign in.`);
+        setBusy(false); return;
+      }
       setAuthToken(session.access_token);
       try { localStorage.setItem("autologic_visited","1"); } catch {}
       if(mode==="signup") await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:biz||cleanEmail.split("@")[0]})});
@@ -117,11 +131,24 @@ function AuthGate({onReady}) {
       // email is registered). Say it plainly and point at the way to sign up,
       // rather than the raw "Invalid login credentials".
       const m=e?.message||"Failed";
+      if(/email not confirmed/i.test(m)){
+        setAwaiting(cleanEmail);
+        setErr("This email address has not been confirmed yet. Open the link we emailed you — or send it again below.");
+        setBusy(false); return;
+      }
       setErr(mode==="signin"&&/invalid login credentials/i.test(m)
         ? "No account matches this email and password. Check them — or tap “Create account” if you're new."
         : m);
     }
     setBusy(false);
+  };
+  const resend=async()=>{
+    if(!awaiting||busy) return;
+    setErr("");setMsg("");setBusy(true);
+    const {error}=await getSb().auth.resend({type:"signup",email:awaiting,options:{emailRedirectTo:`${window.location.origin}/dashboard`}});
+    setBusy(false);
+    if(error) setErr(/rate|seconds|too many/i.test(error.message)?"Please wait a minute before asking for another link.":error.message);
+    else setMsg(`A new confirmation link is on its way to ${awaiting}. Check spam too.`);
   };
   const forgot=async()=>{
     setErr("");setMsg("");
@@ -191,6 +218,7 @@ function AuthGate({onReady}) {
 
         {err&&<div className="auth-err">{err}</div>}
         {msg&&<div className="auth-msg">{msg}</div>}
+        {awaiting&&<div className="auth-resend">Nothing arrived? <span onClick={resend}>Send the link again</span></div>}
 
         <div className="auth-swap" onClick={()=>{setMode(m=>m==="signin"?"signup":"signin");setErr("");setMsg("");}}>
           {signup?"Already have an account? Sign in":"New here? Create account"}
@@ -261,7 +289,9 @@ function AuthGate({onReady}) {
       .auth-go:disabled { opacity: .5; cursor: not-allowed; box-shadow: none }
 
       .auth-err { font-size: 12.5px; color: ${T.danger}; margin-top: 12px }
-      .auth-msg { font-size: 12.5px; color: ${T.success}; margin-top: 12px }
+      .auth-msg { font-size: 12.5px; color: ${T.success}; margin-top: 12px; line-height: 1.5 }
+      .auth-resend { font-size: 12.5px; color: ${T.textMuted}; margin-top: 8px }
+      .auth-resend span { color: ${T.gold}; cursor: pointer; font-weight: 600 }
       .auth-swap { font-size: 12.5px; color: ${T.textMuted}; margin-top: 18px; cursor: pointer }
       .auth-swap:hover { color: ${T.text} }
 
@@ -912,7 +942,12 @@ function DashboardApp({ onLaunchReady }) {
     setMe(d);
     if(!d||d.error){setStage("auth");return;}
     if(!d.client){
-      await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:(d.email||"My Business").split("@")[0]})});
+      // An account confirmed by email arrives here with no business yet. The
+      // name typed at sign-up was kept in the account (AuthGate); fall back to
+      // the address's first half.
+      let typed="";
+      try{ const {data:u}=await getSb().auth.getUser(); typed=String(u?.user?.user_metadata?.business_name||"").trim().slice(0,120); }catch{}
+      await api("/api/me",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"register",business_name:typed||(d.email||"My Business").split("@")[0]})});
       const d2=await api("/api/me").then(r=>r.json()).catch(()=>null);
       if(!d2||!d2.client){setStage("auth");return;}
       setMe(d2);

@@ -837,6 +837,14 @@ again?"
       access to check or change that setting from here. WORTH ASKING THE OWNER
       to confirm it is ON in the Supabase dashboard, since format-valid and
       real are two different gates and only the format one was missing.
+    · CHECKED AFTERWARDS (COUNT-only query on auth.users): Confirm email is OFF —
+      all 17 accounts confirmed in the same second as sign-up, no confirmation
+      email ever sent. So gate 2 (ownership) is open today. AuthGate is now ready
+      for it being ON: no-session sign-up → green "we sent a link" + resend,
+      business name kept in user_metadata and used by loadMe(), "Email not
+      confirmed" said plainly. Tested against faked Supabase answers. OWNER'S
+      STEPS (custom SMTP via Resend FIRST, then URL config, then the toggle):
+      docs/email-confirmation-setup.md. Not switched on yet.
     · 68/68.
   - ★★★★ (2026-09-21, evening) — OPENING ANIMATION + APP FOLLOWS
     THE PHONE'S LIGHT/DARK MODE. Owner asked for a professional opening (the
