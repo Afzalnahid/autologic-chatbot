@@ -330,24 +330,79 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
     else refresh&&refresh(true);
   };
 
+  // Voice messages.
+  //
+  // Inside the installed app the PHONE records (capacitor-voice-recorder → AAC,
+  // a format Messenger, Instagram and WhatsApp all accept). Recording through
+  // the WebView's getUserMedia/MediaRecorder was what the owner reported on
+  // 2026-09-21: the permission was granted and it still said "access denied" —
+  // because one catch covered the permission, the recorder's constructor and
+  // start(), so ANY failure read as a permission problem. A browser still uses
+  // MediaRecorder, with the first container it really supports, and every
+  // failure now says what actually went wrong.
+  const nativeRecorder=()=>{ try{ return (window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.Plugins?.VoiceRecorder)||null; }catch{ return null; } };
+  const fileFromBase64=(b64,mime)=>{
+    const bin=atob(b64); const u8=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    const type=mime||"audio/aac";
+    const ext=/aac/.test(type)?"aac":/mp4|m4a/.test(type)?"m4a":/ogg/.test(type)?"ogg":/webm/.test(type)?"webm":"m4a";
+    return new File([u8],`voice.${ext}`,{type});
+  };
+  const micMessage=(e)=>{
+    const n=e?.name||"";
+    if(n==="NotAllowedError"||n==="SecurityError") return "The microphone is blocked for this site. Allow it in your browser's site settings, then try again.";
+    if(n==="NotFoundError"||n==="OverconstrainedError") return "No microphone was found on this device.";
+    if(n==="NotReadableError"||n==="AbortError") return "The microphone is being used by another app. Close it and try again.";
+    return "Could not use the microphone"+(e?.message?": "+e.message:".");
+  };
   const toggleRec=async()=>{
-    if(recording){recRef.current?.stop();return;}
+    const VR=nativeRecorder();
+    if(recording){
+      if(recRef.current?.native){
+        try{
+          const r=await VR.stopRecording();
+          const v=r?.value;
+          if(v?.recordDataBase64) sendMedia(fileFromBase64(v.recordDataBase64,v.mimeType),"audio");
+        }catch(e){ alert("The recording could not be saved"+(e?.message?": "+e.message:".")); }
+        recRef.current=null; setRecording(false);
+        return;
+      }
+      recRef.current?.stop();
+      return;
+    }
+    if(VR){
+      try{
+        const p=await VR.requestAudioRecordingPermission();
+        if(!p?.value){ alert("The microphone is switched off for TellMore AI. Open your phone's Settings → Apps → TellMore AI → Permissions → Microphone, choose Allow, then try again."); return; }
+        await VR.startRecording();
+        recRef.current={native:true}; setRecording(true);
+      }catch(e){ alert("The recording could not start"+(e?.message?": "+e.message:".")); }
+      return;
+    }
+    if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){ alert("This browser cannot record voice messages."); return; }
+    let stream;
+    try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+    catch(e){ alert(micMessage(e)); return; }
     try{
-      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      const mime=MediaRecorder.isTypeSupported("audio/mp4")?"audio/mp4":"audio/webm";
-      const rec=new MediaRecorder(stream,{mimeType:mime});
+      const pick=["audio/mp4","audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"].find(m=>{ try{ return MediaRecorder.isTypeSupported(m); }catch{ return false; } });
+      const rec=pick?new MediaRecorder(stream,{mimeType:pick}):new MediaRecorder(stream);
       const chunks=[];
-      rec.ondataavailable=e=>chunks.push(e.data);
+      rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+      rec.onerror=()=>{ stream.getTracks().forEach(t=>t.stop()); setRecording(false); alert("The recording stopped unexpectedly. Please try again."); };
       rec.onstop=()=>{
         stream.getTracks().forEach(t=>t.stop());
         setRecording(false);
-        const ext=mime.includes("mp4")?"mp4":"webm";
-        sendMedia(new File(chunks,`voice.${ext}`,{type:mime}),"audio");
+        const type=(rec.mimeType||pick||"audio/webm").split(";")[0];
+        const ext=/mp4/.test(type)?"mp4":/ogg/.test(type)?"ogg":"webm";
+        if(chunks.length) sendMedia(new File(chunks,`voice.${ext}`,{type}),"audio");
       };
       recRef.current=rec;
       rec.start();
       setRecording(true);
-    }catch{alert("Microphone access denied");}
+    }catch(e){
+      stream.getTracks().forEach(t=>t.stop());
+      alert("This browser could not start a voice recording"+(e?.message?": "+e.message:"."));
+    }
   };
 
   const deleteChat=async()=>{

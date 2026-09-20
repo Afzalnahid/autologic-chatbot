@@ -24,7 +24,7 @@ import { AdminApp } from "../admin/admin-client.js";
 import LearnMore from "../dashboard/components/LearnMore.js";
 // The dashboard's own tab keys, so the docs-links scene below lists exactly
 // what the sidebar lists rather than a copy that can fall behind it.
-import { PAGES as DASH_PAGES, GROUPS as DASH_GROUPS, ICONS as DASH_ICONS } from "../dashboard-client.js";
+import { PAGES as DASH_PAGES, GROUPS as DASH_GROUPS, ICONS as DASH_ICONS, LaunchScreen } from "../dashboard-client.js";
 import { SAMPLE, PROPS, ADMIN } from "./sample.js";
 
 // The console takes its data as a prop and its actions as callbacks, so it
@@ -224,6 +224,8 @@ export default function Studio({ tab, theme }) {
 
   const render = TABS[tab];
 
+  // What the app shows between the native splash and the first real screen.
+  if (tab === "launch") return <LaunchScreen />;
   // The frame draws its own page: full height, no studio margin.
   if (SHELL_IDS.includes(tab)) {
     return <><Theme /><Motion />{ready && <ShellScene inner={tab === "shell" ? "overview" : tab.slice("shell-".length)} />}</>;

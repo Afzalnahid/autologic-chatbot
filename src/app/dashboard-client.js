@@ -33,6 +33,7 @@ import LearnMore from "./dashboard/components/LearnMore.js";
 import Shell from "./dashboard/components/Shell.js";
 import { useT } from "./dashboard/components/i18n.js";
 import { runBack, useBackClose } from "./dashboard/components/back.js";
+import { openConnect, hideNativeSplash } from "./dashboard/components/native-connect.js";
 
 // Exported so the screenshot studio can list exactly these tabs rather than
 // keeping a copy that falls behind.
@@ -449,8 +450,14 @@ function ConnectChannel({onDone,clientId}) {
   // back. A window.open()'d popup is a separate browsing context the OS
   // treats differently, and it's what the postMessage listener above was
   // already built for (window.opener.postMessage in connect-page.js).
-  const openPopup=(url)=>{
+  // Inside the installed app the login opens in a browser sheet OVER the app
+  // and comes back to it by itself (native-connect.js, src/lib/app-return.js).
+  // A window.open() there replaced the dashboard in the WebView, which then
+  // handed facebook.com to the phone's browser: the owner finished in Chrome,
+  // signed out, and the app never heard about it.
+  const openPopup=async(url)=>{
     if(typeof window==="undefined") return;
+    if(await openConnect(url)) return;
     const w=520,h=680;
     const left=window.screenX+(window.outerWidth-w)/2, top=window.screenY+(window.outerHeight-h)/2;
     const win=window.open(url,"al-connect",`width=${w},height=${h},left=${left},top=${top}`);
@@ -484,7 +491,10 @@ function ConnectChannel({onDone,clientId}) {
     // is on our own domain, not facebook.com/instagram.com, so it isn't exposed
     // to the mobile app-link hijack the popup guards against for the others. On
     // finish, wa/finish's connected page returns to /dashboard?connected=whatsapp.
-    else if(id==="whatsapp"){ if(typeof window!=="undefined") window.location.href=`/api/wa/embedded?client_id=${clientId}`; }
+    else if(id==="whatsapp"){
+      const to=`/api/wa/embedded?client_id=${clientId}`;
+      openConnect(to).then(inApp=>{ if(!inApp&&typeof window!=="undefined") window.location.href=to; });
+    }
   };
   return <OnboardFrame icon="ti-plug" title="Connect a channel" sub="Your bot will reply to customers on this channel" width={520}>
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -512,9 +522,11 @@ function ConnectCalendar({clientId,onDone}) {
     window.addEventListener("message",h);
     return ()=>window.removeEventListener("message",h);
   },[]);
-  const open=()=>{
-    const w=window.open(`/api/gcal/login?client_id=${clientId}`,"gcal","width=520,height=640");
-    if(!w) window.location.href=`/api/gcal/login?client_id=${clientId}`;
+  const open=async()=>{
+    const to=`/api/gcal/login?client_id=${clientId}`;
+    if(await openConnect(to)) return;          // the installed app: a browser sheet that returns here
+    const w=window.open(to,"gcal","width=520,height=640");
+    if(!w) window.location.href=to;
   };
   return <OnboardFrame icon="ti-calendar-event" title="Connect Google Calendar"
     sub="Your bot books appointments and sends automatic Google Meet links to customers" width={480}>
@@ -544,6 +556,24 @@ function ConnectCalendar({clientId,onDone}) {
       </>
     }
   </OnboardFrame>;
+}
+
+// What the app shows while it finds out who is signed in — straight after the
+// native splash, on the same background, so opening the app is one continuous
+// picture (mark, name, a thin moving line) instead of a splash, a white page
+// and then the app.
+export function LaunchScreen() {
+  return <div style={{minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,background:T.bg,color:T.text}}>
+    <Theme/><Motion/>
+    <style dangerouslySetInnerHTML={{__html:`@keyframes launch-slide{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}} @media (prefers-reduced-motion:reduce){.launch-bar>span{animation:none!important;width:100%!important;transform:none!important}}`}}/>
+    <span style={{width:84,height:84,borderRadius:24,background:T.accGrad,boxShadow:T.accGlow,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <span style={{width:60,height:60,borderRadius:18,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><BotMark size={50}/></span>
+    </span>
+    <div style={{fontSize:20,fontWeight:700,letterSpacing:"-0.02em"}}>TellMore AI</div>
+    <div className="launch-bar" aria-hidden style={{width:120,height:3,borderRadius:2,background:T.inset,overflow:"hidden"}}>
+      <span style={{display:"block",width:"40%",height:"100%",borderRadius:2,background:T.gold,animation:"launch-slide 1.1s ease-in-out infinite"}}/>
+    </div>
+  </div>;
 }
 
 // The bot stops answering the moment a plan lapses, and the only screen that
@@ -738,6 +768,14 @@ export default function Dashboard() {
   const [authChecked,setAuthChecked]=useState(false);
   const [me,setMe]=useState(null);
   const [stage,setStage]=useState("loading");
+  // The native splash stays until the first real screen (sign-in or the app)
+  // is about to paint; a login that could not be finished says why.
+  useEffect(()=>{ if(authChecked) hideNativeSplash(); },[authChecked]);
+  useEffect(()=>{
+    const f=(e)=>{ const r=e?.detail||{}; alert(r.reason||"The connection was not finished. Please try again."); };
+    window.addEventListener("al-connect-failed",f);
+    return ()=>window.removeEventListener("al-connect-failed",f);
+  },[]);
   const bt=me?.client?.business_type||"ecommerce";
   const isAgency=bt==="agency";
   const t=useT();
@@ -806,12 +844,21 @@ export default function Dashboard() {
   // dropping them out of the app. A history entry is pushed on entering the flow
   // so the back press has something to consume (the same trick every overlay
   // uses via useBackClose).
+  // …but ONLY during a real first run. The same two connect screens are also
+  // opened from the Channels tab by an owner who has been using the app for
+  // months, and there a back press must simply return to the app. It used to
+  // sign them out: after a channel login that ended in the phone's browser, the
+  // back presses that brought the owner home ran straight into this handler —
+  // the "it logs me out after connecting" report of 2026-09-21.
+  const everInApp=useRef(false);
+  useEffect(()=>{ if(stage==="app") everInApp.current=true; },[stage]);
   const inSignup = stage==="onboarding"||stage==="connect"||stage==="connect-cal";
   useEffect(()=>{
     if(!inSignup||typeof window==="undefined") return;
     try{ window.history.pushState({signup:true},"",window.location.pathname); }catch{}
   },[inSignup]);
   useBackClose(inSignup, async()=>{
+    if(everInApp.current){ setStage("app"); return; }
     try{ await unbindNativePush(); }catch{}   // stop this phone getting the leaving account's pushes
     try{ await getSb().auth.signOut({scope:"local"}); }catch{}
     try{ localStorage.removeItem("gv_app_signed_in"); }catch{}
@@ -870,7 +917,7 @@ export default function Dashboard() {
     return ()=>{ clearInterval(t); clearInterval(f); };
   },[authed,stage]);
 
-  if(!authChecked||stage==="loading") return null;
+  if(!authChecked||stage==="loading") return <LaunchScreen/>;
   if(stage==="auth") return <AuthGate onReady={async()=>{try{localStorage.setItem("gv_app_signed_in","1");}catch{} setAuthed(true);await loadMe();}}/>;
   // The first-run screens need the palette and motion sheet too — without them
   // every CSS variable is undefined and the pages render unstyled.
@@ -905,7 +952,7 @@ export default function Dashboard() {
       {/* "ui-scroll": the tab's scroll box, which a phone's inbox list measures
           itself against so it ends where the bottom bar begins. */}
       <div className="ui-scroll" style={{flex:1,overflow:"auto",padding:fullBleed?0:(isMobile?"12px 10px":20),minHeight:0,minWidth:0}}>
-        {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading from Supabase...</span></div>:(
+        {loading?<div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:60,flexDirection:"column",gap:16}}><div style={{width:32,height:32,border:`3px solid ${T.border}`,borderTopColor:T.gold,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/><span style={{fontSize:13,color:T.textMuted}}>Loading your workspace…</span></div>:(
           <div key={page} className="ui-page" style={fullBleed?{height:"100%",display:"flex",flexDirection:"column",minHeight:0}:undefined}>
             {/* Not on Billing: that tab already says "Expired" and offers the
                 same button, and two calls to action stacked read as a bug.

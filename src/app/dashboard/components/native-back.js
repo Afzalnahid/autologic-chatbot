@@ -6,6 +6,7 @@
 // real app behaves. All no-ops in a browser.
 import { isNativeApp, initNativePush } from "./native-push.js";
 import { requestAllNativePermissions } from "./native-permissions.js";
+import { initNativeConnect } from "./native-connect.js";
 
 let _inited = false;
 
@@ -44,6 +45,7 @@ export function initNativeApp() {
   try {
     initNativeBack();
     initNativePush();
+    initNativeConnect();
     requestAllNativePermissions().catch(() => {});
   } catch { /* never break the shell */ }
 }

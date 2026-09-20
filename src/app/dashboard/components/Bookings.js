@@ -1,4 +1,5 @@
 "use client";
+import { openConnect } from "./native-connect.js";
 import { useState, useEffect, useRef } from "react";
 import { T, Card, Btn, Badge, Accordion, Select, Segmented, useIsMobile } from "./ui.js";
 import { api } from "./session.js";
@@ -395,9 +396,14 @@ export default function Bookings({calConnected,clientId}) {
   },[calConnected]);
   const update=async(id,status)=>{await api("/api/bookings",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})}); load();};
 
-  const connectCal=()=>{
-    const w=window.open(`/api/gcal/login?client_id=${clientId}`,"gcal","width=520,height=640");
-    if(!w) window.location.href=`/api/gcal/login?client_id=${clientId}`;
+  // Inside the installed app Google's login opens in a browser sheet over the
+  // app and returns here by itself (native-connect.js); a browser keeps the popup.
+  const connectCal=async()=>{
+    const to=`/api/gcal/login?client_id=${clientId}`;
+    if(!(await openConnect(to))){
+      const w=window.open(to,"gcal","width=520,height=640");
+      if(!w) window.location.href=to;
+    }
     const h=async e=>{if(e.data==="gcal-connected"){window.removeEventListener("message",h);const d=await api("/api/gcal/status").then(r=>r.json()).catch(()=>null);setCalOk(d?!!d.connected:true);setCalEmail(d?.email||"");}};
     window.addEventListener("message",h);
   };

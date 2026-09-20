@@ -240,6 +240,7 @@ export const DOCS = {
         p: [
           "Connected channels are grouped by platform, with a count beside each name. Each row also says how many customers wrote to that Page, account or number **today**, so a paused Page with chats waiting is visible as exactly that.",
           "At the bottom, **Add another** offers a card for each platform — the quickest way to connect a second Page or your first WhatsApp number.",
+          "In the **Android app**, Facebook, Instagram, WhatsApp and Google ask you to log in on a secure browser page that slides up over the app — they do not allow their login inside another app's screen. When you finish, that page closes by itself and you are back in the app, still signed in, with the new channel in the list. If you close the page yourself, nothing is changed.",
         ],
         table: { head: ["Section", "What it covers"],
           rows: [

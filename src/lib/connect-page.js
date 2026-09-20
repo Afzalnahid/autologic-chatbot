@@ -8,7 +8,26 @@
 //
 // Every route calls connectedPage(); failures call connectFailedPage().
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { markSvg } from "./brand-mark.js";
+import { appReturnUrl, APP_COOKIE } from "./app-return.js";
+
+// A connection that began inside the Android/iOS app ends by handing the owner
+// BACK to the app (src/lib/app-return.js): the browser sheet the app opened
+// carries a short-lived cookie, and instead of this page it gets a redirect to
+// tellmoreai://…, which the phone routes to the app. The redirect is a plain
+// 302 at the end of a chain the owner's own tap started — the form browsers
+// allow for an app address (RFC 8252). The cookie is cleared on the way out,
+// so the next connection made in that browser, outside the app, is untouched.
+// Outside a request (a test, a build) cookies() throws; that is "not the app".
+function appTrip(kind, info) {
+  let inApp = false;
+  try { inApp = cookies().get(APP_COOKIE)?.value === "1"; } catch { inApp = false; }
+  if (!inApp) return null;
+  const res = new NextResponse(null, { status: 302, headers: { Location: appReturnUrl(kind, info), "Cache-Control": "no-store" } });
+  res.cookies.set(APP_COOKIE, "", { path: "/", maxAge: 0, secure: true, sameSite: "lax", httpOnly: true });
+  return res;
+}
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -66,6 +85,8 @@ h1{font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
 
 // rows: [{ok:true|false, title, sub}] in plain language — never a permission name.
 export function connectedPage({ platform, name, detail, lead, rows = [], seconds = 6 }) {
+  const back = appTrip("connected", { platform, name });
+  if (back) return back;
   const ch = CHANNELS[platform];
   const dest = `/dashboard?connected=${encodeURIComponent(platform)}&name=${encodeURIComponent(name || "")}#channels`;
   const body = `<main class="card" role="status" aria-live="polite">
@@ -102,6 +123,8 @@ export function connectedPage({ platform, name, detail, lead, rows = [], seconds
 // its own — for cases where there is nothing to fix on this screen, only to
 // return. Default 0 keeps the old behaviour: a button, no auto-redirect.
 export function connectFailedPage({ platform, reason, status = 500, title, eyebrow = "Not connected", seconds = 0 }) {
+  const back = appTrip("failed", { platform, reason: [title, reason].filter(Boolean).join(" — ") });
+  if (back) return back;
   const ch = CHANNELS[platform] || { label: "Channel", icon: "ti-plug-x", color: "#8A91A3" };
   const dest = "/dashboard#channels";
   const n = Number(seconds) || 0;

@@ -29,7 +29,11 @@ export async function requestAllNativePermissions() {
   // 4. Microphone — the WebView raises the RECORD_AUDIO prompt on the first audio
   //    capture; open and immediately release it so the prompt shows now.
   try {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    // The app records voice with the phone's own recorder (the VoiceRecorder
+    // plugin), so that is the permission to ask for; an older APK without the
+    // plugin still gets the WebView's prompt.
+    if (P.VoiceRecorder && P.VoiceRecorder.requestAudioRecordingPermission) await P.VoiceRecorder.requestAudioRecordingPermission();
+    else if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       const s = await navigator.mediaDevices.getUserMedia({ audio: true });
       s.getTracks().forEach((t) => t.stop());
     }
