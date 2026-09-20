@@ -237,6 +237,67 @@ allow it.
 
 ---
 
+## 7 · Opening animation, and the app follows the phone's light / dark mode (added later the same day)
+
+**Asked for:** an opening that looks like a professional app — the name arriving a
+letter at a time — and the app in the same light/dark mode as the phone, by itself.
+
+**What was wrong**
+- The native splash stayed up until the session check had finished, so the web
+  launch screen was almost never seen: the owner saw "the icon only".
+- `useTheme()` read the phone's mode only when nothing was saved, only at
+  launch, and one tap on the moon was saved for ever. After that the app never
+  followed the phone again.
+- The status and navigation bars were the template's grey in both modes. The
+  template also lists `uiMode` in `configChanges`, so a theme alone is only
+  read at launch — the bars would not change while the app is open.
+
+**Fix**
+- `src/lib/theme-pref.js` (pure, `tests/t-theme-pref.mjs`): follow the device;
+  a choice made with the toggle is stored WITH the device mode it was made
+  under (`al-theme` + `al-theme-sys`) and is dropped when the device changes
+  mode. An old-style bare `al-theme` counts as expired, which un-sticks every
+  existing install. Used by `useTheme()` (now also listens for the change and
+  re-reads on coming back to the app), the inline boot script in
+  `src/lib/landing.js`, the pricing page and the four login-result pages.
+- `LaunchScreen` in `src/app/dashboard-client.js`: tile springs in, a light
+  passes over it, "TellMore AI" arrives letter by letter, a one-line tagline,
+  two soft rings, the robot blinks; the loading line only appears after 1.7 s.
+  CSS only; "reduce motion" gets the finished picture. It is an overlay over
+  the app: it lets go of the native splash after its own first frame, is held
+  ~1.65 s in the app / an installed web app (0 in a browser tab), then fades
+  out over the first real screen. One cold start = one opening.
+- `mobile/scripts/patch-manifest.mjs` steps 5–6 (**needs the APK build**): bar
+  colours from `values/` and `values-night/`, and a `MainActivity` that
+  repaints them on `onConfigurationChanged`. The script fails the build if the
+  theme is not DayNight (that is also what makes the WebView report the phone's
+  mode) or if `uiMode` leaves `configChanges`.
+
+**Check on the phone**
+1. Phone in dark mode → open the app: dark from the first frame, opening
+   animation plays once, sign-in or dashboard fades in under it.
+2. With the app open, pull down quick settings and switch dark mode off: the
+   app turns light within a second, without reloading, and (new APK) the status
+   bar and navigation bar turn light too.
+3. Tap the moon: the app changes. Switch the phone's mode again: the app
+   follows the phone.
+
+**Master prompt**
+> In the TellMore AI repo, the app must follow the device's light/dark mode at
+> launch and live, and open with a composed animation. Read
+> src/lib/theme-pref.js and tests/t-theme-pref.mjs first: a toggle choice is
+> stored with the device mode and expires when the device changes mode; every
+> reader of "al-theme" (ui.js useTheme, landing.js THEME_BOOT_JS, pricing-client,
+> connect-page.js and the fb/wa callback pages) must apply the same rule. The
+> opening is LaunchScreen in src/app/dashboard-client.js — CSS keyframes only,
+> honour prefers-reduced-motion, hide the native splash only after the first
+> frame, hold it only in the native app / standalone PWA, never in a browser
+> tab. Native bars: mobile/scripts/patch-manifest.mjs steps 5–6; test the script
+> against @capacitor/cli's real android-template (run twice, second run must
+> change nothing). Verify with headless Chrome at 390×844 using
+> colorScheme light/dark and emulateMedia for the live switch. Say plainly that
+> the APK cannot be built or run on this machine.
+
 ## Build and install
 
 1. GitHub → **Actions** → *Build Android APK* → **Run workflow** (5–10 min).

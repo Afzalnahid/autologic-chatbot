@@ -18,7 +18,19 @@
 //     install always starts at the sign-in screen. Updating over the installed
 //     app keeps the session, as every app does.
 //  4. FCM's default notification small icon.
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+//  5. System bars that follow the phone's light/dark mode. The web app inside
+//     follows it (src/lib/theme-pref.js); without this the status bar above it
+//     and the navigation bar below stayed the template's grey in both modes —
+//     a light strip over a dark app. The bars take the page's own background
+//     (#FCFCFD / #0B0B0E) with dark or light icons to match, from values/ and
+//     values-night/, which Android reads when the app starts.
+//  6. …and while the app is OPEN. The template lists uiMode in configChanges, so
+//     the activity is not restarted when the phone flips to dark at sunset (a
+//     restart would reload the page and lose the owner's place). The theme in
+//     step 5 is therefore only read at launch; MainActivity repaints the bars
+//     itself when the mode changes. The page follows on its own.
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 const path = "android/app/src/main/AndroidManifest.xml";
 let xml = readFileSync(path, "utf8");
@@ -94,4 +106,81 @@ if (!xml.includes("com.google.firebase.messaging.default_notification_icon")) {
 }
 
 writeFileSync(path, xml);
+
+// ── 5. system bars follow light / dark ──────────────────────────────────────
+const res = "android/app/src/main/res";
+const stylesPath = `${res}/values/styles.xml`;
+let styles = readFileSync(stylesPath, "utf8");
+if (!styles.includes("@color/tm_bar")) {
+  // The activity's theme. It must be a DayNight theme: that is also what makes
+  // the WebView report the phone's mode to the page (prefers-color-scheme).
+  const open = /<style name="AppTheme\.NoActionBar" parent="([^"]+)">/.exec(styles);
+  if (!open) throw new Error("styles.xml: AppTheme.NoActionBar not found");
+  if (!/DayNight/.test(open[1])) throw new Error(`styles.xml: AppTheme.NoActionBar is ${open[1]}, not a DayNight theme — the app could not follow the phone's dark mode`);
+  const items = [
+    '        <item name="android:statusBarColor">@color/tm_bar</item>',
+    '        <item name="android:navigationBarColor">@color/tm_bar</item>',
+    '        <item name="android:windowLightStatusBar">@bool/tm_light_bars</item>',
+    '        <item name="android:windowLightNavigationBar">@bool/tm_light_bars</item>',
+  ].join("\n");
+  styles = styles.replace(open[0], open[0] + "\n" + items);
+  writeFileSync(stylesPath, styles);
+  done.push("system bars");
+}
+const bars = (color, light) => `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="tm_bar">${color}</color>\n    <bool name="tm_light_bars">${light}</bool>\n</resources>\n`;
+mkdirSync(`${res}/values-night`, { recursive: true });
+writeFileSync(`${res}/values/tm_bars.xml`, bars("#FCFCFD", true));
+writeFileSync(`${res}/values-night/tm_bars.xml`, bars("#0B0B0E", false));
+
+// ── 6. the bars follow a mode change while the app is open ──────────────────
+const find = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? find(p) : n === "MainActivity.java" ? [p] : []; });
+const activities = find("android/app/src/main/java");
+if (activities.length !== 1) throw new Error(`MainActivity.java: expected one, found ${activities.length}`);
+let java = readFileSync(activities[0], "utf8");
+if (!java.includes("applyBars")) {
+  const pkg = /^package\s+([\w.]+);/m.exec(java);
+  if (!pkg) throw new Error("MainActivity.java: no package line");
+  // Only the untouched template is replaced — anything else is someone's work.
+  if (!/public class MainActivity extends BridgeActivity\s*\{\s*\}/.test(java)) throw new Error("MainActivity.java is not Capacitor's empty template — merge applyBars() by hand");
+  java = `package ${pkg[1]};
+
+import android.content.res.Configuration;
+import android.os.Bundle;
+import android.view.Window;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import com.getcapacitor.BridgeActivity;
+
+// Written by mobile/scripts/patch-manifest.mjs (step 6): the status bar and the
+// navigation bar take the page's background, light or dark with the phone.
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        applyBars(getResources().getConfiguration());
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        applyBars(newConfig);
+    }
+
+    private void applyBars(Configuration config) {
+        boolean night = (config.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        int color = night ? 0xFF0B0B0E : 0xFFFCFCFD;
+        Window window = getWindow();
+        window.setStatusBarColor(color);
+        window.setNavigationBarColor(color);
+        WindowInsetsControllerCompat bars = WindowCompat.getInsetsController(window, window.getDecorView());
+        bars.setAppearanceLightStatusBars(!night);
+        bars.setAppearanceLightNavigationBars(!night);
+    }
+}
+`;
+  writeFileSync(activities[0], java);
+  done.push("bars follow a live mode change");
+}
+if (!/uiMode/.test(xml)) throw new Error("AndroidManifest.xml: uiMode is no longer in configChanges — a mode change would now restart the app and reload the page");
+
 console.log("manifest: " + done.join(", "));

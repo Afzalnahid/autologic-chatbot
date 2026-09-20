@@ -54,6 +54,15 @@ Full write-up, causes and master prompts: `docs/mobile-app-fixes-2026-09-21.md`.
 - **Voice messages** are recorded by the phone (`capacitor-voice-recorder`,
   **pinned to 6.0.3** — 6.1.0 needs Capacitor 7) as AAC.
 - **Icon and splash**: white mark on the brand maroon (`scripts/gen-assets.mjs`).
+- **Light / dark with the phone.** The page follows the phone by itself
+  (`src/lib/theme-pref.js`); `scripts/patch-manifest.mjs` steps 5–6 make the
+  status and navigation bars do the same — colours from `values/` and
+  `values-night/`, and a `MainActivity` that repaints them when the mode changes
+  with the app open (the template keeps `uiMode` in `configChanges`, so the
+  activity is not restarted and the page is not reloaded).
+- **Opening animation** is web code (`LaunchScreen` in
+  `src/app/dashboard-client.js`): it releases the native splash after its first
+  frame and is held ~1.65 s only inside the app.
 
 ## Follow-ups (not done yet)
 - **Release signing / Play Store.** For a store build, generate a release

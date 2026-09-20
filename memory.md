@@ -816,7 +816,34 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★ NEWEST (2026-09-21, after the app fixes) — OLD PRICE IN GOOGLE.
+  - ★★★★ NEWEST OF ALL (2026-09-21, evening) — OPENING ANIMATION + APP FOLLOWS
+    THE PHONE'S LIGHT/DARK MODE. Owner asked for a professional opening (the
+    name arriving letter by letter) and the app in the phone's mode by itself.
+    Written up as section 7 of docs/mobile-app-fixes-2026-09-21.md.
+    · Theme: src/lib/theme-pref.js + tests/t-theme-pref.mjs (26). Follow the
+      device at launch AND live; a toggle choice is stored with the device mode
+      (al-theme + al-theme-sys) and expires when the device changes mode; an
+      old bare al-theme counts as expired (un-sticks existing installs). Every
+      reader of al-theme applies it: ui.js useTheme, landing.js THEME_BOOT_JS,
+      pricing-client, connect-page.js, fb/wa callback + wa embedded pages, the
+      shots studio. layout.js gained themeColor for light/dark.
+    · Opening: LaunchScreen is now an overlay (default export Dashboard wraps
+      DashboardApp). CSS only. Releases the native splash after its first
+      frame; held 1650 ms in the native app / standalone PWA, 0 in a browser
+      tab, 0 with reduce-motion; fades out over the first real screen.
+      Measured in headless Chrome with a stub Capacitor: hold ~1.65 s, one
+      SplashScreen.hide call, no page errors; live emulateMedia switch flips
+      data-theme both ways.
+    · APK half (NOT built here — no SDK, no javac): patch-manifest.mjs steps
+      5–6 — bar colours from values/ + values-night/, and MainActivity.java
+      rewritten to repaint the bars in onConfigurationChanged (uiMode is in
+      configChanges, so the theme alone is read only at launch). Tested against
+      @capacitor/cli 6.2.1's real template: applies, second run changes nothing,
+      XML well-formed. The Java has never been compiled — if "Build the debug
+      APK" fails in MainActivity.java, that is the first place to look.
+    · 67/67. The web half works in the APK already installed; the bars need
+      the new build (same pending run as the six app fixes).
+  - ★★★ (2026-09-21, after the app fixes) — OLD PRICE IN GOOGLE.
     Owner saw the old price list in Google's results. Cause found on the live
     site: /pricing's meta description was typed by hand and still said "from
     ৳1,500/month" (that sentence IS Google's snippet); the WhatsApp solution

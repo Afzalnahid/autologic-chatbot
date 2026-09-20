@@ -80,7 +80,7 @@ jobs:
         working-directory: mobile
         run: cp google-services.json android/app/google-services.json
 
-      - name: Patch the manifest (permissions, the tellmoreai:// app address, no data backup)
+      - name: Patch the Android project (permissions, the tellmoreai:// app address, no data backup, light/dark system bars)
         working-directory: mobile
         run: node scripts/patch-manifest.mjs
 
