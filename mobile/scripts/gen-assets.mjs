@@ -1,8 +1,20 @@
 // Builds the source icon + splash images for @capacitor/assets, straight from
-// the TellMore AI logo mark — the plum robot-bubble (owner's final logo,
-// 2026-09-17) on white. Runs in CI (sharp rasterises the SVGs to PNG);
-// @capacitor/assets then turns these into every Android density, including the
-// adaptive icon (white background + plum-logo foreground).
+// the TellMore AI logo mark (the robot-bubble, owner's final logo, 2026-09-17).
+// Runs in CI (sharp rasterises the SVGs to PNG); @capacitor/assets then turns
+// these into every Android density, including the adaptive icon.
+//
+// 2026-09-21 — owner: "the app icon is too small, it can't define the app".
+// It was the plum outline on WHITE at the launcher's strict safe-zone size: a
+// thin drawing in a white circle, which reads as small and empty next to other
+// apps. A launcher icon is a solid field of the brand colour with the mark in
+// white, as large as the launcher's mask allows:
+//   · background: the brand maroon, edge to edge (a soft diagonal, as in the app);
+//   · foreground: the mark in WHITE, 15% larger. The launcher shows the centre
+//     72 of the icon's 108 units (a circle of radius ~333 in this 1000 box);
+//     the mark is roughly an ellipse of half-axes 237 × 169, so at 1.15× it is
+//     273 × 194 — inside the mask on every launcher shape, with air around it.
+// The same tile (maroon, white mark) is the splash, so icon → splash → the
+// app's own launch screen is one picture.
 //
 // The drawing is copied from src/lib/brand-mark.js (this runs from mobile/, with
 // its own package.json, outside the Next build) — keep the two in sync. It is
@@ -15,9 +27,8 @@ import { mkdirSync } from "node:fs";
 
 mkdirSync("assets", { recursive: true });
 
-const BG = "#FFFFFF";
-const PLUM = "#722B4D";
-const INK = "#1E1A1D";
+const MAROON = "#7B1C3E", MAROON_DEEP = "#5C1430";
+const LIGHT = "#FCFCFD", DARK = "#0B0B0E";
 
 const mark = (color, ink) =>
   `<path fill="${color}" d="M330 522V517A115 115 0 0 1 445 402H580A115 115 0 0 1 695 517V522H632.6A74 74 0 0 0 559 456H466A74 74 0 0 0 392.4 522Z"/>` +
@@ -28,13 +39,20 @@ const mark = (color, ink) =>
   `<circle cx="512" cy="350" r="14" fill="${ink}"/>` +
   `<path d="M424 514Q447 481 470 514M554 514Q577 481 600 514" stroke="${ink}" stroke-width="13" stroke-linecap="round" fill="none"/>`;
 
-// Adaptive foreground: the logo in its own colours, centred in the launcher's
-// safe zone (~66% of the canvas), hence the wide box.
-const foreground = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="12 4 1000 1000">${mark(PLUM, INK)}</svg>`;
-// Adaptive background: solid white, edge to edge.
-const background = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 24 24"><rect width="24" height="24" fill="${BG}"/></svg>`;
-// Splash: the logo, small, in the middle of a white field.
-const splash = `<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="-1110 -1118 3244 3244"><rect x="-1110" y="-1118" width="3244" height="3244" fill="${BG}"/>${mark(PLUM, INK)}</svg>`;
+const field = (id) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A2348"/><stop offset="1" stop-color="${MAROON_DEEP}"/></linearGradient></defs>`;
+
+// Adaptive foreground: the white mark, 1.15× (an 870-unit window on the drawing,
+// centred on the mark's own centre, 512 × 504).
+const foreground = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="77 69 870 870">${mark("#fff", "#fff")}</svg>`;
+// Adaptive background: the maroon field, edge to edge.
+const background = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">${field("g")}<rect width="1024" height="1024" fill="url(#g)"/></svg>`;
+// Splash: the same maroon tile with the white mark, centred on the app's own
+// background — light, and near-black for a phone in dark mode.
+const splash = (bg) => `<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 2732 2732">${field("s")}
+  <rect width="2732" height="2732" fill="${bg}"/>
+  <rect x="1086" y="1086" width="560" height="560" rx="150" fill="url(#s)"/>
+  <svg x="1086" y="1086" width="560" height="560" viewBox="212 204 600 600">${mark("#fff", "#fff")}</svg>
+</svg>`;
 // Notification small icon: a WHITE silhouette on transparent (the status bar
 // keeps only the alpha channel). The face is a real hole, so it still reads.
 const notif = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="257 249 510 510">${mark("#fff", "#fff")}</svg>`;
@@ -44,9 +62,9 @@ const write = (name, source) => sharp(Buffer.from(source)).png().toFile(`assets/
 await Promise.all([
   write("icon-foreground.png", foreground),
   write("icon-background.png", background),
-  write("splash.png", splash),
-  write("splash-dark.png", splash),
+  write("splash.png", splash(LIGHT)),
+  write("splash-dark.png", splash(DARK)),
   write("notif-icon.png", notif),
 ]);
 
-console.log("TellMore AI icon + splash source images written to mobile/assets/");
+console.log("TellMore AI icon + splash source images written to mobile/assets/ (maroon field, white mark)");

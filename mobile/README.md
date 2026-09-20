@@ -38,11 +38,24 @@ uninstall the old "getvoicium" app once. `google-services.json` holds both ids
 (same Firebase project `getvoicium`, whose id Google never lets us rename);
 the build picks the entry that matches `appId`.
 
-## Follow-ups (not done yet)
+## What the shell adds to the website (2026-09-21)
 
-- **Branded app icon.** The first build uses Capacitor's default icon. Add the
-  TellMore AI logo via `@capacitor/assets` (needs a 1024×1024 source) in a later
-  pass.
+Full write-up, causes and master prompts: `docs/mobile-app-fixes-2026-09-21.md`.
+
+- **Logins come back to the app.** Channel and Google Calendar logins open in a
+  browser sheet (`@capacitor/browser`) and end on `tellmoreai://connected…`,
+  which `scripts/patch-manifest.mjs` registers on MainActivity. The web side is
+  `src/lib/app-return.js`, `/api/app/connect`, `src/lib/connect-page.js` and
+  `src/app/dashboard/components/native-connect.js`.
+- **A new install starts signed out.** The manifest patch turns Android backup
+  and device transfer off, so the WebView's stored session is never restored.
+- **Splash → app with no white frame.** `@capacitor/splash-screen` holds the
+  splash (4 s ceiling) until the web app calls `hide()`.
+- **Voice messages** are recorded by the phone (`capacitor-voice-recorder`,
+  **pinned to 6.0.3** — 6.1.0 needs Capacitor 7) as AAC.
+- **Icon and splash**: white mark on the brand maroon (`scripts/gen-assets.mjs`).
+
+## Follow-ups (not done yet)
 - **Release signing / Play Store.** For a store build, generate a release
   keystore, add it to repo **Settings → Secrets**, and switch the workflow to
   `assembleRelease` with signing. Keep that keystore safe — losing it blocks all

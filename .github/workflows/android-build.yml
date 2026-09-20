@@ -80,13 +80,20 @@ jobs:
         working-directory: mobile
         run: cp google-services.json android/app/google-services.json
 
-      - name: Declare runtime permissions (notifications, camera, mic, location, photos)
+      - name: Patch the manifest (permissions, the tellmoreai:// app address, no data backup)
         working-directory: mobile
         run: node scripts/patch-manifest.mjs
 
-      - name: Apply the app icon and splash (TellMore AI logo on white)
+      # The icon is the white mark on a maroon field (gen-assets.mjs draws both
+      # layers); the colours below are what @capacitor/assets pads the splash
+      # with — the app's own light and dark backgrounds — so splash → app is
+      # one continuous picture.
+      - name: Apply the app icon and splash (white mark on the brand maroon)
         working-directory: mobile
-        run: npx capacitor-assets generate --android
+        run: >-
+          npx capacitor-assets generate --android
+          --iconBackgroundColor '#7B1C3E' --iconBackgroundColorDark '#7B1C3E'
+          --splashBackgroundColor '#FCFCFD' --splashBackgroundColorDark '#0B0B0E'
 
       - name: Add the notification small icon (white logo silhouette)
         working-directory: mobile
