@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { T, useIsMobile, Btn, Card, Inp, Motion, Theme, useTheme, Select, OnboardFrame, SAMPLE_ECOM, SAMPLE_AGENCY } from "./dashboard/components/ui.js";
 import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 import { initNativeApp } from "./dashboard/components/native-back.js";
-import { rebindNativePush, unbindNativePush } from "./dashboard/components/native-push.js";
+import { rebindNativePush, unbindNativePush, isNativeApp } from "./dashboard/components/native-push.js";
 import { BotMark } from "@/lib/brand.js";
 // The trial's shape is written in one place, not typed into the welcome screen:
 // it used to read "3-day free trial · 30 messages a day" as literals, so the
@@ -562,18 +562,116 @@ function ConnectCalendar({clientId,onDone}) {
 // native splash, on the same background, so opening the app is one continuous
 // picture (mark, name, a thin moving line) instead of a splash, a white page
 // and then the app.
-export function LaunchScreen() {
-  return <div style={{minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,background:T.bg,color:T.text}}>
+// The opening, in the order the eye takes it: the tile springs in where the
+// native splash left it, a light passes over it, the name arrives a letter at a
+// time, then one line saying what the app does. Two soft rings keep it alive
+// while the session is checked; the loading line only appears if that takes
+// long enough to need explaining. Everything is CSS — no library, nothing to
+// download — and a phone set to "reduce motion" gets the finished picture.
+const LAUNCH_NAME = "TellMore AI";
+const LAUNCH_CSS = `
+@keyframes lz-pop{0%{opacity:0;transform:scale(.55) rotate(-10deg)}60%{opacity:1;transform:scale(1.07) rotate(1.5deg)}100%{opacity:1;transform:none}}
+@keyframes lz-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes lz-ring{0%{opacity:.4;transform:scale(1)}100%{opacity:0;transform:scale(2.15)}}
+@keyframes lz-shine{0%{transform:translateX(-160%) skewX(-20deg)}100%{transform:translateX(260%) skewX(-20deg)}}
+@keyframes lz-letter{0%{opacity:0;transform:translateY(16px) scale(.9);filter:blur(6px)}100%{opacity:1;transform:none;filter:blur(0)}}
+@keyframes lz-rise{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:none}}
+@keyframes lz-fade{0%{opacity:0}100%{opacity:1}}
+@keyframes lz-blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}}
+@keyframes lz-slide{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+.lz{transition:opacity .36s ease}
+.lz.lz-out{opacity:0;pointer-events:none}
+.lz-stage{transition:transform .36s cubic-bezier(.4,0,.2,1)}
+.lz-out .lz-stage{transform:scale(1.07)}
+.lz-glow{animation:lz-fade .9s ease both}
+.lz-tile{animation:lz-pop .62s cubic-bezier(.2,.8,.3,1) both}
+.lz-float{animation:lz-float 3.2s ease-in-out .8s infinite}
+.lz-ring{animation:lz-ring 2.4s cubic-bezier(.2,.6,.4,1) .55s infinite both}
+.lz-ring.lz-r2{animation-delay:1.75s}
+.lz-shine{animation:lz-shine .9s ease-in-out .6s both}
+.lz-mark path:last-child{transform-box:fill-box;transform-origin:center;animation:lz-blink 3.4s ease-in-out 1.5s infinite}
+.lz-letter{display:inline-block;animation:lz-letter .46s cubic-bezier(.2,.8,.3,1) both;will-change:transform,opacity}
+.lz-tag{animation:lz-rise .5s ease 1.05s both}
+.lz-bar{animation:lz-fade .4s ease 1.7s both}
+.lz-bar>span{animation:lz-slide 1.1s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){
+  .lz *{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
+  .lz-ring,.lz-shine{display:none!important}
+  .lz-bar>span{width:100%!important}
+}`;
+
+// `overlay` lays it over the app (fixed, above everything) so it can fade out
+// on top of the first real screen; `leaving` starts that fade. As an overlay it
+// also lets go of the native splash — after its own first frame is on screen,
+// so there is no white page between the two.
+export function LaunchScreen({ overlay = false, leaving = false } = {}) {
+  useEffect(() => {
+    if (!overlay) return;
+    let done = false;
+    const go = () => { if (!done) { done = true; hideNativeSplash(); } };
+    const r = requestAnimationFrame(() => requestAnimationFrame(go));
+    const t = setTimeout(go, 400); // a hidden WebView runs no animation frames
+    return () => { cancelAnimationFrame(r); clearTimeout(t); };
+  }, [overlay]);
+  return <div className={"lz" + (leaving ? " lz-out" : "")} aria-busy={!leaving} aria-hidden={leaving || undefined}
+    style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",background:T.bg,color:T.text,overflow:"hidden",
+      ...(overlay?{position:"fixed",inset:0,zIndex:2147483000}:{})}}>
     <Theme/><Motion/>
-    <style dangerouslySetInnerHTML={{__html:`@keyframes launch-slide{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}} @media (prefers-reduced-motion:reduce){.launch-bar>span{animation:none!important;width:100%!important;transform:none!important}}`}}/>
-    <span style={{width:84,height:84,borderRadius:24,background:T.accGrad,boxShadow:T.accGlow,display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <span style={{width:60,height:60,borderRadius:18,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><BotMark size={50}/></span>
-    </span>
-    <div style={{fontSize:20,fontWeight:700,letterSpacing:"-0.02em"}}>TellMore AI</div>
-    <div className="launch-bar" aria-hidden style={{width:120,height:3,borderRadius:2,background:T.inset,overflow:"hidden"}}>
-      <span style={{display:"block",width:"40%",height:"100%",borderRadius:2,background:T.gold,animation:"launch-slide 1.1s ease-in-out infinite"}}/>
+    <style dangerouslySetInnerHTML={{__html:LAUNCH_CSS}}/>
+    <div className="lz-glow" aria-hidden style={{position:"absolute",inset:0,pointerEvents:"none",
+      background:`radial-gradient(60% 42% at 50% 44%, color-mix(in srgb, ${T.gold} 13%, transparent), transparent 72%)`}}/>
+    <div className="lz-stage" style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center",padding:24}}>
+      <div className="lz-tile" style={{position:"relative",width:96,height:96,marginBottom:26}}>
+        <span className="lz-ring" aria-hidden style={{position:"absolute",inset:0,borderRadius:28,border:`2px solid ${T.gold}`}}/>
+        <span className="lz-ring lz-r2" aria-hidden style={{position:"absolute",inset:0,borderRadius:28,border:`2px solid ${T.gold}`}}/>
+        <div className="lz-float" style={{position:"relative",width:96,height:96,borderRadius:28,background:T.accGrad,overflow:"hidden",
+          boxShadow:`0 18px 40px color-mix(in srgb, ${T.gold} 34%, transparent), 0 4px 10px color-mix(in srgb, ${T.gold} 22%, transparent)`,
+          display:"flex",alignItems:"center",justifyContent:"center",color:T.onGold}}>
+          <BotMark size={68} color="currentColor" ink="currentColor" className="lz-mark"/>
+          <span className="lz-shine" aria-hidden style={{position:"absolute",top:0,bottom:0,left:0,width:"45%",
+            background:"linear-gradient(90deg, transparent, rgba(255,255,255,.38), transparent)"}}/>
+        </div>
+      </div>
+      <div role="heading" aria-level={1} aria-label={LAUNCH_NAME} style={{fontSize:28,fontWeight:800,letterSpacing:"-0.025em",lineHeight:1.1,whiteSpace:"nowrap"}}>
+        {LAUNCH_NAME.split("").map((ch,i)=><span key={i} aria-hidden className="lz-letter"
+          style={{animationDelay:`${340+i*48}ms`,color:i>=LAUNCH_NAME.length-2?T.gold:undefined}}>{ch===" "?"\u00A0":ch}</span>)}
+      </div>
+      <div className="lz-tag" style={{marginTop:10,fontSize:13.5,color:T.textMuted,textAlign:"center"}}>Answers your customers, day and night</div>
+      <div className="lz-bar" aria-hidden style={{marginTop:30,width:112,height:3,borderRadius:2,background:T.inset,overflow:"hidden"}}>
+        <span style={{display:"block",width:"40%",height:"100%",borderRadius:2,background:T.gold}}/>
+      </div>
     </div>
   </div>;
+}
+
+// How long the opening is held. In the app (and an installed web app) it is the
+// front door, so it plays through: about a second and a half, the length the
+// animation was composed for. In a browser tab nobody is kept waiting — the
+// dashboard appears the moment it is ready. One cold start = one opening; coming
+// back to an app left in the background does not replay it.
+const LAUNCH_MIN_MS = 1650, LAUNCH_EXIT_MS = 380;
+function launchHoldMs() {
+  try {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return 0;
+    const installed = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    return isNativeApp() || installed ? LAUNCH_MIN_MS : 0;
+  } catch { return 0; }
+}
+
+export default function Dashboard() {
+  const [phase, setPhase] = useState("show"); // show → leaving → gone
+  const born = useRef(0);
+  const asked = useRef(false);
+  useEffect(() => { born.current = Date.now(); }, []);
+  const onLaunchReady = useCallback(() => {
+    if (asked.current) return; asked.current = true;
+    const wait = Math.max(0, launchHoldMs() - (Date.now() - (born.current || Date.now())));
+    setTimeout(() => { setPhase("leaving"); setTimeout(() => setPhase("gone"), LAUNCH_EXIT_MS); }, wait);
+  }, []);
+  return <>
+    <DashboardApp onLaunchReady={onLaunchReady}/>
+    {phase !== "gone" && <LaunchScreen overlay leaving={phase === "leaving"}/>}
+  </>;
 }
 
 // The bot stops answering the moment a plan lapses, and the only screen that
@@ -614,7 +712,7 @@ const splitSpec=(s)=>{
   return [m[1],id];
 };
 
-export default function Dashboard() {
+function DashboardApp({ onLaunchReady }) {
   const isMobile=useIsMobile();
   // Which single item a tab should open next ({tab,id,ts}); ts makes the same
   // target twice in a row count as two taps.
@@ -768,9 +866,9 @@ export default function Dashboard() {
   const [authChecked,setAuthChecked]=useState(false);
   const [me,setMe]=useState(null);
   const [stage,setStage]=useState("loading");
-  // The native splash stays until the first real screen (sign-in or the app)
-  // is about to paint; a login that could not be finished says why.
-  useEffect(()=>{ if(authChecked) hideNativeSplash(); },[authChecked]);
+  // The first real screen (sign-in or the app) is about to paint: the opening
+  // may leave. A login that could not be finished says why.
+  useEffect(()=>{ if(authChecked&&stage!=="loading") onLaunchReady?.(); },[authChecked,stage,onLaunchReady]);
   useEffect(()=>{
     const f=(e)=>{ const r=e?.detail||{}; alert(r.reason||"The connection was not finished. Please try again."); };
     window.addEventListener("al-connect-failed",f);
