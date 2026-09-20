@@ -816,6 +816,32 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
+  - ★ WHERE WE STOPPED (2026-09-21) — read this first when resuming.
+    OWNER'S STANDING RULE (2026-09-21): update this file after EVERY stage
+    and push it, so another Claude can resume if the usage limit cuts a
+    session off. Working tree is clean except the untracked "Claude
+    outputs/" folder (design handoff, never commit it).
+    LAST SHIPPED: "Inbox photos like Messenger" — photos sent together are
+    one grid (src/lib/thread-groups.js, t-thread-groups 16), a tap opens a
+    full-screen viewer (ImageViewer in Conversations.js: counter, arrows,
+    arrow keys, swipe, open-original, Escape/X/backdrop/back button), and
+    the tablet rail's footer controls stack inside the 96px rail (touch
+    screens force 44px square buttons). 63/63 suites, pushed.
+    OPEN QUESTION FOR THE OWNER (asked, not answered yet): after a package
+    expires the BOT stops (botAllowed/planActive) but the inbox still
+    STORES customer messages and the owner's own replies, and the owner
+    can still reply by hand from the dashboard. The owner flagged "after
+    expired the package still capture the replies". Recommended: keep
+    storing (nothing is lost if they renew) but lock the Inbox behind the
+    renew banner and block /api/send-message + /api/send-media for an
+    inactive plan. Do NOT build until the owner picks an option.
+    NOT BUILT, owner's call: reply-suggestion chips + AI summary card (AI
+    cost); "from your catalogue" caption (no stored source). The studio
+    cannot test the phone back button (no popstate handler there) — the
+    back stack in components/back.js is what orders viewer-before-chat.
+    NEXT when the owner reports back from checking tellmoreai.com on a
+    laptop and a phone: fix whatever they list; they have not yet
+    confirmed the final-deck frame, Overview, Inbox, search, bottom bar.
   - PREMIUM UI DIRECTIONS DECK BUILT (2026-09-20, later). The owner sent
     "TellMore AI — Premium UI Directions.pdf" (Downloads; 8 pages = one
     Inbox screen in 4 colour directions × light/dark; the MAROON pages 1–2
