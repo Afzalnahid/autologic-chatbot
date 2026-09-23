@@ -1513,3 +1513,18 @@ that quotes OUR price takes it from plans.js (lowestMonthly(), formatMoney(),
 bnNumber()); tests/t-public-prices.mjs fails on a typed-in figure. When a number
 changes, search the whole repo for the OLD figure in every script it can be
 written in (৳1,500 · 1500 · ১,৫০০), not just the page that shows it.
+
+## 2026-09-24 — a flow "flavour" on the only button sends everyone through one door
+Meta's Embedded Signup is several wizards behind one URL: `extras.featureType`
+picks which. Empty = the normal path (new number, or one already in the
+portfolio); `whatsapp_business_app_onboarding` = coexistence, which first checks
+the number's activity in the WhatsApp Business APP and refuses anything else
+with "isn't eligible". Our connect page described four doors in its guide and
+then sent all four through the coexistence link, so the commonest case — a
+number already under the business portfolio — was the one Meta had to refuse.
+The page had said the right thing for a month; only the button was wrong.
+Rules: when a provider's URL carries a MODE, a page that offers several routes
+needs one link per route, and a test must assert the default route is the plain
+one. And when an error's words appear nowhere in our source, it is the
+provider's screen — find which of our parameters put them there before
+believing the provider is at fault.

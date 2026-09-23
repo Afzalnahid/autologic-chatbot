@@ -816,7 +816,38 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★★ NEWEST OF ALL (2026-09-21, night) — SIGN-IN / CREATE ACCOUNT NOW
+  - ★★★★★★ NEWEST OF ALL (2026-09-24) — WHATSAPP "NUMBER ISN'T ELIGIBLE" FIXED.
+    Owner could not add a WhatsApp number that already sat under a Meta business
+    portfolio; Meta answered "Your phone number isn't eligible to connect to the
+    WhatsApp Business Platform. More activity on the WhatsApp Business App is
+    needed." Full write-up: docs/whatsapp-number-not-eligible-2026-09-24.md.
+    · CAUSE (ours, not Meta's): /api/wa/embedded described FOUR doors in its
+      guide but had ONE button, and that button always carried
+      extras.featureType = "whatsapp_business_app_onboarding" — Meta's
+      COEXISTENCE door, which only accepts a number live in the WhatsApp
+      Business APP and checks its activity there first. A portfolio number
+      belongs on the normal path (no featureType; Meta's own sample sends "").
+      Introduced by c9b08fe (2026-09-19, the same-tab rewrite); before that
+      3b78fd1 had coexistence as a SECOND door on purpose.
+    · FIX: one link() helper builds both. Main maroon button = normal path;
+      "Connect my WhatsApp Business app" (plain <a href>, EN + BN) inside the
+      third door = coexistence. Each door now says what to do if Meta refuses
+      it. tests/t-wa-signup.mjs 18 → 26, incl. a guard that the coexistence
+      flavour is never baked into the shared link again.
+    · VERIFIED on the dev server by reading extras.featureType out of the
+      rendered page: main = "", Business-app buttons =
+      "whatsapp_business_app_onboarding"; both languages render, no page
+      errors, no horizontal overflow. NOT tried against Meta itself — that
+      needs the owner's login.
+    · VERIFICATION QUESTION (owner asked): business verification was NOT the
+      blocker. Repo notes 2026-09-17: our business + Tech Provider verified,
+      App Mode Live, WhatsApp permissions Advanced-Access approved; WA_CONFIG_ID
+      is set in Vercel (production + preview). A CLIENT's own portfolio being
+      unverified only caps them at 2 numbers / 250 business-initiated
+      conversations per 24h — it never blocks connecting.
+    · NOTE FOR NEXT SESSION: the channels table has ZERO whatsapp rows — the
+      Nandi number connected 2026-09-19 is gone (row or client deleted). 68/68.
+  - ★★★★★ (2026-09-21, night) — SIGN-IN / CREATE ACCOUNT NOW
     REQUIRES A VALID-LOOKING EMAIL. Owner: "in time of login there should be
     authentication mendetory like valid email adress only login or create
     account". Live, no APK needed (web only).

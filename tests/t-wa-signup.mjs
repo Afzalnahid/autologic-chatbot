@@ -1,6 +1,7 @@
 // The redirect-based WhatsApp signup: telling a signup callback from a login
 // callback, building Meta's link, and finding the new account and number from
 // what Meta returns. wa-signup.js has no imports, so it is loaded where it lives.
+import { readFileSync } from "node:fs";
 import { markSignup, readSignup, signupUrl, sharedWabaIds, choosePhone } from "../src/lib/wa-signup.js";
 
 let pass = 0, fail = 0;
@@ -23,6 +24,28 @@ ok(url.searchParams.get("response_type") === "code" && url.searchParams.get("ove
 ok(url.searchParams.get("state") === "S.1.x", "carries the signed state");
 const extras = JSON.parse(url.searchParams.get("extras"));
 ok(extras.setup.business.name === "Nandi" && extras.featureType === "whatsapp_business_app_onboarding" && extras.sessionInfoVersion === "3", "extras carry the pre-fill and the signup flavour");
+
+// The two doors. Meta's wizard changes completely with `featureType`: empty is
+// the normal path (create a number, or pick one already in the portfolio — what
+// Meta's own sample code sends), and "whatsapp_business_app_onboarding" is
+// COEXISTENCE, which first checks whether the number is live in the WhatsApp
+// Business app and refuses it with "isn't eligible" when it is not. Sending
+// every owner through coexistence is what broke connecting a number that
+// already sat under a business portfolio (2026-09-24).
+const plain = new URL(signupUrl({ appId: "1", configId: "2", redirect: "https://x/y", state: "s" }));
+ok(JSON.parse(plain.searchParams.get("extras")).featureType === "", "no flavour asked for → Meta's normal signup path");
+ok(plain.searchParams.get("extras").includes("sessionInfoVersion"), "the normal path still carries the session info version");
+const coexist = new URL(signupUrl({ appId: "1", configId: "2", redirect: "https://x/y", state: "s", featureType: "whatsapp_business_app_onboarding" }));
+ok(JSON.parse(coexist.searchParams.get("extras")).featureType === "whatsapp_business_app_onboarding", "coexistence is asked for explicitly");
+ok(plain.toString() !== coexist.toString(), "the two doors are two different links");
+
+// The connect page must offer BOTH, and its main button must not be the
+// coexistence one — that is the regression this guards.
+const connectPage = readFileSync(new URL("../src/app/api/wa/embedded/route.js", import.meta.url), "utf8");
+ok(/const signupLink = link\(\);/.test(connectPage), "the main button opens the normal signup path");
+ok(/const coexistLink = link\("whatsapp_business_app_onboarding"\)/.test(connectPage), "coexistence has its own link");
+ok((connectPage.match(/go-coexist/g) || []).length >= 3, "both languages get a Business-app button, and the script wires them");
+ok(!connectPage.includes('featureType: "whatsapp_business_app_onboarding"'), "coexistence is never baked into the one shared link again");
 
 // finding the account
 const dbg = { granular_scopes: [

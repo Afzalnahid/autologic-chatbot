@@ -72,14 +72,30 @@ export async function GET(request) {
 
   const stateToken = signState(clientId);
   const { origin } = new URL(request.url);
-  const signupLink = signupUrl({
+  // TWO doors, because Meta's wizard is not one wizard.
+  //
+  // With no featureType, Embedded Signup opens its normal path: create a new
+  // number, or pick one that ALREADY EXISTS in the business portfolio.
+  // featureType "whatsapp_business_app_onboarding" opens COEXISTENCE instead —
+  // the path for a number that is live in the WhatsApp Business APP right now —
+  // and Meta runs its own eligibility check on that number before anything else.
+  //
+  // Between 2026-09-19 and 2026-09-24 the single button sent EVERYONE through
+  // the coexistence door, so an owner whose number already sat under their
+  // portfolio was stopped by Meta with "Your phone number isn't eligible to
+  // connect to the WhatsApp Business Platform. More activity on the WhatsApp
+  // Business App is needed…" — for a number that was never a coexistence case.
+  // The guide below has always described four doors; now the buttons match it.
+  const link = (featureType) => signupUrl({
     appId: APP_ID,
     configId: CONFIG_ID,
     redirect: `${origin}/api/wa/callback`,
     state: signState(markSignup(clientId)),
     prefill,
-    featureType: "whatsapp_business_app_onboarding",
+    ...(featureType ? { featureType } : {}),
   });
+  const signupLink = link();                                    // new, or already in the portfolio
+  const coexistLink = link("whatsapp_business_app_onboarding"); // live in the Business app
 
   const html = `<!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -160,7 +176,8 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
      already filled in.</p>
 
   <ul class="checks">
-    <li><i class="ti ti-check"></i><span>Create a new number, pick an existing one, or link your <b>WhatsApp Business app</b> — all in the same window</span></li>
+    <li><i class="ti ti-check"></i><span>Create a new number, or pick one that already exists in your Meta business portfolio</span></li>
+    <li><i class="ti ti-check"></i><span>Running the free <b>WhatsApp Business app</b>? Open that box below — it has its own button</span></li>
     <li><i class="ti ti-check"></i><span>Verify it with the code Meta sends by SMS or call</span></li>
     <li><i class="ti ti-check"></i><span>Your bot starts replying the moment it's connected</span></li>
   </ul>
@@ -179,7 +196,9 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
     </details>
     <details class="method">
       <summary><span><i class="ti ti-building-store"></i>WhatsApp Business app on my phone</span><i class="chev ti ti-chevron-down"></i></summary>
-      <div class="body"><ol class="steps"><li>Update the WhatsApp Business app to the latest version.</li><li>Tap <b>Set up with Meta</b> and choose <b>Connect your WhatsApp Business app</b>.</li><li>Enter your number and confirm on your phone when the Business app asks.</li><li>Both keep working: the bot answers, and anything you type in the app is remembered by the bot.</li></ol></div>
+      <div class="body"><ol class="steps"><li>Update the WhatsApp Business app to the latest version, and open it on the phone that holds the number.</li><li>Use the button below — not the maroon one — because Meta opens a different window for this.</li><li>Enter your number and confirm on your phone when the Business app asks.</li><li>Both keep working: the bot answers, and anything you type in the app is remembered by the bot.</li></ol>
+      <a class="btn2 go-coexist" href="${coexistLink}"><i class="ti ti-device-mobile-message"></i> Connect my WhatsApp Business app</a>
+      <p class="advlead">If Meta says the number is <b>not eligible</b> here, it is not running in the Business app — go back and use <b>Set up with Meta</b> instead.</p></div>
     </details>
     <details class="method">
       <summary><span><i class="ti ti-arrows-exchange"></i>Already on WhatsApp API with another company</span><i class="chev ti ti-chevron-down"></i></summary>
@@ -198,7 +217,9 @@ label.fld input:focus{outline:0;border-color:var(--acc)}
     </details>
     <details class="method">
       <summary><span><i class="ti ti-building-store"></i>ফোনের WhatsApp Business অ্যাপ</span><i class="chev ti ti-chevron-down"></i></summary>
-      <div class="body"><ol class="steps"><li>WhatsApp Business অ্যাপটা সর্বশেষ সংস্করণে আপডেট করুন।</li><li><b>Set up with Meta</b> চাপুন, <b>Connect your WhatsApp Business app</b> বেছে নিন।</li><li>নম্বর দিন, আর ফোনের Business অ্যাপ জিজ্ঞেস করলে নিশ্চিত করুন।</li><li>দুটোই চলবে: বট উত্তর দেবে, আর আপনি অ্যাপে যা লিখবেন বট তা মনে রাখবে।</li></ol></div>
+      <div class="body"><ol class="steps"><li>WhatsApp Business অ্যাপটা সর্বশেষ সংস্করণে আপডেট করুন, আর যে ফোনে নম্বরটা আছে সেখানে অ্যাপটা খুলুন।</li><li>নিচের বোতামটা ব্যবহার করুন — মেরুন বোতামটা নয় — কারণ Meta এর জন্য আলাদা একটা উইন্ডো খোলে।</li><li>নম্বর দিন, আর ফোনের Business অ্যাপ জিজ্ঞেস করলে নিশ্চিত করুন।</li><li>দুটোই চলবে: বট উত্তর দেবে, আর আপনি অ্যাপে যা লিখবেন বট তা মনে রাখবে।</li></ol>
+      <a class="btn2 go-coexist" href="${coexistLink}"><i class="ti ti-device-mobile-message"></i> আমার WhatsApp Business অ্যাপ যুক্ত করুন</a>
+      <p class="advlead">এখানে Meta যদি বলে নম্বরটা <b>eligible নয়</b>, তার মানে নম্বরটা Business অ্যাপে চলছে না — ফিরে গিয়ে <b>Set up with Meta</b> ব্যবহার করুন।</p></div>
     </details>
     <details class="method">
       <summary><span><i class="ti ti-arrows-exchange"></i>অন্য কোনো কোম্পানির মাধ্যমে আগে থেকেই WhatsApp API-তে আছে</span><i class="chev ti ti-chevron-down"></i></summary>
@@ -291,8 +312,7 @@ try { if (localStorage.getItem('al-dash-lang') === 'bn') {
     var App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
     if (isApp && App) App.addListener('appStateChange', function(s){ if (s && s.isActive) backToApp(); });
   } catch(e){}
-  btn.onclick = function(){
-    btn.disabled = true;
+  function leave(url){
     status.className = 'status';
     status.innerHTML = isApp
       ? '<span class="spin"></span>Finish in the browser that opened, then come back to this app.'
@@ -300,8 +320,14 @@ try { if (localStorage.getItem('al-dash-lang') === 'bn') {
     // Set after a moment: leaving the app for the browser is what should
     // trigger the return, not a focus blip during the click itself.
     setTimeout(function(){ left = true; }, 800);
-    window.location.href = URL_;
-  };
+    window.location.href = url;
+  }
+  btn.onclick = function(){ btn.disabled = true; leave(URL_); };
+  // The Business-app (coexistence) door. A plain link, so it still works with
+  // no JavaScript; the handler only adds the spinner and the app's return.
+  Array.prototype.forEach.call(document.querySelectorAll('.go-coexist'), function(a){
+    a.addEventListener('click', function(e){ e.preventDefault(); leave(a.getAttribute('href')); });
+  });
   // Coming back with the Back button restores this page from cache with the
   // button still disabled; re-enable it.
   window.addEventListener('pageshow', function(){ btn.disabled = false; status.innerHTML = ''; });
