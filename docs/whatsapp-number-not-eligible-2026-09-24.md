@@ -112,6 +112,44 @@ Two different portfolios matter here, and neither was blocking this:
      a **cooldown** period before they can be re-used;
    - a brand-new number is the fastest way past all of the above.
 
+## The badges in Meta's number picker (owner's screenshot, 24 Sep 2026)
+
+Once the normal path opens, Meta lists the numbers it already knows, each with a
+badge. These mean different things and only one of them is a problem.
+
+| Badge | Meaning | Action |
+|---|---|---|
+| **Registered** | already live on Cloud API in this account | selectable |
+| **Ineligible** on a `+1 555-…` number | Meta's free **test** number, one per WhatsApp account | none — test numbers are for the API Setup panel only. They cannot be migrated to another account or onboarded through Embedded Signup, so this badge is expected and correct |
+| **Ineligible** on a real number | Meta will not let this number be registered here | one of the causes below |
+
+Causes for a real number, in the order worth checking:
+
+1. **The number is in use with WhatsApp right now** — the personal app or the
+   WhatsApp Business app on somebody's phone. Meta's own wording: *"Numbers
+   already in use with WhatsApp cannot be registered unless they are deleted
+   first."* Either move it into coexistence (the Business-app button) or back up
+   its chats and delete the WhatsApp account on that number.
+2. **The business portfolio's number cap is full.** A portfolio that has not
+   completed business verification is capped at **two registered business phone
+   numbers** — and a `+1 555` test number occupies one of those two. Verifying
+   the portfolio raises the cap to 20.
+3. **Verification was never finished** — the number was added to the WhatsApp
+   account but its SMS or call code was never entered.
+4. **It sits under a different portfolio** from the one this signup is adding
+   to. A number cannot be pulled across portfolios in this wizard; run the
+   signup against the portfolio that owns it.
+
+Where to see which it is: `business.facebook.com` → **WhatsApp Manager** →
+*Account tools* → **Phone numbers**. That page gives each number's real status.
+`business.facebook.com` → *Business settings* → **WhatsApp accounts** shows
+which portfolio each WhatsApp account belongs to, and **Security Centre** shows
+whether that portfolio is verified.
+
+None of this is something the TellMore AI code can read or change: it is state
+inside the customer's own Meta account, and our app only sees a number once
+Meta hands it over.
+
 ## Master prompt
 
 > In the TellMore AI repo, connecting a WhatsApp number that already exists
