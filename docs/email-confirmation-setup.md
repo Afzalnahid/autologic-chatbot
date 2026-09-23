@@ -44,14 +44,35 @@ for testing only and sends just a few emails an hour, so with it a real signup
 would wait for a link that never comes.
 
 1. **Send auth emails through Resend** (the account the product already uses).
-   Supabase → *Authentication* → *Emails* → *SMTP Settings* → enable custom SMTP:
-   host `smtp.resend.com`, port `465`, username `resend`, password = a Resend API
-   key (create one in Resend for this; the owner pastes it — it is never typed
-   by an assistant or committed), sender name `TellMore AI`, sender address on a
-   domain that is **verified in Resend** — the same one the product's own emails
-   use (`RESEND_FROM` in Vercel). If those still come from
-   `onboarding@resend.dev`, verify `tellmoreai.com` in Resend first (Resend →
-   Domains → Add), then use e.g. `no-reply@tellmoreai.com`.
+   Supabase → *Authentication* → *Emails* → *SMTP Settings* → **Enable custom
+   SMTP**, then fill the form exactly like this:
+
+   | Field on that screen | Value |
+   |---|---|
+   | Sender email address | the address the product's own emails already come from — the `RESEND_FROM` value set in Vercel (see the note below) |
+   | Sender name | `TellMore AI` |
+   | Host | `smtp.resend.com` |
+   | Port number | `465` (implicit SSL/TLS — the value Supabase already suggests) |
+   | Minimum interval per user | `60` seconds (leave it) |
+   | Username | `resend` — the literal word, not an email address |
+   | Password | a Resend **API key** (Resend → *API keys* → *Create API key*, sending permission). The owner pastes it; it is never typed by an assistant and never committed. |
+
+   **The sender address is the one field that must be checked, not guessed.**
+   Resend only sends from a domain verified in *that* Resend account, and
+   `RESEND_FROM` is a sensitive Vercel variable, so its value cannot be read
+   from here. Two ways to settle it in a few seconds: open Resend → *Domains*
+   and use any address on the domain that shows **Verified** (e.g.
+   `no-reply@tellmoreai.com`), or look at the "from" line of any email
+   TellMore AI has already sent. If nothing is verified yet, add
+   `tellmoreai.com` in Resend → *Domains* → *Add*, put its DNS records in, and
+   wait for Verified before switching the toggle on.
+
+   **Then raise the rate limit.** Supabase's own note on that screen says the
+   limit becomes *30 emails per hour* once custom SMTP is on. Thirty sign-ups
+   in an hour would exhaust it and the rest would get no link at all, so open
+   *Authentication* → *Rate Limits* → **Rate limit for sending emails** and
+   raise it (a few hundred per hour is ordinary for a product this size).
+
 2. *Authentication* → *URL Configuration*: **Site URL** =
    `https://www.tellmoreai.com/dashboard`; add
    `https://www.tellmoreai.com/**` to **Redirect URLs** (the password-reset page
