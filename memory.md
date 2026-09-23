@@ -816,7 +816,36 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★★★★★ NEWEST OF ALL (2026-09-24, night) — 9 ORPHANED LOGINS, AND THE
+  - ★★★★★★★★★ NEWEST OF ALL (2026-09-24, late) — "DELETE A CLIENT" NOW REALLY
+    DELETES EVERYTHING. Owner: keep the logins that match the admin dashboard,
+    delete the rest, "and the main part is this problem will not repeat again —
+    when I do something from admin panel it should also happen".
+    · DONE, IRREVERSIBLE, OWNER ASKED FOR IT: the 9 logins with no client row
+      were deleted through the Supabase admin API. Script re-checked every rule
+      itself (no client row AND not in admin_users) instead of trusting a typed
+      list; both admins also own clients so nothing of theirs was touched.
+      auth.users 18 → 9, exactly matching 9 clients.
+    · THE REAL BUG, deeper than the logins: 21 tables carry a client_id; the
+      admin route emptied SIX by a hand-written list. 16 already had ON DELETE
+      CASCADE, but comments (10 rows), processed_comments (11) and usage_daily
+      (3) were being left behind by every delete — customers' words outliving
+      the business they belonged to.
+    · FIXED IN THE DATABASE, not in JS: cascading foreign keys added to
+      allowance_events, broadcast_recipients, comments, processed_comments,
+      usage_daily. Migration applied and kept at
+      docs/sql/2026-09-24-delete-a-client-means-delete-everything.sql, which
+      also carries the information_schema query that finds the next table to
+      slip through. Verified live: every client_id table now cascades (query
+      returns 0 rows), and an inserted-then-deleted test client left 0 of 3
+      rows behind.
+    · The route now deletes the client row and lets the database do the rest.
+      Two things no cascade can reach are still done there and now REPORTED
+      instead of swallowed: the login, and the storage buckets knowledge-files
+      and product-images (folder per client, paged 100 at a time). A half-done
+      delete returns ok:true + `warning`, and the console's run() reads the body
+      on success so it is actually shown.
+    · tests/t-client-delete.mjs (20). 70/70.
+  - ★★★★★★★★ (2026-09-24, night) — 9 ORPHANED LOGINS, AND THE
     SILENT FAILURE THAT WOULD HIDE MORE. Owner: "a client I deleted still
     exists in database authentications".
     · MEASURED: auth.users 18, clients 9, logins with no client 9, clients with

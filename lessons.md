@@ -1542,3 +1542,21 @@ the workaround to a third file. And when a report blames a page, fetch that page
 the way the accused crawler would: the same review called the home page an empty
 shell, which was the dashboard, because the reviewer was signed in and
 middleware redirected them.
+
+## 2026-09-24 — a hand-written list of tables is a leak with a date on it
+Deleting a client emptied six tables named in an array in the admin route.
+Twenty-one tables carry a client_id. Sixteen were saved only because somebody
+had given them ON DELETE CASCADE; the other five depended on that array, and
+three of them had been quietly keeping rows — including customers' comments —
+for every client ever deleted. Nobody edits a delete list when they add a table.
+Rule: a "delete everything that belongs to X" rule belongs to the database as a
+cascading foreign key, never to a list in application code. When adding a table
+with a client_id, declare the foreign key in the same migration. The query that
+finds a table without one is kept in
+docs/sql/2026-09-24-delete-a-client-means-delete-everything.sql — run it after
+any schema change.
+Second half of the same lesson: the login deletion had been correct since
+2026-09-10 but returned nothing and caught every error, so a failure would have
+shown "deleted" while the person could still sign in — and signing in with no
+client row silently mints a new client with a fresh trial. An action that can
+half-succeed must say which half failed.

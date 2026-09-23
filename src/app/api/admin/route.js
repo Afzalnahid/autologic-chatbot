@@ -437,6 +437,32 @@ async function deleteAuthUserByEmail(email) {
   }
 }
 
+// The two storage buckets keep a folder per client. A database cascade cannot
+// reach them, so they are emptied here — and any failure is reported rather
+// than swallowed, because a deleted customer's photographs and documents
+// sitting in storage is the kind of thing nobody discovers by looking.
+async function deleteClientFiles(clientId) {
+  const problems = [];
+  for (const bucket of ["knowledge-files", "product-images"]) {
+    try {
+      let offset = 0;
+      for (;;) {
+        const { data: objs, error } = await supabase.storage.from(bucket).list(String(clientId), { limit: 100, offset });
+        if (error) { problems.push(`${bucket}: ${error.message}`); break; }
+        const names = objs || [];
+        if (!names.length) break;
+        const { error: rmErr } = await supabase.storage.from(bucket).remove(names.map((o) => `${clientId}/${o.name}`));
+        if (rmErr) { problems.push(`${bucket}: ${rmErr.message}`); break; }
+        if (names.length < 100) break;
+        offset += 100;   // removed ones are gone, but a folder can hold more
+      }
+    } catch (e) {
+      problems.push(`${bucket}: ${e.message}`);
+    }
+  }
+  return problems;
+}
+
 export async function DELETE(request) {
   const email = await callerEmail(request);
   if (!email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -447,20 +473,27 @@ export async function DELETE(request) {
   if (!id || confirm !== "DELETE") return NextResponse.json({ error: "missing id or confirm" }, { status: 400 });
   // Read the owner's email before the row is gone, so the login can be removed too.
   const { data: cl } = await supabase.from("clients").select("owner_email").eq("id", id).maybeSingle();
-  for (const t of ["message_buffer", "chat_memory", "orders", "contacts", "channels", "products"]) {
-    await supabase.from(t).delete().eq("client_id", id);
-  }
+
+  // Deleting the row deletes the rest. All 21 tables that carry a client_id
+  // now have ON DELETE CASCADE (docs/sql/2026-09-24-delete-a-client-means-
+  // delete-everything.sql). Six of them used to be listed here by hand, which
+  // named less than a third and could never keep up with a table added later —
+  // comments, processed_comments and usage_daily were all being left behind.
+  // The rule belongs to the database, where no route can forget it.
   const { error } = await supabase.from("clients").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const fileProblems = await deleteClientFiles(id);
   // Now the login itself, so the account cannot sign back in and re-create.
   const login = await deleteAuthUserByEmail(cl?.owner_email);
+
+  const left = [];
   if (!login.removed) {
-    console.error("[admin delete] login not removed:", login.reason);
-    return NextResponse.json({
-      ok: true,
-      warning: `The business was deleted, but its login could not be removed (${login.reason}). ` +
-        "That person can still sign in and would get a brand-new trial. Remove them in Supabase → Authentication → Users.",
-    });
+    left.push(`the login could not be removed (${login.reason}) — that person can still sign in, and would get a brand-new trial. Remove them in Supabase → Authentication → Users`);
+  }
+  if (fileProblems.length) left.push(`some uploaded files are still in storage (${fileProblems.join("; ")})`);
+  if (left.length) {
+    console.error("[admin delete] incomplete:", left.join(" | "));
+    return NextResponse.json({ ok: true, warning: "The business and its data were deleted, but " + left.join(", and ") + "." });
   }
   return NextResponse.json({ ok: true });
 }
