@@ -816,7 +816,34 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★★★★★★ NEWEST OF ALL (2026-09-24, late) — "DELETE A CLIENT" NOW REALLY
+  - ★★★★★★★★★★ NEWEST OF ALL (2026-09-24, night) — A BOT THAT CANNOT ANSWER
+    NOW SAYS NOTHING. Owner watched it on their own Facebook page: the bot
+    answered one question, then met "How much will it cost?" with "Sorry, I
+    can't answer right now — someone from our team will get back to you
+    shortly." Their rule: that message must never reach a customer; the
+    notification goes to the OWNER instead, for every kind of bot.
+    · CAUSE: composeReply substituted that apology whenever items came back
+      empty (every model refused / AI key exhausted / unparseable reply). It
+      also promised a person that nothing ever told — flagNeedsHuman was only
+      called for a real handoff.
+    · NOW: composeReply returns `failed` and no items. processConversation
+      sends nothing, calls flagNeedsHuman(..., "bot_failed") and returns,
+      leaving the rows un-Replied so the inbox still shows them waiting and the
+      bot retries by itself next time that customer writes. The push says
+      "X got no answer / the bot could not reply", and notifyNeedsHuman has a
+      separate email saying NOTHING was sent and where to answer.
+    · WIDGET: same silence, through the `off` flag the lapsed-plan case
+      already used (so even a cached copy of public/widget.js behaves). Its own
+      "We couldn't get a reply" bubble is gone; only "not enabled for this
+      website" remains, which is a setup error the site owner must see. A quiet
+      turn is not marked Replied and is not written into chat memory.
+    · tests/t-quiet-failure.mjs (34) greps every customer-facing path for an
+      apology in EITHER language, so a new one cannot be written again. 71/71.
+      Manual updated (en + bn) under notifications.
+    · NOT VERIFIED LIVE: forcing a real AI failure on a real channel would
+      need a broken key on a live client. The silence is proved by the code and
+      the suite, not by a customer test.
+  - ★★★★★★★★★ (2026-09-24, late) — "DELETE A CLIENT" NOW REALLY
     DELETES EVERYTHING. Owner: keep the logins that match the admin dashboard,
     delete the rest, "and the main part is this problem will not repeat again —
     when I do something from admin panel it should also happen".

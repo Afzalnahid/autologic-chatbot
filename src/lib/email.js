@@ -175,16 +175,33 @@ export async function notifyNewBooking(clientEmail, { customer, service, date, t
 
 // A customer asked for a person (or the bot handed off). Sent once per
 // hand-off — the flag flips false→true only once until the owner replies.
-export async function notifyNeedsHuman(clientEmail, { customer, preview, platform }) {
+// Two different situations, and the difference matters to whoever reads it.
+// Asking for a person: the bot has already reassured that customer. botFailed:
+// the bot produced nothing, so NOTHING was sent — they are waiting in silence
+// and do not know that anybody has seen their message.
+export async function notifyNeedsHuman(clientEmail, { customer, preview, platform, botFailed }) {
+  const who = esc(customer || "A customer");
+  const where = platform ? ` on ${esc(platform)}` : "";
+  const quote = preview ? `<br/><br/><em style="color:#c9d3e6">\u201C${esc(preview)}\u201D</em>` : "";
   return send({
     to: clientEmail,
-    subject: `${customer || "A customer"} is waiting for you — TellMore AI`,
-    html: clientWrap(
-      "\u{1F64B} A customer needs a person",
-      `<strong>${esc(customer || "A customer")}</strong>${platform ? ` on ${esc(platform)}` : ""} asked to talk to someone, and the bot has told them a team member will help.
-       ${preview ? `<br/><br/><em style="color:#c9d3e6">“${esc(preview)}”</em>` : ""}
-       <br/><br/>Please reply from your ${dash("conversations")} — they are waiting.`
-    ),
+    subject: botFailed
+      ? `${customer || "A customer"} is waiting \u2014 your bot could not answer \u2014 TellMore AI`
+      : `${customer || "A customer"} is waiting for you \u2014 TellMore AI`,
+    html: botFailed
+      ? clientWrap(
+          "\u26A0\uFE0F Your bot could not answer",
+          `<strong>${who}</strong>${where} wrote to you and the bot could not produce a reply, so <strong>nothing was sent to them</strong> \u2014 they were not told that anything is wrong.
+           ${quote}
+           <br/><br/>Please answer them yourself from your ${dash("conversations")}. Their message is saved and waiting there.
+           <br/><br/>If this keeps happening, check your AI key and the replies left in your plan.`
+        )
+      : clientWrap(
+          "\u{1F64B} A customer needs a person",
+          `<strong>${who}</strong>${where} asked to talk to someone, and the bot has told them a team member will help.
+           ${quote}
+           <br/><br/>Please reply from your ${dash("conversations")} \u2014 they are waiting.`
+        ),
   });
 }
 

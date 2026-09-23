@@ -102,8 +102,8 @@ export const POST = withErrors(async (request) => {
   if (!block.allowed) {
     // The visitor is told NOTHING — the owner's rule (2026-09-06): a lapsed
     // subscription must not announce itself to a customer. `off` says so
-    // explicitly, because an empty `items` array is what the widget shows its
-    // "we couldn't get a reply" error for, and that is still a message.
+    // explicitly rather than leaving the widget to infer it from an empty
+    // items array — the same flag a bot that cannot reply now uses, below.
     //
     // Their message is already saved above, so it is waiting in the inbox the
     // moment the plan is renewed.
@@ -122,26 +122,43 @@ export const POST = withErrors(async (request) => {
     return NextResponse.json({ items: [], bot: false, off: true }, { headers: head });
   }
 
-  let items;
+  // The same rule as every other channel (owner, 2026-09-24): a visitor is
+  // never shown that the bot is broken. `off` is the widget's existing "say
+  // nothing" answer — it was built for a lapsed plan, and from the visitor's
+  // side a bot that cannot reply is the same thing. Their message is saved, the
+  // conversation is flagged, and the owner is told to answer it themselves.
+  let items, quiet = false;
   try {
     const r = await composeReply({ clientId, client, bType, senderId, combined: text, platform: PLATFORM, pageId: channel.page_id || "" });
     items = r.items;
-    if (r.handoff) flagNeedsHuman(clientId, senderId, text, PLATFORM).catch(() => {});
-  } catch (e) {
-    console.error("[widget] composeReply:", e.message);
-    items = [{ type: "text_msg", text: "একটু সমস্যা হচ্ছে — আবার একবার চেষ্টা করুন। / Something went wrong at our end. Please try that again." }];
+    quiet = !!r.failed;
+    if (r.handoff || r.failed) flagNeedsHuman(clientId, senderId, text, PLATFORM, r.failed ? "bot_failed" : undefined).catch(() => {});
+  } catch (err) {
+    console.error("[widget] composeReply:", err.message);
+    items = [];
+    quiet = true;
+    flagNeedsHuman(clientId, senderId, text, PLATFORM, "bot_failed").catch(() => {});
   }
 
-  await supabase.from("message_buffer")
-    .update({ status: "Replied" })
-    .eq("client_id", clientId).eq("sender_id", senderId).eq("status", "Pending");
+  // Only mark the visitor's message answered when it actually was. A failed
+  // reply leaves it Pending, so the inbox still shows it waiting, exactly as on
+  // Messenger, Instagram and WhatsApp.
+  if (!quiet) {
+    await supabase.from("message_buffer")
+      .update({ status: "Replied" })
+      .eq("client_id", clientId).eq("sender_id", senderId).eq("status", "Pending");
+  }
 
   for (const row of botReplyRows(items, { sender_id: senderId, client_id: clientId, platform: PLATFORM, page_id: channel.page_id || null })) {
     await bufferInsert(row);
   }
 
-  const aiText = items.filter((i) => i.text).map((i) => i.text).join("\n");
-  await saveMemory(senderId, clientId, text, aiText);
+  // Nothing was said, so there is nothing to remember. An empty bot turn in
+  // the memory would teach the next reply that this question was answered.
+  if (!quiet) {
+    const aiText = items.filter((i) => i.text).map((i) => i.text).join("\n");
+    await saveMemory(senderId, clientId, text, aiText);
+  }
 
-  return NextResponse.json({ items, bot: true }, { headers: head });
+  return NextResponse.json({ items, bot: true, ...(quiet ? { off: true } : {}) }, { headers: head });
 }, "widget-chat");

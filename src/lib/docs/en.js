@@ -584,6 +584,7 @@ export const DOCS = {
       { h: "When a customer needs a person",
         p: [
           "If a customer asks to talk to a human, or asks something the bot is not allowed to decide, the bot says a person will follow up and raises a **needs you** notification — on the bell, on your phone, and by email. Answer from the chat and it clears; the bot's own replies never clear it.",
+          "**If the bot cannot answer at all** — your AI key has run out, the AI service is down, or the answer comes back unreadable — the customer is sent **nothing**. They simply see no reply yet, the way they would if you were busy, rather than a message saying the robot is broken. You get a **needs you** alert that says the bot could not answer, and their message sits in the inbox waiting for you. Reply to it yourself; if it keeps happening, check your AI key and the replies left in your plan.",
         ] },
 
       { h: "On your phone",

@@ -1000,13 +1000,19 @@ export async function composeReply({ clientId, client, bType, senderId, combined
   const ho = extractHandoff(items);
   items = ho.items;
   const handoff = ho.handoff || wantsHuman(combined);
-  // Every model in the chain refused (or the reply was unparseable). Say so like
-  // a shop would — and promise a human — instead of a bare "try again later",
-  // which reads as broken and loses the customer.
-  if (!items.length) {
-    console.error("[reply] no items produced; raw preview =", String(raw).slice(0, 200));
-    items = [{ type: "text_msg", text: "দুঃখিত, এই মুহূর্তে আমি উত্তর দিতে পারছি না। আমাদের টিমের একজন খুব শীঘ্রই আপনাকে জানাবে। 🙏\nSorry, I can't answer right now — someone from our team will get back to you shortly." }];
-  }
+  // Every model in the chain refused, the AI key ran out, or the reply came
+  // back unreadable. The customer is told NOTHING (owner's rule, 2026-09-24,
+  // after seeing it happen live: "when the api limit hit or bot can't reply,
+  // that kind of message should not be given to the customer — it should go as
+  // a notification to the user").
+  //
+  // An apology looks like a broken robot, and the one that used to stand here
+  // also promised a person whom nobody was ever told about. A business that
+  // cannot answer should look like a business that has not answered YET. The
+  // customer's message is already buffered, so it is sitting in the inbox; the
+  // caller flags the conversation and wakes the owner instead.
+  const failed = !items.length;
+  if (failed) console.error("[reply] no items produced; raw preview =", String(raw).slice(0, 200));
   // Tagging never blocks or breaks a reply: if it fails, the customer still gets
   // their answer and the conversation simply keeps its previous tag.
   try {
@@ -1030,7 +1036,7 @@ export async function composeReply({ clientId, client, bType, senderId, combined
     console.error("[tags] skipped:", e.message);
   }
 
-  return { items, bookingNote, handoff };
+  return { items, bookingNote, handoff, failed };
 }
 
 // How long a customer must be quiet before the bot answers, and the longest it
@@ -1111,7 +1117,7 @@ export async function processConversation(channel, senderId, myRowId) {
   if (!rows.length) return;
 
   const combined = rows.map(r => r.message_content).join("\n");
-  const { items, bookingNote, handoff } = await composeReply({ clientId, client, bType, senderId, combined, platform: channel.platform, pageId: channel.page_id || "" });
+  const { items, bookingNote, handoff, failed } = await composeReply({ clientId, client, bType, senderId, combined, platform: channel.platform, pageId: channel.page_id || "" });
 
   // Writing the reply took real time. Check ONE more time that nobody newer has
   // arrived — if they have, their handler is answering for this burst too, and
@@ -1120,6 +1126,15 @@ export async function processConversation(channel, senderId, myRowId) {
   // customer's patience on top. WhatsApp is excluded for the same reason it
   // skips the debounce: it is deduped on the message id Meta gives us.
   if (channel.platform !== "whatsapp" && supersededBy(await pendingFor(senderId, clientId), myRowId)) return;
+
+  // The bot could not answer. Send nothing, flag the customer for a person and
+  // tell the owner. The buffered messages are deliberately left un-Replied, so
+  // the inbox still shows them waiting and the bot tries again by itself the
+  // next time this customer writes.
+  if (failed) {
+    await flagNeedsHuman(clientId, senderId, combined, channel.platform, "bot_failed");
+    return;
+  }
 
   if (channel.platform === "whatsapp") await waSendResponses(channel.access_token, channel.page_id, senderId, items);
   else await sendResponses(channel.access_token, senderId, items, channel.platform, channel.page_id);
@@ -1227,7 +1242,10 @@ function emailOwner(clientId, fn, payload) {
 // "call me" three times produces one alert, not three — and tell the owner on
 // the phone and by email. Cleared when the owner replies (send-message) or flips
 // the bot switch for that customer (contacts route). Never throws.
-export async function flagNeedsHuman(clientId, senderId, preview, platform) {
+// `reason` "bot_failed" means the bot produced nothing and the customer was
+// sent nothing at all — a different message for the owner, because nobody has
+// promised that customer anything and they are waiting in silence.
+export async function flagNeedsHuman(clientId, senderId, preview, platform, reason) {
   try {
     const now = new Date().toISOString();
     const { data: flipped } = await sb().from("contacts")
@@ -1243,12 +1261,13 @@ export async function flagNeedsHuman(clientId, senderId, preview, platform) {
     }
     const name = flipped?.name || "A customer";
     const text = String(preview || "").replace(/\s+/g, " ").slice(0, 120);
+    const botFailed = reason === "bot_failed";
     notify(clientId, {
-      title: "🙋 " + name + " needs you",
-      body: text || "asked to talk to a person",
+      title: botFailed ? "⚠️ " + name + " got no answer" : "🙋 " + name + " needs you",
+      body: text || (botFailed ? "the bot could not reply — please answer them yourself" : "asked to talk to a person"),
       url: "/dashboard#conversations:" + encodeURIComponent(senderId), tag: "human-" + senderId,
     }).catch(() => {});
-    emailOwner(clientId, "notifyNeedsHuman", { customer: name, preview: text, platform });
+    emailOwner(clientId, "notifyNeedsHuman", { customer: name, preview: text, platform, botFailed });
   } catch (e) { console.error("[handoff] flag:", String(e?.message || e).slice(0, 160)); }
 }
 

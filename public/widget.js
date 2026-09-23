@@ -226,19 +226,20 @@
       })
       .then(function (j) {
         typing(false);
-        // The business's plan has lapsed. Say NOTHING: their message is saved
-        // and waiting in the inbox, and a customer must never be shown that a
-        // subscription ran out. Checked before the empty-items branch below,
-        // because that branch's "couldn't get a reply" IS a message.
+        // Say NOTHING. Either the business's plan has lapsed, or the bot could
+        // not produce a reply — from the visitor's side these are the same
+        // thing, and a customer must never be shown that a subscription ran out
+        // or that a robot is broken (owner's rule, 2026-09-24). Their message is
+        // saved and waiting in the inbox for the owner to answer by hand.
         if (j && j.off) return;
         var items = j && j.items;
         if (!items || !items.length) {
-          bubble(
-            j && j.error === "not_authorised"
-              ? "এই চ্যাটটি এই ওয়েবসাইটের জন্য চালু নেই। / This chat is not enabled for this website."
-              : "উত্তর পেতে সমস্যা হচ্ছে — একটু পরে আবার চেষ্টা করুন। / We couldn't get a reply. Please try again shortly.",
-            "bot"
-          );
+          // The one exception: the key in the snippet does not match this site,
+          // so the chat was never going to work. That is a setup mistake the
+          // site's owner has to be able to see.
+          if (j && j.error === "not_authorised") {
+            bubble("এই চ্যাটটি এই ওয়েবসাইটের জন্য চালু নেই। / This chat is not enabled for this website.", "bot");
+          }
           return;
         }
         items.forEach(function (it) {

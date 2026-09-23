@@ -1560,3 +1560,20 @@ Second half of the same lesson: the login deletion had been correct since
 shown "deleted" while the person could still sign in — and signing in with no
 client row silently mints a new client with a fresh trial. An action that can
 half-succeed must say which half failed.
+
+## 2026-09-24 — an apology to the customer is the wrong end of the wire
+When every model refused, the bot told the CUSTOMER "I can't answer right now —
+someone from our team will get back to you shortly", and told the owner nothing.
+Both halves were wrong. It announced to a stranger that the business runs a
+robot and the robot is broken, and it promised a person whom no flag, push or
+email ever woke — the same gap handoff.js was written to close, reopened in the
+one branch nobody thought of as a hand-off.
+Rule: when the bot cannot produce a reply, the customer gets silence — their
+message is already saved, so it looks like a business that has not answered YET,
+which is ordinary — and the OWNER gets the alert, worded so they know nothing
+was sent. This holds for every channel; the website widget has a `off` flag for
+exactly this, built earlier for a lapsed plan, and a bot that cannot reply is
+the same thing from the visitor's side.
+Test shape worth copying: tests/t-quiet-failure.mjs greps the customer-facing
+paths for apology wording in both languages, so the next person writing a
+friendly fallback is stopped by a red test rather than by a customer.
