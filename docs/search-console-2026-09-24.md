@@ -123,9 +123,18 @@ canonical ends in `?lang=bn`.
    *Duplicate without user-selected canonical* and *Indexed, though blocked by
    robots.txt*.
 3. **Sitemaps** — already submitted and reading Success. Nothing to resubmit.
-4. Request indexing for three or four of the uncrawled pages, for example
-   `/docs/getting-started`, `/solutions/website-chatbot`,
-   `/solutions/facebook-messenger-chatbot`.
+4. Request indexing for three or four of the uncrawled pages. URL Inspection
+   needs the **whole address**, not the path:
+   - `https://www.tellmoreai.com/docs/getting-started`
+   - `https://www.tellmoreai.com/solutions/website-chatbot`
+   - `https://www.tellmoreai.com/solutions/facebook-messenger-chatbot`
+   - `https://www.tellmoreai.com/docs/channels`
+
+   The remaining six, for later: `/docs/ai-assistant`, `/docs/analytics`,
+   `/docs/comments`, `/docs/inventory`, `/docs/notifications`, `/docs/profile`
+   — each with `https://www.tellmoreai.com` in front. Google caps manual
+   indexing requests at roughly ten a day per property, so a few at a time is
+   the whole quota anyway.
 5. Optional: report `747live.bet` to Google as spam, and/or send a copyright
    removal request for the copied pages.
 
