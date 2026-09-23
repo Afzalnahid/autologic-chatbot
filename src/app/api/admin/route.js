@@ -405,22 +405,35 @@ export async function PUT(request) {
 // silently RE-CREATES the account, dropping the person into onboarding. So a
 // "deleted" account kept coming back. Best-effort: the client rows are already
 // gone by the time this runs, so a failure here is logged, not fatal.
+// Removes the login itself. Returns { removed, reason } rather than swallowing
+// a failure: the client's rows are gone by the time this runs, so the panel
+// must not say "deleted" while the person can still sign in — and signing in
+// with no client row silently creates a NEW one with a fresh trial
+// (loadMe in dashboard-client.js). A quiet failure here is invisible until
+// somebody counts the logins against the clients, which is how the nine
+// pre-2026-09-10 leftovers were found.
 async function deleteAuthUserByEmail(email) {
   const e = (email || "").toLowerCase();
-  if (!e) return;
+  if (!e) return { removed: false, reason: "this client had no owner email" };
   try {
     let page = 1, uid = null;
     while (page <= 10 && !uid) {
-      const { data: list } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+      const { data: list, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) return { removed: false, reason: error.message };
       const users = list?.users || [];
       const match = users.find((u) => (u.email || "").toLowerCase() === e);
       if (match) uid = match.id;
       if (users.length < 200) break;
       page++;
     }
-    if (uid) await supabase.auth.admin.deleteUser(uid);
+    // Nothing to remove is a clean outcome, not a failure: the login may have
+    // been deleted in Supabase already.
+    if (!uid) return { removed: true, absent: true };
+    const { error: delErr } = await supabase.auth.admin.deleteUser(uid);
+    if (delErr) return { removed: false, reason: delErr.message };
+    return { removed: true };
   } catch (err) {
-    console.error("auth delete:", err.message);
+    return { removed: false, reason: err.message };
   }
 }
 
@@ -440,6 +453,14 @@ export async function DELETE(request) {
   const { error } = await supabase.from("clients").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   // Now the login itself, so the account cannot sign back in and re-create.
-  if (cl?.owner_email) await deleteAuthUserByEmail(cl.owner_email);
+  const login = await deleteAuthUserByEmail(cl?.owner_email);
+  if (!login.removed) {
+    console.error("[admin delete] login not removed:", login.reason);
+    return NextResponse.json({
+      ok: true,
+      warning: `The business was deleted, but its login could not be removed (${login.reason}). ` +
+        "That person can still sign in and would get a brand-new trial. Remove them in Supabase → Authentication → Users.",
+    });
+  }
   return NextResponse.json({ ok: true });
 }

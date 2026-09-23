@@ -140,7 +140,18 @@ export default function AdminClient() {
   // revokes every session of the same user server-side — which used to log
   // the owner out of their client dashboard as a side effect.
   const logout = async () => { await getSb().auth.signOut({ scope: "local" }); setData(null); setSuperKey(""); };
-  const run = async (label, fn) => { setBusy(label); setErr(""); const res = await fn(); if (res && !res.ok) { const d = await res.json().catch(() => ({})); setErr(d.error || "That did not work — please try again."); } await load(true); setBusy(""); return res?.ok; };
+  // The body is read on success too: an action can half-succeed — a client
+  // deleted whose login survived — and that has to be said out loud rather
+  // than left for someone to notice months later.
+  const run = async (label, fn) => {
+    setBusy(label); setErr("");
+    const res = await fn();
+    const d = res ? await res.json().catch(() => ({})) : {};
+    if (res && !res.ok) setErr(d.error || "That did not work — please try again.");
+    else if (d.warning) setErr(d.warning);
+    await load(true); setBusy("");
+    return res?.ok;
+  };
   // After a change to a client (plan, extend, suspend), re-read the OPEN drawer so
   // it updates AT ONCE. run()'s list refresh only patches the top badge
   // (detail.client); the Subscription card, usage and dates come from the

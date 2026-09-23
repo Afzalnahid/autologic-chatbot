@@ -816,7 +816,30 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★★★★ NEWEST OF ALL (2026-09-24, later) — SEARCH CONSOLE: CANONICAL +
+  - ★★★★★★★★ NEWEST OF ALL (2026-09-24, night) — 9 ORPHANED LOGINS, AND THE
+    SILENT FAILURE THAT WOULD HIDE MORE. Owner: "a client I deleted still
+    exists in database authentications".
+    · MEASURED: auth.users 18, clients 9, logins with no client 9, clients with
+      no login 0. None of the 9 are admins; all were created 12 Jul – 20 Aug
+      2026 and each signed in exactly once, the day they signed up.
+    · The admin delete DOES remove the login (895f5d3, 2026-09-10) — every
+      orphan predates that commit. Verified the mechanism against the live
+      project with the service key from .env.local: auth.admin.listUsers works
+      and all 18 users fit on one page, so the paging loop finds anyone.
+      So the CODE is right; the 9 are historical leftovers.
+    · WHY IT MATTERS: loadMe() creates a client for any signed-in user who has
+      none, so each leftover could sign in today and get a BRAND-NEW TRIAL.
+    · FIXED anyway: deleteAuthUserByEmail returned nothing and swallowed every
+      error, so a future failure would have said "deleted" while the person
+      could still sign in. It now returns {removed, reason}; DELETE answers
+      ok:true + `warning`; and admin-client's run() reads the body on success
+      too (it only read it on failure), so a half-done delete is shown.
+    · NOT DONE — NEEDS THE OWNER'S WORD: deleting the 9 leftover logins is
+      destructive and irreversible, so nothing was deleted. Some may not be
+      deleted clients at all but people who signed up and never finished
+      registering. Ask before touching them.
+    · 69/69.
+  - ★★★★★★★ (2026-09-24, later) — SEARCH CONSOLE: CANONICAL +
     HREFLANG FIXED. Owner handed over a Search Console review (6 issues).
     Checked each against the live site first; 2 were not real. Full write-up:
     docs/search-console-2026-09-24.md.
