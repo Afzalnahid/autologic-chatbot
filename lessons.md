@@ -1577,3 +1577,16 @@ the same thing from the visitor's side.
 Test shape worth copying: tests/t-quiet-failure.mjs greps the customer-facing
 paths for apology wording in both languages, so the next person writing a
 friendly fallback is stopped by a red test rather than by a customer.
+
+## 2026-09-24 — the test suite never opened the biggest files in the project
+A Bangla paragraph was added to the manual with straight double quotes inside a
+double-quoted string. src/lib/docs/bn.js stopped being valid JavaScript, `npm
+test` passed 71 suites out of 71, and the first sign of trouble was Vercel
+marking the deployment ERROR. No suite had ever imported src/lib/docs/*.js or
+src/lib/solutions/*.js — the hand-written copy, the largest and most frequently
+edited files here, full of quotation marks and em dashes in two scripts.
+Rule: a test suite that never imports a file cannot tell you anything about it.
+tests/t-copy-loads.mjs now imports all six and checks both languages cover the
+same pages; it was verified by re-introducing the exact bug. And when an edit
+touches a file no test loads, parse it before committing — the repo has a parser
+available through next/dist/compiled/babel/bundle.js.

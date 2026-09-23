@@ -840,6 +840,15 @@ again?"
     · tests/t-quiet-failure.mjs (34) greps every customer-facing path for an
       apology in EITHER language, so a new one cannot be written again. 71/71.
       Manual updated (en + bn) under notifications.
+    · BUILD BROKE ONCE (f49c162 → Vercel ERROR): the Bangla paragraph quoted a
+      phrase with straight double quotes inside a double-quoted string, so
+      docs/bn.js stopped parsing. Fixed in c781e81 with typographic quotes.
+      npm test passed 71/71 through it — NO SUITE HAD EVER IMPORTED THE COPY
+      FILES. Closed with tests/t-copy-loads.mjs (17), which imports docs/{en,bn,
+      index} and solutions/{en,bn,index} and checks the languages cover the same
+      pages; proved it catches the bug by putting the straight quotes back.
+      RULE FOR NEXT TIME: after editing docs/*.js or solutions/*.js, parse the
+      file — npm test alone is not enough, and only the Next build sees it.
     · NOT VERIFIED LIVE: forcing a real AI failure on a real channel would
       need a broken key on a live client. The silence is proved by the code and
       the suite, not by a customer test.
