@@ -83,7 +83,7 @@ export const POST = withErrors(async (request) => {
 
   // The visitor's message is recorded first, so the owner sees it in the inbox
   // even when the bot is not allowed to answer.
-  const savedRow = await bufferInsert({
+  await bufferInsert({
     sender_id: senderId, client_id: clientId, role: "customer", status: "Pending",
     message_content: text, platform: PLATFORM, page_id: channel.page_id || null,
   });
@@ -96,7 +96,7 @@ export const POST = withErrors(async (request) => {
   // saved is passed as the cut-off so it is not counted as "an earlier message"
   // — otherwise the first message of every chat would look mid-conversation and
   // never notify. Fire-and-forget.
-  notifyIncomingMessage(clientId, senderId, text, savedRow?.created_at || null).catch(() => {});
+  notifyIncomingMessage(clientId, senderId, text).catch(() => {});
 
   const block = await botAllowed(channel, senderId);
   if (!block.allowed) {

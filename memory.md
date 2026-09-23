@@ -816,7 +816,34 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★★★★★★★ NEWEST OF ALL (2026-09-24, night) — A BOT THAT CANNOT ANSWER
+  - ★★★★★★★★★★★ NEWEST OF ALL (2026-09-24, last) — EVERY MESSAGE NOTIFIES, AND
+    EVERY PACKAGE GETS EVERY CHANNEL. Two owner decisions in one pass.
+    · NOTIFICATIONS: notifyIncomingMessage fired only for the FIRST customer
+      message of a 20-minute burst ("mid-conversation, already notified"), so an
+      hour-long chat buzzed once. Owner: "every customer's every message should
+      be in the notification, like Messenger sends us". The suppression and its
+      message_buffer count query are gone; the `thisAt` argument went with it
+      (three call sites updated). Volume is handled the way Messenger does — a
+      shared tag: "msg-"+senderId, so a phone REPLACES the line for that
+      customer instead of stacking. All four channels raise it.
+      tests/t-notify.mjs (19) also pins the whole alert set.
+    · CHANNELS: caps were trial 1 / Basic 2 / Pro 3 / Enterprise 3. Owner:
+      "every channel will exist in every package — no loss for us, the AI reply
+      remains the same". Every plan now has channels: null (which plan-limits.js
+      already read as no limit), in plans.js AND in the plans table; card
+      wording is one line everywhere: "Every channel: Messenger, Instagram,
+      WhatsApp + website widget". Migration kept at
+      docs/sql/2026-09-24-every-package-gets-every-channel.sql — it also had to
+      DROP NOT NULL on plans.channels, which is why null could not be stored
+      before.
+      TRAP FOUND AND FIXED: plan-limits.js fromConstant() did
+      `channels: p.channels ?? 1`, so on the day the plans table cannot be read
+      the fallback would have re-imposed a cap of ONE. Now `?? null`.
+      Checked: no client has a channels override, so every live account is
+      uncapped. The per-client mechanism stays for the admin panel.
+    · 73/73, and `next build` compiles (the local Windows /apple-icon export
+      error is environmental — @vercel/og and a file:// path; Vercel builds it).
+  - ★★★★★★★★★★ (2026-09-24, night) — A BOT THAT CANNOT ANSWER
     NOW SAYS NOTHING. Owner watched it on their own Facebook page: the bot
     answered one question, then met "How much will it cost?" with "Sorry, I
     can't answer right now — someone from our team will get back to you

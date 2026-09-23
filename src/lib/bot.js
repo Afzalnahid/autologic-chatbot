@@ -1271,14 +1271,22 @@ export async function flagNeedsHuman(clientId, senderId, preview, platform, reas
   } catch (e) { console.error("[handoff] flag:", String(e?.message || e).slice(0, 160)); }
 }
 
-export async function notifyIncomingMessage(clientId, senderId, content, thisAt) {
+// Every message a customer sends raises a notification, the way Messenger
+// itself does (owner's rule, 2026-09-24: "every customer's every message should
+// be in the notification").
+//
+// It used to fire only for the FIRST message of a twenty-minute burst, on the
+// reasoning that the rest were "mid-conversation". In practice a conversation
+// that ran for an hour buzzed once and then went quiet, and the question the
+// owner actually needed to see — a price, a complaint, an address — usually
+// came several messages in.
+//
+// Ten messages do not become ten alerts sitting on the phone: they share one
+// `tag`, which is what tells a phone to REPLACE the previous notification for
+// that customer instead of stacking another one. One line per customer, always
+// showing their latest message. The owner can switch the lot off in Profile.
+export async function notifyIncomingMessage(clientId, senderId, content) {
   try {
-    const since = new Date(Date.now() - 20 * 60 * 1000).toISOString();
-    let q = sb().from("message_buffer").select("id", { count: "exact", head: true })
-      .eq("client_id", clientId).eq("sender_id", senderId).eq("role", "customer").gte("created_at", since);
-    if (thisAt) q = q.lt("created_at", thisAt);
-    const { count } = await q;
-    if (count && count > 0) return; // mid-conversation, already notified at the start
     const { data: ct } = await sb().from("contacts").select("name").eq("client_id", clientId).eq("sender_id", senderId).limit(1);
     const name = ct?.[0]?.name || "A customer";
     const preview = String(content || "").replace(/\s+/g, " ").slice(0, 80);
@@ -1414,7 +1422,7 @@ export async function handleIncoming(event) {
   const cannedAllowed = async () => (await botAllowed(channel, event.senderId)).allowed;
   const saveForOwner = async (text) => {
     const row = await bufferInsert({ sender_id: event.senderId, client_id: clientId, role: "customer", status: "Pending", message_content: text, platform: event.platform || channel.platform || "facebook", wa_msg_id: event.msgId || null, page_id: channel.page_id || null });
-    notifyIncomingMessage(clientId, event.senderId, text, row?.created_at).catch(() => {});
+    notifyIncomingMessage(clientId, event.senderId, text).catch(() => {});
   };
 
   if (event.video) {
@@ -1524,7 +1532,7 @@ export async function handleIncoming(event) {
     message_content: content, attachments, platform: event.platform || channel.platform || "facebook",
     wa_msg_id: event.msgId || null, page_id: channel.page_id || null,
   });
-  notifyIncomingMessage(clientId, event.senderId, content, row?.created_at).catch(() => {});
+  notifyIncomingMessage(clientId, event.senderId, content).catch(() => {});
 
   const block = await botAllowed(channel, event.senderId);
   if (!block.allowed) {

@@ -589,7 +589,8 @@ export const DOCS = {
 
       { h: "On your phone",
         p: [
-          "In **Profile** there is one **Notifications** switch. On, this device gets a notification even when the dashboard is closed — a new order, a new booking, a chat that needs you, a channel that stopped working, and the bot pausing because your AI key failed.",
+          "In **Profile** there is one **Notifications** switch. On, this device gets a notification even when the dashboard is closed — **every message a customer sends**, a new order, a new booking, a chat that needs you, a channel that stopped working, and the bot pausing because your AI key failed.",
+          "**Every message, like Messenger.** A customer writing to you buzzes your phone each time, on every channel — Messenger, Instagram, WhatsApp and your website. Ten messages from the same person do not stack up into ten alerts: they replace one another, so you see one line for that customer showing their latest words, and tapping it opens their chat. If it is more than you want, the one switch in Profile turns all of it off.",
           "In the TellMore AI Android app the switch uses the phone's own notifications; the first time the app opens it asks for permission, along with the camera, microphone and location it uses. In a browser, the browser asks instead.",
         ] },
 

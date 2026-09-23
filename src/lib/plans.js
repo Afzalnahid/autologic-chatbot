@@ -48,6 +48,17 @@ export const BIZ_FEATURES = {
   agency: ["calendar", "kb"],
 };
 
+// Channels are NOT rationed by package (owner, 2026-09-24): "in every package
+// there will be no bound of channel, every channel will exist in every package,
+// because if we give the full access of the channel there is no loss for us —
+// the AI reply count remains the same".
+//
+// That is the whole economics of this product in one line. A reply costs a
+// model call; a channel costs nothing. Capping channels only pushed a shop into
+// leaving its Instagram unanswered, which makes the product look worse without
+// saving a paisa. Every package therefore carries `channels: null`, which
+// plan-limits.js reads as "no limit". The mechanism is still there: a super
+// admin can set a per-client cap in the admin panel when there is a reason to.
 export const PLANS = {
   // Two sets of three, one per business type (owner's rule, 2026-09-19: "there
   // are two types, ecommerce and agency, so there will be two types of
@@ -64,12 +75,12 @@ export const PLANS = {
     yearly: 0,
     messagesPerDay: 30,
     messagesPerMonth: null,
-    channels: 1,
+    channels: null,   // no cap — see the note above PLANS
     highlight: false,
     features: [
       "Every feature switched on",
       "30 bot replies a day (about 5-6 customers)",
-      "1 channel of your choice",
+      "Every channel: Messenger, Instagram, WhatsApp + website widget",
       "20 products or 2 documents",
       "30 AI Assistant questions",
       "No card needed",
@@ -89,11 +100,11 @@ export const PLANS = {
     byokYearly: 19990,
     messagesPerDay: null,
     messagesPerMonth: 2000,
-    channels: 2,
+    channels: null,   // no cap — see the note above PLANS
     highlight: false,
     features: [
       "2,000 bot replies / month",
-      "2 channels + website widget",
+      "Every channel: Messenger, Instagram, WhatsApp + website widget",
       "500 products in total",
       "100 AI Assistant questions / month",
       "Every feature — nothing is held back",
@@ -111,11 +122,11 @@ export const PLANS = {
     byokYearly: 44990,
     messagesPerDay: null,
     messagesPerMonth: 5500,
-    channels: 3,
+    channels: null,   // no cap — see the note above PLANS
     highlight: true,
     features: [
       "5,500 bot replies / month",
-      "All 3 channels + website widget",
+      "Every channel: Messenger, Instagram, WhatsApp + website widget",
       "1,000 products in total",
       "400 AI Assistant questions / month",
       "Every feature — nothing is held back",
@@ -133,11 +144,11 @@ export const PLANS = {
     byokYearly: 89990,
     messagesPerDay: null,
     messagesPerMonth: 12000,
-    channels: 3,
+    channels: null,   // no cap — see the note above PLANS
     highlight: false,
     features: [
       "12,000 bot replies / month",
-      "All 3 channels + website widget",
+      "Every channel: Messenger, Instagram, WhatsApp + website widget",
       "2,500 products in total",
       "800 AI Assistant questions / month",
       "Priority support",
@@ -157,11 +168,11 @@ export const PLANS = {
     byokYearly: 16990,
     messagesPerDay: null,
     messagesPerMonth: 2000,
-    channels: 2,
+    channels: null,   // no cap — see the note above PLANS
     highlight: false,
     features: [
       "2,000 bot replies / month",
-      "2 channels + website widget",
+      "Every channel: Messenger, Instagram, WhatsApp + website widget",
       "20 knowledge documents in total",
       "100 AI Assistant questions / month",
       "Every feature, Google Calendar booking included",
@@ -179,11 +190,11 @@ export const PLANS = {
     byokYearly: 34990,
     messagesPerDay: null,
     messagesPerMonth: 5500,
-    channels: 3,
+    channels: null,   // no cap — see the note above PLANS
     highlight: true,
     features: [
       "5,500 bot replies / month",
-      "All 3 channels + website widget",
+      "Every channel: Messenger, Instagram, WhatsApp + website widget",
       "60 knowledge documents in total",
       "400 AI Assistant questions / month",
       "Every feature, Google Calendar booking included",
@@ -201,11 +212,11 @@ export const PLANS = {
     byokYearly: 74990,
     messagesPerDay: null,
     messagesPerMonth: 12000,
-    channels: 3,
+    channels: null,   // no cap — see the note above PLANS
     highlight: false,
     features: [
       "12,000 bot replies / month",
-      "All 3 channels + website widget",
+      "Every channel: Messenger, Instagram, WhatsApp + website widget",
       "150 knowledge documents in total",
       "800 AI Assistant questions / month",
       "Priority support",

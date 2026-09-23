@@ -1590,3 +1590,15 @@ tests/t-copy-loads.mjs now imports all six and checks both languages cover the
 same pages; it was verified by re-introducing the exact bug. And when an edit
 touches a file no test loads, parse it before committing — the repo has a parser
 available through next/dist/compiled/babel/bundle.js.
+
+## 2026-09-24 — a default of 1 hidden in a fallback
+Removing the channel caps meant setting `channels: null` in every package, which
+plan-limits.js reads as "no limit". It would still have capped everyone at one
+channel on any day the plans table could not be read, because the constant
+fallback said `channels: p.channels ?? 1` — a default written when 1 was a real
+package's value. A `?? <number>` on a limit is a policy decision hiding in a
+line that looks like plumbing.
+Rule: when a limit becomes unlimited, grep every `?? ` beside its name, not just
+the place the value is set. And the same change had to be made in two stores —
+src/lib/plans.js and the `plans` table the pricing page reads — plus a DROP NOT
+NULL, because the column could not hold "no limit" at all.

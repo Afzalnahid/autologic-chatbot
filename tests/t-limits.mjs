@@ -1,4 +1,5 @@
 import { fileURLToPath as __f } from "node:url";
+import { readFileSync } from "node:fs";
 // Paths are derived from this file's own location so the suite runs
 // anywhere — another machine, another checkout, CI.
 const __R = (p) => new URL("../" + p, import.meta.url);
@@ -134,6 +135,33 @@ is("no text is quiet", trialTextMismatch("", 5), null);
 is("no text at all is quiet", trialTextMismatch(null, 5), null);
 is("no length is quiet", trialTextMismatch("Try everything for 3 days", null), null);
 is("bullets are joined and still read", trialTextMismatch(["Full access", "3 days of it"].join(" "), 5) !== null, true);
+
+// ── Channels are not rationed by package (owner, 2026-09-24) ───────────────
+// "Every channel will exist in every package, because if we give the full
+// access of the channel there is no loss for us — the AI reply remains the
+// same." A reply costs a model call; a connected channel costs nothing. The
+// caps only ever produced shops with an unanswered Instagram.
+{
+  const ids = ["trial", ...P.PAID_PLANS];
+  for (const id of ids) ok(id + " places no cap on channels", P.PLANS[id].channels === null);
+  ok("and none of them is merely missing the field", ids.every((id) => "channels" in P.PLANS[id]));
+  // The words on the cards have to agree with the rule, or the pricing page
+  // goes on selling a limit that no longer exists.
+  const promises = ids.flatMap((id) => P.PLANS[id].features || []).filter((f) => /channel/i.test(f));
+  ok("every card that mentions channels says every channel",
+    promises.length > 0 && promises.every((f) => f.startsWith("Every channel:")));
+  ok("no card counts them any more",
+    !promises.some((f) => /\b(1|2|3|one|two|three)\b/i.test(f.replace(/Messenger|Instagram|WhatsApp/g, ""))));
+}
+
+// The fallback used when the plans table cannot be read must not quietly
+// reintroduce a cap of one — which is exactly what it used to do.
+{
+  const src = readFileSync(new URL("../src/lib/plan-limits.js", import.meta.url), "utf8");
+  ok("the constant fallback leaves channels unlimited", src.includes("channels: p.channels ?? null,"));
+  ok("it no longer defaults to a single channel", !src.includes("channels: p.channels ?? 1,"));
+  ok("an unset channel limit still means no limit", src.includes('channels: pick("channels") ?? null,'));
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -34,7 +34,11 @@ function fromConstant() {
       messages_per_day: p.messagesPerDay ?? null,
       messages_per_month: p.messagesPerMonth ?? null,
       messages_per_channel: null,
-      channels: p.channels ?? 1,
+      // null, never 1. Every package now carries no channel cap (owner,
+      // 2026-09-24), and this fallback is what runs when the plans table cannot
+      // be read — the day the database hiccups is not the day to start
+      // refusing a shop its second channel.
+      channels: p.channels ?? null,
       max_products: null, max_kb_files: null,
       max_scrapes_per_month: null, max_broadcasts_per_month: null, max_assistant_per_month: null,
       features: {}, feature_list: p.features || [], model_chain: null,
