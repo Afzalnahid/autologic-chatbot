@@ -16,7 +16,9 @@ import { api, apiJson } from "./session.js";
 
 const PROVIDERS = {
   google: { label: "Google AI Studio", icon: "ti-brand-google", color: "#4285F4", ph: "AIza…", help: "aistudio.google.com → Get API key" },
+  openai: { label: "OpenAI", icon: "ti-brand-openai", color: "#10A37F", ph: "sk-…", help: "platform.openai.com → API keys" },
 };
+const PROVIDER_LIST = Object.entries(PROVIDERS).map(([id, p]) => ({ id, ...p }));
 
 // The model list is now [{id, tier, note}] (tier: "fast" | "smart"). Smart
 // defaults: main = a fast model (cheap), fallback = a higher-quality one, so a
@@ -178,16 +180,17 @@ function KeyManager({ st, setSt, isMobile }) {
 
 // Provider + key → load the LIVE model list → choose main + fallback → activate.
 function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg }) {
-  // Gemini-only platform: embeddings need Gemini, and it does chat, vision and
-  // voice in one API too, so a single provider keeps everything self-contained.
-  const provider = "google";
+  // One provider runs everything on your key — replies, photographs, voice
+  // notes and the search that finds your products. Changing it changes the
+  // search index, which is rebuilt for you in the background.
+  const [provider, setProvider] = useState(st?.provider || "google");
   const [key, setKey] = useState("");
   const [show, setShow] = useState(false);
   const [models, setModels] = useState(null);   // null = not loaded yet
   const [main, setMain] = useState(savedModels[0] || "");
   const [fallback, setFallback] = useState(savedModels[1] || "");
   const [busy, setBusy] = useState(false);       // "load" | "save" | false
-  const P = PROVIDERS[provider];
+  const P = PROVIDERS[provider] || PROVIDERS.google;
 
   // Changing the provider or the key invalidates a previously loaded list.
   const resetList = () => { setModels(null); };
@@ -223,15 +226,33 @@ function KeyForm({ st, hasKey, savedModels, isMobile, onCancel, onSaved, setMsg 
 
   return (
     <div style={{ marginTop: hasKey ? 4 : 0 }}>
-      {/* Provider is always Google (Gemini) — one key runs chat, vision, voice
-          and the product/knowledge search. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, padding: "10px 12px", borderRadius: 12, background: T.bgAlt }}>
-        <span style={{ width: 30, height: 30, borderRadius: 9, background: `${P.color}1a`, color: P.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}><i className={`ti ${P.icon}`} /></span>
-        <div style={{ minWidth: 0, fontSize: 12.5 }}>
-          <b>Google AI (Gemini)</b>
-          <div style={{ fontSize: 11, color: T.textDim, marginTop: 1 }}>Get your key: {P.help}</div>
-        </div>
+      {/* Whose AI. One key runs chat, photographs, voice and the search. */}
+      <div style={{ fontSize: 11, color: T.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 7 }}>Whose AI</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, marginBottom: 12 }}>
+        {PROVIDER_LIST.map((p) => {
+          const on = provider === p.id;
+          return <button key={p.id} type="button"
+            onClick={() => { setProvider(p.id); setModels(null); setMain(""); setFallback(""); setMsg(null); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", borderRadius: 12, cursor: "pointer",
+              textAlign: "left", fontFamily: "inherit", background: on ? T.goldBg : T.bgAlt,
+              border: `1px solid ${on ? T.gold : T.border}`, color: T.text,
+            }}>
+            <span style={{ width: 30, height: 30, borderRadius: 9, background: `${p.color}1a`, color: p.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+              <i className={`ti ${p.icon}`} /></span>
+            <span style={{ minWidth: 0, fontSize: 12.5 }}>
+              <b>{p.label}</b>
+              <span style={{ display: "block", fontSize: 11, color: T.textDim, marginTop: 1 }}>{p.help}</span>
+            </span>
+          </button>;
+        })}
       </div>
+      {hasKey && st?.provider && st.provider !== provider && (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 11.5, color: T.warn, background: T.warnBg, borderRadius: 12, padding: "10px 12px", marginBottom: 12, lineHeight: 1.55 }}>
+          <i className="ti ti-refresh" style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }} />
+          <span>Switching provider rebuilds the search index for your products and documents. It happens by itself in the background; for a few minutes the bot may find fewer items — never the wrong ones.</span>
+        </div>
+      )}
 
       {/* Key */}
       <div style={{ position: "relative", marginBottom: 12 }}>

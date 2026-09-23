@@ -107,8 +107,10 @@ export async function POST(request) {
       options: fields.options || [], variants,
       created_at: now, updated_at: now,
     };
-    const { content, embedding } = await embedProduct(metadata);
-    const { data, error } = await supabase.from("products").insert({ content, metadata, embedding, client_id: client.id }).select("id").single();
+    // Spread, never destructured: embedProduct also returns which model made
+    // the vector, and a row that loses that is later mistaken for a Gemini one.
+    const embedded = await embedProduct(metadata);
+    const { data, error } = await supabase.from("products").insert({ ...embedded, metadata, client_id: client.id }).select("id").single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     // `read` is how many of this product's photos a customer could send and be
     // matched on — the primary plus every other one that came back with words.

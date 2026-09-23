@@ -816,7 +816,48 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★★★★★★★★ NEWEST OF ALL (2026-09-24, last) — EVERY MESSAGE NOTIFIES, AND
+  - ★★★★★★★★★★★★ NEWEST OF ALL (2026-09-24) — TWO AI PROVIDERS, ONE AT A TIME.
+    Owner: one key runs the WHOLE system — Gemini or OpenAI, never a mixture;
+    two switches, one on turns the other off, both off allowed, both on never;
+    clients pick provider + primary + fallback; embeddings handled
+    automatically. BUILT AND SHIPPED. Full write-up: docs/two-ai-providers.md.
+    · WHY IT WAS POSSIBLE: the product uses only six AI capabilities (chat,
+      vision x2, voice x2, embed) and NO provider-only feature. ai.js already
+      had a clean six-method seam.
+    · NEW: src/lib/ai-providers.js (pure rules, t-ai-providers 44),
+      src/lib/openai.js (the six, REST not SDK), src/lib/scrape-products.js
+      (the last Gemini-only prompt, now provider-neutral),
+      /api/cron/embeddings (the automatic rebuild, nightly 05:00 + on switch).
+      ai.js routes by provider and exposes ai.embedModel + platformChat().
+      platform-ai.js rewritten for one row per provider.
+    · DB (docs/sql/2026-09-24-two-ai-providers.sql, applied): platform_ai one
+      row per provider + enabled, UNIQUE INDEX platform_ai_one_enabled on
+      ((true)) where enabled — the database itself refuses two on (verified).
+      products/knowledge_base gained embedding_model + embedding_stale_at,
+      backfilled to gemini-embedding-001. match_documents/match_knowledge
+      DROPPED and recreated with an embed_model argument so search only ever
+      compares the SAME vector space. model_prices gained OpenAI rows.
+    · THE DANGEROUS PART: Gemini 768 and OpenAI 768 are different spaces and
+      comparing them returns confident NONSENSE, not an error. Safety is three
+      things together: provenance on every row, the embed_model filter (so a
+      switch makes rows invisible, never wrong), and the sweep that rebuilds
+      them. OpenAI is asked for 768 via `dimensions`, so no column changed.
+    · TRAP FIXED: add-product and inventory-apply destructured embedProduct to
+      { content, embedding } and threw embedding_model away — those rows would
+      have been mistaken for Gemini's for ever. Spread now, guarded by a test.
+    · CLAUDE.md invariant REPLACED (the old "embeddings are always
+      gemini-embedding-001"). The new wording is in CLAUDE.md.
+    · PRICES (verified 2026-09-24): gpt-6-luna $0.10/$0.50 is CHEAPER than
+      gemini-3.6-flash $0.75/$3.75. But the OpenAI fallback gpt-6-sol is
+      $2/$10 — 20x the primary, unlike the Gemini pair which is same-price.
+    · 75/75 suites, `next build` compiles.
+    · NOT PROVED: no real OpenAI key exists here, so the OpenAI side has never
+      made a live call. Shapes come from OpenAI's current docs. FIRST REAL TEST
+      IS THE OWNER'S: save a key, switch it on, send one message on a test
+      channel, check the reply AND the cost line before moving any client.
+      Also: the locked prompts are tuned on Gemini; OpenAI will follow them
+      differently.
+  - ★★★★★★★★★★★ (2026-09-24, last) — EVERY MESSAGE NOTIFIES, AND
     EVERY PACKAGE GETS EVERY CHANNEL. Two owner decisions in one pass.
     · NOTIFICATIONS: notifyIncomingMessage fired only for the FIRST customer
       message of a 20-minute burst ("mid-conversation, already notified"), so an

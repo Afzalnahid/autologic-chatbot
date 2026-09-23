@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase.js";
 import { applyAutoTag } from "@/lib/tags.js";
-import { chatWithGemini, UNCLEAR_AUDIO } from "@/lib/gemini.js";
+import { UNCLEAR_AUDIO } from "@/lib/gemini.js";
 import { productsBlock } from "@/lib/prompt-parts.js";
 import { dropHidden } from "@/lib/product-visibility.js";
 import { limitsFor, messageAllowance, quotaWindowStart, can } from "@/lib/plan-limits.js";
@@ -8,7 +8,7 @@ import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyp
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
 import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
-import { getClientAI } from "@/lib/ai.js";
+import { getClientAI, platformChat } from "@/lib/ai.js";
 import { notify } from "@/lib/push.js";
 import { extractHandoff, wantsHuman } from "@/lib/handoff.js";
 import { isAutomatedEcho } from "@/lib/echo-rules.js";
@@ -428,13 +428,18 @@ async function businessFacts(clientId, st) {
 
 async function searchProducts(clientId, query, k = 3, pageId = "") {
   try {
-    // Embeds the search query on the client's own key when they are a Gemini
-    // BYOK client (same model, same vector space), else the platform key.
-    const emb = await (await getClientAI(clientId, "bot", pageId)).embed(query);
+    // The question is embedded by whichever provider answers for this client —
+    // their own key, or the platform's. Its model is handed to the search so
+    // only rows in the SAME vector space are compared; anything still in the
+    // old space is skipped until the sweep re-embeds it, because a wrong match
+    // is worse than a missing one.
+    const ai = await getClientAI(clientId, "bot", pageId);
+    const emb = await ai.embed(query);
     // A few more than asked for, so dropping the products the owner has
     // switched off ("bot sells" off, product-visibility.js) still leaves k.
     const { data, error } = await sb().rpc("match_documents", {
       query_embedding: emb, match_count: k + 4, filter: { client_id: String(clientId) },
+      embed_model: ai.embedModel,
     });
     if (error) { console.error("match_documents:", error.message); return []; }
     return dropHidden(data || [], k);
@@ -806,24 +811,20 @@ export function languageLock(lang) {
 // Reached only when the client's AI config cannot be read at all. It used to be
 // a bare chatWithGemini — a real call that reported nothing, so the cost report
 // had a hole in the very place it claims to measure (found in the 2026-09-18
-// audit). Metered the same way tags.js meters its fallback.
-function meteredRewrite(clientId) {
-  return (system, msgs) => chatWithGemini(system, msgs, undefined, {
-    onUsage: (kind, model, response) => {
-      if (!clientId) return;
-      const t = geminiTokens(response);
-      recordUsage({ clientId, kind, feature: "bot.language", provider: "google", model, ownKey: false,
-        tokensIn: t.tokensIn, tokensOut: t.tokensOut, tokensCached: t.tokensCached });
-    },
-  });
-}
+// audit), and later a call that named Gemini while the platform might be
+// switched to OpenAI. platformChat follows whichever provider is on.
 
 async function enforceLanguage(items, lang, clientId) {
   // Its own AI handle, so the rewrite lands under "bot.language" in the cost
   // report instead of hiding inside the reply's own line. It is the retry loop
   // nobody can see, so it is the one that most needs its own number.
   const langAI = clientId ? await getClientAI(clientId, "bot.language").catch(() => null) : null;
-  const rewrite = langAI ? langAI.chat : meteredRewrite(clientId);
+  const rewrite = langAI ? langAI.chat
+    : clientId ? await platformChat(clientId, "bot.language").catch(() => null)
+    : null;
+  // No client and no platform handle: keep the reply as it came rather than
+  // throwing inside a path whose whole job is to be optional.
+  if (!rewrite) return items;
   const hasBengali = (t) => /[\u0980-\u09FF]/.test(String(t || ""));
   const misfit = (t) =>
     lang === "Bangla" ? !hasBengali(t)

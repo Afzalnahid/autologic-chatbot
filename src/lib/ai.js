@@ -1,21 +1,30 @@
-// Per-client AI routing (BYOK). The super admin grants a client permission
-// (a client_ai row); the client then pastes their own Google AI (Gemini) key in
-// their dashboard. Until a key is saved, they run on the platform key like
-// everyone else. The platform is Gemini-only: one key runs chat, vision, voice
-// and embeddings.
+// Per-client AI routing (BYOK), across two providers.
 //
-// Three hard rules:
+// The super admin grants a client permission (a client_ai row); the client then
+// chooses a provider — Google AI Studio or OpenAI — and pastes their own key.
+// Until a key is saved they run on the platform key like everyone else.
+//
+// Owner's decision (2026-09-24): ONE provider runs everything. A Gemini key
+// answers chats, reads photographs, hears voice notes and makes the search
+// vectors; an OpenAI key does all four. No call ever crosses to the other
+// provider, on the platform key or a client's.
+//
+// Four hard rules:
 //   1. A client with their own key runs ONLY on it. If it hits its quota or
 //      breaks, the calls fail — they are never routed to the platform key.
 //      That is the whole point of the feature: their AI cost is completely
-//      separated from the platform's. The bot's existing error handling turns
-//      the failure into a polite "the team will get back to you", and the
-//      failure is recorded so both dashboards show WHY.
-//   2. Embeddings use the gemini-embedding-001 model (768-d) — that model is the
-//      vector space. A client on their own Gemini key embeds on it too (same
-//      model, same space, their cost); a client with no key uses the platform
-//      key. Never another model or provider (CLAUDE.md invariant).
-//   3. No dashboard ever sees the key again — only its masked form.
+//      separated from the platform's. The bot's existing error handling now
+//      says nothing to the customer and alerts the owner instead.
+//   2. Embeddings run on the SAME provider as everything else, and every
+//      embedded row records which model made it (products.embedding_model,
+//      knowledge_base.embedding_model). A Gemini 768-number vector and an
+//      OpenAI 768-number vector are different spaces: comparing them returns
+//      confident nonsense rather than an error, so search only ever compares
+//      rows made by the model that is answering today, and a change of provider
+//      re-embeds the rest in the background.
+//   3. Two providers are never on at once — see src/lib/ai-providers.js, which
+//      holds that rule and is tested on its own.
+//   4. No dashboard ever sees the key again — only its masked form.
 import { supabase } from "@/lib/supabase.js";
 import { decryptSecret } from "@/lib/crypt.js";
 import { notifyKeyFailing } from "@/lib/email.js";
@@ -27,6 +36,29 @@ import {
   chatWithGemini, analyzeImage, analyzeImageBase64,
   transcribeAudio, transcribeAudioBase64, generateEmbedding,
 } from "@/lib/gemini.js";
+import {
+  chatWithOpenAI, analyzeImage as oaImage, analyzeImageBase64 as oaImageB64,
+  transcribeAudio as oaVoice, transcribeAudioBase64 as oaVoiceB64,
+  generateEmbedding as oaEmbed, openaiTokens,
+} from "@/lib/openai.js";
+import { normaliseProvider, DEFAULT_PROVIDER, embedModelFor, modelChain } from "@/lib/ai-providers.js";
+
+// The six things the product asks of an AI, from whichever provider is
+// answering. Every argument shape and return value is identical on both sides,
+// which is what lets the rest of the code stay unaware of the choice.
+const MODULES = {
+  google: {
+    chat: chatWithGemini, visionUrl: analyzeImage, visionB64: analyzeImageBase64,
+    transcribeUrl: transcribeAudio, transcribeB64: transcribeAudioBase64,
+    embed: generateEmbedding, tokens: geminiTokens,
+  },
+  openai: {
+    chat: chatWithOpenAI, visionUrl: oaImage, visionB64: oaImageB64,
+    transcribeUrl: oaVoice, transcribeB64: oaVoiceB64,
+    embed: oaEmbed, tokens: openaiTokens,
+  },
+};
+const moduleFor = (id) => MODULES[normaliseProvider(id) || DEFAULT_PROVIDER];
 
 // One message can transcribe, describe an image and chat; a 60s memo means the
 // key row is read once per warm lambda, not three times per message.
@@ -52,20 +84,28 @@ const memo = new Map();
 export async function getClientAI(clientId, feature = "other", pageId = "") {
   const id = String(clientId || "");
   const hit = memo.get(id);
-  if (hit && Date.now() - hit.at < 60_000) return build(id, hit.cfg, hit.platformChain, hit.platformApiKey, feature, pageId);
+  if (hit && Date.now() - hit.at < 60_000) return build(id, hit.cfg, hit.platformChain, hit.platformApiKey, feature, pageId, hit.platformProvider);
   let cfg = null;
   let platformChain = null;
   // The platform's own key, as set in the admin panel; null means "use the
   // GEMINI_API_KEY environment variable", which is what getGenAI already does.
   let platformApiKey = null;
+  // Which provider the platform is switched to right now (ai-providers.js holds
+  // the one-at-a-time rule). A client with no key of their own rides this.
+  let platformProvider = DEFAULT_PROVIDER;
   try {
-    platformApiKey = (await getPlatformAI()).apiKey || null;
+    const pai = await getPlatformAI();
+    platformApiKey = pai.apiKey || null;
+    platformProvider = normaliseProvider(pai.provider) || DEFAULT_PROVIDER;
     const { data } = await supabase.from("client_ai")
       .select("provider,api_key_enc,model,status").eq("client_id", clientId).maybeSingle();
-    // Permission without a key yet → platform, same as everyone else. Only
-    // Google (Gemini) keys are honoured — the platform is Gemini-only.
-    if (data?.api_key_enc && data?.provider === "google") {
-      cfg = { provider: "google", key: decryptSecret(data.api_key_enc), model: data.model || undefined, status: data.status };
+    // Permission without a key yet → platform, same as everyone else. Either
+    // provider is honoured; an unrecognised one is ignored rather than guessed
+    // at, which sends that client to the platform key instead of to a provider
+    // this build does not know how to call.
+    const provider = normaliseProvider(data?.provider);
+    if (data?.api_key_enc && provider) {
+      cfg = { provider, key: decryptSecret(data.api_key_enc), model: data.model || undefined, status: data.status };
     }
     // Which models the PLATFORM key should use for this client: their own
     // override first, then their package's, then the built-in chain. Set from
@@ -84,8 +124,8 @@ export async function getClientAI(clientId, feature = "other", pageId = "") {
     // reply; it surfaces as "failing" the first time the key is used.
     console.error("[ai] config load:", String(e.message || "").slice(0, 160));
   }
-  memo.set(id, { cfg, platformChain, platformApiKey, at: Date.now() });
-  return build(id, cfg, platformChain, platformApiKey, feature, pageId);
+  memo.set(id, { cfg, platformChain, platformApiKey, platformProvider, at: Date.now() });
+  return build(id, cfg, platformChain, platformApiKey, feature, pageId, platformProvider);
 }
 
 // Does this client run on their OWN AI key right now? The same test getClientAI
@@ -99,63 +139,78 @@ export async function clientHasOwnKey(clientId) {
   try {
     const { data } = await supabase.from("client_ai")
       .select("api_key_enc,provider").eq("client_id", clientId).maybeSingle();
-    return !!(data?.api_key_enc && data?.provider === "google");
+    return !!(data?.api_key_enc && normaliseProvider(data?.provider));
   } catch {
     return false;
   }
 }
 
-function build(clientId, cfg, platformChain, platformApiKey, feature, pageId = "") {
+function build(clientId, cfg, platformChain, platformApiKey, feature, pageId = "", platformProviderId = DEFAULT_PROVIDER) {
   // Token meter. Every AI call reports through this so the admin panel can
   // answer "what does this client cost me?" — see src/lib/usage.js. Cost follows
   // the KEY the call actually ran on: ownKey usage is the client's money and is
-  // excluded from platform cost. Embeddings are always the gemini-embedding-001
-  // model (provider "google") whoever's key runs them — a BYOK client's
-  // embeddings are theirs, a platform client's are ours.
-  const meter = (provider, ownKey) => ({
+  // excluded from platform cost.
+  //
+  // The provider recorded is now the one that really answered, embeddings
+  // included. It used to force "google" on every embed, because that was the
+  // only provider there was; leaving that in would file an OpenAI embedding
+  // under Google's price list and quietly mis-state the cost report.
+  const meter = (providerId, ownKey, tokensOf) => ({
     onUsage: (kind, model, response) => {
-      const t = geminiTokens(response);
+      const t = tokensOf(response);
       recordUsage({
         clientId,
         kind,
         feature,
-        provider: kind === "embed" ? "google" : provider,
+        provider: providerId,
         model,
         ownKey,
         tokensIn: t.tokensIn,
         tokensOut: t.tokensOut,
-        // The part Gemini served from its own cache, billed at a tenth.
+        // The part the provider served from its own cache, billed lower.
         tokensCached: t.tokensCached,
         // "" for anything that is not a customer message on a channel.
         pageId,
       });
     },
   });
+
+  // ── the platform's key ────────────────────────────────────────────────────
+  const pId = normaliseProvider(platformProviderId) || DEFAULT_PROVIDER;
+  const pMod = moduleFor(pId);
   // Platform calls carry the admin-set key (when there is one) alongside the meter.
-  const pm = { ...meter("google", false), ...(platformApiKey ? { apiKey: platformApiKey } : {}) };
+  const pm = { ...meter(pId, false, pMod.tokens), ...(platformApiKey ? { apiKey: platformApiKey } : {}) };
 
   const platform = {
     provider: "platform",
+    // Which AI actually answers, and the name of the vector space its
+    // embeddings land in. Callers store the second one beside every vector.
+    aiProvider: pId,
+    embedModel: embedModelFor(pId),
     ownKey: false,
-    chat: (sys, msgs) => chatWithGemini(sys, msgs, platformChain || undefined, pm),
-    visionUrl: (url, prompt) => analyzeImage(url, prompt, pm),
-    visionB64: (b64, mime, prompt) => analyzeImageBase64(b64, mime, prompt, pm),
-    transcribeUrl: (url, headers) => transcribeAudio(url, headers, pm),
-    transcribeB64: (b64, mime) => transcribeAudioBase64(b64, mime, pm),
-    embed: (text) => generateEmbedding(text, pm),
+    chat: (sys, msgs) => pMod.chat(sys, msgs, platformChain || undefined, pm),
+    visionUrl: (url, prompt) => pMod.visionUrl(url, prompt, pm),
+    visionB64: (b64, mime, prompt) => pMod.visionB64(b64, mime, prompt, pm),
+    transcribeUrl: (url, headers) => pMod.transcribeUrl(url, headers, pm),
+    transcribeB64: (b64, mime) => pMod.transcribeB64(b64, mime, pm),
+    embed: (text) => pMod.embed(text, pm),
   };
   if (!cfg) return platform;
 
-  // A BYOK client is always on Google (Gemini): one key runs chat, vision, voice
-  // AND embeddings, all on their own key (their cost, same 768-d vector space).
-  const o = { apiKey: cfg.key, ...meter("google", true) };
+  // ── a client's own key ────────────────────────────────────────────────────
+  // Whichever provider they chose runs ALL of it — chat, vision, voice and the
+  // search vectors — on their key, at their cost.
+  const cId = normaliseProvider(cfg.provider) || DEFAULT_PROVIDER;
+  const mod = moduleFor(cId);
+  const o = { apiKey: cfg.key, ...meter(cId, true, mod.tokens) };
+  const chain = modelChain(cId, cfg.model);
   const own = {
-    chat: (sys, msgs) => chatWithGemini(sys, msgs, cfg.model, o),
-    visionUrl: (url, prompt) => analyzeImage(url, prompt, o),
-    visionB64: (b64, mime, prompt) => analyzeImageBase64(b64, mime, prompt, o),
-    transcribeUrl: (url, headers) => transcribeAudio(url, headers, o),
-    transcribeB64: (b64, mime) => transcribeAudioBase64(b64, mime, o),
-    embed: (text) => generateEmbedding(text, o),
+    chat: (sys, msgs) => mod.chat(sys, msgs, chain, o),
+    visionUrl: (url, prompt) => mod.visionUrl(url, prompt, o),
+    visionB64: (b64, mime, prompt) => mod.visionB64(b64, mime, prompt, o),
+    transcribeUrl: (url, headers) => mod.transcribeUrl(url, headers, o),
+    transcribeB64: (b64, mime) => mod.transcribeB64(b64, mime, o),
+    embed: (text) => mod.embed(text, o),
   };
 
   // Hard separation: no platform fallback. Record failures (both dashboards
@@ -169,11 +224,11 @@ function build(clientId, cfg, platformChain, platformApiKey, feature, pageId = "
   const strict = (name, fn) => async (...args) => {
     try {
       const out = await fn(...args);
-      console.log(`[ai] client ${clientId} used their OWN key (${cfg.provider}${cfg.model ? "/" + cfg.model : ""}) for ${name} — ok`);
+      console.log(`[ai] client ${clientId} used their OWN key (${cId}${chain[0] ? "/" + chain[0] : ""}) for ${name} — ok`);
       if (cfg.status === "failing") { cfg.status = "verified"; markOk(clientId); }
       return out;
     } catch (e) {
-      console.error(`[ai] client ${clientId} own key (${cfg.provider}/${name}) failed — NOT falling back:`, String(e.message || "").slice(0, 200));
+      console.error(`[ai] client ${clientId} own key (${cId}/${name}) failed — NOT falling back:`, String(e.message || "").slice(0, 200));
       if (cfg.status !== "failing") { cfg.status = "failing"; }
       markFailing(clientId, e);
       throw e;
@@ -181,18 +236,45 @@ function build(clientId, cfg, platformChain, platformApiKey, feature, pageId = "
   };
 
   return {
-    provider: cfg.provider,
+    provider: cId,
+    aiProvider: cId,
+    embedModel: embedModelFor(cId),
     ownKey: true,
     chat: strict("chat", own.chat),
     visionUrl: strict("vision", own.visionUrl),
     visionB64: strict("vision", own.visionB64),
     transcribeUrl: strict("voice", own.transcribeUrl),
     transcribeB64: strict("voice", own.transcribeB64),
-    // Not strict-wrapped: a BYOK client's embed runs on their own Gemini key,
-    // and the caller (product search / import) already tolerates a failed
-    // embedding without crashing a reply.
+    // Not strict-wrapped: the caller (product search / import) already tolerates
+    // a failed embedding without crashing a reply.
     embed: own.embed,
   };
+}
+
+/**
+ * A chat function on the PLATFORM's key, for the last-resort paths that run
+ * when a client's own AI config could not be read at all (the language rewrite
+ * in bot.js, the auto-tagger in tags.js).
+ *
+ * It exists so those two places do not call Gemini by name. Before the second
+ * provider they did, which was harmless while Gemini was the only one; with an
+ * OpenAI platform key it would have sent an OpenAI-shaped bill through a Gemini
+ * client and, with no GEMINI_API_KEY set, simply thrown. Usage is still counted,
+ * under the feature the caller names.
+ */
+export async function platformChat(clientId, feature) {
+  const pai = await getPlatformAI();
+  const id = normaliseProvider(pai.provider) || DEFAULT_PROVIDER;
+  const mod = moduleFor(id);
+  const opts = {
+    ...(pai.apiKey ? { apiKey: pai.apiKey } : {}),
+    onUsage: (kind, model, response) => {
+      const t = mod.tokens(response);
+      recordUsage({ clientId, kind, feature, provider: id, model, ownKey: false,
+        tokensIn: t.tokensIn, tokensOut: t.tokensOut, tokensCached: t.tokensCached });
+    },
+  };
+  return (system, msgs) => mod.chat(system, msgs, pai.modelChain || undefined, opts);
 }
 
 // Fire-and-forget bookkeeping: the customer's reply never waits on it.

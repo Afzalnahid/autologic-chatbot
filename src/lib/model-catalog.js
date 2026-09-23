@@ -1,12 +1,14 @@
-// One list of usable Gemini models, shared by the client's AI Engine tab and the
-// admin panel's platform AI screen — so the two can never offer different models
-// or different labels for the same key.
+// One list of usable models per provider, shared by the client's AI Engine tab
+// and the admin panel's platform AI screen — so the two can never offer
+// different models or different labels for the same key.
 //
-// The list is always read LIVE from Google (that is also the real proof the key
-// works). Nothing here hardcodes a model id: Google retires ids without warning,
-// which is exactly what produced the "gemini-2.5-flash is no longer available"
-// error this replaced. The platform is Gemini-only.
+// The list is always read LIVE from the provider (that is also the real proof
+// the key works). Nothing here hardcodes a model id: both providers retire ids
+// without warning, which is exactly what produced the "gemini-2.5-flash is no
+// longer available" error this replaced.
 import { listGoogleModels, listGoogleModelsRaw } from "@/lib/gemini.js";
+import { listOpenAIModels } from "@/lib/openai.js";
+import { normaliseProvider, DEFAULT_PROVIDER } from "@/lib/ai-providers.js";
 
 // "fast"  = cheap and quick — the right default for most replies.
 // "smart" = higher quality, higher cost — a good fallback or upgrade.
@@ -21,7 +23,8 @@ function usable(all) {
 
 // Returns [{ id, name, tier, note }] with the model's own display name,
 // cheapest/fastest first so the default main choice stays economical.
-export async function listModels(_provider, apiKey) {
+export async function listModels(provider, apiKey) {
+  if ((normaliseProvider(provider) || DEFAULT_PROVIDER) === "openai") return listOpenAIChat(apiKey);
   const all = await listGoogleModels(apiKey);
   if (!all.length) return [];
   const good = usable(all);
@@ -36,6 +39,29 @@ export async function listModels(_provider, apiKey) {
       note: tier === "fast" ? "Low cost · Fast" : "More powerful · Higher cost",
     };
   });
+}
+
+// OpenAI's side of the same question. Their /models endpoint gives ids and
+// nothing else — no display name, no price tier — so the tier is read from the
+// id, which is the only signal there is. "mini"/"nano"/"luna" style ids are the
+// cheap fast ones; anything else is treated as the more capable, dearer tier,
+// which is the safe way round: a model wrongly called expensive costs nobody
+// anything, one wrongly called cheap surprises the owner on the bill.
+function openaiTier(id) {
+  return /mini|nano|small|luna|lite|flash/i.test(id) ? "fast" : "smart";
+}
+
+async function listOpenAIChat(apiKey) {
+  const ids = await listOpenAIModels(apiKey);
+  if (!ids.length) return [];
+  const list = ids.map((id) => ({ id, tier: openaiTier(id) }));
+  list.sort((a, b) => (a.tier === "fast" ? 0 : 1) - (b.tier === "fast" ? 0 : 1) || a.id.localeCompare(b.id));
+  return list.slice(0, 24).map((m) => ({
+    id: m.id,
+    name: m.id,
+    tier: m.tier,
+    note: m.tier === "fast" ? "Low cost · Fast" : "More powerful · Higher cost",
+  }));
 }
 
 // Everything on the key that can COST money, for the admin price book.
@@ -66,8 +92,8 @@ export async function listBillableModels(apiKey) {
 }
 
 // Confirms every model the user picked is really on the key's live list.
-export async function verifyModels(_provider, apiKey, picks = []) {
-  const all = await listGoogleModels(apiKey);
+export async function verifyModels(provider, apiKey, picks = []) {
+  const all = await listModels(provider, apiKey);
   const ids = all.map((m) => m.id);
   if (!ids.length) return { ok: false, error: "This key has no usable chat models." };
   for (const m of picks) {

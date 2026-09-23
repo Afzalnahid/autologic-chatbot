@@ -1602,3 +1602,21 @@ Rule: when a limit becomes unlimited, grep every `?? ` beside its name, not just
 the place the value is set. And the same change had to be made in two stores —
 src/lib/plans.js and the `plans` table the pricing page reads — plus a DROP NOT
 NULL, because the column could not hold "no limit" at all.
+
+## 2026-09-24 — two vectors of the same length can still be incomparable
+Adding a second AI provider looked like a routing problem and was mostly a
+search problem. Gemini and OpenAI both produce 768 numbers, both fit the same
+`vector(768)` column, and the database accepts either without a murmur — but the
+numbers mean different things, so comparing across them returns confident
+nonsense instead of an error. A silent wrong answer is worse than a loud
+failure, and nothing in the stack would have reported it.
+What makes it safe is three things at once, not one: every row records the model
+that embedded it; search filters on that model, so a provider change makes rows
+INVISIBLE rather than wrong; and a bounded background sweep rebuilds them. Any
+one alone is not enough — provenance without the filter still compares across
+spaces, and the filter without the sweep leaves a catalogue permanently unfound.
+Second lesson from the same day: a helper that returns MORE than it used to is
+only as good as its call sites. `embedProduct()` gained `embedding_model`, and
+two routes were destructuring `{ content, embedding }` and dropping it, which
+would have labelled every new product with the wrong vector space for ever.
+When a helper's return shape grows, grep every call site for destructuring.

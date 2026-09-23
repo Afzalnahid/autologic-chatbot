@@ -50,15 +50,32 @@ Google Calendar · Vercel (`tellmoreai.com`)
 - Design tokens are CSS variables: the dashboard's live in
   `src/app/dashboard/components/ui.js` (`PALETTE`), the public pages' in
   `src/lib/landing.js` (`THEME_CSS`). Never hard-code a brand colour in a component.
-- Embeddings stay 768-dimensional and always use the **`gemini-embedding-001`
-  model** — that model IS the vector space, and every saved vector must share it.
-  The KEY that runs it may differ, because the same model on any Gemini key is the
-  same space: a Gemini BYOK client embeds on their OWN key (their cost), while an
-  OpenAI BYOK client (OpenAI cannot make a compatible vector) and every
-  platform-key client embed on the platform's Gemini key. Never run embeddings on
-  another provider or another model — that is a different space and silently
-  breaks search. All embedding calls route through `getClientAI(clientId).embed`
-  so this decision lives in one place.
+- **One provider runs everything** (owner, 2026-09-24). A Gemini key answers
+  chats, reads photographs, hears voice notes AND makes the search vectors; an
+  OpenAI key does all four. No call ever crosses to the other provider — not on
+  the platform key, not on a client's. The platform has one switch per provider
+  and at most one may be on, enforced by a unique index on `platform_ai`, not
+  only by code. Both off is allowed and means the `GEMINI_API_KEY` environment
+  variable. The rules live in `src/lib/ai-providers.js` (pure, tested); the
+  wiring is `src/lib/ai.js`, and every AI call goes through
+  `getClientAI(clientId)`.
+- Embeddings stay **768-dimensional** whoever makes them — that is the width of
+  `products.embedding` and `knowledge_base.embedding`. OpenAI is asked for 768
+  through its `dimensions` parameter. But a Gemini 768 and an OpenAI 768 are
+  DIFFERENT SPACES: comparing them returns confident nonsense rather than an
+  error, which is the worst kind of bug there is. So:
+    - every embedded row records the model that made it
+      (`embedding_model`), and search only ever compares rows whose model
+      matches the question's — the `embed_model` argument to
+      `match_documents` / `match_knowledge`;
+    - changing provider therefore makes a client's rows invisible to search,
+      not wrong, and `/api/cron/embeddings` rebuilds them in the background;
+    - anything that writes an embedding must write `embedding_model` with it.
+      Never destructure `embedProduct()` down to `{ content, embedding }` —
+      spread it, or the row is mistaken for a Gemini one for ever after.
+  (This replaces the older rule that embeddings must always be
+  `gemini-embedding-001`. That rule existed because there was only one provider;
+  the provenance column and the re-embed sweep are what make a second one safe.)
 - Client AI keys (BYOK): the super admin only grants or revokes PERMISSION
   (secret admin key required); the client pastes their own key in their
   dashboard. Keys are verified with the provider before saving, stored

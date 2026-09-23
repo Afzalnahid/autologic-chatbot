@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase.js";
-import { generateEmbedding } from "@/lib/gemini.js";
 import { getClientAI } from "@/lib/ai.js";
 import { createRequire } from "module";
 
@@ -65,12 +64,17 @@ export async function ingestFile({ clientId, fileId, fileName, fileUrl, fileType
   const rows = [];
   for (let i = 0; i < pieces.length; i++) {
     const content = pieces[i];
-    const embedding = await (await getClientAI(clientId, "knowledge")).embed(content);
+    const kAI = await getClientAI(clientId, "knowledge");
+    const embedding = await kAI.embed(content);
     rows.push({
       client_id: clientId,
       file_id: fileId,
       content,
       embedding,
+      // Which vector space these numbers are in. Search only compares rows that
+      // match the model answering today (docs/sql/2026-09-24-two-ai-providers.sql).
+      embedding_model: kAI.embedModel,
+      embedding_stale_at: null,
       metadata: {
         client_id: String(clientId),
         file_id: fileId,
@@ -109,9 +113,11 @@ export async function ingestFile({ clientId, fileId, fileName, fileUrl, fileType
 // ---- Semantic search over the knowledge base ----
 export async function searchKnowledge(clientId, query, k = 5) {
   try {
-    const emb = await (await getClientAI(clientId, "bot")).embed(query);
+    const qAI = await getClientAI(clientId, "bot");
+    const emb = await qAI.embed(query);
     const { data, error } = await supabase.rpc("match_knowledge", {
       query_embedding: emb,
+      embed_model: qAI.embedModel,
       match_count: k,
       filter: { client_id: String(clientId) },
     });

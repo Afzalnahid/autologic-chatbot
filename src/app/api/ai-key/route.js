@@ -6,12 +6,21 @@ import { withErrors } from "@/lib/route-errors.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { encryptSecret, maskKey } from "@/lib/crypt.js";
 import { listGoogleModels } from "@/lib/gemini.js";
+import { listOpenAIModels } from "@/lib/openai.js";
+import { normaliseProvider, PROVIDERS, DEFAULT_PROVIDER, joinChain } from "@/lib/ai-providers.js";
 
 // The client side of BYOK. The super admin grants permission (creates the
 // client_ai row from the admin console); only then does the dashboard show
 // the key box this route serves. The key itself is pasted BY THE CLIENT,
 // verified with the provider before saving, stored encrypted, and returned
 // only masked. Once saved, the client's bot runs exclusively on it.
+//
+// The client chooses WHICH provider that key belongs to — Google AI Studio or
+// OpenAI (owner, 2026-09-24). One key, one provider, and it runs everything:
+// chats, photographs, voice notes and the search vectors. Changing provider
+// changes the vector space, so the save also marks that client's products and
+// documents for re-embedding; the sweep in /api/cron/embeddings does the work,
+// and nobody has to remember to press anything.
 
 const shape = (row) => row ? ({
   allowed: true,
@@ -45,21 +54,25 @@ export const POST = withErrors(async (request) => {
   if (!row) return NextResponse.json({ error: "Your account is not enabled for its own API key. Please contact support." }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
-  // The platform is Gemini-only — the key is always a Google AI key.
-  const provider = "google";
+  const provider = normaliseProvider(body.provider) || DEFAULT_PROVIDER;
   const apiKey = String(body.api_key || "").trim();
   // The client picks a main model and an optional fallback. Arrives as an array
   // [main, fallback] or a comma string; we keep the chain (main first) in the
   // existing text column so no schema change is needed.
   const models = (Array.isArray(body.models) ? body.models : String(body.model || "").split(","))
     .map((s) => String(s).trim()).filter(Boolean).slice(0, 2);
-  if (!apiKey) return NextResponse.json({ error: "Paste your Gemini API key." }, { status: 400 });
+  if (!apiKey) return NextResponse.json({ error: `Paste your ${PROVIDERS[provider].keyLabel}.` }, { status: 400 });
 
   const check = await verifyAIKey(provider, apiKey, models);
   if (!check.ok) return NextResponse.json({ error: "The key did not work: " + check.error }, { status: 400 });
 
-  const model = models.join(",").slice(0, 80) || null;
+  const model = joinChain(models[0], models[1]).slice(0, 80) || null;
   const now = new Date().toISOString();
+  // Which vector space their rows were embedded in until now. If the provider
+  // is changing, everything they have stored is about to become meaningless
+  // for search, so it is queued for re-embedding before the new key is saved.
+  const { data: was } = await supabase.from("client_ai").select("provider").eq("client_id", client.id).maybeSingle();
+  const providerChanged = normaliseProvider(was?.provider) !== provider;
   const { data: saved, error } = await supabase.from("client_ai").update({
     provider, model,
     api_key_enc: encryptSecret(apiKey), key_mask: maskKey(apiKey),
@@ -67,7 +80,8 @@ export const POST = withErrors(async (request) => {
     last_error: null, last_error_at: null, updated_at: now,
   }).eq("client_id", client.id).select("*").maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, ...shape(saved) });
+  if (providerChanged) await markEmbeddingsStale(client.id);
+  return NextResponse.json({ ok: true, ...shape(saved), reembedding: providerChanged });
 }, "ai-key");
 
 // Removing the key puts the client back on the platform key; the permission
@@ -84,13 +98,30 @@ export const DELETE = withErrors(async (request) => {
   return NextResponse.json({ ok: true, ...shape(saved) });
 }, "ai-key");
 
-// Verify the key by asking Google for its LIVE model list (this is also the real
-// proof the key works), then confirm every model the client chose is actually on
-// that list. Never assumes a hardcoded model id — that is exactly what produced
-// the "gemini-2.5-flash is no longer available" 404.
+// Going back to the platform key can also change the vector space, so the same
+// sweep has to run.
+async function markEmbeddingsStale(clientId) {
+  try {
+    const now = new Date().toISOString();
+    await supabase.from("products").update({ embedding_stale_at: now }).eq("client_id", clientId);
+    await supabase.from("knowledge_base").update({ embedding_stale_at: now }).eq("client_id", clientId);
+  } catch (e) {
+    // Never block the key being saved. The nightly sweep finds these rows by
+    // comparing embedding_model to the client's provider anyway; the flag only
+    // makes it immediate.
+    console.error("[ai-key] could not mark embeddings for re-doing:", String(e?.message || e).slice(0, 160));
+  }
+}
+
+// Verify the key by asking the PROVIDER for its LIVE model list (this is also
+// the real proof the key works), then confirm every model the client chose is
+// actually on that list. Never assumes a hardcoded model id — that is exactly
+// what produced the "gemini-2.5-flash is no longer available" 404.
 async function verifyAIKey(provider, apiKey, models) {
   try {
-    const available = await listGoogleModels(apiKey);
+    const available = provider === "openai"
+      ? (await listOpenAIModels(apiKey)).map((id) => ({ id }))
+      : await listGoogleModels(apiKey);
     const ids = available.map((a) => a.id);
     if (!ids.length) return { ok: false, error: "This key has no usable chat models." };
     for (const m of models) {

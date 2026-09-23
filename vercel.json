@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/channels",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/embeddings",
+      "schedule": "0 5 * * *"
     }
   ]
 }

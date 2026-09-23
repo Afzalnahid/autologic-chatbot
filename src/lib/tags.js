@@ -1,6 +1,4 @@
 import { supabase } from "@/lib/supabase.js";
-import { chatWithGemini } from "@/lib/gemini.js";
-import { recordUsage, geminiTokens } from "@/lib/usage.js";
 
 // Two separate vocabularies. They are never merged: an online shop does not have
 // bookings and a service business does not have deliveries.
@@ -95,7 +93,10 @@ export async function aiTag(text, businessType, chatFn) {
     `no explanation. If it does not clearly fit any label, answer Other.`;
 
   try {
-    const raw = await (chatFn || chatWithGemini)(system, [{ role: "user", content: String(text).slice(0, 800) }]);
+    // A chat function is always supplied by the caller; there is no provider
+    // to fall back to by name any more, because the platform may be on either.
+    if (!chatFn) return OTHER;
+    const raw = await chatFn(system, [{ role: "user", content: String(text).slice(0, 800) }]);
     const answer = String(raw || "").trim().replace(/[."']/g, "");
     const hit = allowed.find((a) => a.toLowerCase() === answer.toLowerCase());
     if (hit) return hit;
@@ -128,16 +129,9 @@ export async function classify(texts, businessType, chatFn) {
   return { tag, by: tag ? "ai" : "unavailable" };
 }
 
-// Last-resort chat: the platform key, still counted. Only reached when the
-// client's AI config could not be read at all.
-function meteredChat(clientId) {
-  return (system, msgs) => chatWithGemini(system, msgs, undefined, {
-    onUsage: (kind, model, response) => {
-      const t = geminiTokens(response);
-      recordUsage({ clientId, kind, feature: "bot.tag", provider: "google", model, ownKey: false, tokensIn: t.tokensIn, tokensOut: t.tokensOut });
-    },
-  });
-}
+// Last-resort chat: the platform key, still counted, on whichever provider the
+// platform is switched to. Only reached when the client's AI config could not
+// be read at all.
 
 // Manual tags always win: an automatic pass never overwrites or removes one.
 export async function applyAutoTag(clientId, senderId, texts, businessType, opts = {}) {
@@ -156,12 +150,13 @@ export async function applyAutoTag(clientId, senderId, texts, businessType, opts
     } else {
       // Classification rides the client's own key when they have one, and is
       // metered under its own feature so "what does auto-tagging cost me?" has
-      // an answer. If the AI handle cannot be built we fall back to a plain
-      // Gemini call WITH a meter attached — an unmetered call is a hole in the
-      // cost report, and the report is only worth having if it is complete.
-      const { getClientAI } = await import("@/lib/ai.js");
+      // an answer. If the AI handle cannot be built we fall back to the
+      // PLATFORM's chat, whichever provider that is, still metered — an
+      // unmetered call is a hole in the cost report, and the report is only
+      // worth having if it is complete.
+      const { getClientAI, platformChat } = await import("@/lib/ai.js");
       const aiFor = await getClientAI(clientId, "bot.tag").catch(() => null);
-      const chatFn = aiFor?.chat || meteredChat(clientId);
+      const chatFn = aiFor?.chat || await platformChat(clientId, "bot.tag").catch(() => null);
       ({ tag, by } = await classify(texts, businessType, chatFn));
     }
 

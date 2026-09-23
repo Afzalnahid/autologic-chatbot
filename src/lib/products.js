@@ -12,7 +12,6 @@
 //   options[] ({name, values[]}) and variants[] ({id, name, sku, attrs{},
 //   regular_price, sale_price, stock_qty, stock_status, image_url}).
 import { supabase } from "@/lib/supabase.js";
-import { generateEmbedding } from "@/lib/gemini.js";
 import { embedMeter } from "@/lib/usage.js";
 import { getClientAI } from "@/lib/ai.js";
 import { parseHidden } from "@/lib/product-visibility.js";
@@ -313,6 +312,11 @@ export async function describeImages(urls, client, { deadlineMs = 25000, max = 1
 export async function embedProduct(metadata, clientId) {
   const content = buildContent(metadata);
   const id = clientId || metadata?.client_id;
-  const embedding = await (await getClientAI(id, "product")).embed(content);
-  return { content, embedding };
+  // The model that made the vector is stored beside it. Two providers make
+  // 768 numbers each and they mean different things, so a row is only ever
+  // compared with a question embedded by the SAME model — see
+  // docs/sql/2026-09-24-two-ai-providers.sql.
+  const ai = await getClientAI(id, "product");
+  const embedding = await ai.embed(content);
+  return { content, embedding, embedding_model: ai.embedModel, embedding_stale_at: null };
 }

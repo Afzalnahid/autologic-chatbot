@@ -130,9 +130,11 @@ async function create(client, a) {
     variants: a.set.options ? buildVariants(a.set.options, { regular_price: a.set.regular_price || "" }) : [],
     created_at: now, updated_at: now,
   };
-  const { content, embedding } = await embedProduct(metadata, client.id);
+  // Spread, never destructured — see the note in add-product: dropping
+  // embedding_model makes this row look like a Gemini one for ever after.
+  const embedded = await embedProduct(metadata, client.id);
   const { data, error } = await supabase.from("products")
-    .insert({ content, metadata, embedding, client_id: client.id }).select("id").single();
+    .insert({ ...embedded, metadata, client_id: client.id }).select("id").single();
   if (error) throw new Error(error.message);
   return { ok: true, id: data?.id, did: "created", name: metadata.product_name };
 }

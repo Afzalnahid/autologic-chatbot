@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { listModels } from "@/lib/model-catalog.js";
+import { normaliseProvider, DEFAULT_PROVIDER, PROVIDERS } from "@/lib/ai-providers.js";
 
 // Reads the LIVE list of chat models a pasted key can use, so the BYOK screen
 // offers real choices instead of a hardcoded id the provider may have retired.
@@ -24,9 +25,10 @@ export const POST = withErrors(async (request) => {
   if (!row) return NextResponse.json({ error: "Your account is not enabled for its own API key. Please contact support." }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
-  const provider = "google";   // Gemini-only platform
+  // The client chooses the provider; one key then runs everything.
+  const provider = normaliseProvider(body.provider) || DEFAULT_PROVIDER;
   const apiKey = String(body.api_key || "").trim();
-  if (!apiKey) return NextResponse.json({ error: "Paste your Gemini API key." }, { status: 400 });
+  if (!apiKey) return NextResponse.json({ error: `Paste your ${PROVIDERS[provider].keyLabel}.` }, { status: 400 });
 
   try {
     const models = await listModels(provider, apiKey);

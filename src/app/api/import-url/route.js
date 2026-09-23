@@ -4,8 +4,7 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit.js";
 import { supabase } from "@/lib/supabase.js";
-import { extractProductsFromUrl } from "@/lib/gemini.js";
-import { embedMeter } from "@/lib/usage.js";
+import { extractProductsFromPage } from "@/lib/scrape-products.js";
 import { checkProductQuota, checkScrapeQuota, featureGate } from "@/lib/plan-limits.js";
 import { getClientAI } from "@/lib/ai.js";
 // One wording for every photo, here and at message time. See products.js.
@@ -43,7 +42,12 @@ export async function POST(request) {
     const html = await res.text();
 
     let list;
-    try { list = await extractProductsFromUrl(html, url, embedMeter(client.id, "product")); } catch { return NextResponse.json({ error: "could not extract product" }, { status: 502 }); }
+    // Whichever provider this client runs on — their own key or the
+    // platform’s. Metered under "scrape" by getClientAI, like every other call.
+    try {
+      const scrapeAI = await getClientAI(client.id, "product.scrape");
+      list = await extractProductsFromPage(scrapeAI.chat, html, url);
+    } catch { return NextResponse.json({ error: "could not extract product" }, { status: 502 }); }
     const p = Array.isArray(list) ? list[0] : list;
     if (!p?.name) return NextResponse.json({ error: "no product found" }, { status: 404 });
 
