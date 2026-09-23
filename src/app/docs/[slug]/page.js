@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { P } from "@/lib/landing.js";
 import { PAGES, bySlug, neighbours, isWritten } from "@/lib/docs/index.js";
 import { pickLang, copy, docHref, num, writtenSet } from "../copy.js";
-import { pageMeta, SITE, faqJsonLd, breadcrumbJsonLd, jsonLdProps } from "@/lib/seo.js";
+import { pageMeta, faqJsonLd, breadcrumbJsonLd, jsonLdProps } from "@/lib/seo.js";
 import DocsShell from "../shell.js";
 import Blocks, { headings } from "../blocks.js";
 
@@ -23,17 +23,16 @@ export function generateMetadata({ params, searchParams }) {
   const doc = DOCS[params.slug];
   const name = UI.names[params.slug] || params.slug;
   const written = isWritten(doc);
-  return {
-    ...pageMeta({
-      title: `${name} — TellMore AI ${UI.brand}`,
-      description: written ? doc.lead : UI.tagline,
-      path: `/docs/${params.slug}`,
-      lang,
-      robots: written ? undefined : { index: false, follow: true },
-    }),
-    // Unchanged, for the reason given on the docs hub page.
-    alternates: { canonical: `${SITE}/docs/${params.slug}` },
-  };
+  return pageMeta({
+    title: `${name} — TellMore AI ${UI.brand}`,
+    description: written ? doc.lead : UI.tagline,
+    path: `/docs/${params.slug}`,
+    lang,
+    robots: written ? undefined : { index: false, follow: true },
+    // Only the pages that really have Bangla copy may declare a Bangla
+    // address; the rest of the manual is English so far.
+    bilingual: writtenSet("bn").has(params.slug),
+  });
 }
 
 // The questions a manual page already answers, flattened out of its blocks and

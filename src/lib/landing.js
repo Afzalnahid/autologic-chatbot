@@ -55,6 +55,10 @@ export const THEME_CSS = `
 // an inline script cannot import: follow the device; a choice made with the
 // toggle stands only while the device stays in the mode it was made under.
 export const THEME_BOOT_JS = `(function(){
+  // The public pages carry their language in the query string, and only the
+  // root layout renders <html>, which never sees it. Set it here, before the
+  // first paint, so assistive software reads Bangla as Bangla.
+  try { if (/[?&]lang=bn(&|$)/.test(location.search)) document.documentElement.lang = "bn"; } catch(e){}
   var KEY = "al-theme", SYS = "al-theme-sys";
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
   function system(){ return mq.matches ? "dark" : "light"; }

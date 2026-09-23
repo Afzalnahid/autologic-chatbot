@@ -58,6 +58,16 @@ const META = {
 
 export function generateMetadata({ searchParams }) {
   const lang = searchParams?.lang === "bn" ? "bn" : "en";
+  // No `bilingual` here, on purpose. Next's metadata resolver collapses any
+  // URL whose PATH IS "/" down to the bare origin — measured on 2026-09-24
+  // with a throwaway route: "https://www.tellmoreai.com/?lang=bn" came back as
+  // "https://www.tellmoreai.com", while "/index?lang=bn" kept its query. So on
+  // this one page the three hreflang links would all land on the English
+  // address, and hreflang that points a Bangla reader at English is worse than
+  // no hreflang at all. sitemap.xml declares the pair instead — it serialises
+  // the root's query correctly, and a sitemap is one of Google's own three
+  // accepted places for hreflang. The proper fix is a real /bn route for the
+  // Bangla home page; see docs/search-console-2026-09-24.md.
   return pageMeta({ ...META[lang], path: "/", lang });
 }
 

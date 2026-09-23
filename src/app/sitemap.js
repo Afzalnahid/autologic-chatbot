@@ -8,7 +8,6 @@ import { writtenSet } from "./docs/copy.js";
 import { SITE as BASE } from "@/lib/seo.js";
 
 export default function sitemap() {
-  const now = new Date();
   // Only public marketing / legal pages belong here. Login-gated routes
   // (dashboard, admin, reset) and API routes are intentionally left out.
   const pages = [
@@ -47,11 +46,27 @@ export default function sitemap() {
     bn: !!SOL_BN.PAGES[s.slug],
   }));
 
+  // No lastModified. It used to be the moment of the build, identical on every
+  // URL and different on every deploy, which says nothing true about when a
+  // page's words changed — Google's guidance is that it ignores a lastmod it
+  // cannot trust, and nothing here records a real per-page date to put in its
+  // place (2026-09-24, Search Console report).
+  //
+  // hreflang has to be RECIPROCAL: each language must name every version,
+  // itself included, or Google reads the set as broken and honours none of it.
+  // The same three links are now in each page's <head> (lib/seo.js).
   return [...pages, ...solutions, ...docs].map((p) => ({
     url: `${BASE}${p.path}`,
-    lastModified: now,
     changeFrequency: p.changeFrequency,
     priority: p.priority,
-    ...(p.bn ? { alternates: { languages: { bn: `${BASE}${p.path}?lang=bn` } } } : {}),
+    ...(p.bn ? {
+      alternates: {
+        languages: {
+          en: `${BASE}${p.path}`,
+          bn: `${BASE}${p.path}?lang=bn`,
+          "x-default": `${BASE}${p.path}`,
+        },
+      },
+    } : {}),
   }));
 }

@@ -1,7 +1,7 @@
 import { P } from "@/lib/landing.js";
 import { PAGES, GROUPS } from "@/lib/docs/index.js";
 import { pickLang, copy, docHref, writtenSet } from "./copy.js";
-import { pageMeta, SITE } from "@/lib/seo.js";
+import { pageMeta } from "@/lib/seo.js";
 import DocsShell from "./shell.js";
 
 // The documentation hub: every page, grouped the way the sidebar groups them.
@@ -11,11 +11,9 @@ export function generateMetadata({ searchParams }) {
   const lang = pickLang(searchParams);
   const { UI } = copy(lang);
   return {
-    ...pageMeta({ title: `${UI.brand} — TellMore AI`, description: UI.tagline, path: "/docs", lang }),
-    // Left exactly as it was. The manual has always pointed both languages at
-    // one canonical address, and which URLs Google indexes is a decision on its
-    // own — not something to change as a side effect of adding share cards.
-    alternates: { canonical: `${SITE}/docs` },
+    // The hub is written in both languages, so each version points at itself
+    // and the two are declared to each other (see pageMeta).
+    ...pageMeta({ title: `${UI.brand} — TellMore AI`, description: UI.tagline, path: "/docs", lang, bilingual: true }),
   };
 }
 

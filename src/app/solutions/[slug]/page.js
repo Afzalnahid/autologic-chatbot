@@ -4,7 +4,7 @@ import SiteShell, { Section } from "../../site-shell.js";
 import { SOLUTIONS, bySlug, isWritten } from "@/lib/solutions/index.js";
 import * as EN from "@/lib/solutions/en.js";
 import * as BN from "@/lib/solutions/bn.js";
-import { pageMeta, SITE, faqJsonLd, breadcrumbJsonLd, jsonLdProps } from "@/lib/seo.js";
+import { pageMeta, faqJsonLd, breadcrumbJsonLd, jsonLdProps } from "@/lib/seo.js";
 
 // One marketing page per search someone actually types — "chatbot for facebook
 // page", "হোয়াটসঅ্যাপ অটো রিপ্লাই". See src/lib/solutions/index.js for why
@@ -30,18 +30,15 @@ export function generateMetadata({ params, searchParams }) {
   if (!bySlug(params.slug)) return {};
   const { doc, lang } = page(params.slug, pickLang(searchParams));
   if (!doc) return {};
-  return {
-    ...pageMeta({
-      title: doc.metaTitle,
-      description: doc.description,
-      path: `/solutions/${params.slug}`,
-      lang,
-    }),
-    // As on the manual: the canonical is the English address, and the Bangla
-    // version is declared to Google in sitemap.xml, which keeps its query
-    // string (Next strips one out of `alternates`).
-    alternates: { canonical: `${SITE}/solutions/${params.slug}` },
-  };
+  return pageMeta({
+    title: doc.metaTitle,
+    description: doc.description,
+    path: `/solutions/${params.slug}`,
+    lang,
+    // Every solution page is written in both languages, but check rather than
+    // assume — a half-written one must not advertise a Bangla address.
+    bilingual: isWritten(BN.PAGES[params.slug]),
+  });
 }
 
 export default function SolutionPage({ params, searchParams }) {

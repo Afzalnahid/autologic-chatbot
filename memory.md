@@ -816,7 +816,39 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★★★ NEWEST OF ALL (2026-09-24) — WHATSAPP "NUMBER ISN'T ELIGIBLE" FIXED.
+  - ★★★★★★★ NEWEST OF ALL (2026-09-24, later) — SEARCH CONSOLE: CANONICAL +
+    HREFLANG FIXED. Owner handed over a Search Console review (6 issues).
+    Checked each against the live site first; 2 were not real. Full write-up:
+    docs/search-console-2026-09-24.md.
+    · REAL, fixed: every ?lang=bn page declared the ENGLISH url as its
+      canonical — the "I am a duplicate, drop me" instruction, and the reason
+      Google filed /docs/inbox under the scraper domain 747live.bet. Three
+      files forced it (docs/page.js, docs/[slug], solutions/[slug]), each with
+      a comment claiming Next 14 strips a query out of `alternates`.
+      RE-MEASURED with a throwaway route: FALSE — both alternates.canonical and
+      alternates.languages keep "?lang=bn". The old note was wrong.
+    · pageMeta now: self canonical for BOTH languages + `bilingual` flag for a
+      reciprocal en/bn/x-default hreflang trio (English-only pages emit none).
+      sitemap: reciprocal too, and lastModified REMOVED (it was the build
+      timestamp on every url — Google ignores a lastmod it cannot trust).
+      landing.js boot script sets <html lang="bn"> on ?lang=bn (ACCESSIBILITY
+      only; Google reads words + hreflang, not that attribute).
+    · KNOWN EXCEPTION: Next's resolver collapses a url whose path is exactly
+      "/" to the bare origin, so the HOME page cannot express "?lang=bn" in
+      <head>. It emits canonical only, no hreflang; sitemap.xml declares the
+      pair (it serialises the root's query fine). PROPER FIX, NOT DONE: a real
+      /bn route for the Bangla home page — routing + language toggle, its own
+      task.
+    · NOT REAL (do not act on): (a) "home page is an empty client shell" — as
+      Googlebot it is 222 KB, correct title, 1 h1, canonical, 6 solution links.
+      The reviewer fetched it signed in and middleware.js sent them to
+      /dashboard. (b) apex/robots — tellmoreai.com already 308s to www, and an
+      unknown Host already 404s at the edge, so no middleware hardening was
+      added.
+    · tests/t-canonical.mjs (19). 69/69. OWNER'S PART: Request indexing for
+      /docs/inbox and /docs/website-widget?lang=bn, Validate fix on the two
+      report rows, request indexing for 3-4 uncrawled pages.
+  - ★★★★★★ (2026-09-24) — WHATSAPP "NUMBER ISN'T ELIGIBLE" FIXED.
     Owner could not add a WhatsApp number that already sat under a Meta business
     portfolio; Meta answered "Your phone number isn't eligible to connect to the
     WhatsApp Business Platform. More activity on the WhatsApp Business App is

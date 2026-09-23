@@ -21,8 +21,23 @@ const CARD = { en: "/og.png", bn: "/og-bn.png" };
 
 const LOCALE = { en: "en_US", bn: "bn_BD" };
 
-/** A complete metadata object for one public page. */
-export function pageMeta({ title, description, path = "/", lang = "en", robots }) {
+/**
+ * A complete metadata object for one public page.
+ *
+ * `bilingual` — pass true only when this exact path really has a Bangla
+ * version. hreflang has to be reciprocal and every address in it has to exist;
+ * pointing at a Bangla page that was never written is worse than saying
+ * nothing, and /pricing, /privacy and /terms are English-only.
+ *
+ * On the query string: an earlier note here said Next 14 drops it out of
+ * `alternates`, so Bangla pages were given no canonical at all and the two
+ * languages were declared only in sitemap.xml. Re-measured on 2026-09-24
+ * against this Next version with a throwaway route: BOTH `alternates.canonical`
+ * and `alternates.languages` came back with "?lang=bn" intact. The old note
+ * was wrong, and the pages that worked around it are what Search Console has
+ * been complaining about.
+ */
+export function pageMeta({ title, description, path = "/", lang = "en", robots, bilingual = false }) {
   const suffix = lang === "bn" ? "?lang=bn" : "";
   const url = `${SITE}${path}${suffix}`;
   const image = `${SITE}${CARD[lang] || CARD.en}`;
@@ -30,18 +45,23 @@ export function pageMeta({ title, description, path = "/", lang = "en", robots }
   return {
     title,
     description,
-    // Next 14 strips the query string out of anything it resolves for
-    // alternates — measured, with a plain string and again with a URL object:
-    // "?lang=bn" came back as the bare address both times. So a Bangla page
-    // cannot say "this is me" here, and hreflang links would all three have
-    // pointed at the English page, which is worse than saying nothing.
-    //
-    // The English page still gets its canonical. The Bangla one deliberately
-    // gets none: it is indexed today, and a canonical pointing at the English
-    // page is exactly the instruction that would remove it. The two languages
-    // are declared to Google in sitemap.xml instead, which serialises the
-    // query string correctly.
-    ...(lang === "bn" ? {} : { alternates: { canonical: url } }),
+    // Every page says "this is me" — including the Bangla one. Naming the
+    // English page instead told Google the Bangla page was a duplicate to be
+    // dropped, and a page with no canonical at all let a scraper's copy be
+    // chosen as the original (Search Console, 22 Sep 2026: our /docs/inbox was
+    // filed under an unrelated gambling domain).
+    alternates: {
+      canonical: url,
+      ...(bilingual ? {
+        languages: {
+          en: `${SITE}${path}`,
+          bn: `${SITE}${path}?lang=bn`,
+          // Which version to show a reader Google cannot place. English, the
+          // address without a query, is also what every internal link uses.
+          "x-default": `${SITE}${path}`,
+        },
+      } : {}),
+    },
     openGraph: {
       type: "website",
       siteName: BRAND,

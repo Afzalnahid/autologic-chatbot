@@ -1528,3 +1528,17 @@ needs one link per route, and a test must assert the default route is the plain
 one. And when an error's words appear nowhere in our source, it is the
 provider's screen — find which of our parameters put them there before
 believing the provider is at fault.
+
+## 2026-09-24 — a measured note in a comment can go stale, and be believed for months
+Three pages forced their canonical to the English address, each explaining it
+with the same comment: Next 14 drops a query string out of `alternates`, so a
+Bangla page cannot name itself. It had been measured. Re-measuring it with a
+throwaway route took four minutes and showed the opposite — `?lang=bn` survives
+everywhere except a path that is exactly `/`. In between, every Bangla page had
+been telling Google it was a duplicate to be dropped.
+Rules: a comment recording a framework's behaviour is a measurement with a
+date, not a fact — re-run it before building on it, especially before copying
+the workaround to a third file. And when a report blames a page, fetch that page
+the way the accused crawler would: the same review called the home page an empty
+shell, which was the dashboard, because the reviewer was signed in and
+middleware redirected them.
