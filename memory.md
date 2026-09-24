@@ -49,8 +49,10 @@ Tests: `npm test` → **76/76 suites**, `t-platform-events` 55 passed (5 new ass
    edited since July (`updatedAt` 1784405798987), so the key it holds was deleted with the
    others. Product emails were still delivering six hours before that, so the break is new.
    Fix = put a fresh key in Vercel and **redeploy** (an env change needs one).
-   `RESEND_FROM` has the same problem for a different reason: it WAS edited today, four
-   minutes AFTER the last production deployment, so the running build still has the old one.
+   **STILL NOT DONE at 10:15 UTC** — re-checked: `RESEND_API_KEY.updatedAt` is unchanged at
+   1784405798987, and Resend still lists exactly one key, the same exposed `re_JBsQtZow…`
+   with **Full access**. (`RESEND_FROM` IS live now: it was edited at 1790243305016 and the
+   deployment at 1790243704772 came after it.)
    **And the failure is silent** — `src/lib/email.js` `send()` never throws and every caller
    does `.catch(() => {})`, so a 401 from Resend tells nobody. Worth a `key_failing` event;
    see item 1.
@@ -76,13 +78,16 @@ Tests: `npm test` → **76/76 suites**, `t-platform-events` 55 passed (5 new ass
    `https://www.tellmoreai.com/dashboard`** — it was the bare domain, and only the
    dashboard runs a browser Supabase client that reads the session out of the link's
    fragment. Full state table in `docs/email-confirmation-setup.md`.
-   **Two things left on this:** the email rate limit is still Supabase's default **30/hour**
-   (raising it was refused here by the permission classifier as "security weaken" — the
-   owner does it by hand), and **no confirmation email has actually been seen to arrive** —
-   that needs his own inbox.
-   **Warning recorded:** the stored SMTP key is the one he pasted into chat and was told to
-   delete. Paste the replacement into Supabase and save BEFORE deleting the old key in
-   Resend, or every new signup waits for a link that cannot be sent.
+   **PROVED END TO END at 10:03 UTC**, from `auth.users` timestamps on the owner's own test
+   signup: account created `10:03:57.429`, confirmation link sent `10:03:57.510` (81 ms
+   later, so Supabase accepted the SMTP hand-off), link opened and email confirmed
+   `10:04:41.379` (44 s later), signed in `10:04:53.469`. Resend's key page agrees — the key
+   went from "No activity" to "Last used: 2 minutes ago". The email rate limit is now
+   **200/hour**. This path is finished; nothing about it is unverified any more.
+   **Warning still standing:** the SMTP password is the key he pasted into chat, and it is
+   still the ONLY key in the Resend account, still with **Full access** rather than sending
+   only. Replacing it means: create the new key, paste into Supabase, save, and only THEN
+   delete the old one — the other order stops every new signup.
 5. **Owner's own steps, still outstanding:** the GitHub `CRON_SECRET` secret (above); the
    email rate limit (above); run the "Build Android APK" GitHub Action;
    Search Console → Request indexing + Validate fix.
