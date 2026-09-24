@@ -1673,3 +1673,21 @@ Three rules out of one bug:
 This was found only because the owner said "I set the cron secret" and that claim
 was verified instead of believed — the probe that proved the secret works is what
 exposed the job that never did.
+
+## 2026-09-24 — one pipe, two audiences
+The admin console's alerts were addressed to an admin by their own CLIENT id,
+because an admin on this platform usually runs a business here too and the push
+machinery already knew how to reach a client. It worked, and it was wrong: a new
+signup and a customer's "is this in stock?" arrived in the same app, on the same
+phone, and because the platform alert carried url "/admin" the owner's USER app
+turned into the admin console the moment he tapped one. His words: "my native
+app which is for users automatically converted to admin app."
+Rule: when two audiences must not mix, do not give them one address and a rule
+about how to use it. Give them different storage. Admin devices now live in
+their own tables keyed by email, so notify() cannot reach an admin's phone and
+notifyAdmin() cannot reach a client's — not because anybody remembers, but
+because there is no query that spans them.
+Second half of the same lesson: the day before, answering "should I need an
+admin app?" with "no, the app can already open /admin" was technically true and
+practically wrong. Being ABLE to reach a page is not the same as that page
+belonging in the app. The owner reversed it within hours, and he was right.

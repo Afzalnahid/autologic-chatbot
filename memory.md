@@ -42,6 +42,33 @@ which is why nothing failed.
 Tests: `npm test` → **76/76 suites**, `t-platform-events` 55 passed (5 new assertions cover
 `is_admin`, the door, and the three things the "no separate admin app" answer depends on).
 
+### Done later the same day — TWO APPS, not one (`f0b19e1`)
+The admin door added earlier that morning was a mistake and is reverted. The owner:
+"my native app which is for users automatically converted to admin app — the admin app and
+the user app will be separated." It converted because `pushToAdmins()` addressed an admin by
+their own CLIENT id, so platform alerts arrived in the same app as that business's customer
+messages and, carrying url `/admin`, opened the console there.
+
+- New tables `admin_fcm_tokens` / `admin_push_subscriptions`, keyed by the admin's EMAIL
+  (`docs/sql/2026-09-24-admin-app-own-notifications.sql`, **applied**). `notify(clientId)`
+  reads only the client tables, `notifyAdmin(email)` (`src/lib/admin-push.js`) only the admin
+  ones — the separation is structural, not a rule. `fcm.js`/`push.js` gained
+  `sendFcmToTokens` / `sendPushToSubs` so both audiences share one sender.
+- A device registers as an admin device only if the page proves it is inside the admin app
+  (package id `com.tellmoreai.admin`); `/api/admin/push` then checks the caller's admin role.
+- The dashboard's shield button is gone and `/api/me` no longer returns `is_admin`.
+- `mobile-admin/` is the second Capacitor shell (opens `/admin`, deep-maroon icon,
+  `tellmoreai-admin://`, workflow "Build Admin Android APK"). Different package id, so both
+  apps install side by side. `mobile/scripts/patch-manifest.mjs` now reads `TM_APP_SCHEME`.
+- Verified: GitHub lists the new workflow as **active** (so the YAML parses), the deployment
+  went green, `/api/admin/push` answers 401 without a token, and the client push tables are
+  untouched (3 tokens, 1 subscription).
+- **NOT verified, and cannot be from here:** no admin APK has been built and no admin device
+  has ever registered (both admin tables are empty). **Owner's step first:** add
+  `com.tellmoreai.admin` as a second Android app in the SAME Firebase project and commit
+  `mobile-admin/google-services.json` — see `mobile-admin/README.md`. Until then the admin
+  app builds but receives nothing, and platform alerts reach only the console bell and email.
+
 ### Next up
 0. **URGENT, found by the 2026-09-24 test sweep: the platform's own emails are almost
    certainly dead.** Resend now holds exactly ONE api key ("Tellmore Ai", Full access,
