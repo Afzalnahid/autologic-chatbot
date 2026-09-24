@@ -63,11 +63,20 @@ messages and, carrying url `/admin`, opened the console there.
 - Verified: GitHub lists the new workflow as **active** (so the YAML parses), the deployment
   went green, `/api/admin/push` answers 401 without a token, and the client push tables are
   untouched (3 tokens, 1 subscription).
-- **NOT verified, and cannot be from here:** no admin APK has been built and no admin device
-  has ever registered (both admin tables are empty). **Owner's step first:** add
-  `com.tellmoreai.admin` as a second Android app in the SAME Firebase project and commit
-  `mobile-admin/google-services.json` — see `mobile-admin/README.md`. Until then the admin
-  app builds but receives nothing, and platform alerts reach only the console bell and email.
+- **Firebase is DONE** (`ba899a2`): the owner registered `com.tellmoreai.admin` in the same
+  project (`getvoicium` / `869664348441`) and `mobile-admin/google-services.json` is
+  committed. Safe in a public repo — an Android client key tied to the package name, and the
+  user app's copy has been there since its first build. The build step now FAILS if that
+  file is missing or does not list the admin package.
+- `tests/t-two-apps.mjs` (27 assertions) guards the split: differing package ids, each app's
+  start url, the Firebase file's package and project, the overridable url scheme, the manual
+  build, the shared signing key, the one icon generator, and no camera/mic/location in the
+  admin app. **77/77 suites.**
+- **NOT verified, and cannot be from here:** no admin APK has been built yet and no admin
+  device has registered (both admin tables are empty). Next: Actions → "Build Admin Android
+  APK" → install → sign in → the bell offers to turn notifications on. Then
+  `select count(*) from admin_fcm_tokens` should be 1 and a real event should reach the
+  phone. Until then platform alerts reach only the console bell and email.
 
 ### Next up
 0. **URGENT, found by the 2026-09-24 test sweep: the platform's own emails are almost
