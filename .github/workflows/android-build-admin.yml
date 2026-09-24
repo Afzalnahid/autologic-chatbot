@@ -103,10 +103,17 @@ jobs:
 
       # tellmoreai-admin:// rather than tellmoreai://. Two apps claiming one
       # scheme makes Android ask which to open, every single time.
+      #
+      # TM_PERMS=notifications: the console never takes a photo, records a voice
+      # note, reads the gallery or asks where the phone is. The first APK
+      # inherited the user app's whole list and Android showed Camera, Location,
+      # Microphone and Storage against it (owner's screenshot, 2026-09-24) —
+      # permissions it would never use.
       - name: Patch the Android project
         working-directory: mobile-admin
         env:
           TM_APP_SCHEME: tellmoreai-admin
+          TM_PERMS: notifications
         run: node ../mobile/scripts/patch-manifest.mjs
 
       # The icon's own field comes from icon-background.png, generated above in

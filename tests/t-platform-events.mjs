@@ -167,6 +167,20 @@ ok("it is placed in the console's header", /<AdminBell /.test(read("src", "app",
   // ran off the left edge, because the bell is not the last thing in the header
   // (owner's screenshot, 2026-09-24) — the client dashboard's bell already
   // solved this the same way.
+  // There is a switch, and it is there whether notifications are on or off.
+  // A control that only appears when something is wrong leaves no way to see
+  // that it is right, and no way to change your mind (owner, 2026-09-24:
+  // "where is the toggle to turn on and off the notification?").
+  const tog = read("src", "app", "admin", "AdminPushToggle.js");
+  ok("the bell carries a notifications switch", /<AdminPushToggle token=\{token\} \/>/.test(bell));
+  ok("…shown whether they are on or off", !/askPush/.test(bell));
+  ok("it can turn them off again, not only on", /const disable = async/.test(tog));
+  ok("it says why when Android or the browser has blocked them", /denied:/.test(tog));
+  ok("it works in the app and in a laptop browser",
+    /enableAdminPush\(token\)/.test(tog) && /enableAdminWebPush\(token, VAPID\)/.test(tog));
+  ok("and it registers as an admin device either way, never a client one",
+    !/\/api\/push\//.test(tog) && /\/api\/admin\/push/.test(tog));
+
   ok("the admin bell pins its panel to the phone's screen", /position: "fixed", top, left: 10, right: 10/.test(bell));
   ok("…measured from the button, not guessed", /btn\.current\?\.getBoundingClientRect\(\)/.test(bell));
   ok("…and re-measured when the screen turns", /window\.addEventListener\("resize", measure\)/.test(bell));

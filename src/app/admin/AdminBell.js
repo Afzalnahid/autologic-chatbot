@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { T } from "../dashboard/components/ui.js";
 import { readJson, offlineError } from "@/lib/api-error.js";
+import AdminPushToggle from "./AdminPushToggle.js";
 
 // The admin console's bell.
 //
@@ -110,29 +111,6 @@ export default function AdminBell({ token, openDetail, isMobile }) {
     if (e.client_id && openDetail) { setOpen(false); openDetail(e.client_id); }
   };
 
-  // Inside the admin app, offer to turn this phone's notifications on. Only
-  // here — the client dashboard's bell asks for the client's own, and the two
-  // registrations go to different tables (src/lib/admin-push.js).
-  // Re-checked each time the panel opens, not once on mount: the app asks for
-  // the permission by itself on first launch, so by the time anybody opens this
-  // the answer has usually already changed.
-  const [askPush, setAskPush] = useState(false);
-  useEffect(() => {
-    if (!open) return;
-    let gone = false;
-    (async () => {
-      const m = await import("./admin-push.js");
-      if (gone || !(await m.isAdminApp())) return;
-      if (!gone) setAskPush((await m.adminPushState()) !== "granted");
-    })().catch(() => {});
-    return () => { gone = true; };
-  }, [open]);
-  const turnOnPush = async () => {
-    const m = await import("./admin-push.js");
-    const r = await m.enableAdminPush(token);
-    if (r === "granted") setAskPush(false);
-  };
-
   const urgentUnread = st.events.some((e) => !e.read && e.severity === "urgent");
   const size = isMobile ? 36 : 42;
 
@@ -163,14 +141,11 @@ export default function AdminBell({ token, openDetail, isMobile }) {
         </button>}
       </div>
 
-      {askPush && <button onClick={turnOnPush} style={{
-        display: "flex", gap: 9, alignItems: "center", width: "100%", textAlign: "left", padding: "10px 11px",
-        marginBottom: 6, borderRadius: 12, border: `1px solid ${T.border}`, cursor: "pointer",
-        fontFamily: "inherit", background: T.bgAlt, color: T.text,
-      }}>
-        <i className="ti ti-bell-plus" style={{ fontSize: 16, color: T.gold, flexShrink: 0 }} />
-        <span style={{ fontSize: 12.3, lineHeight: 1.45 }}>Turn on notifications on this phone</span>
-      </button>}
+      {/* Always shown, on or off. A control that only appears when something is
+          wrong leaves the owner with no way to see that it is right, and no way
+          to change his mind (owner, 2026-09-24: "where is the toggle to turn on
+          and off the notification?"). */}
+      <AdminPushToggle token={token} />
 
       {!st.events.length && <div style={{ padding: "26px 16px", textAlign: "center", color: T.textDim, fontSize: 12.5, lineHeight: 1.6 }}>
         Nothing yet.<br />New sign-ups, payments waiting for you, a bot that stopped, a key that died and server errors all land here.

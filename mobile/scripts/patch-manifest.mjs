@@ -37,7 +37,16 @@ let xml = readFileSync(path, "utf8");
 const done = [];
 
 // ── 1. permissions ──────────────────────────────────────────────────────────
-const wanted = [
+// TM_PERMS=notifications builds an app that asks Android for NOTHING but
+// notifications. The ADMIN app sets it (2026-09-24): the console never takes a
+// photo, records a voice note, reads the gallery or asks where the phone is, and
+// the owner saw Camera / Location / Microphone / Storage listed against it in
+// Android's settings — permissions it inherited from the user app's list and
+// would never use. An app should ask for what it uses and nothing else.
+const NOTIFY_ONLY = process.env.TM_PERMS === "notifications";
+const wanted = NOTIFY_ONLY ? [
+  "android.permission.POST_NOTIFICATIONS",
+] : [
   "android.permission.POST_NOTIFICATIONS",
   "android.permission.CAMERA",
   "android.permission.READ_MEDIA_IMAGES",
@@ -50,7 +59,7 @@ const lines = wanted
   .filter((p) => !xml.includes(`"${p}"`))
   .map((p) => `    <uses-permission android:name="${p}" />`);
 // Older Android (≤12) reads photos through the legacy storage permission.
-if (!xml.includes("READ_EXTERNAL_STORAGE")) {
+if (!NOTIFY_ONLY && !xml.includes("READ_EXTERNAL_STORAGE")) {
   lines.push('    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />');
 }
 if (lines.length) {

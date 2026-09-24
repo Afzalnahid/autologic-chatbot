@@ -71,6 +71,21 @@ ok("both go to the www host, which is the one that answers", [user, admin].every
   ok("the admin build sets its own scheme", /TM_APP_SCHEME:\s*tellmoreai-admin/.test(wf));
 }
 
+// ── the admin app asks Android for notifications and nothing else ──────────
+// The first APK inherited the user app's whole list, so Android showed Camera,
+// Location, Microphone and Storage against a console that uses none of them.
+{
+  const patch = read("mobile", "scripts", "patch-manifest.mjs");
+  const wf = read(".github", "workflows", "android-build-admin.yml");
+  ok("the permission list can be narrowed per app", /process\.env\.TM_PERMS === "notifications"/.test(patch));
+  ok("and the admin build narrows it", /TM_PERMS:\s*notifications/.test(wf));
+  ok("the narrow list is notifications only",
+    /NOTIFY_ONLY \? \[\s*\n\s*"android\.permission\.POST_NOTIFICATIONS",\s*\n\s*\]/.test(patch));
+  ok("the legacy storage permission is skipped too", /!NOTIFY_ONLY && !xml\.includes\("READ_EXTERNAL_STORAGE"\)/.test(patch));
+  ok("the user app's build is untouched — no TM_PERMS in its workflow",
+    !/TM_PERMS/.test(read(".github", "workflows", "android-build.yml")));
+}
+
 // ── the build ──────────────────────────────────────────────────────────────
 {
   const wf = read(".github", "workflows", "android-build-admin.yml");
