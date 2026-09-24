@@ -44,13 +44,27 @@ Tests: `npm test` → **76/76 suites**, `t-platform-events` 55 passed (5 new ass
 
 ### Next up
 1. Wire the six unraised event kinds (one `logEvent` line each, see `docs/admin-notifications.md`).
-2. **Owner's own steps, still outstanding:** set `CRON_SECRET` in Vercel (all three cron
-   endpoints are open without it); turn on Supabase "Confirm email" with the Resend SMTP
-   values in `docs/email-confirmation-setup.md`; run the "Build Android APK" GitHub Action;
+2. **`CRON_SECRET` is DONE on Vercel** (owner set it 2026-09-24 ~09:09 UTC, production
+   target). Verified, not assumed: a wrong bearer token gets **401** from all four of
+   `/api/cron/{expiry,channels,embeddings,followups}`.
+   **But it needs a GitHub repository secret of the same name and value** — `gh` is not
+   installed here so its presence could not be checked. Until it exists the "Send due
+   follow-ups" workflow gets 401 and sends nothing. The workflow now fails with a clear
+   `::error::` message instead of a bare status code.
+3. **Found while verifying that, and fixed in `2139637`:** the follow-up workflow had been
+   calling the APEX host `https://tellmoreai.com/api/cron/followups`, which answers **308**
+   to `www`. `curl` does not follow a redirect unless told to, so the job read 308, failed
+   `test "$code" = "200"` and **sent no follow-up at all** — every run back beyond 23 Sep
+   failed. `-L` would not have helped either: curl drops the `Authorization` header when a
+   redirect changes host. Now it calls the `www` host directly. Whether any client lost a
+   real follow-up because of this has NOT been checked.
+4. **Owner's own steps, still outstanding:** the GitHub `CRON_SECRET` secret (above); turn
+   on Supabase "Confirm email" with the Resend SMTP values in
+   `docs/email-confirmation-setup.md`; run the "Build Android APK" GitHub Action;
    Search Console → Request indexing + Validate fix.
-3. Still unproved: no live OpenAI call has ever been made (no OpenAI key exists on this
+5. Still unproved: no live OpenAI call has ever been made (no OpenAI key exists on this
    machine), and `platform_events` is still empty — no real event has flowed through it yet.
-4. Open question for the owner: the WhatsApp channel row for Nandi (connected 19 Sep)
+6. Open question for the owner: the WhatsApp channel row for Nandi (connected 19 Sep)
    vanished from the database. Deleted by hand, or a bug?
 
 ---

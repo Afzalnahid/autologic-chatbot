@@ -1653,3 +1653,23 @@ restricted navigation, and both notification handlers already followed the url
 an alert carried. The whole missing piece was a link. Before proposing a new
 app, a new build or a new surface, check what the existing one can already
 reach — the answer was one button in the sidebar, not a second APK.
+
+## 2026-09-24 — a scheduled job that fails forever looks exactly like one that works
+The "Send due follow-ups" workflow had failed on EVERY run for days and nobody
+knew, because a failing GitHub Action is a small red mark on a page nobody
+opens. The cause was one character of carelessness: the job called the apex host
+`tellmoreai.com`, which answers 308 and points at `www`. `curl` does not follow a
+redirect unless told to, so the job read 308 instead of 200 and sent nothing.
+And `-L` would not have rescued it either — curl drops the `Authorization`
+header when a redirect changes host, so it would have turned a 308 into a 401.
+Three rules out of one bug:
+  1. Anything that calls our own site from outside must use the CANONICAL host.
+     A redirect that a browser hides is fatal to a script.
+  2. A scheduled job needs a way of telling somebody it is failing. The bell
+     built the same day is exactly the place for it.
+  3. When a secret is added on one side of a boundary, find the other side. Vercel
+     getting `CRON_SECRET` means GitHub Actions must get the same value, or the
+     job that used to work now returns 401.
+This was found only because the owner said "I set the cron secret" and that claim
+was verified instead of believed — the probe that proved the secret works is what
+exposed the job that never did.
