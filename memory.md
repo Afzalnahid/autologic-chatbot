@@ -58,13 +58,26 @@ Tests: `npm test` → **76/76 suites**, `t-platform-events` 55 passed (5 new ass
    failed. `-L` would not have helped either: curl drops the `Authorization` header when a
    redirect changes host. Now it calls the `www` host directly. Whether any client lost a
    real follow-up because of this has NOT been checked.
-4. **Owner's own steps, still outstanding:** the GitHub `CRON_SECRET` secret (above); turn
-   on Supabase "Confirm email" with the Resend SMTP values in
-   `docs/email-confirmation-setup.md`; run the "Build Android APK" GitHub Action;
+4. **Supabase "Confirm email" is now LIVE** (2026-09-24). The owner had already filled in
+   the Resend SMTP form himself (`no-reply@tellmoreai.com`, `smtp.resend.com:465`, user
+   `resend`, key stored); through the browser extension the **Confirm email** switch was
+   turned on and saved, and **Site URL was corrected to
+   `https://www.tellmoreai.com/dashboard`** — it was the bare domain, and only the
+   dashboard runs a browser Supabase client that reads the session out of the link's
+   fragment. Full state table in `docs/email-confirmation-setup.md`.
+   **Two things left on this:** the email rate limit is still Supabase's default **30/hour**
+   (raising it was refused here by the permission classifier as "security weaken" — the
+   owner does it by hand), and **no confirmation email has actually been seen to arrive** —
+   that needs his own inbox.
+   **Warning recorded:** the stored SMTP key is the one he pasted into chat and was told to
+   delete. Paste the replacement into Supabase and save BEFORE deleting the old key in
+   Resend, or every new signup waits for a link that cannot be sent.
+5. **Owner's own steps, still outstanding:** the GitHub `CRON_SECRET` secret (above); the
+   email rate limit (above); run the "Build Android APK" GitHub Action;
    Search Console → Request indexing + Validate fix.
-5. Still unproved: no live OpenAI call has ever been made (no OpenAI key exists on this
+6. Still unproved: no live OpenAI call has ever been made (no OpenAI key exists on this
    machine), and `platform_events` is still empty — no real event has flowed through it yet.
-6. Open question for the owner: the WhatsApp channel row for Nandi (connected 19 Sep)
+7. Open question for the owner: the WhatsApp channel row for Nandi (connected 19 Sep)
    vanished from the database. Deleted by hand, or a bug?
 
 ---

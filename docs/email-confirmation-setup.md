@@ -9,7 +9,33 @@ different gates.
 | Gate | Stops | Where it lives | State |
 |---|---|---|---|
 | 1. **Format** | `asdf`, `name@`, `name@site`, `a b@c.com`, an empty field | the app — `src/lib/valid-email.js`, used by the sign-in screen, create-account, forgot-password and the admin console | **Live** |
-| 2. **Ownership** | a well-formed address that is made up, mistyped, or someone else's (`anything@gmail.com`) | Supabase Auth's **Confirm email** setting — a link is emailed and the account cannot sign in until it is opened | **OFF today — the owner switches it on (steps below)** |
+| 2. **Ownership** | a well-formed address that is made up, mistyped, or someone else's (`anything@gmail.com`) | Supabase Auth's **Confirm email** setting — a link is emailed and the account cannot sign in until it is opened | **LIVE since 2026-09-24** |
+
+## What is set today (2026-09-24), read off the dashboard
+
+| Setting | Value | Where |
+|---|---|---|
+| Enable custom SMTP | **on** | Authentication → Emails → SMTP Settings |
+| Sender email / name | `no-reply@tellmoreai.com` / `TellMore AI` | same |
+| Host / Port | `smtp.resend.com` / `465` | same |
+| Username / Password | `resend` / a stored Resend API key | same |
+| Minimum interval per user | 60 seconds | same |
+| Site URL | `https://www.tellmoreai.com/dashboard` | Authentication → URL Configuration |
+| Redirect URLs | `https://www.tellmoreai.com/**`, `https://tellmoreai.com/**` | same |
+| **Confirm email** | **ON** | Authentication → Sign In / Providers |
+| Rate limit for sending emails | **30/hour — still the default, needs raising** | Authentication → Rate Limits |
+
+**Site URL must keep the `/dashboard` path.** The confirmation link redirects
+there with the session in the URL fragment, and only the dashboard runs a
+browser Supabase client that reads it (`src/utils/supabase/client.js` —
+`createBrowserClient`, `detectSessionInUrl` on by default). The admin console's
+client deliberately has that off, and the public pages are server-rendered with
+no Supabase client at all, so a link landing on `/` would confirm the account but
+leave the person to sign in by hand.
+
+**Rotating the Resend key: paste the new one FIRST, save, and only then delete
+the old one in Resend.** Deleting first leaves Supabase holding a dead key, and
+every new signup waits for a link that cannot be sent.
 
 ## How we know gate 2 is off
 
@@ -38,6 +64,9 @@ Chrome against faked Supabase answers (sign-up → "user, no session", sign-in �
 5. The 17 existing accounts are already marked confirmed — nobody is locked out.
 
 ## Switching it on — owner's steps (Supabase dashboard)
+
+*Kept as the record of how it was set up, and for any second project. All of it
+is done except the rate limit.*
 
 Do these **in this order**. Step 1 matters: Supabase's built-in mail sender is
 for testing only and sends just a few emails an hour, so with it a real signup
