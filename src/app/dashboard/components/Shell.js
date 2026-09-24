@@ -206,6 +206,17 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
               <i className="ti ti-refresh" style={{ animation: loading ? "spin 0.8s linear infinite" : "none", fontSize: 17 }} />
             </button>}
             <ThemeToggle mode={mode} toggle={toggleTheme} style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent" }} />
+            {/* The way into the admin console, for the one or two people who run
+                the platform. Only shown when /api/me says so, and it grants
+                nothing by itself — every admin action is guarded where it is
+                done. Without this an admin on the phone could reach /admin
+                only by tapping a notification (owner, 2026-09-24: "should I
+                need an admin app like the TellMore AI user app?" — no, but
+                there has to be a door). */}
+            {me?.is_admin && <a href="/admin" className="pbtn" title="Admin console" aria-label="Admin console"
+              style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", color: T.gold, textDecoration: "none" }}>
+              <i className="ti ti-shield-lock" style={{ fontSize: 17 }} />
+            </a>}
             <button onClick={onLogout} className="pbtn" title={t("shell.logout")} aria-label={t("shell.logout")}
               style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent" }}>
               <i className="ti ti-logout" style={{ fontSize: 17 }} />

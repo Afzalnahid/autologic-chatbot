@@ -4,7 +4,58 @@ Update the top two sections after every session.
 
 ---
 
-## Last session (2026-09-10, latest) — Admin drawer refreshes in place; reply-turn SQL found ALREADY applied
+## Last session (2026-09-24, latest) — The admin console gets a bell, and the app is already the admin app
+
+Answering the owner's question "Should I need an admin app like the TellMore AI user app?" —
+the answer is **no**, and it was verified in the code rather than assumed:
+
+- `mobile/capacitor.config.json` sets `/dashboard` only as the **start** URL and does not
+  restrict navigation, so `/admin` opens inside the same Android WebView.
+- `pushToAdmins()` in `src/lib/platform-events.js` always sends `url: "/admin"`, and both
+  notification handlers follow the url an alert carries — `native-push.js`
+  (`window.location.href = url`) in the app, `public/sw.js` (`openWindow(url)`) in the browser.
+  So tapping a platform alert lands straight in the console.
+- `src/app/admin/admin-client.js` already has dozens of `isMobile` branches.
+
+**The one real gap, now closed:** there was no *door*. Nothing in the client dashboard or the
+app linked to `/admin`; an admin could only get there by tapping a notification or typing the
+address. Two changes:
+
+- `src/app/api/me/route.js` now returns `is_admin` (looked up in `admin_users`, excluding
+  `pending` and `blocked`). It grants nothing — every privileged action is still guarded by
+  `callerEmail`/`callerRole` — it only decides whether a door is drawn.
+- `src/app/dashboard/components/Shell.js` shows a shield button to `/admin` in the sidebar
+  footer, beside the language, theme and logout controls, only when `me?.is_admin`. It is
+  inside the sidebar, which on a phone is the drawer, so it works in the app too.
+
+Also written: `docs/admin-notifications.md` — the whole alert system in one place (the
+catalogue, the quiet periods, where each event is raised, how it reaches the phone, and why no
+separate admin app is needed).
+
+**Found while documenting, NOT fixed (deliberately, separate commit):** the `EVENTS`
+catalogue has 12 kinds but only **6** are ever raised. `trial_started`, `plan_activated`,
+`plan_expired`, `admin_signup`, `provider_switched` and `client_deleted` exist, are tested as
+catalogue entries, and no code calls `logEvent` for them. The doc marks each one and names
+where its call belongs. `tests/t-platform-events.mjs` only checked the six that were wired,
+which is why nothing failed.
+
+Tests: `npm test` → **76/76 suites**, `t-platform-events` 55 passed (5 new assertions cover
+`is_admin`, the door, and the three things the "no separate admin app" answer depends on).
+
+### Next up
+1. Wire the six unraised event kinds (one `logEvent` line each, see `docs/admin-notifications.md`).
+2. **Owner's own steps, still outstanding:** set `CRON_SECRET` in Vercel (all three cron
+   endpoints are open without it); turn on Supabase "Confirm email" with the Resend SMTP
+   values in `docs/email-confirmation-setup.md`; run the "Build Android APK" GitHub Action;
+   Search Console → Request indexing + Validate fix.
+3. Still unproved: no live OpenAI call has ever been made (no OpenAI key exists on this
+   machine), and `platform_events` is still empty — no real event has flowed through it yet.
+4. Open question for the owner: the WhatsApp channel row for Nandi (connected 19 Sep)
+   vanished from the database. Deleted by hand, or a bug?
+
+---
+
+## Earlier session (2026-09-10) — Admin drawer refreshes in place; reply-turn SQL found ALREADY applied
 
 - `90c7216` — **admin client drawer now updates AT ONCE after an action** (plan change /
   extend / suspend). `run()`'s list refresh only patched the top badge (`detail.client`);

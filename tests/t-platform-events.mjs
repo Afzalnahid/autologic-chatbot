@@ -112,5 +112,24 @@ ok("tapping one opens that business", /openDetail\(e\.client_id\)/.test(bell));
 ok("a bell that cannot load stays quiet about it", /if \(!r \|\| r\.error\) return;/.test(bell));
 ok("it is placed in the console's header", /<AdminBell /.test(read("src", "app", "admin", "admin-client.js")));
 
+// ── the same app the clients use IS the admin app ───────────────────────────
+// Owner, 2026-09-24: "Should I need an admin app like the TellMore AI user
+// app?" No — but only because these three things hold. If any of them breaks,
+// an admin on a phone is locked out of the console again.
+{
+  const me = read("src", "app", "api", "me", "route.js");
+  ok("the dashboard is told whether this person also runs the platform", /is_admin: isAdmin/.test(me) && /admin_users/.test(me));
+
+  const shell = read("src", "app", "dashboard", "components", "Shell.js");
+  ok("and shows a door into the console when they do", shell.includes('me?.is_admin && <a href="/admin"'));
+
+  // A platform alert always carries /admin, and both notification paths honour
+  // the url it carries — so tapping one inside the Android app lands there.
+  ok("a platform alert points at the console", read("src", "lib", "platform-events.js").includes('url: "/admin"'));
+  ok("the native app opens the url a notification carries",
+    read("src", "app", "dashboard", "components", "native-push.js").includes("window.location.href = url;"));
+  ok("so does the browser's service worker", read("public", "sw.js").includes("openWindow(url)"));
+}
+
 console.log(`t-platform-events: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

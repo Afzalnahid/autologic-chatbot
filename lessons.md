@@ -1635,3 +1635,21 @@ minutes for errors, an hour per client for the rest), email is spent on the two
 things that must not wait, and nothing is raised that the owner could not act
 on. A bell that rings for everything is a bell that gets switched off, and then
 the urgent ones are lost with the rest.
+
+## 2026-09-24 — a catalogue is not a feature until something calls it
+`EVENTS` in `src/lib/platform-events.js` listed twelve kinds of alert. Six of
+them had a call site; six had none, and would never fire. The test suite passed
+because it only asserted the six that were wired — it checked the catalogue's
+shape and the wiring of the kinds it knew about, and never asked the opposite
+question: is every kind in this catalogue actually raised somewhere?
+Rule: when a registry lists things the rest of the system is supposed to use,
+one test must walk the registry itself and prove each entry has a caller — or
+the doc must say, entry by entry, which ones do not. A half-wired catalogue
+looks finished from the inside and is silent from the outside.
+
+Second lesson the same day: the Android app needed no rebuild to become the
+admin app, because the Capacitor shell only sets a START url and never
+restricted navigation, and both notification handlers already followed the url
+an alert carried. The whole missing piece was a link. Before proposing a new
+app, a new build or a new surface, check what the existing one can already
+reach — the answer was one button in the sidebar, not a second APK.

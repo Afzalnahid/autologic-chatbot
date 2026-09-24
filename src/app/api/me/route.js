@@ -44,9 +44,22 @@ export const GET = withErrors(async (request) => {
     inbox = { locked: true, since, waiting };
   }
 
+  // Does this person also run the platform? Only so the dashboard can offer a
+  // way into the admin console — every admin action is guarded where it is
+  // done, so this flag grants nothing by itself. Without it an admin on the
+  // phone could reach /admin only by tapping a notification or typing the
+  // address (owner, 2026-09-24: "should I need an admin app?" — no, but there
+  // has to be a door).
+  let isAdmin = false;
+  try {
+    const { data: a } = await supabase.from("admin_users").select("role").eq("email", email).maybeSingle();
+    isAdmin = !!(a?.role && a.role !== "pending" && a.role !== "blocked");
+  } catch { /* the dashboard simply shows no admin door */ }
+
   return NextResponse.json({
     client: { id: client.id, business_name: client.business_name, plan: client.plan, trial_end: client.trial_end, business_type: client.business_type || "ecommerce", item_label: client.item_label || "", logo_url: client.logo_url || "" },
     email,
+    is_admin: isAdmin,
     active: trialActive(client),
     inbox,
     // The daily ceiling comes from the package (and any per-client override),
