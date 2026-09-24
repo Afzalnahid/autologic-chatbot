@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient as createSb } from "@/utils/supabase/client";
+import { RULES, PASSWORD_HINT, checkPassword } from "@/lib/password-rules.js";
 
 const T = {
   bg: "#0A0D14", bgAlt: "#0D1119", card: "#0F1420",
@@ -29,7 +30,12 @@ export default function ResetClient() {
 
   const save = async () => {
     setErr(""); setMsg("");
-    if (pw.length < 6) { setErr("Password must be at least 6 characters."); return; }
+    // This said "at least 6 characters" until 2026-09-25, when the project was
+    // set to 8 plus a capital, a small letter and a number. A six-character
+    // password sailed past this check and was refused by Supabase in wording
+    // written for a developer. One rule, in one file, for every screen.
+    const check = checkPassword(pw);
+    if (!check.ok) { setErr(check.firstError); return; }
     if (pw !== pw2) { setErr("Passwords do not match."); return; }
     const { error } = await getSb().auth.updateUser({ password: pw });
     if (error) setErr(error.message);
@@ -56,6 +62,19 @@ export default function ResetClient() {
               <input style={input} type={show ? "text" : "password"} placeholder="New password" value={pw} onChange={e => setPw(e.target.value)} />
               <button type="button" onClick={() => setShow(s => !s)} style={{ position: "absolute", right: 10, top: 15, background: "none", border: "none", cursor: "pointer", color: T.textMuted, fontSize: 12 }}>{show ? "Hide" : "Show"}</button>
             </div>
+            {/* The rule, ticking as they type. Written out here rather than
+                reusing the dashboard's component, because this page carries its
+                own palette and none of the dashboard's CSS variables — but the
+                WORDS come from password-rules.js, so it cannot drift. */}
+            {pw.length === 0
+              ? <div style={{ fontSize: 11.5, color: T.textMuted, lineHeight: 1.55, margin: "-4px 2px 12px" }}>{PASSWORD_HINT}</div>
+              : <ul style={{ listStyle: "none", margin: "-4px 2px 12px", padding: 0, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
+                  {RULES.map(r => (
+                    <li key={r.id} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: r.test(pw) ? T.success : T.textMuted }}>
+                      <span aria-hidden="true">{r.test(pw) ? "✓" : "○"}</span>{r.label}
+                    </li>
+                  ))}
+                </ul>}
             <input style={{ ...input, paddingRight: 13 }} type={show ? "text" : "password"} placeholder="Confirm new password" value={pw2} onChange={e => setPw2(e.target.value)} onKeyDown={e => e.key === "Enter" && save()} />
             {err && <div style={{ fontSize: 12, color: T.danger, marginBottom: 10 }}>{err}</div>}
             <button onClick={save} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: T.gold, color: "#0a0a0a", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Update password</button>

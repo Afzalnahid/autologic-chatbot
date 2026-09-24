@@ -9,6 +9,8 @@ import { useWhere } from "./where.js";
 import { planOptions } from "@/lib/plan-options.js";
 import { featureList } from "@/lib/features.js";
 import { isValidEmail } from "@/lib/valid-email.js";
+import { checkPassword } from "@/lib/password-rules.js";
+import PasswordRules from "../dashboard/components/PasswordRules.js";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
 
 // The super-admin console. Same design system as the customer dashboard —
@@ -130,6 +132,11 @@ export default function AdminClient() {
     // Mandatory here too — the console is only a stricter door, not an
     // exception to it (owner, 2026-09-21).
     if (!isValidEmail(cleanEmail)) { setAuthMsg("Enter a valid email address, like name@example.com."); return; }
+    // Same rule as everywhere else, refused in our words rather than Supabase's.
+    if (mode === "signup") {
+      const check = checkPassword(password);
+      if (!check.ok) { setAuthMsg(check.firstError); return; }
+    }
     setAuthBusy(true);
     const fn = mode === "signup" ? "signUp" : "signInWithPassword";
     const { error } = await getSb().auth[fn]({ email: cleanEmail, password });
@@ -198,7 +205,8 @@ export default function AdminClient() {
   if (!session) return <><Theme /><Motion />
     <OnboardFrame icon="ti-shield-lock" title={<>TellMore AI <span style={{ color: T.gold }}>Admin</span></>} sub={mode === "signup" ? "Create an admin account — the super admin approves it" : "Sign in to the platform console. This login is separate from any client dashboard."} width={420}>
       <Inp emb type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" />
-      <PwInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" onEnter={auth} style={{ marginBottom: 14 }} />
+      <PwInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" onEnter={auth} style={{ marginBottom: mode === "signup" ? 4 : 14 }} />
+      {mode === "signup" && <div style={{ marginBottom: 12 }}><PasswordRules value={password} /></div>}
       {authMsg && <div style={{ fontSize: 12.5, color: authMsg.includes("created") ? T.success : T.danger, marginBottom: 12, display: "flex", gap: 6 }}><i className={`ti ${authMsg.includes("created") ? "ti-check" : "ti-alert-circle"}`} />{authMsg}</div>}
       <Btn gold onClick={auth} disabled={authBusy || !email || !password} style={{ width: "100%", padding: "13px 20px", fontSize: 14.5, borderRadius: 14 }}>{authBusy ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}</Btn>
       <div style={{ textAlign: "center", marginTop: 16, fontSize: 12.5, color: T.textMuted }}>

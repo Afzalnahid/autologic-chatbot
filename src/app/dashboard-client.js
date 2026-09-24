@@ -35,6 +35,8 @@ import { useT } from "./dashboard/components/i18n.js";
 import { runBack, useBackClose } from "./dashboard/components/back.js";
 import { openConnect, hideNativeSplash } from "./dashboard/components/native-connect.js";
 import { isValidEmail } from "@/lib/valid-email.js";
+import { checkPassword } from "@/lib/password-rules.js";
+import PasswordRules from "./dashboard/components/PasswordRules.js";
 
 // Exported so the screenshot studio can list exactly these tabs rather than
 // keeping a copy that falls behind.
@@ -101,6 +103,12 @@ function AuthGate({onReady}) {
     // Mandatory, both directions — a made-up address cannot create an account,
     // and it cannot be typed to try signing in either (owner, 2026-09-21).
     if(!isValidEmail(cleanEmail)){ setEmailTouched(true); setErr("Enter a valid email address, like name@example.com."); return; }
+    // Checked here as well as shown under the field, so the refusal comes from
+    // us in plain words rather than from Supabase in developer English.
+    if(mode==="signup"){
+      const pwCheck=checkPassword(pw);
+      if(!pwCheck.ok){ setErr(pwCheck.firstError); return; }
+    }
     if(mode==="signup"&&!agreed){ setErr("Please accept the terms to continue."); return; }
     setBusy(true); setErr(""); setMsg("");
     try{
@@ -204,6 +212,10 @@ function AuthGate({onReady}) {
             onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); e.currentTarget.blur(); } }} placeholder={signup?"Create password":"Password"} style={{paddingRight:52}}/>
           <button type="button" className="emb-eye" onClick={()=>setShowPw(v=>!v)}>{showPw?"Hide":"Show"}</button>
         </div>
+        {/* Only while CHOOSING one. On the sign-in screen the password already
+            exists and telling somebody the rules for it helps nobody — worse,
+            it hints at the shape of what they are trying to remember. */}
+        <PasswordRules value={pw} show={signup}/>
 
         {signup
           ? <label className="auth-terms">
