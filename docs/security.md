@@ -49,10 +49,29 @@ likely a successful attack is; this is what was actually checked.
 
 **Still open, for the owner:**
 
-- **Leaked-password protection is off.** Supabase → Authentication → Policies →
-  enable the HaveIBeenPwned check, so no admin or client can pick a password
-  that is already in a public breach. One switch.
-- The `vector` extension lives in the `public` schema. Low risk, tidy-up only.
+- **Password hardening.** The linter asks for the HaveIBeenPwned leaked-password
+  check, and Supabase **refuses it on the Free plan** — "available on Pro Plans
+  and up" (tried 2026-09-25; the toggle turns green and the save fails, which is
+  worth knowing because the UI then lies about the state). Not worth $25/month on
+  its own. What the Free plan *does* allow, on
+  Authentication → Sign In / Providers → Email, and what should be set instead:
+  **minimum password length 6 → 12** (length beats character classes), a
+  **password requirement** of letters and digits, and **"Require current password
+  when updating" ON** — without it, anyone who gets hold of a live session can
+  change the password and lock the real owner out. None of these affect existing
+  passwords, only new ones.
+- **Captcha on the auth endpoints is off** (Authentication → Attack Protection).
+  Not in the linter's list, found by reading the page. This is the one with a
+  money cost attached: without it a script can open accounts in bulk, and **every
+  account gets a free trial**, whose AI calls are billed to the platform. Needs a
+  free hCaptcha or Cloudflare Turnstile key.
+- **MFA on the admin accounts** (Authentication → Multi-Factor). The admin login
+  is the most valuable key on the platform; check whether the TOTP factor is
+  available on the current plan.
+- The `vector` extension lives in the `public` schema. The linter suggests moving
+  it. **Do not** — `products.embedding` and `knowledge_base.embedding` are of a
+  type this extension owns, so moving it risks breaking search for every client.
+  High risk, no real gain.
 
 The honest summary: the ways in that would actually hurt — reading another
 business's data, faking a payment, forging a webhook — are each closed by
