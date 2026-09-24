@@ -35,6 +35,8 @@ function ago(iso) {
 const shape = (r) => ({
   events: Array.isArray(r?.events) ? r.events : [],
   unread: Number(r?.unread) || 0,
+  hasMore: !!r?.has_more,
+  total: Number(r?.total) || 0,
 });
 
 const TONE = {
@@ -44,22 +46,57 @@ const TONE = {
 };
 
 export default function AdminBell({ token, openDetail, isMobile }) {
-  const [st, setSt] = useState({ events: [], unread: 0 });
+  const [st, setSt] = useState({ events: [], unread: 0, hasMore: false, total: 0 });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [older, setOlder] = useState(false);
   const box = useRef(null);
   const btn = useRef(null);
   const [top, setTop] = useState(0);
 
+  const get = useCallback(async (before) => {
+    const q = before ? `&before=${encodeURIComponent(before)}` : "";
+    return fetch(`/api/admin/events?t=${Date.now()}${q}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } })
+      .then(readJson).catch(offlineError);
+  }, [token]);
+
   const load = useCallback(async () => {
     if (!token) return;
-    const r = await fetch(`/api/admin/events?t=${Date.now()}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } })
-      .then(readJson).catch(offlineError);
+    const r = await get();
     // A bell that cannot load must not shout about it — the console has real
     // work on screen, and this is the least important thing on it.
     if (!r || r.error) return;
-    setSt(shape(r));
-  }, [token]);
+    // The refresh every half minute must not throw away pages the reader has
+    // already asked for. Keep whatever is below the first page and only replace
+    // the top of the list.
+    setSt((prev) => {
+      const next = shape(r);
+      if (!next.events.length) return next;
+      const oldestFresh = next.events[next.events.length - 1].id;
+      const fresh = new Set(next.events.map((e) => e.id));
+      const kept = prev.events.filter((e) => !fresh.has(e.id) && e.id < oldestFresh);
+      // While older pages are still held, "is there more below them?" is not
+      // something this answer knows — it only looked at the newest page. Keep
+      // what was last learned rather than claiming there is more.
+      return { ...next, events: [...next.events, ...kept], hasMore: kept.length ? prev.hasMore : next.hasMore };
+    });
+  }, [token, get]);
+
+  // One more page, older than where the list currently ends.
+  const showOlder = async () => {
+    const last = st.events[st.events.length - 1];
+    if (!last) return;
+    setOlder(true);
+    const r = await get(last.id);
+    setOlder(false);
+    if (!r || r.error) return;
+    const next = shape(r);
+    setSt((prev) => {
+      const have = new Set(prev.events.map((e) => e.id));
+      return { ...prev, unread: next.unread, total: next.total, hasMore: next.hasMore,
+        events: [...prev.events, ...next.events.filter((e) => !have.has(e.id))] };
+    });
+  };
 
   useEffect(() => { load(); }, [load]);
   // Every half minute, and again whenever the tab comes back — the console is
@@ -168,8 +205,23 @@ export default function AdminBell({ token, openDetail, isMobile }) {
         </button>;
       })}
 
+      {/* Nothing is thrown away — the older pages are still there, they just
+          are not fetched until somebody asks (owner, 2026-09-24: "how much
+          capacity in the notification panel?"). */}
+      {st.hasMore && <button onClick={showOlder} disabled={older} style={{
+        display: "flex", gap: 7, alignItems: "center", justifyContent: "center", width: "100%",
+        padding: "9px 11px", marginTop: 4, borderRadius: 12, border: `1px solid ${T.border}`,
+        cursor: older ? "default" : "pointer", fontFamily: "inherit", background: "transparent",
+        color: T.gold, fontSize: 12, fontWeight: 600,
+      }}>
+        <i className={`ti ti-${older ? "loader-2" : "chevron-down"}`}
+          style={{ fontSize: 14, animation: older ? "spin 0.8s linear infinite" : "none" }} />
+        {older ? "Loading…" : "Show older"}
+      </button>}
+
       {st.events.length > 0 && <div style={{ padding: "8px 11px 4px", fontSize: 10.5, color: T.textDim, lineHeight: 1.5 }}>
-        Tap one to open that business. The same alerts reach your phone if notifications are on in your own dashboard.
+        Tap one to open that business.
+        {st.total > st.events.length ? ` Showing ${st.events.length} of ${st.total}.` : ` All ${st.total} shown.`}
       </div>}
     </div>}
   </div>;

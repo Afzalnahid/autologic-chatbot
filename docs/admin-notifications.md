@@ -72,6 +72,19 @@ last line of defence and must not become the thing that fails to load.
    unread, refreshed every 30s and again whenever the tab comes back. Tapping a
    line opens that business's drawer. Read state is **per admin**
    (`platform_event_reads`), so two people do not clear each other's bell.
+
+   **Nothing is dropped.** The bell shows 60 at a time and **Show older** fetches
+   the next 60, as far back as there are rows; the footer says "Showing 60 of
+   212". Paging is keyed on the row **id**, not an offset (which shifts when a
+   new event arrives mid-page) and not `created_at` (whose `<` also excludes an
+   unshown row sharing the same microsecond). The unread badge is a real count
+   of the whole table minus this admin's read marks, and "mark all as read"
+   clears up to 500 rather than only the page on screen — all three used to stop
+   at 60. Verified against 142 real rows: two pages of 60, 120 distinct, no
+   overlap and no gap.
+
+   The table itself is never pruned. At ~256 bytes a row, 50,000 events is about
+   12 MB, so this needs a retention rule eventually but not soon.
 2. **The admin app** — `pushToAdmins()` sends the same alert to each admin by
    **email**, through `notifyAdmin()` in `src/lib/admin-push.js`, which reads
    `admin_fcm_tokens` / `admin_push_subscriptions`. The alert always carries

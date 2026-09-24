@@ -122,6 +122,24 @@ const api = read("src", "app", "api", "admin", "events", "route.js");
 ok("there is an endpoint for the bell", /export async function GET/.test(api) && /platform_events/.test(api));
 ok("reading is per-admin, so two people do not clear each other's bell", /platform_event_reads/.test(api) && /\.eq\("email", email\)/.test(api));
 ok("marking read twice is the same as once", /upsert\(/.test(api));
+// The bell held 60 and there was no way past them; the badge could never say
+// more than 60 either, and "mark all as read" cleared only what it could see
+// (owner, 2026-09-24: "how much capacity in the notification panel?").
+ok("older events can be asked for", /\.lt\("id", before\)/.test(api));
+ok("…paged on the id, which cannot tie the way a timestamp can",
+  /\.order\("id", \{ ascending: false \}\)/.test(api) && !/\.order\("created_at"/.test(api));
+ok("…and the caller is told whether more exist", /has_more: hasMore/.test(api) && /limit \+ 1/.test(api));
+ok("the unread count is the real one, not this page's",
+  /count: "exact", head: true/.test(api) && /async function unreadFor/.test(api));
+ok("mark-all clears beyond the page, and is still bounded",
+  /MARK_CAP/.test(api) && /limit\(MARK_CAP\)/.test(api));
+{
+  const b = read("src", "app", "admin", "AdminBell.js");
+  ok("the bell has a way to reach them", /Show older/.test(b) && /const showOlder = async/.test(b));
+  ok("…asking from the oldest row it holds", /get\(last\.id\)/.test(b));
+  ok("…and the half-minute refresh does not throw those pages away", /const kept = prev\.events\.filter/.test(b));
+  ok("it says how many of how many are on screen", /Showing \$\{st\.events\.length\} of \$\{st\.total\}/.test(b));
+}
 ok("a pending or blocked admin sees nothing", /role === "pending" \|\| role === "blocked"/.test(api));
 
 const bell = read("src", "app", "admin", "AdminBell.js");
