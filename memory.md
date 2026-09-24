@@ -127,19 +127,26 @@ in `src/` raises it. The old test only checked the six that already worked, whic
 why six broken ones survived for weeks. 77/77 suites, t-platform-events at 79.
 
 ### Next up
-0. **URGENT, found by the 2026-09-24 test sweep: the platform's own emails are almost
-   certainly dead.** Resend now holds exactly ONE api key ("Tellmore Ai", Full access,
-   created 09:3x UTC, **Last used: No activity**). Vercel's `RESEND_API_KEY` has not been
-   edited since July (`updatedAt` 1784405798987), so the key it holds was deleted with the
-   others. Product emails were still delivering six hours before that, so the break is new.
-   Fix = put a fresh key in Vercel and **redeploy** (an env change needs one).
-   **STILL NOT DONE at 10:15 UTC** — re-checked: `RESEND_API_KEY.updatedAt` is unchanged at
-   1784405798987, and Resend still lists exactly one key, the same exposed `re_JBsQtZow…`
-   with **Full access**. (`RESEND_FROM` IS live now: it was edited at 1790243305016 and the
-   deployment at 1790243704772 came after it.)
+0. **RESOLVED 2026-09-25.** The platform's own emails had been dead: the owner deleted every
+   Resend key and made one new one, but Vercel still held the July key that went with them.
+   Both variables are now set and each was followed by its own redeploy, in the right order
+   (an env change does nothing until a deployment picks it up):
+   `RESEND_API_KEY` updated 1790280510556 → deploy 1790280519241 READY;
+   `RESEND_FROM` updated 1790280753337 → deploy 1790280762844 READY.
+   **A caution for next time:** Vercel's env API served a stale `updatedAt` for several
+   minutes and I told the owner the change had not been made when it had. The dashboard page
+   ("Updated just now") was right and the API was behind — check both before contradicting
+   him.
+   **Still not proved:** no product email has actually been sent since. The first real test
+   is the 04:00 UTC expiry cron; check Resend's log after it.
+   **Two things left:** the key now in both Vercel and Supabase is the one that leaked into
+   chat and still has **Full access** — it should be replaced by two sending-only keys and
+   deleted. And `RESEND_FROM` is now **production-only** (it used to include preview), so a
+   preview deployment falls back to the code's `onboarding@resend.dev`, which only delivers
+   to the account owner. Harmless for customers; worth knowing.
    **And the failure is silent** — `src/lib/email.js` `send()` never throws and every caller
-   does `.catch(() => {})`, so a 401 from Resend tells nobody. Worth a `key_failing` event;
-   see item 1.
+   does `.catch(() => {})`, so a 401 from Resend tells nobody. That is why a dead key went
+   unnoticed for hours. Worth a `key_failing` event; see item 1.
 1. ~~Wire the six unraised event kinds~~ — DONE, see the section above.
 2. **`CRON_SECRET` is DONE on Vercel** (owner set it 2026-09-24 ~09:09 UTC, production
    target). Verified, not assumed: a wrong bearer token gets **401** from all four of
