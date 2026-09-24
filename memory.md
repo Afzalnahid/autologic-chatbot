@@ -43,6 +43,17 @@ Tests: `npm test` → **76/76 suites**, `t-platform-events` 55 passed (5 new ass
 `is_admin`, the door, and the three things the "no separate admin app" answer depends on).
 
 ### Next up
+0. **URGENT, found by the 2026-09-24 test sweep: the platform's own emails are almost
+   certainly dead.** Resend now holds exactly ONE api key ("Tellmore Ai", Full access,
+   created 09:3x UTC, **Last used: No activity**). Vercel's `RESEND_API_KEY` has not been
+   edited since July (`updatedAt` 1784405798987), so the key it holds was deleted with the
+   others. Product emails were still delivering six hours before that, so the break is new.
+   Fix = put a fresh key in Vercel and **redeploy** (an env change needs one).
+   `RESEND_FROM` has the same problem for a different reason: it WAS edited today, four
+   minutes AFTER the last production deployment, so the running build still has the old one.
+   **And the failure is silent** — `src/lib/email.js` `send()` never throws and every caller
+   does `.catch(() => {})`, so a 401 from Resend tells nobody. Worth a `key_failing` event;
+   see item 1.
 1. Wire the six unraised event kinds (one `logEvent` line each, see `docs/admin-notifications.md`).
 2. **`CRON_SECRET` is DONE on Vercel** (owner set it 2026-09-24 ~09:09 UTC, production
    target). Verified, not assumed: a wrong bearer token gets **401** from all four of
