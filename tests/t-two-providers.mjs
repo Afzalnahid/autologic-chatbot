@@ -43,6 +43,25 @@ if (OA) {
   ok("roles are mapped to OpenAI's names", turns[1].role === "user");
 }
 
+// ── the two providers must BEHAVE the same, not merely both answer ────────
+// Differences here would show up as "it works on Gemini but not on OpenAI",
+// which is the whole point of the exercise.
+ok("both download a picture themselves rather than handing over a link",
+  /const res = await fetch\(imageUrl\)/.test(openai) && /image download failed/.test(openai));
+ok("a picture is sent as bytes, never as a CDN url a third party must fetch",
+  /data:\$\{mime\};base64/.test(openai));
+ok("both answer the same marker when speech cannot be made out",
+  /return out \|\| UNCLEAR_AUDIO/.test(openai));
+ok("that marker comes from one place, not two spellings", /import \{ UNCLEAR_AUDIO \}/.test(openai));
+{
+  const bot = read("src", "lib", "bot.js");
+  ok("and the bot still keys off it", /transcript === UNCLEAR_AUDIO/.test(bot));
+}
+ok("the price book can name the live provider's models",
+  /listBillableModels\(apiKey, provider\)/.test(read("src", "lib", "model-catalog.js")));
+ok("and is asked for the provider the platform is on",
+  /listBillableModels\(pai\.apiKey \|\| undefined, pai\.provider\)/.test(read("src", "app", "api", "admin", "packages", "route.js")));
+
 // ── the router picks the module, and hides which one it picked ─────────────
 const ai = read("src", "lib", "ai.js");
 ok("both provider modules are wired in", /MODULES = \{[\s\S]{0,400}google:[\s\S]{0,400}openai:/.test(ai));

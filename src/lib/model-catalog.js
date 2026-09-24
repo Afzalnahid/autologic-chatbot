@@ -7,7 +7,7 @@
 // without warning, which is exactly what produced the "gemini-2.5-flash is no
 // longer available" error this replaced.
 import { listGoogleModels, listGoogleModelsRaw } from "@/lib/gemini.js";
-import { listOpenAIModels } from "@/lib/openai.js";
+import { listOpenAIModels, listOpenAIModelsRaw } from "@/lib/openai.js";
 import { normaliseProvider, DEFAULT_PROVIDER } from "@/lib/ai-providers.js";
 
 // "fast"  = cheap and quick — the right default for most replies.
@@ -81,7 +81,21 @@ export function kindOf(id, methods = []) {
   return "chat";
 }
 
-export async function listBillableModels(apiKey) {
+// Everything the PLATFORM's current provider can be billed for. It used to
+// read Google's list whatever was switched on, so with an OpenAI platform key
+// the price book could not name a single model it was actually paying for.
+export async function listBillableModels(apiKey, provider) {
+  const id = normaliseProvider(provider) || DEFAULT_PROVIDER;
+  if (id === "openai") {
+    const ids = await listOpenAIModelsRaw(apiKey);
+    return ids.map((m) => ({
+      id: m,
+      name: m,
+      kind: /embedding/i.test(m) ? "embedding"
+        : /transcribe|whisper|tts|audio|realtime/i.test(m) ? "audio"
+        : /image|dall/i.test(m) ? "image" : "chat",
+    }));
+  }
   const all = await listGoogleModelsRaw(apiKey);
   return all
     // Preview and experimental ids come and go weekly and would fill the screen

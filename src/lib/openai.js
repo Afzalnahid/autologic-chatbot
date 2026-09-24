@@ -16,6 +16,7 @@
 // Plain fetch against the REST API rather than the SDK: six endpoints, no new
 // package to keep up to date, and the error text comes back as OpenAI wrote it.
 import { PROVIDERS, EMBED_DIMS, modelChain } from "@/lib/ai-providers.js";
+import { UNCLEAR_AUDIO } from "@/lib/gemini.js";
 
 const API = "https://api.openai.com/v1";
 const P = PROVIDERS.openai;
@@ -137,8 +138,22 @@ async function look(imagePart, prompt, opts, model) {
   });
 }
 
+// The picture is downloaded by US and sent as bytes — never handed to OpenAI
+// as a link to fetch.
+//
+// This is not a style choice. Every image the bot looks at comes from a
+// Facebook, Instagram or WhatsApp CDN: signed, short-lived, sometimes needing
+// our own token. Our server can read them; OpenAI's servers, reaching that URL
+// from somewhere else minutes later, often cannot — and the failure would look
+// like "the bot cannot see photographs on OpenAI" while working perfectly on
+// Gemini, because gemini.js has always downloaded them first. Same behaviour on
+// both sides, so a switch changes nothing here.
 export async function analyzeImage(imageUrl, prompt = "Describe this product in detail for product matching.", opts = {}) {
-  return look(imageUrl, prompt, opts, opts.model);
+  const res = await fetch(imageUrl);
+  if (!res.ok) throw new Error(`image download failed: ${res.status}`);
+  const base64 = Buffer.from(await res.arrayBuffer()).toString("base64");
+  const mime = res.headers.get("content-type") || "image/jpeg";
+  return analyzeImageBase64(base64, mime, prompt, opts);
 }
 
 export async function analyzeImageBase64(base64, mimeType, prompt, opts = {}) {
@@ -179,7 +194,13 @@ async function transcribeBuffer(buf, mimeType, opts = {}) {
   // the length of what came back — the same approach the embedding side takes,
   // and better than recording a call that appears to have cost nothing.
   report(opts, "voice", model, { usage: { prompt_tokens: Math.ceil(text.length / 4), completion_tokens: 0 } });
-  return text.replace(/^["'`\s]+|["'`\s]+$/g, "").trim();
+  const out = text.replace(/^["'`\s]+|["'`\s]+$/g, "").trim();
+  // Gemini is asked to answer "[unclear]" when it cannot make out the speech,
+  // and the bot keys off exactly that word to ask the customer to repeat.
+  // OpenAI's transcription simply returns nothing instead, so it is turned into
+  // the same marker here — otherwise the same silence would take a different
+  // path on each provider.
+  return out || UNCLEAR_AUDIO;
 }
 
 export async function transcribeAudioBase64(base64, mimeType = "audio/webm", opts = {}) {

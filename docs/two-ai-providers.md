@@ -119,6 +119,28 @@ select embedding_model, count(*) from knowledge_base group by 1;
 
 `tests/t-ai-providers.mjs` (44) and `tests/t-two-providers.mjs` (52).
 
+## What actually changes if you switch Gemini → OpenAI
+
+| Part | What happens |
+|---|---|
+| Replying to customers | Works at once. Wording and judgement differ a little — the locked prompts are tuned on Gemini. |
+| Reading a photograph | Works at once. Both providers are sent the image **as bytes we download ourselves**, never a CDN link, so signed Facebook / WhatsApp URLs behave identically. |
+| Voice notes | Works at once, through `gpt-transcribe`. Silence and unintelligible audio both come back as the same `[unclear]` marker the bot already understands. |
+| **Finding a product or a document** | **The one thing that is briefly reduced.** Rows embedded by Gemini are skipped until the sweep re-embeds them: the bot finds fewer items for a few minutes, never the wrong ones. |
+| Orders, bookings, tags, broadcasts | Unaffected — they read what the reply produced, not who produced it. |
+| Cost report | Correct from the first call: OpenAI's rates are in `model_prices`, and usage is filed under the provider that really answered. |
+| Clients on their OWN key | Completely unaffected. Their key, their provider; the platform's switch does not touch them. |
+| Voice cost in the report | Under-counted. OpenAI bills transcription per MINUTE, not per token, so the token meter estimates it. Chat and vision are exact. |
+| The model fallback | Costs more than Gemini's did: `gpt-6-sol` is twenty times `gpt-6-luna`, and it fires when the primary is out of quota. |
+
+**How long is "a few minutes"?** The sweep does up to 120 products and 120
+documents per client per run, 25 clients per run, and runs immediately on the
+switch plus nightly. A shop with 120 products or fewer is whole after the first
+run. The biggest package allows 2,500 products — that is 21 runs, so a catalogue
+that size finishes over the following nights unless the sweep is called again.
+
+Nothing else in the product asks anything of the AI, so nothing else can change.
+
 ## What has NOT been proved
 
 The OpenAI side has never run against a real OpenAI key — there is none on this

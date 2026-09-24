@@ -343,7 +343,10 @@ export async function POST(request) {
   // provider what exists.
   if (action === "list_models") {
     try {
-      const [models, prices] = await Promise.all([listBillableModels(), loadPrices()]);
+      // Whichever provider the platform is switched to — the price book must
+      // name the models we are actually being billed for.
+      const pai = await getPlatformAI();
+      const [models, prices] = await Promise.all([listBillableModels(pai.apiKey || undefined, pai.provider), loadPrices()]);
       const priced = new Set(Object.keys(prices).map((k) => k.slice(k.indexOf("/") + 1)));
       return NextResponse.json({
         ok: true,
