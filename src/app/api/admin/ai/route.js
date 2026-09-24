@@ -8,6 +8,7 @@ import { listModels, verifyModels } from "@/lib/model-catalog.js";
 import { invalidatePlatformAI, platformProviders } from "@/lib/platform-ai.js";
 import { syncPlatformKeyToVercel, vercelSyncConfigured } from "@/lib/vercel-env.js";
 import { PROVIDERS, PROVIDER_IDS, DEFAULT_PROVIDER, normaliseProvider, joinChain, canEnable } from "@/lib/ai-providers.js";
+import { logEvent } from "@/lib/platform-events.js";
 
 // The platform's own AI keys and models, managed from the admin panel instead
 // of only a Vercel environment variable.
@@ -108,6 +109,19 @@ export async function POST(request) {
       if (on.error) return NextResponse.json({ error: on.error.message }, { status: 500 });
     }
     invalidatePlatformAI();
+
+    // The single most consequential switch on the platform: it changes which
+    // provider answers every message for every client on the platform key, and
+    // it makes their saved vectors invisible until the sweep rebuilds them. It
+    // goes on the record with the name of whoever threw it.
+    logEvent({
+      kind: "provider_switched",
+      title: wanted ? `AI provider switched to ${PROVIDERS[wanted]?.label || wanted}` : "AI providers all switched off",
+      body: wanted
+        ? `By ${email}. Saved vectors are being rebuilt in the background.`
+        : `By ${email}. The platform falls back to the GEMINI_API_KEY environment variable.`,
+      url: "/admin#ai",
+    }).catch(() => {});
 
     // The vector space may have just changed for every client on the platform
     // key. Kick the rebuild now rather than leaving it until the night — it is

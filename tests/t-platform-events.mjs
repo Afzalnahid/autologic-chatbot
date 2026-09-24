@@ -12,7 +12,7 @@
 import { fileURLToPath } from "node:url";
 import { loadPure } from "./shim.mjs";
 import { dirname, join } from "node:path";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
@@ -75,6 +75,27 @@ ok("and still gets safe, silent defaults", eventMeta("whatever") === UNKNOWN_EVE
   ok("a bot going quiet is quiet for an hour", shouldLog("bot_blocked", new Date(now - 30 * 60_000).toISOString(), now) === false);
   ok("a new business is never suppressed — each one matters", shouldLog("client_signup", new Date(now - 1000).toISOString(), now) === true);
   ok("a payment is never suppressed either", shouldLog("payment_request", new Date(now - 1000).toISOString(), now) === true);
+}
+
+// ── EVERY kind in the catalogue has a caller ───────────────────────────────
+// The assertion that was missing. For weeks six of twelve kinds existed and
+// were tested as catalogue entries while no code ever raised them — the old
+// test only checked the ones it already knew about, so it confirmed the six
+// that worked and said nothing about the six that could not. This walks the
+// catalogue itself, so a kind added without a call site fails here.
+{
+  const files = [];
+  (function walk(d) {
+    for (const n of readdirSync(d)) {
+      const p = join(d, n);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (n.endsWith(".js") && !p.endsWith(join("lib", "platform-events.js"))) files.push(p);
+    }
+  })(join(root, "src"));
+  const sources = files.map((f) => readFileSync(f, "utf8"));
+  const orphans = EVENT_KINDS.filter((k) => !sources.some((t) => t.includes(`"${k}"`)));
+  ok(`every one of the ${EVENT_KINDS.length} kinds is raised somewhere` +
+    (orphans.length ? ` — never raised: ${orphans.join(", ")}` : ""), orphans.length === 0);
 }
 
 // ── raised where those things actually happen ──────────────────────────────

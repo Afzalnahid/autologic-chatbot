@@ -16,24 +16,35 @@ urgent ones are lost too.
 The catalogue lives in one place, `src/lib/platform-events.js` (`EVENTS`), so
 adding an alert is one entry, not a hunt through routes:
 
-`raised?` is whether some code actually calls `logEvent` for that kind yet. The
-catalogue is deliberately ahead of the wiring — adding the call later is one
-line, and the entry is already reviewed.
+All thirteen are raised. `tests/t-platform-events.mjs` walks the catalogue and
+fails if a kind has no call site anywhere in `src/`, so this cannot drift again
+— for a while six of twelve existed and nothing ever raised them.
 
-| kind | severity | push | email | raised? | when |
-| --- | --- | --- | --- | --- | --- |
-| `client_signup` | info | yes | no | yes | a business registers |
-| `payment_request` | urgent | yes | **yes** | yes | money is waiting for a decision |
-| `bot_blocked` | warn | yes | no | yes | a bot stopped replying |
-| `key_failing` | warn | yes | no | yes | a client's own AI key stopped working |
-| `channel_expired` | warn | yes | no | yes | a channel needs reconnecting |
-| `server_error` | urgent | yes | no | yes | a route threw |
-| `trial_started` | info | no | no | **not yet** | a trial started |
-| `plan_activated` | info | yes | no | **not yet** | a payment was approved |
-| `plan_expired` | warn | yes | no | **not yet** | a paid plan ran out |
-| `admin_signup` | warn | yes | **yes** | **not yet** | somebody asked for admin access |
-| `provider_switched` | warn | yes | no | **not yet** | the platform's AI provider changed |
-| `client_deleted` | warn | no | no | **not yet** | a business was deleted |
+| kind | severity | push | email | raised in |
+| --- | --- | --- | --- | --- |
+| `client_signup` | info | yes | no | `api/me` — a business registers |
+| `trial_started` | info | no | no | `api/me` — a trial starts |
+| `trial_ending` | info | yes | no | `api/cron/expiry` — last day of a trial |
+| `payment_request` | urgent | yes | **yes** | `api/billing` — money waiting for a decision |
+| `plan_activated` | info | yes | no | `api/admin` — a payment is approved |
+| `plan_expired` | warn | yes | no | `api/cron/expiry` — last day of a paid plan |
+| `bot_blocked` | warn | yes | no | `lib/bot.js` — a bot stopped replying |
+| `key_failing` | warn | yes | no | `lib/ai.js` — a client's own AI key died |
+| `channel_expired` | warn | yes | no | `api/cron/channels` — a token went stale |
+| `server_error` | urgent | yes | no | `lib/route-errors.js` — a route threw |
+| `admin_signup` | warn | yes | **yes** | `api/admin` — somebody asked for admin access |
+| `provider_switched` | warn | yes | no | `api/admin/ai` — Gemini ↔ OpenAI |
+| `client_deleted` | warn | no | no | `api/admin` — a business was deleted |
+
+Two of them are deliberately **not** pushed. `trial_started` is good news that
+can be read later, and `client_deleted` is something an admin just did on
+purpose — neither is worth a phone buzzing. Both are still written down, because
+"who deleted that business, and when?" is a question that gets asked.
+
+`plan_expired` and `trial_ending` fire on the **last day**, when `daysLeft` is
+exactly 0 — not once it has already gone. A renewal gets done on the final day,
+and firing on "already expired" would alert about the same client every morning
+for ever.
 
 Every kind reaches the bell — that is what the bell is for. `push` adds the
 owner's phone, `email` adds the inbox. Email is spent on two kinds only: money,
@@ -47,23 +58,7 @@ one hour. A route that starts failing fails a lot, and a bell that rings a
 thousand times is a bell you switch off. Sign-ups and payments are **never**
 suppressed — each one matters on its own.
 
-## Where the events are raised
-
-| what happens | where |
-| --- | --- |
-| a business registers | `src/app/api/me/route.js` |
-| a payment is submitted | `src/app/api/billing/route.js` |
-| a route throws | `src/lib/route-errors.js` |
-| an AI key dies | `src/lib/ai.js` |
-| a bot is blocked | `src/lib/bot.js` |
-| a channel expires | `src/app/api/cron/channels/route.js` |
-
-The six kinds marked *not yet* above have no call site. Each is one
-`logEvent({...}).catch(() => {})` line where that thing already happens:
-`plan_activated` and `plan_expired` in the admin payment approval and the plan
-cron, `admin_signup` where an admin row is created, `provider_switched` in the
-platform AI switch, `client_deleted` in the admin delete, `trial_started` at
-registration.
+## How they are raised
 
 Every call is `logEvent({...}).catch(() => {})` — fire and forget. A customer's
 reply, a signup or a payment must never wait on, or fail because of, a bell.

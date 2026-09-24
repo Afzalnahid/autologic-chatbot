@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
 import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentApproved, notifyPaymentRejected } from "@/lib/email.js";
+import { logEvent } from "@/lib/platform-events.js";
 import { PLANS } from "@/lib/plans.js";
 
 // Paid means "not the free trial and not nothing". Both places below used to
@@ -37,6 +38,15 @@ async function callerRole(email) {
     await supabase.from("admin_users").insert({ email, role: "pending" });
     // Notify super admin of the new access request (fire-and-forget).
     notifyNewAdminSignup(email).catch(() => {});
+    // …and on the console's bell and the admin app. Somebody asking for the
+    // keys to the platform is the one alert that must not wait for an inbox to
+    // be opened.
+    logEvent({
+      kind: "admin_signup",
+      title: "Someone asked for admin access",
+      body: `${email} — approve or block them under Access → Admins`,
+      url: "/admin#admins",
+    }).catch(() => {});
     return "pending";
   }
   return data.role;
@@ -353,6 +363,16 @@ export async function PUT(request) {
       if (cl?.owner_email) {
         notifyPaymentApproved(cl.owner_email, pr.plan, base.toISOString()).catch(() => {});
       }
+      // The money landed. Recorded so the console's bell shows the outcome next
+      // to the request that asked for it, and a second admin sees it was dealt
+      // with rather than approving it twice.
+      logEvent({
+        kind: "plan_activated",
+        title: `${pr.plan} activated`,
+        body: `${pr.billing_cycle === "yearly" ? "Yearly" : "Monthly"} · until ${base.toISOString().slice(0, 10)}`,
+        clientId: pr.client_id,
+        clientName: cl?.business_name,
+      }).catch(() => {});
       return NextResponse.json({ ok: true, plan_expires_at: base.toISOString() });
     }
 
@@ -472,7 +492,7 @@ export async function DELETE(request) {
   const { id, confirm } = await request.json().catch(() => ({}));
   if (!id || confirm !== "DELETE") return NextResponse.json({ error: "missing id or confirm" }, { status: 400 });
   // Read the owner's email before the row is gone, so the login can be removed too.
-  const { data: cl } = await supabase.from("clients").select("owner_email").eq("id", id).maybeSingle();
+  const { data: cl } = await supabase.from("clients").select("owner_email,business_name").eq("id", id).maybeSingle();
 
   // Deleting the row deletes the rest. All 21 tables that carry a client_id
   // now have ON DELETE CASCADE (docs/sql/2026-09-24-delete-a-client-means-
@@ -482,6 +502,15 @@ export async function DELETE(request) {
   // The rule belongs to the database, where no route can forget it.
   const { error } = await supabase.from("clients").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Written down, never pushed: deleting a business is something an admin just
+  // did on purpose, so nobody needs their phone to buzz about it. What this is
+  // for is the record — who went, and when — when the question comes up later.
+  // No clientId: the row it would point at is gone.
+  logEvent({
+    kind: "client_deleted",
+    title: `${cl?.business_name || "A business"} was deleted`,
+    body: `${cl?.owner_email || "unknown owner"} — deleted by ${email}`,
+  }).catch(() => {});
   const fileProblems = await deleteClientFiles(id);
   // Now the login itself, so the account cannot sign back in and re-create.
   const login = await deleteAuthUserByEmail(cl?.owner_email);

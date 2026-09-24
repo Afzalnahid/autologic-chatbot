@@ -116,6 +116,15 @@ export const POST = withErrors(async (request) => {
     const days = await trialDays();
     const end = new Date(now.getTime() + days * 24 * 3600 * 1000);
     await supabase.from("clients").update({ plan: "trial", trial_start: now.toISOString(), trial_end: end.toISOString(), trial_notified: false }).eq("id", client.id);
+    // Recorded on the admin console, not pushed — a trial starting is good news
+    // the owner can read later, not something to interrupt them for.
+    logEvent({
+      kind: "trial_started",
+      title: `${days}-day trial started`,
+      body: email,
+      clientId: client.id,
+      clientName: client.business_name,
+    }).catch(() => {});
     return NextResponse.json({ ok: true, trial_end: end.toISOString() });
   }
 

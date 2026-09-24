@@ -31,6 +31,9 @@ export const EVENTS = {
   // ── money and growth ────────────────────────────────────────────────────
   client_signup:    { severity: "info",   push: true,  email: false, icon: "🎉", label: "A new business signed up" },
   trial_started:    { severity: "info",   push: false, email: false, icon: "🌱", label: "A trial started" },
+  // The end of a trial is the one moment a sale is either made or lost, so it
+  // is worth a phone — unlike its beginning, which is only worth recording.
+  trial_ending:     { severity: "info",   push: true,  email: false, icon: "⌛", label: "A trial ends today" },
   payment_request:  { severity: "urgent", push: true,  email: true,  icon: "💰", label: "A payment is waiting for your decision" },
   plan_activated:   { severity: "info",   push: true,  email: false, icon: "✅", label: "A plan was activated" },
   // A paying client going quiet is the one worth a phone call.

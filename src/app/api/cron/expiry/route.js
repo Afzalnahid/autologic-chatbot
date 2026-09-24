@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import { NextResponse } from "next/server";
 import { clientsExpiringSoon, warnIfExpiringSoon, WARN_DAYS } from "@/lib/expiry.js";
+import { logEvent } from "@/lib/platform-events.js";
 
 // Once a day: email every owner whose trial or plan ends within the next few
 // days. Scheduled in vercel.json.
@@ -53,6 +54,20 @@ export async function GET(request) {
       const r = await warnIfExpiringSoon(c, now);
       if (r.sent) sent++;
       else skipped[r.skipped] = (skipped[r.skipped] || 0) + 1;
+      // The last day is the one the owner can still do something about — a
+      // renewal gets done on the final day, not three days early. Raised only
+      // when daysLeft is exactly 0, so it fires once per client and not every
+      // morning for everyone already expired.
+      if (r.sent && r.daysLeft === 0) {
+        const trial = String(c.plan || "").toLowerCase() === "trial";
+        logEvent({
+          kind: trial ? "trial_ending" : "plan_expired",
+          title: trial ? "A trial ends today" : `${c.plan} plan ends today`,
+          body: c.owner_email || "",
+          clientId: c.id,
+          clientName: c.business_name,
+        }).catch(() => {});
+      }
     } catch (e) {
       failed.push({ client_id: c.id, error: String(e?.message || e).slice(0, 160) });
       console.error("[cron/expiry]", c.id, String(e?.message || e).slice(0, 200));
