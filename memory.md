@@ -95,6 +95,20 @@ Two faults he found at once, both invisible to every source-level test:
   (`bootstrapAdminPush`), as he asked — notifications only, once per install.
 **All of it is WEB code** — the app loads the live site, so NO new APK is needed; closing
 and reopening the app is enough.
+
+Then two more from the APK in his hand (`3182f89`):
+- **There was no on/off switch.** The bell only offered a "turn on" button while the
+  permission was ungranted, so once granted nothing said notifications were ON and there was
+  no way to turn them off. New `src/app/admin/AdminPushToggle.js` — one row in the bell,
+  always shown, FCM in the app and Web Push in a browser, and it says why when blocked.
+  **Web change, no rebuild.**
+- **Android listed Camera / Location / Microphone / Storage against the admin app.** It had
+  inherited the user app's whole list from the shared `patch-manifest.mjs`. `TM_PERMS=notifications`
+  now narrows it to `POST_NOTIFICATIONS` for the admin build only. **This one needs a new APK.**
+- **Important:** notifications were ALREADY working when he asked — `admin_fcm_tokens` held
+  **2 devices**, newest minutes earlier, so the permission had been granted and the token
+  saved. The missing thing was any way to SEE it. Do not confuse "no visible control" with
+  "not working"; check the table first.
 Local quirks hit again, both already in the memory file: the dev server was serving 404s for
 its own JS chunks (stale `.next` — `rm -rf .next` and restart fixed it), and a Bash heredoc
 ate every backtick. `/shots?tab=admin` renders the console with stubbed data, so it can be
