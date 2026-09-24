@@ -78,23 +78,27 @@ messages and, carrying url `/admin`, opened the console there.
   `select count(*) from admin_fcm_tokens` should be 1 and a real event should reach the
   phone. Until then platform alerts reach only the console bell and email.
 
-### Admin app: installed, and two faults fixed the same hour ()
-The admin APK built (after  fixed the icon background) and the owner installed it.
+### Admin app: installed, and two faults fixed the same hour (`e3ef775`)
+The admin APK built (after `26d15e2` fixed the icon background) and the owner installed it.
 Two faults he found at once, both invisible to every source-level test:
-- the bell's panel hung off the bell with  — wrong, because the bell is not the
-  last thing in the header — so on a 375px phone its left third was off screen. It now
-  measures the button and pins to the viewport, which the CLIENT dashboard's bell has always
-  done. Measured after the fix on a real 375px viewport: left 14, right 362, no sideways
-  scroll.
-- opening the console in  crashed it:  answers  for any
-  2xx that is not JSON, the bell stored that, and  was undefined on the next
-  render. Every answer is shaped before it is stored now.
-- and the app asks for the notification permission by itself on first launch, as he asked.
-**Both are WEB changes** — the app loads the live site, so no new APK is needed; closing and
-reopening the app is enough.
-Local quirk hit again: the dev server was serving 404s for its own JS chunks (stale
-);  and a restart fixed it.  is the way to look at
-the console without signing in.
+- the bell's panel hung off the bell with `right: 0` — wrong, because the bell is not the
+  last thing in the header (a refresh button and an avatar follow it) — so on a 375px phone
+  a 340px panel started near -90px and its left third was off screen. It now measures the
+  button and pins to the viewport, which the CLIENT dashboard's bell
+  (`NotificationsBell.js`) has always done — it simply was not copied. Measured after the
+  fix on a real 375px viewport: left 14, right 362, no sideways page scroll.
+- opening the console in `/shots` crashed it outright: `readJson()` answers `{ ok: true }`
+  for ANY 2xx whose body is not JSON, the bell did `setSt(r)` with it, and `st.events` was
+  undefined on the next render — "Cannot read properties of undefined (reading 'some')".
+  Every answer is now passed through `shape()` before it is stored.
+- and the app asks for the notification permission by itself on first launch
+  (`bootstrapAdminPush`), as he asked — notifications only, once per install.
+**All of it is WEB code** — the app loads the live site, so NO new APK is needed; closing
+and reopening the app is enough.
+Local quirks hit again, both already in the memory file: the dev server was serving 404s for
+its own JS chunks (stale `.next` — `rm -rf .next` and restart fixed it), and a Bash heredoc
+ate every backtick. `/shots?tab=admin` renders the console with stubbed data, so it can be
+looked at without signing in — that is how both faults were found.
 
 ### Next up
 0. **URGENT, found by the 2026-09-24 test sweep: the platform's own emails are almost
