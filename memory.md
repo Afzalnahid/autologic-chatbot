@@ -78,6 +78,24 @@ messages and, carrying url `/admin`, opened the console there.
   `select count(*) from admin_fcm_tokens` should be 1 and a real event should reach the
   phone. Until then platform alerts reach only the console bell and email.
 
+### Admin app: installed, and two faults fixed the same hour ()
+The admin APK built (after  fixed the icon background) and the owner installed it.
+Two faults he found at once, both invisible to every source-level test:
+- the bell's panel hung off the bell with  — wrong, because the bell is not the
+  last thing in the header — so on a 375px phone its left third was off screen. It now
+  measures the button and pins to the viewport, which the CLIENT dashboard's bell has always
+  done. Measured after the fix on a real 375px viewport: left 14, right 362, no sideways
+  scroll.
+- opening the console in  crashed it:  answers  for any
+  2xx that is not JSON, the bell stored that, and  was undefined on the next
+  render. Every answer is shaped before it is stored now.
+- and the app asks for the notification permission by itself on first launch, as he asked.
+**Both are WEB changes** — the app loads the live site, so no new APK is needed; closing and
+reopening the app is enough.
+Local quirk hit again: the dev server was serving 404s for its own JS chunks (stale
+);  and a restart fixed it.  is the way to look at
+the console without signing in.
+
 ### Next up
 0. **URGENT, found by the 2026-09-24 test sweep: the platform's own emails are almost
    certainly dead.** Resend now holds exactly ONE api key ("Tellmore Ai", Full access,
