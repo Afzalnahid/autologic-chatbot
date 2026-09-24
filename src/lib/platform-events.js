@@ -134,26 +134,34 @@ export async function logEvent({ kind, title, body, clientId, clientName, url, s
   }
 }
 
-// The admins are people with their own client accounts, so the push machinery
-// that already exists for clients reaches them — their own client id is the
-// address. An admin with no client account simply gets the bell and the email.
-async function adminClientIds() {
+// Who runs the platform. Pending and blocked admins are not told anything.
+async function adminEmails() {
   const { data: admins } = await supabase.from("admin_users").select("email,role");
-  const emails = (admins || []).filter((a) => a.role && a.role !== "pending" && a.role !== "blocked").map((a) => String(a.email || "").toLowerCase());
-  if (!emails.length) return [];
-  const { data: rows } = await supabase.from("clients").select("id,owner_email");
-  return (rows || []).filter((c) => emails.includes(String(c.owner_email || "").toLowerCase())).map((c) => c.id);
+  return (admins || [])
+    .filter((a) => a.role && a.role !== "pending" && a.role !== "blocked")
+    .map((a) => String(a.email || "").trim().toLowerCase())
+    .filter(Boolean);
 }
 
+// Platform alerts go to the ADMIN app and the admin console's browsers, never
+// to the user app.
+//
+// This used to address an admin by their own CLIENT id, because an admin
+// usually also runs a business here. The result was that a new signup or a
+// server error arrived in the same app as that business's customer messages,
+// and tapping it opened /admin inside the user app — the owner's words on
+// 2026-09-24: "my native app which is for users automatically converted to
+// admin app". Admin devices now have their own table, keyed by email, so the
+// two audiences cannot reach each other's devices at all.
 async function pushToAdmins(meta, row) {
-  const { notify } = await import("@/lib/push.js");
-  const ids = await adminClientIds();
+  const { notifyAdmin } = await import("@/lib/admin-push.js");
+  const emails = await adminEmails();
   const title = `${meta.icon} ${row.title}`;
   const body = row.client_name ? `${row.client_name}${row.body ? " — " + row.body : ""}` : (row.body || "");
-  for (const id of ids) {
+  for (const email of emails) {
     // tag by kind so a second event of the same kind replaces the first on the
     // phone instead of stacking, exactly as the customer alerts do.
-    notify(id, { title, body, url: "/admin", tag: "admin-" + row.kind }).catch(() => {});
+    notifyAdmin(email, { title, body, url: "/admin", tag: "admin-" + row.kind }).catch(() => {});
   }
 }
 

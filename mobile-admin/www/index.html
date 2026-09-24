@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TellMore AI Admin</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: #FCFCFD; color: #111114;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    @media (prefers-color-scheme: dark) { body { background: #0B0B0E; color: #EDEDF0; } .bar { background: #1C1C22; } }
+    /* The deep shade of the brand maroon, so the admin app is recognisably a
+       darker sibling of the user app's tile rather than a different product. */
+    .tile {
+      width: 84px; height: 84px; border-radius: 24px;
+      background: linear-gradient(135deg, #5C1430, #3A0C1E);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 28px rgba(92, 20, 48, .32);
+    }
+    .tile svg { width: 60px; height: 60px; }
+    .name { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+    .role { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #8A2348; }
+    .bar { width: 120px; height: 3px; border-radius: 2px; background: #F0F0F3; overflow: hidden; }
+    .bar span { display: block; width: 40%; height: 100%; border-radius: 2px; background: #5C1430; animation: slide 1.1s ease-in-out infinite; }
+    @keyframes slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+    @media (prefers-reduced-motion: reduce) { .bar span { animation: none; width: 100%; } }
+  </style>
+</head>
+<body>
+  <!-- Shown only if the app ever starts from its own files. It normally loads
+       the live admin console (capacitor.config.json → server.url). This file
+       exists so the Capacitor build has a web directory; it is never part of
+       the Next.js/Vercel build. The mark is the one in src/lib/brand-mark.js. -->
+  <div class="tile" aria-hidden="true">
+    <svg viewBox="252 244 520 520" fill="#fff">
+      <path d="M330 522V517A115 115 0 0 1 445 402H580A115 115 0 0 1 695 517V522H632.6A74 74 0 0 0 559 456H466A74 74 0 0 0 392.4 522Z"/>
+      <path d="M330 538V545A115 115 0 0 0 375 636V674L446 660H580A115 115 0 0 0 695 545V538H632.6A74 74 0 0 1 559 604H466A74 74 0 0 1 392.4 538Z"/>
+      <path d="M322 458A47 67 0 0 0 322 592Z"/><path d="M703 458A47 67 0 0 1 703 592Z"/>
+      <rect x="510" y="362" width="4" height="42"/><circle cx="512" cy="350" r="14"/>
+      <path d="M424 514Q447 481 470 514M554 514Q577 481 600 514" stroke="#fff" stroke-width="13" stroke-linecap="round" fill="none"/>
+    </svg>
+  </div>
+  <div class="name">TellMore AI</div>
+  <div class="role">Admin</div>
+  <div class="bar" aria-hidden="true"><span></span></div>
+</body>
+</html>

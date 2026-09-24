@@ -77,38 +77,57 @@ last line of defence and must not become the thing that fails to load.
    unread, refreshed every 30s and again whenever the tab comes back. Tapping a
    line opens that business's drawer. Read state is **per admin**
    (`platform_event_reads`), so two people do not clear each other's bell.
-2. **The phone** — `pushToAdmins()` sends the same alert through each admin's
-   *own* client id, so it uses the push plumbing the clients already have
-   (`src/app/dashboard/components/native-push.js` in the Android app, `public/sw.js`
-   in the browser). The alert always carries `url: "/admin"`.
+2. **The admin app** — `pushToAdmins()` sends the same alert to each admin by
+   **email**, through `notifyAdmin()` in `src/lib/admin-push.js`, which reads
+   `admin_fcm_tokens` / `admin_push_subscriptions`. The alert always carries
+   `url: "/admin"`.
 
-## No separate admin app is needed
+## The admin app is a separate app
 
-Owner, 2026-09-24: *"Should I need an admin app like the TellMore AI user app?"*
-No — the existing app **is** the admin app, because:
+For a few hours on 2026-09-24 it was not, and that was a mistake. An alert was
+addressed to an admin's own **client id** — an admin usually runs a business
+here too — so a new signup or a server error arrived in the same app as that
+business's customer messages, and because the alert carried `/admin`, tapping it
+turned the user app into the console. The owner: *"my native app which is for
+users automatically converted to admin app — the admin app and the user app will
+be separated."*
 
-- the Capacitor shell only sets `/dashboard` as its **start** URL
-  (`mobile/capacitor.config.json`); it does not restrict navigation, so
-  `/admin` opens inside the same WebView;
-- both notification handlers open the url the alert carries, and an admin alert
-  carries `/admin` — so tapping one lands straight in the console;
-- `src/app/admin/admin-client.js` already adapts to a phone (dozens of
-  `isMobile` branches);
-- and the sidebar now shows a shield button into `/admin`, but only when
-  `/api/me` reports `is_admin` — so an admin can reach the console without
-  waiting for a notification.
+| | User app | Admin app |
+| --- | --- | --- |
+| Folder | `mobile/` | `mobile-admin/` |
+| Package id | `com.tellmoreai.app` | `com.tellmoreai.admin` |
+| Opens | `/dashboard` | `/admin` |
+| App address | `tellmoreai://` | `tellmoreai-admin://` |
+| Notified about | that business's customers | the platform |
+| Devices in | `fcm_tokens` (client id) | `admin_fcm_tokens` (email) |
+| Built by | Actions → Build Android APK | Actions → Build Admin Android APK |
 
-`is_admin` grants nothing by itself. Every privileged action is guarded where
-it is done (`callerEmail` / `callerRole` in `src/lib/admin-auth.js`); the flag
-only decides whether a door is drawn.
+Different package ids, so both live on one phone without replacing each other.
+
+**The separation is structural, not a rule to remember.** `notify(clientId)` can
+only read the client tables and `notifyAdmin(email)` can only read the admin
+ones; there is no path from either to the other. On top of that:
+
+- a device registers as an admin device only when the page can prove it is
+  running inside the admin app — `src/app/admin/admin-push.js` checks the
+  package id is `com.tellmoreai.admin` first, so opening `/admin` in the user
+  app or in a browser registers nothing;
+- `/api/admin/push` then checks the caller is a signed-in admin with a role;
+- the client dashboard has **no** link to `/admin`, and `/api/me` no longer
+  reports who is an admin.
+
+Setting the admin app up for the first time — one Firebase step for the owner —
+is in [`mobile-admin/README.md`](../mobile-admin/README.md).
 
 ## Tests
 
 `tests/t-platform-events.mjs` — the catalogue, the quiet periods, the bell's
-arithmetic, that each event is raised where that thing happens, and the three
-things the "no separate admin app" answer depends on.
+arithmetic, that each event is raised where that thing happens, and every one of
+the separation rules above.
 
 ## Database
 
-`docs/sql/2026-09-24-platform-events.sql` — `platform_events` and
-`platform_event_reads`.
+- `docs/sql/2026-09-24-platform-events.sql` — `platform_events` and
+  `platform_event_reads`.
+- `docs/sql/2026-09-24-admin-app-own-notifications.sql` — `admin_fcm_tokens` and
+  `admin_push_subscriptions`, the admin app's own devices. **Applied.**

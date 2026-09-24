@@ -53,15 +53,19 @@ export async function removeFcmToken(token) {
   await supabase.from("fcm_tokens").delete().eq("token", token);
 }
 
-// Send to every device this client has registered. Mirrors sendPush: fans out,
-// counts, prunes a token FCM reports as dead (UNREGISTERED / 404), logs the rest,
-// and never throws.
-export async function sendFcm(clientId, payload = {}) {
+// Send to a list of device tokens. Fans out, counts, prunes a token FCM reports
+// as dead (UNREGISTERED / 404), logs the rest, and never throws.
+//
+// Separated from sendFcm so the admin app can reuse it: since 2026-09-24 the
+// admin app's devices live in their own table keyed by email, not by client id
+// (src/lib/admin-push.js), but the sending is identical — same Firebase project,
+// same service account, only a different list of tokens. `onDead` is how the
+// caller prunes from ITS own table.
+export async function sendFcmToTokens(tokens, payload = {}, onDead = removeFcmToken) {
   try {
     if (!serviceAccount()) return { sent: 0, reason: "not_configured" };
-    if (!clientId) return { sent: 0, reason: "no_client" };
-    const { data: rows } = await supabase.from("fcm_tokens").select("token").eq("client_id", clientId);
-    if (!rows?.length) return { sent: 0, reason: "no_tokens" };
+    const list = (tokens || []).filter(Boolean);
+    if (!list.length) return { sent: 0, reason: "no_tokens" };
     const at = await accessToken();
     if (!at) return { sent: 0, reason: "no_token" };
 
@@ -72,7 +76,7 @@ export async function sendFcm(clientId, payload = {}) {
     if (payload.tag) data.tag = String(payload.tag);
 
     let sent = 0;
-    await Promise.all(rows.map(async ({ token }) => {
+    await Promise.all(list.map(async (token) => {
       const message = {
         message: {
           token,
@@ -91,13 +95,27 @@ export async function sendFcm(clientId, payload = {}) {
         const err = await res.json().catch(() => ({}));
         const code = err?.error?.details?.find?.((d) => d.errorCode)?.errorCode || err?.error?.status;
         // The device unregistered (app removed, token rotated). Prune it.
-        if (res.status === 404 || code === "UNREGISTERED" || code === "NOT_FOUND") await removeFcmToken(token);
+        if (res.status === 404 || code === "UNREGISTERED" || code === "NOT_FOUND") await onDead(token);
         else console.error("[fcm] send failed:", res.status, code || "");
       } catch (e) {
         console.error("[fcm] send error:", String(e?.message || e).slice(0, 160));
       }
     }));
-    return { sent, tokens: rows.length };
+    return { sent, tokens: list.length };
+  } catch (e) {
+    console.error("[fcm]", String(e?.message || e).slice(0, 160));
+    return { sent: 0, reason: "error" };
+  }
+}
+
+// Send to every device this client has registered.
+export async function sendFcm(clientId, payload = {}) {
+  try {
+    if (!serviceAccount()) return { sent: 0, reason: "not_configured" };
+    if (!clientId) return { sent: 0, reason: "no_client" };
+    const { data: rows } = await supabase.from("fcm_tokens").select("token").eq("client_id", clientId);
+    if (!rows?.length) return { sent: 0, reason: "no_tokens" };
+    return await sendFcmToTokens(rows.map((r) => r.token), payload);
   } catch (e) {
     console.error("[fcm]", String(e?.message || e).slice(0, 160));
     return { sent: 0, reason: "error" };

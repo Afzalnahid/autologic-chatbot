@@ -1,0 +1,20 @@
+{
+  "name": "tellmoreai-admin-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The ADMIN app: a Capacitor shell that opens https://www.tellmoreai.com/admin in its own WebView. A separate Android app from the one in mobile/ (owner, 2026-09-24: 'the admin app and the user app will be separated'), with its own package id, its own icon and its own notifications. Fewer plugins than the user app on purpose — the console never takes a photo, records a voice note or asks for a location.",
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/browser": "^6.0.6",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/dialog": "^6.0.2",
+    "@capacitor/push-notifications": "^6.0.2",
+    "@capacitor/splash-screen": "^6.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.1.2",
+    "sharp": "^0.33.5"
+  }
+}

@@ -206,17 +206,12 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
               <i className="ti ti-refresh" style={{ animation: loading ? "spin 0.8s linear infinite" : "none", fontSize: 17 }} />
             </button>}
             <ThemeToggle mode={mode} toggle={toggleTheme} style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent" }} />
-            {/* The way into the admin console, for the one or two people who run
-                the platform. Only shown when /api/me says so, and it grants
-                nothing by itself — every admin action is guarded where it is
-                done. Without this an admin on the phone could reach /admin
-                only by tapping a notification (owner, 2026-09-24: "should I
-                need an admin app like the TellMore AI user app?" — no, but
-                there has to be a door). */}
-            {me?.is_admin && <a href="/admin" className="pbtn" title="Admin console" aria-label="Admin console"
-              style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", color: T.gold, textDecoration: "none" }}>
-              <i className="ti ti-shield-lock" style={{ fontSize: 17 }} />
-            </a>}
+            {/* There is deliberately NO link to /admin here. This app belongs to
+                the business owner; the admin console is a separate app with its
+                own icon and its own notifications (owner, 2026-09-24: "the admin
+                app and the user app will be separated"). A shield button lived
+                here for a few hours and turned the user app into the console the
+                moment it was tapped. Do not add it back. */}
             <button onClick={onLogout} className="pbtn" title={t("shell.logout")} aria-label={t("shell.logout")}
               style={{ width: 34, height: 34, borderRadius: 9, boxShadow: "none", background: "transparent" }}>
               <i className="ti ti-logout" style={{ fontSize: 17 }} />

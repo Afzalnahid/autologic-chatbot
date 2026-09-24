@@ -68,6 +68,27 @@ export async function sendPush(clientId, payload = {}) {
     const { data: subs } = await supabase.from("push_subscriptions")
       .select("endpoint,p256dh,auth").eq("client_id", clientId);
     if (!subs || !subs.length) return { sent: 0, reason: "no_subscriptions" };
+    return await sendPushToSubs(subs, payload);
+  } catch (e) {
+    console.error("[push] sendPush:", e?.message || e);
+    return { sent: 0, reason: "error" };
+  }
+}
+
+// Send to a list of subscription rows ({ endpoint, p256dh, auth }).
+//
+// Separated from sendPush so the admin console can reuse it: since 2026-09-24
+// an admin's browsers live in their own table keyed by email rather than by
+// client id (src/lib/admin-push.js). The encryption and the pruning are
+// identical; only the list differs, and `onDead` prunes from the caller's table.
+export async function sendPushToSubs(subs, payload = {}, onDead = removeSubscription) {
+  try {
+    if (!configure()) {
+      console.error("[push] NOT configured — VAPID keys missing on the server. Nothing was sent.");
+      return { sent: 0, reason: "not_configured" };
+    }
+    const list = subs || [];
+    if (!list.length) return { sent: 0, reason: "no_subscriptions" };
 
     const body = JSON.stringify({
       title: String(payload.title || "TellMore AI"),
@@ -77,7 +98,7 @@ export async function sendPush(clientId, payload = {}) {
     });
 
     let sent = 0;
-    await Promise.all(subs.map(async (s) => {
+    await Promise.all(list.map(async (s) => {
       const subscription = { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } };
       try {
         await webpush.sendNotification(subscription, body, { TTL: 3600 });
@@ -85,13 +106,13 @@ export async function sendPush(clientId, payload = {}) {
       } catch (e) {
         const code = e?.statusCode;
         // 404/410 = the browser dropped this subscription. Prune it.
-        if (code === 404 || code === 410) await removeSubscription(s.endpoint);
+        if (code === 404 || code === 410) await onDead(s.endpoint);
         else console.error("[push] send failed:", code, e?.body || e?.message || e);
       }
     }));
-    return { sent, subscriptions: subs.length };
+    return { sent, subscriptions: list.length };
   } catch (e) {
-    console.error("[push] sendPush:", e?.message || e);
+    console.error("[push] sendPushToSubs:", e?.message || e);
     return { sent: 0, reason: "error" };
   }
 }

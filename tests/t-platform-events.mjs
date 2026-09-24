@@ -112,20 +112,42 @@ ok("tapping one opens that business", /openDetail\(e\.client_id\)/.test(bell));
 ok("a bell that cannot load stays quiet about it", /if \(!r \|\| r\.error\) return;/.test(bell));
 ok("it is placed in the console's header", /<AdminBell /.test(read("src", "app", "admin", "admin-client.js")));
 
-// ── the same app the clients use IS the admin app ───────────────────────────
-// Owner, 2026-09-24: "Should I need an admin app like the TellMore AI user
-// app?" No — but only because these three things hold. If any of them breaks,
-// an admin on a phone is locked out of the console again.
+// ── the admin app and the user app are two different apps ───────────────────
+// Owner, 2026-09-24: "my native app which is for users automatically converted
+// to admin app — the admin app and the user app will be separated. There will
+// be two separated apps, one is for user where the user notification comes, and
+// an admin app where the admin panel notifications come."
+//
+// A shield button in the client dashboard and admin alerts addressed to an
+// admin's own CLIENT id are what merged them. Both are gone, and these
+// assertions are here so neither comes back by accident.
 {
-  const me = read("src", "app", "api", "me", "route.js");
-  ok("the dashboard is told whether this person also runs the platform", /is_admin: isAdmin/.test(me) && /admin_users/.test(me));
-
   const shell = read("src", "app", "dashboard", "components", "Shell.js");
-  ok("and shows a door into the console when they do", shell.includes('me?.is_admin && <a href="/admin"'));
+  ok("the client dashboard has NO link to the admin console", !/href="\/admin"/.test(shell));
+  ok("and /api/me does not tell it who is an admin",
+    !/is_admin/.test(read("src", "app", "api", "me", "route.js")));
 
-  // A platform alert always carries /admin, and both notification paths honour
-  // the url it carries — so tapping one inside the Android app lands there.
-  ok("a platform alert points at the console", read("src", "lib", "platform-events.js").includes('url: "/admin"'));
+  const ev = read("src", "lib", "platform-events.js");
+  ok("platform alerts go to admins by EMAIL, not by their client id",
+    /notifyAdmin\(email/.test(ev) && !/adminClientIds/.test(ev));
+  ok("…through the admin-only sender", /admin-push\.js/.test(ev));
+  ok("a platform alert still points at the console", ev.includes('url: "/admin"'));
+
+  const ap = read("src", "lib", "admin-push.js");
+  ok("an admin device is stored in its own table", /admin_fcm_tokens/.test(ap) && /admin_push_subscriptions/.test(ap));
+  ok("and nothing in there reads a client's devices",
+    !/from\("fcm_tokens"\)/.test(ap) && !/from\("push_subscriptions"\)/.test(ap));
+  ok("client sending never reads the admin tables",
+    !/admin_/.test(read("src", "lib", "fcm.js")) && !/admin_/.test(read("src", "lib", "push.js")));
+
+  const reg = read("src", "app", "admin", "admin-push.js");
+  ok("only the admin app may register as an admin device", /com\.tellmoreai\.admin/.test(reg));
+  ok("the check is made before the token is sent", /isAdminApp\(\)\)\) return/.test(reg));
+  ok("registration is auth-gated on the server",
+    /callerRole/.test(read("src", "app", "api", "admin", "push", "route.js")));
+
+  // Both notification paths still follow the url they are given, which is what
+  // lets an admin alert open the console inside the ADMIN app.
   ok("the native app opens the url a notification carries",
     read("src", "app", "dashboard", "components", "native-push.js").includes("window.location.href = url;"));
   ok("so does the browser's service worker", read("public", "sw.js").includes("openWindow(url)"));

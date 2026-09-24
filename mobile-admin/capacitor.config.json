@@ -1,0 +1,23 @@
+{
+  "appId": "com.tellmoreai.admin",
+  "appName": "TellMore AI Admin",
+  "webDir": "www",
+  "backgroundColor": "#FCFCFD",
+  "server": {
+    "url": "https://www.tellmoreai.com/admin",
+    "cleartext": false
+  },
+  "android": {
+    "backgroundColor": "#FCFCFD"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 2500,
+      "launchFadeOutDuration": 250,
+      "backgroundColor": "#FCFCFD",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    }
+  }
+}

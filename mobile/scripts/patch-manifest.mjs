@@ -60,7 +60,11 @@ if (lines.length) {
 done.push(`${lines.length} permission(s)`);
 
 // ── 2. tellmoreai:// opens the app ──────────────────────────────────────────
-const SCHEME = "tellmoreai";
+// TM_APP_SCHEME lets the admin app claim its own address (2026-09-24): two apps
+// registering the SAME scheme makes Android ask the person which one to open,
+// every time. The user app keeps "tellmoreai" — that is the address the channel
+// and calendar logins already come back to, and changing it would break them.
+const SCHEME = process.env.TM_APP_SCHEME || "tellmoreai";
 if (!xml.includes(`android:scheme="${SCHEME}"`)) {
   if (!/<\/activity>/.test(xml)) throw new Error("AndroidManifest.xml: no <activity> to add the app address to");
   if (!/android:name="\.MainActivity"/.test(xml)) throw new Error("AndroidManifest.xml: MainActivity not found");

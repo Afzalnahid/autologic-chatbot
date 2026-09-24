@@ -98,6 +98,12 @@ Google Calendar · Vercel (`tellmoreai.com`)
   shared components — **the** source of truth for styling) and `session.js` (auth
   token and the `api()` helper).
 - `docs/` — architecture, database, security, error handling, phases, prompts.
+- `mobile-admin/` — the **admin** Android app, a second, separate app
+  (`com.tellmoreai.admin`, opens `/admin`, its own icon and its own
+  notifications). The user app and the admin app must never merge again:
+  platform alerts go to `notifyAdmin(email)` and admin devices live in
+  `admin_fcm_tokens`, so neither audience can reach the other's phone. The
+  client dashboard has no link to `/admin`. See `mobile-admin/README.md`.
 - `mobile/` — the native Android app: a Capacitor shell (own `package.json`,
   isolated from the Next.js build) that shows the live site in its own WebView.
   Built free on GitHub Actions (`.github/workflows/android-build.yml`, manual
