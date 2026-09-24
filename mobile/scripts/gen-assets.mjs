@@ -25,10 +25,23 @@
 import sharp from "sharp";
 import { mkdirSync } from "node:fs";
 
-mkdirSync("assets", { recursive: true });
-
 const MAROON = "#7B1C3E", MAROON_DEEP = "#5C1430";
 const LIGHT = "#FCFCFD", DARK = "#0B0B0E";
+
+// The ADMIN app is built from this same drawing in a deeper shade, so the two
+// icons are told apart on the home screen while still reading as one product
+// (owner, 2026-09-24: two separate apps). Its workflow sets these; unset means
+// the user app's own colours, so nothing about that build changes.
+//   TM_FIELD_FROM / TM_FIELD_TO — the two ends of the icon's diagonal field
+//   TM_OUT                      — where to write, default ./assets
+// Parameterising beats a second copy of the logo: two copies drift apart, and
+// the last time the icon changed it was because the owner said the old one
+// "can't define the app".
+const FIELD_FROM = process.env.TM_FIELD_FROM || "#8A2348";
+const FIELD_TO = process.env.TM_FIELD_TO || MAROON_DEEP;
+const OUT = process.env.TM_OUT || "assets";
+
+mkdirSync(OUT, { recursive: true });
 
 const mark = (color, ink) =>
   `<path fill="${color}" d="M330 522V517A115 115 0 0 1 445 402H580A115 115 0 0 1 695 517V522H632.6A74 74 0 0 0 559 456H466A74 74 0 0 0 392.4 522Z"/>` +
@@ -39,7 +52,7 @@ const mark = (color, ink) =>
   `<circle cx="512" cy="350" r="14" fill="${ink}"/>` +
   `<path d="M424 514Q447 481 470 514M554 514Q577 481 600 514" stroke="${ink}" stroke-width="13" stroke-linecap="round" fill="none"/>`;
 
-const field = (id) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A2348"/><stop offset="1" stop-color="${MAROON_DEEP}"/></linearGradient></defs>`;
+const field = (id) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${FIELD_FROM}"/><stop offset="1" stop-color="${FIELD_TO}"/></linearGradient></defs>`;
 
 // Adaptive foreground: the white mark, 1.15× (an 870-unit window on the drawing,
 // centred on the mark's own centre, 512 × 504).
@@ -57,7 +70,7 @@ const splash = (bg) => `<svg xmlns="http://www.w3.org/2000/svg" width="2732" hei
 // keeps only the alpha channel). The face is a real hole, so it still reads.
 const notif = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="257 249 510 510">${mark("#fff", "#fff")}</svg>`;
 
-const write = (name, source) => sharp(Buffer.from(source)).png().toFile(`assets/${name}`);
+const write = (name, source) => sharp(Buffer.from(source)).png().toFile(`${OUT}/${name}`);
 
 await Promise.all([
   write("icon-foreground.png", foreground),
@@ -67,4 +80,4 @@ await Promise.all([
   write("notif-icon.png", notif),
 ]);
 
-console.log("TellMore AI icon + splash source images written to mobile/assets/ (maroon field, white mark)");
+console.log(`TellMore AI icon + splash source images written to ${OUT}/ (white mark on ${FIELD_FROM} → ${FIELD_TO})`);
