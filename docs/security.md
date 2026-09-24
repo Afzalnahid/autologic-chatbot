@@ -2,6 +2,66 @@
 
 ---
 
+## 0. Where it stands (audited 2026-09-25)
+
+Run against the **live** project, not read off the code. The owner asked how
+likely a successful attack is; this is what was actually checked.
+
+**Holding:**
+
+- **Every one of the 32 public tables has RLS enabled.** 24 of them have no
+  policy at all, which is the tightest possible state — only the service key can
+  touch them. Supabase's linter flags that as INFO; for this design it is the
+  correct answer, not a finding.
+- The 8 tables that *do* have a policy are all scoped the same way:
+  `client_id in (select id from clients where owner_email = auth.jwt()->>'email')`.
+  A signed-in owner reaches their own rows and nobody else's, enforced by the
+  database rather than by remembering to write `.eq()`. The policies are `ALL`
+  with no separate `WITH CHECK`, so Postgres applies the same test to INSERT and
+  UPDATE — a tenant cannot write a row onto another tenant's id either.
+- **Meta webhooks verify `x-hub-signature-256`** with an HMAC and
+  `timingSafeEqual` (`api/messenger`, `api/whatsapp`), so forged events are
+  rejected.
+- **The payment IPN does not trust its own body.** `api/billing/ipn` calls
+  `validateTransaction(val_id)` back to SSLCommerz and checks `amountMatches`
+  before activating anything, so a forged callback cannot buy a plan.
+- **Every OAuth return is signed.** `verifyState` (`lib/oauth-state.js`, 30-min
+  TTL) guards `fb|ig|wa/select` and the callbacks, so a channel cannot be
+  attached to someone else's account.
+- **Rate limiting** is on the routes that matter, including `/api/auth`
+  (brute force) and the public widget chat, which additionally checks the
+  request origin against the channel's allowed domains.
+
+**Found and fixed the same day:**
+
+- `record_ai_usage` (the 12-argument overload) was `SECURITY DEFINER` and
+  callable by `anon` — i.e. by anyone, since the publishable key is in the
+  browser bundle. It writes `usage_daily` for whatever `client_id` it is given,
+  so a stranger could have driven a paying client into their monthly cap and
+  silenced their bot, and corrupted the billing numbers. `log_allowance_event`
+  was exposed the same way. Both revoked:
+  `docs/sql/2026-09-25-lock-security-definer-functions.sql`. Verified after:
+  anon no, authenticated no, service_role yes.
+  **The lesson generalises:** revoking one overload says nothing about the next.
+  Every new argument added to a `SECURITY DEFINER` function creates a fresh
+  signature that starts with `GRANT EXECUTE TO PUBLIC`. Re-run the linter after
+  any migration that changes a function.
+
+**Still open, for the owner:**
+
+- **Leaked-password protection is off.** Supabase → Authentication → Policies →
+  enable the HaveIBeenPwned check, so no admin or client can pick a password
+  that is already in a public breach. One switch.
+- The `vector` extension lives in the `public` schema. Low risk, tidy-up only.
+
+The honest summary: the ways in that would actually hurt — reading another
+business's data, faking a payment, forging a webhook — are each closed by
+something the database or a signature enforces, not by a convention. The
+realistic risk is not the code; it is a leaked key or a guessed password, which
+is why the two items above are the ones worth doing.
+
+---
+
 ## 1. Golden rule
 
 **No secret is ever hardcoded, and no fallback value is ever used for a secret.**
