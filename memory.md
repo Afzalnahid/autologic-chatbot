@@ -114,6 +114,18 @@ its own JS chunks (stale `.next` — `rm -rf .next` and restart fixed it), and a
 ate every backtick. `/shots?tab=admin` renders the console with stubbed data, so it can be
 looked at without signing in — that is how both faults were found.
 
+### All 13 alert kinds are now raised (`205732f`)
+The six that existed only as catalogue entries are wired: `trial_started` (/api/me),
+`plan_activated` (/api/admin, on approve), `plan_expired` and the NEW `trial_ending`
+(/api/cron/expiry, on the LAST day — `daysLeft === 0`, not once already gone, or it would
+alert about the same client every morning), `admin_signup` (/api/admin, pushes AND emails),
+`provider_switched` (/api/admin/ai, names who threw it), `client_deleted` (/api/admin).
+`trial_started` and `client_deleted` are deliberately **not** pushed — one is good news that
+can wait, the other is something an admin just did on purpose.
+**The real fix:** `t-platform-events` now walks EVERY kind in `EVENTS` and fails if nothing
+in `src/` raises it. The old test only checked the six that already worked, which is exactly
+why six broken ones survived for weeks. 77/77 suites, t-platform-events at 79.
+
 ### Next up
 0. **URGENT, found by the 2026-09-24 test sweep: the platform's own emails are almost
    certainly dead.** Resend now holds exactly ONE api key ("Tellmore Ai", Full access,
@@ -128,7 +140,7 @@ looked at without signing in — that is how both faults were found.
    **And the failure is silent** — `src/lib/email.js` `send()` never throws and every caller
    does `.catch(() => {})`, so a 401 from Resend tells nobody. Worth a `key_failing` event;
    see item 1.
-1. Wire the six unraised event kinds (one `logEvent` line each, see `docs/admin-notifications.md`).
+1. ~~Wire the six unraised event kinds~~ — DONE, see the section above.
 2. **`CRON_SECRET` is DONE on Vercel** (owner set it 2026-09-24 ~09:09 UTC, production
    target). Verified, not assumed: a wrong bearer token gets **401** from all four of
    `/api/cron/{expiry,channels,embeddings,followups}`.
