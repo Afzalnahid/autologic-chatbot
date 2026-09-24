@@ -1691,3 +1691,18 @@ Second half of the same lesson: the day before, answering "should I need an
 admin app?" with "no, the app can already open /admin" was technically true and
 practically wrong. Being ABLE to reach a page is not the same as that page
 belonging in the app. The owner reversed it within hours, and he was right.
+
+## 2026-09-24 — a flag is not a file
+The admin app's first build died at resource linking: "resource
+mipmap/ic_launcher_background not found". The build had deleted
+icon-background.png and passed --iconBackgroundColor instead, assuming the flag
+would stand in for the image. It does not — @capacitor/assets still writes an
+adaptive ic_launcher.xml that REFERENCES @mipmap/ic_launcher_background, so the
+file has to exist. A setting that describes a thing is not the thing.
+The deeper miss was in the test. t-two-apps asserted the workflow contained the
+line that deleted the file — it was checking that the mistake was spelled
+correctly. A source check can only confirm that the text says what you meant;
+it cannot tell you the meaning was wrong. The suite now RUNS the generator with
+sharp stubbed out and asserts the five files land where they are told, which is
+the assertion that would have caught this before a build minute was spent.
+Rule: when a step produces FILES, test the files, not the command line.
