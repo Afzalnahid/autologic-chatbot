@@ -40,7 +40,7 @@ if (!APP_SECRET) return new NextResponse("Server misconfigured", { status: 500 }
 | `ADMIN_PASSWORD`, `ADMIN_EMAILS` | server | Admin console |
 | `PAYMENT_BKASH`, `PAYMENT_NAGAD`, `PAYMENT_ROCKET` | server | Shown on the billing page |
 | `GITHUB_TOKEN` | server | Deployment tooling |
-| `CRON_SECRET` | server | Optional but recommended. Locks `/api/cron/*` — Vercel sends it as `Authorization: Bearer …`; for `/api/cron/followups` the GitHub workflow sends it from a repository secret of the same name. Unset leaves the endpoint open (see [architecture.md §7](./architecture.md)). |
+| `CRON_SECRET` | server | **Set on Vercel since 2026-09-24.** Locks `/api/cron/*` — Vercel sends it as `Authorization: Bearer …` to the three crons in `vercel.json`; `/api/cron/followups` is called by GitHub Actions, so a **repository secret of the same name and value** is also required or that job gets 401 and no follow-up is sent. Unset would leave every endpoint open (see [architecture.md §7](./architecture.md)). |
 | `GEMINI_MODELS` | server | Optional. Comma-separated last-resort model chain; overrides the built-in `gemini-3.6-flash,gemini-3.8-flash` without a deploy. The fallback is never an older generation (owner, 2026-09-19); keep it in step with Admin → AI Engine. |
 
 Never paste a Gemini key into a chat or an issue — Google scans for leaked keys and

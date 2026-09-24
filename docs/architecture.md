@@ -407,7 +407,19 @@ from GitHub Actions because Vercel's Hobby plan allows a cron only once a day:
 |---|---|---|---|
 | `/api/cron/expiry` | `0 4 * * *` (10:00 Dhaka) | `vercel.json` | Emails every owner whose trial or plan ends within 3 days. |
 | `/api/cron/channels` | `30 4 * * *` | `vercel.json` | Checks every channel token (see above). |
+| `/api/cron/embeddings` | `0 5 * * *` | `vercel.json` | Re-embeds rows whose vector was made by a different provider (see [two-ai-providers.md](./two-ai-providers.md)). |
 | `/api/cron/followups` | every 30 min | `.github/workflows/followups.yml` | Sends the follow-ups that are due, for every account that switched them on. |
+
+All four refuse a request without `Authorization: Bearer $CRON_SECRET`, which
+has been set on Vercel since 2026-09-24 — verified by probing each endpoint with
+a wrong token and getting 401. The three in `vercel.json` get that header from
+Vercel automatically. The follow-up one is called by GitHub Actions and needs a
+**repository secret of the same name and value**, and it must call the **`www`**
+host: the apex `tellmoreai.com` answers 308, `curl` does not follow a redirect
+unless told to, and even with `-L` it drops the `Authorization` header when the
+host changes. Calling the apex is what silently stopped this job — every run
+from the day the redirect appeared returned 308 and sent nothing (found and
+fixed 2026-09-24).
 
 Two reminders go out per plan period, not one: the first on entering the last
 three days, the second on the final day. One warning followed by three days of
