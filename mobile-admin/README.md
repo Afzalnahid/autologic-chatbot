@@ -51,23 +51,23 @@ by sideloading exactly like the user app.
 Web changes reach it by themselves — it loads the live site. Only the shell
 (icon, name, start url, plugins, permissions) needs a rebuild.
 
-## Before the first build — one step for the owner
+## Firebase — done (2026-09-24)
 
-The app needs its own Firebase registration, or it will build but never receive
-a notification. The **same** Firebase project as the user app, a second Android
-app inside it:
+`google-services.json` is in place: project `getvoicium` (`869664348441`), the
+same one the user app uses, with `com.tellmoreai.admin` registered inside it
+(app id `1:869664348441:android:6d1224c01df4c1062d8d88`).
 
-1. Firebase console → the existing project → **Project settings** → **Your apps**
-   → **Add app** → **Android**.
-2. Package name: `com.tellmoreai.admin` — exactly this. App nickname: anything.
-3. Download the `google-services.json` it gives you.
-4. Put that file at `mobile-admin/google-services.json` and commit it.
+No new service account was needed — `FIREBASE_SERVICE_ACCOUNT` on Vercel covers
+the whole project and sends to both apps. `tests/t-two-apps.mjs` checks the file
+lists the admin package and belongs to the same project, so a config from the
+wrong project cannot ship quietly.
 
-No new service account is needed: `FIREBASE_SERVICE_ACCOUNT` on Vercel is for
-the whole project, and it sends to both apps.
+Committing this file is deliberate and safe: it holds no secret (the key in it
+is an Android client key, tied to the package name), and the user app's copy has
+been in this public repo since the first build.
 
-Until that file exists the workflow still finishes and prints a warning, so the
-app can be tried before push is set up.
+If the app is ever re-registered, replace the file and keep the package name
+exactly `com.tellmoreai.admin`.
 
 ## Turning notifications on
 

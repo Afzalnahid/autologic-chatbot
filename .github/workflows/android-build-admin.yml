@@ -10,9 +10,10 @@
 # Because the package ids differ, both apps install side by side on the same
 # phone and neither replaces the other. Manual trigger only.
 #
-# BEFORE THE FIRST RUN the owner must add this second app to the SAME Firebase
-# project and commit its config — see mobile-admin/README.md. Without it the
-# build still produces an APK, but the app cannot receive notifications.
+# The Firebase config for this package is committed
+# (mobile-admin/google-services.json — project getvoicium, the same project the
+# user app uses), so notifications work as soon as the app is installed and
+# signed in. See mobile-admin/README.md.
 name: Build Admin Android APK
 
 on:
@@ -82,14 +83,21 @@ jobs:
         working-directory: mobile-admin
         run: npx cap add android
 
+      # Fails rather than warns: the file is committed, so if it has gone the
+      # build would quietly produce an app that can never be notified — which is
+      # the whole point of this app.
       - name: Add Firebase config (enables FCM push)
         working-directory: mobile-admin
         run: |
           if [ ! -f google-services.json ]; then
-            echo "::warning::mobile-admin/google-services.json is missing — the admin app will build but will NOT receive notifications. See mobile-admin/README.md."
-          else
-            cp google-services.json android/app/google-services.json
+            echo "::error::mobile-admin/google-services.json is missing. Without it the admin app cannot receive notifications. See mobile-admin/README.md."
+            exit 1
           fi
+          grep -q '"package_name": "com.tellmoreai.admin"' google-services.json || {
+            echo "::error::google-services.json does not list com.tellmoreai.admin — wrong file, or the app was registered under another package name."
+            exit 1
+          }
+          cp google-services.json android/app/google-services.json
 
       # tellmoreai-admin:// rather than tellmoreai://. Two apps claiming one
       # scheme makes Android ask which to open, every single time.
