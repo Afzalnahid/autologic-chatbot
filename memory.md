@@ -816,7 +816,40 @@ again?"
     first; the owner will then notify Claude Code, which reviews the full set
     of changes in one pass before anything more is built or shipped. Do not
     start handoff Part 2 items before that notice.
-  - ★★★★★★★★★★★★ NEWEST OF ALL (2026-09-24) — TWO AI PROVIDERS, ONE AT A TIME.
+  - ★★★★★★★★★★★★★ NEWEST OF ALL (2026-09-24) — THE ADMIN CONSOLE HAS A BELL.
+    Owner: "From the admin panel I don't get any notifications when any customer
+    enters or any error occurs or something happens, it is bad for me."
+    · TRUE. Two emails existed in the whole product (payment request, new admin
+      signup) and the console had NO bell at all. A business could register, a
+      bot could stop, an AI key could die, a channel could fall off and a route
+      could start throwing — nobody was told. Vercel keeps runtime logs 1 hour
+      on this plan, so an unwatched error was simply gone.
+    · NEW: platform_events + platform_event_reads tables
+      (docs/sql/2026-09-24-platform-events.sql, applied and exercised: insert,
+      read, double-read is harmless, reads cascade on delete).
+      src/lib/platform-events.js holds the CATALOGUE (11 kinds, each with
+      severity + whether it pushes + whether it emails) and is pure enough to
+      test. /api/admin/events serves the bell; src/app/admin/AdminBell.js is
+      the bell, in the console header beside Refresh.
+    · WIRED AT: client register (/api/me), payment request (/api/billing),
+      any thrown route error (route-errors.js, lazily imported inside the
+      catch so the safety net cannot be the thing that fails), AI key dying
+      (ai.js markFailing), bot blocked (bot.js handleUnavailable), channel
+      expired (cron/channels). All fire-and-forget — none can block or break
+      the path it sits in.
+    · NOISE CONTROL: server_error collapses to one row per 10 min, bot_blocked
+      / key_failing / channel_expired one per hour per client. Signups and
+      payments are NEVER suppressed. Email is spent on only 2 kinds; the rest
+      are bell + phone push (push reaches admins through their OWN client id,
+      since every admin also owns a client).
+    · Reads are per-admin email, so two admins do not clear each other's bell.
+    · tests/t-platform-events.mjs (50). 76/76, build compiles.
+    · TWO REAL BUGS CAUGHT BY THE EXISTING SUITES: a duplicate `display` key in
+      the bell's style (the 2-line clamp would not have worked) and
+      ADMIN_EMAILS missing from .env.example.
+    · NOT VERIFIED: no event has been raised by a real signup yet — the table
+      is empty. First real proof is a real sign-up or a real error.
+  - ★★★★★★★★★★★★ (2026-09-24) — TWO AI PROVIDERS, ONE AT A TIME.
     Owner: one key runs the WHOLE system — Gemini or OpenAI, never a mixture;
     two switches, one on turns the other off, both off allowed, both on never;
     clients pick provider + primary + fallback; embeddings handled

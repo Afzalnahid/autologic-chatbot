@@ -278,6 +278,8 @@ export async function platformChat(clientId, feature) {
 }
 
 // Fire-and-forget bookkeeping: the customer's reply never waits on it.
+// The platform owner is told too — a client whose key has died is a client
+// whose bot is silent, and they usually need help rather than a lecture.
 // Also emails the client ONCE when the key flips from working to failing — the
 // transition is detected atomically (the update only matches a row that was not
 // already "failing"), so a healthy→broken event mails them, but the next failed
@@ -310,6 +312,16 @@ async function markFailing(clientId, e) {
       body: "The bot is paused until it is fixed. Open AI Engine to check the key.",
       url: "/dashboard#ai", tag: "key-failing",
     }).catch(() => {});
+    // And the platform owner, on the admin console's bell: a client whose key
+    // has died is a client whose bot is silent, and they usually need help
+    // rather than to be left to notice.
+    import("@/lib/platform-events.js").then(({ logEvent }) => logEvent({
+      kind: "key_failing",
+      title: "A client's AI key stopped working",
+      body: `${flipped.provider || "?"}${flipped.model ? "/" + flipped.model : ""} — ${errMsg}`,
+      clientId,
+      clientName: c?.business_name || null,
+    })).catch(() => {});
   } catch (err) {
     console.error("[ai] markFailing:", String(err?.message || err).slice(0, 160));
   }

@@ -1620,3 +1620,18 @@ only as good as its call sites. `embedProduct()` gained `embedding_model`, and
 two routes were destructuring `{ content, embedding }` and dropping it, which
 would have labelled every new product with the wrong vector space for ever.
 When a helper's return shape grows, grep every call site for destructuring.
+
+## 2026-09-24 — the console that watched everything and reported nothing
+The admin panel showed every number about every client and had no way to tell
+the owner that anything had happened. Two emails existed in the entire product.
+A business could sign up, a bot could go silent, an AI key could die and a route
+could start throwing 500s, and the only trace was a Vercel log that this plan
+keeps for one hour.
+Rule: a console is for watching, but watching requires being told. Anything that
+changes money, breaks a client, or brings a new one in gets a row the owner can
+see later — not only a console.error that expires. And the same discipline the
+customer-facing alerts follow applies here: a storm collapses into one row (ten
+minutes for errors, an hour per client for the rest), email is spent on the two
+things that must not wait, and nothing is raised that the owner could not act
+on. A bell that rings for everything is a bell that gets switched off, and then
+the urgent ones are lost with the rest.

@@ -126,6 +126,15 @@ async function handleUnavailable(channel, senderId, block, platform) {
     if (lastNotified && now - lastNotified < 24 * 3600 * 1000) return;
     if (!client.owner_email) return;
 
+    // The platform owner too: a silent bot is usually a sale to rescue, and
+    // they were finding out from the client rather than the console.
+    import("@/lib/platform-events.js").then(({ logEvent }) => logEvent({
+      kind: "bot_blocked",
+      title: "A bot stopped replying",
+      body: `${block.reason || "limit"}${block.used != null ? ` — ${block.used}/${block.limit}` : ""} · plan ${client.plan || "none"}`,
+      clientId: client.id,
+      clientName: client.business_name || null,
+    })).catch(() => {});
     const { notifyBotBlocked } = await import("@/lib/email.js");
     await notifyBotBlocked(client.owner_email, {
       business: client.business_name,

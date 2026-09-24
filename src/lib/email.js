@@ -205,6 +205,24 @@ export async function notifyNeedsHuman(clientEmail, { customer, preview, platfor
   });
 }
 
+// Something the platform owner has to know about, by email as well as on the
+// console's bell — the ones that cost money or block a client if they sit
+// unread (src/lib/platform-events.js decides which).
+export async function notifyPlatformEvent(adminEmail, { icon, label, title, body, client_name, kind }) {
+  return send({
+    to: adminEmail,
+    subject: `${title}${client_name ? " — " + client_name : ""} — TellMore AI admin`,
+    html: clientWrap(
+      `${icon || ""} ${esc(label || title)}`,
+      `<strong>${esc(title)}</strong>
+       ${client_name ? `<br/><span style="color:#c9d3e6">${esc(client_name)}</span>` : ""}
+       ${body ? `<br/><br/>${esc(body)}` : ""}
+       <br/><br/>Open the <a href="https://www.tellmoreai.com/admin" style="color:#7B1C3E;text-decoration:none">admin console</a> to act on it.
+       <br/><br/><span style="font-size:12px;color:#8b9cbd">Event: ${esc(kind || "")}</span>`
+    ),
+  });
+}
+
 // A connected channel's token stopped working: the bot can no longer see or
 // answer messages there until the owner reconnects it.
 export async function notifyChannelExpired(clientEmail, { business, platform, name }) {

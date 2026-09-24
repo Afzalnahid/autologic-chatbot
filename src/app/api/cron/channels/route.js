@@ -59,6 +59,13 @@ export async function GET(request) {
       }).catch(() => {});
       const { data: c } = await supabase.from("clients").select("owner_email,business_name").eq("id", ch.client_id).maybeSingle();
       if (c?.owner_email) notifyChannelExpired(c.owner_email, { business: c.business_name, platform: "facebook", name: ch.name }).catch(() => {});
+      import("@/lib/platform-events.js").then(({ logEvent }) => logEvent({
+        kind: "channel_expired",
+        title: "A channel needs reconnecting",
+        body: `Facebook · ${ch.name || ch.page_id}`,
+        clientId: ch.client_id,
+        clientName: c?.business_name || null,
+      })).catch(() => {});
     } catch (e) {
       failed.push({ id: ch.id, error: String(e?.message || e).slice(0, 160) });
     }

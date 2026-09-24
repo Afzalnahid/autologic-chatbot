@@ -9,6 +9,7 @@ import { loadPlans, limitsFor } from "@/lib/plan-limits.js";
 import { clientHasOwnKey } from "@/lib/ai.js";
 import { entitlementsFor } from "@/lib/entitlements.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
+import { logEvent } from "@/lib/platform-events.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { sslEnabled } from "@/lib/sslcommerz.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
@@ -148,6 +149,15 @@ export const POST = withErrors(async (request) => {
     amount,
     method,
     txnId: String(txn_id).trim(),
+  }).catch(() => {});
+  // …and on the console's bell, where the decision is actually made.
+  logEvent({
+    kind: "payment_request",
+    title: `${amount} for ${chosen.name || plan}`,
+    body: `${method} · ${String(txn_id).trim()} · ${cycle}`,
+    clientId: client.id,
+    clientName: client.business_name,
+    url: "/admin",
   }).catch(() => {});
 
   return NextResponse.json({ ok: true, request: data }, NO_CACHE);

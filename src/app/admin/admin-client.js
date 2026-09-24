@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createAdminClient as createSb } from "@/utils/supabase/client";
 import Packages from "./Packages.js";
 import AIAdmin from "./AIAdmin.js";
+import AdminBell from "./AdminBell.js";
 import Webhooks from "./Webhooks.js";
 import { useWhere } from "./where.js";
 import { planOptions } from "@/lib/plan-options.js";
@@ -304,6 +305,7 @@ export function AdminApp(props) {
         </div>}
         <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 7 : 10, marginLeft: "auto", flexShrink: 0 }}>
           {!isMobile && <span style={{ fontSize: 11, color: T.textDim, display: "inline-flex", alignItems: "center", gap: 6 }}><span className="ui-live" style={{ width: 8, height: 8, borderRadius: "50%", background: T.live, display: "inline-block" }} />synced {ago(data.server_time)}</span>}
+          <AdminBell token={props.token} openDetail={openDetail} isMobile={isMobile} />
           <button onClick={onRefresh} disabled={refreshing} className={`pbtn${refreshing ? " is-busy" : ""}`} title="Refresh" aria-label="Refresh" style={isMobile ? { width: 36, height: 36, borderRadius: 11 } : undefined}><i className="ti ti-refresh" /></button>
           {!isMobile && <ThemeToggle mode={mode} toggle={toggleTheme} />}
           <div title={ROLE[role].label} style={{ width: isMobile ? 36 : 42, height: isMobile ? 36 : 42, borderRadius: "50%", background: T.accGrad, boxShadow: T.accGlow, color: T.onGold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 13 : 15, fontWeight: 700 }}>{initialsOf(data.email.split("@")[0].replace(/[._-]/g, " "))}</div>

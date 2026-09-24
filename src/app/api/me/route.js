@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { logEvent } from "@/lib/platform-events.js";
 import { supabase } from "@/lib/supabase.js";
 import { requireClient, trialActive } from "@/lib/auth.js";
 import { warnIfExpiringSoon } from "@/lib/expiry.js";
@@ -68,6 +69,15 @@ export const POST = withErrors(async (request) => {
       .insert({ business_name: businessName, owner_email: email, plan: "none" })
       .select().single();
     if (e) return NextResponse.json({ error: e.message }, { status: 500 });
+    // The platform owner asked to be told when a business arrives (2026-09-24).
+    // Fire-and-forget: a signup must never wait on, or fail because of, a bell.
+    logEvent({
+      kind: "client_signup",
+      title: "A new business signed up",
+      body: email,
+      clientId: data.id,
+      clientName: businessName,
+    }).catch(() => {});
 
     // Seed settings from the new client's own name. Copying a shared "default"
     // row leaked one tenant's brand, prompt and greeting into every new signup,
