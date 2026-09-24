@@ -110,6 +110,13 @@ ok("urgent ones are a different colour", /urgentUnread \? T\.danger/.test(bell))
 ok("it refreshes by itself and when the tab comes back", /setInterval\(load/.test(bell) && /visibilitychange/.test(bell));
 ok("tapping one opens that business", /openDetail\(e\.client_id\)/.test(bell));
 ok("a bell that cannot load stays quiet about it", /if \(!r \|\| r\.error\) return;/.test(bell));
+// readJson() answers { ok: true } for ANY 2xx that is not JSON — an auth
+// redirect onto an HTML page, a proxy notice — and storing that left st.events
+// undefined, which blanked the whole console on the next render. Found by
+// opening it, not by reading it (2026-09-24).
+ok("and an answer of the wrong shape cannot blank the console",
+  /const shape = \(r\) =>/.test(bell) && /Array\.isArray\(r\?\.events\)/.test(bell));
+ok("every path through the bell goes through that", !/setSt\(r\)/.test(bell));
 ok("it is placed in the console's header", /<AdminBell /.test(read("src", "app", "admin", "admin-client.js")));
 
 // ── the admin app and the user app are two different apps ───────────────────
@@ -145,6 +152,24 @@ ok("it is placed in the console's header", /<AdminBell /.test(read("src", "app",
   ok("the check is made before the token is sent", /isAdminApp\(\)\)\) return/.test(reg));
   ok("registration is auth-gated on the server",
     /callerRole/.test(read("src", "app", "api", "admin", "push", "route.js")));
+
+  // The admin app asks for the notification permission by itself on first
+  // launch, the way the user app does — owner, 2026-09-24: "it will auto
+  // require permissions when admin open this app like the user app".
+  ok("the admin app asks for notifications on its own", /bootstrapAdminPush/.test(reg));
+  ok("…and the console calls it on open", /bootstrapAdminPush\(props\.token\)/.test(read("src", "app", "admin", "admin-client.js")));
+  ok("…once per install, so a refusal is not re-asked every launch", /ASKED_KEY/.test(reg));
+  // Notifications only. The console never takes a photo, records a voice note
+  // or asks for a location, so it must not ask for any of them.
+  ok("and it asks for nothing else", !/Camera|Geolocation|VoiceRecorder|getUserMedia/.test(reg));
+
+  // On a phone the bell's panel is pinned to the viewport. Hung off the bell it
+  // ran off the left edge, because the bell is not the last thing in the header
+  // (owner's screenshot, 2026-09-24) — the client dashboard's bell already
+  // solved this the same way.
+  ok("the admin bell pins its panel to the phone's screen", /position: "fixed", top, left: 10, right: 10/.test(bell));
+  ok("…measured from the button, not guessed", /btn\.current\?\.getBoundingClientRect\(\)/.test(bell));
+  ok("…and re-measured when the screen turns", /window\.addEventListener\("resize", measure\)/.test(bell));
 
   // Both notification paths still follow the url they are given, which is what
   // lets an admin alert open the console inside the ADMIN app.

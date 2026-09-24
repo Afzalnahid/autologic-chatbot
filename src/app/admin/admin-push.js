@@ -95,6 +95,30 @@ export async function enableAdminPush(authToken) {
   }
 }
 
+// First launch of the admin app: ask for the notification permission by itself,
+// exactly as the user app does (src/app/dashboard/components/native-permissions.js).
+// Owner, 2026-09-24: "it will auto require permissions when admin open this app
+// like the user app."
+//
+// Only notifications — the console never takes a photo, records a voice note or
+// asks for a location, so it asks for none of them.
+//
+// The OS prompt is shown once per install; after that Android answers from its
+// own record without showing anything. The flag is belt and braces so a refused
+// permission is not re-asked on every launch.
+const ASKED_KEY = "tm_admin_push_asked_v1";
+
+export async function bootstrapAdminPush(authToken) {
+  if (!authToken || !(await isAdminApp())) return;
+  initAdminPush(authToken);
+  // Already allowed: register (or re-register) this device silently. Cheap, and
+  // it keeps the stored token in step with whichever admin is signed in now.
+  if ((await adminPushState()) === "granted") { await enableAdminPush(authToken); return; }
+  try { if (localStorage.getItem(ASKED_KEY) === "done") return; } catch {}
+  try { localStorage.setItem(ASKED_KEY, "done"); } catch {}
+  await enableAdminPush(authToken);
+}
+
 export async function disableAdminPush(authToken) {
   const token = saved();
   if (!token) return;

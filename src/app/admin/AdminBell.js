@@ -22,6 +22,20 @@ function ago(iso) {
   return "now";
 }
 
+// Never trust the answer's shape. readJson() turns ANY 2xx whose body is not
+// JSON into { ok: true } — an auth redirect that lands on an HTML page, a proxy
+// notice, a platform error page — and `setSt({ ok: true })` left st.events
+// undefined, which took the whole console down with "Cannot read properties of
+// undefined (reading 'some')" on the next render. Found by actually opening the
+// console on 2026-09-24 rather than by reading the code.
+//
+// The bell is the least important thing on this screen; it must never be what
+// blanks it.
+const shape = (r) => ({
+  events: Array.isArray(r?.events) ? r.events : [],
+  unread: Number(r?.unread) || 0,
+});
+
 const TONE = {
   urgent: { color: T.danger, bg: T.dangerBg },
   warn: { color: T.warn, bg: T.warnBg },
@@ -33,6 +47,8 @@ export default function AdminBell({ token, openDetail, isMobile }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const box = useRef(null);
+  const btn = useRef(null);
+  const [top, setTop] = useState(0);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -41,7 +57,7 @@ export default function AdminBell({ token, openDetail, isMobile }) {
     // A bell that cannot load must not shout about it — the console has real
     // work on screen, and this is the least important thing on it.
     if (!r || r.error) return;
-    setSt(r);
+    setSt(shape(r));
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
@@ -53,6 +69,20 @@ export default function AdminBell({ token, openDetail, isMobile }) {
     document.addEventListener("visibilitychange", onShow);
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", onShow); };
   }, [load]);
+
+  // On a phone the panel is pinned to the VIEWPORT, not hung off the bell.
+  // Hanging it off the bell put its right edge under the bell — and the bell is
+  // not at the right edge of the screen, there are two more buttons after it —
+  // so a 340px panel started at about -90px and its left third was cut off
+  // (owner's screenshot, 2026-09-24). The client dashboard's bell already
+  // measures and pins; this is the same thing.
+  useEffect(() => {
+    if (!open || !isMobile) return;
+    const measure = () => { const r = btn.current?.getBoundingClientRect(); if (r) setTop(Math.round(r.bottom + 8)); };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [open, isMobile]);
 
   // Click anywhere else to close.
   useEffect(() => {
@@ -70,7 +100,7 @@ export default function AdminBell({ token, openDetail, isMobile }) {
       body: JSON.stringify(body),
     }).then(readJson).catch(offlineError);
     setBusy(false);
-    if (r && !r.error) setSt(r);
+    if (r && !r.error) setSt(shape(r));
   };
 
   const openOne = (e) => {
@@ -83,16 +113,20 @@ export default function AdminBell({ token, openDetail, isMobile }) {
   // Inside the admin app, offer to turn this phone's notifications on. Only
   // here — the client dashboard's bell asks for the client's own, and the two
   // registrations go to different tables (src/lib/admin-push.js).
+  // Re-checked each time the panel opens, not once on mount: the app asks for
+  // the permission by itself on first launch, so by the time anybody opens this
+  // the answer has usually already changed.
   const [askPush, setAskPush] = useState(false);
   useEffect(() => {
+    if (!open) return;
     let gone = false;
     (async () => {
       const m = await import("./admin-push.js");
       if (gone || !(await m.isAdminApp())) return;
-      if ((await m.adminPushState()) !== "granted") setAskPush(true);
+      if (!gone) setAskPush((await m.adminPushState()) !== "granted");
     })().catch(() => {});
     return () => { gone = true; };
-  }, []);
+  }, [open]);
   const turnOnPush = async () => {
     const m = await import("./admin-push.js");
     const r = await m.enableAdminPush(token);
@@ -103,7 +137,7 @@ export default function AdminBell({ token, openDetail, isMobile }) {
   const size = isMobile ? 36 : 42;
 
   return <div ref={box} style={{ position: "relative", flexShrink: 0 }}>
-    <button onClick={() => setOpen((v) => !v)} className="pbtn" aria-label={st.unread ? `${st.unread} unread notifications` : "Notifications"}
+    <button ref={btn} onClick={() => setOpen((v) => !v)} className="pbtn" aria-label={st.unread ? `${st.unread} unread notifications` : "Notifications"}
       title="What is happening on the platform"
       style={isMobile ? { width: 36, height: 36, borderRadius: 11, position: "relative" } : { position: "relative" }}>
       <i className={`ti ti-bell${st.unread ? "-ringing" : ""}`} />
@@ -115,8 +149,10 @@ export default function AdminBell({ token, openDetail, isMobile }) {
     </button>
 
     {open && <div className="ui-menu" style={{
-      position: "absolute", top: size + 8, right: 0, width: isMobile ? "min(92vw, 340px)" : 400,
-      maxHeight: "min(70vh, 560px)", overflowY: "auto", background: T.card, border: `1px solid ${T.border}`,
+      ...(isMobile
+        ? { position: "fixed", top, left: 10, right: 10, maxHeight: `calc(100dvh - ${top + 12}px)` }
+        : { position: "absolute", top: size + 8, right: 0, width: 400, maxHeight: "min(70vh, 560px)" }),
+      overflowY: "auto", background: T.card, border: `1px solid ${T.border}`,
       borderRadius: 16, boxShadow: T.nmOut, zIndex: 80, padding: 6,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px 10px" }}>

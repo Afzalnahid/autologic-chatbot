@@ -1706,3 +1706,24 @@ it cannot tell you the meaning was wrong. The suite now RUNS the generator with
 sharp stubbed out and asserts the five files land where they are told, which is
 the assertion that would have caught this before a build minute was spent.
 Rule: when a step produces FILES, test the files, not the command line.
+
+## 2026-09-24 — open the thing you built
+Two faults in the admin console shipped on the same day, and neither could have
+been found by reading the code.
+The bell's panel hung off the bell with `right: 0`. That is correct only when
+the bell is the LAST thing in the header — it is not, there is a refresh button
+and an avatar after it — so on a 375px phone a 340px panel started at about
+-90px and its left third was off the screen. The client dashboard's own bell had
+already solved this months earlier by measuring the button and pinning the panel
+to the viewport; the new one simply did not copy it. Look for the same component
+before writing a second one.
+Worse, opening the console in the screenshot studio crashed it outright:
+"Cannot read properties of undefined (reading 'some')". readJson() answers
+{ ok: true } for ANY 2xx whose body is not JSON — an auth redirect that lands on
+an HTML page is enough — and the bell did setSt(r) with it, leaving st.events
+undefined and blanking the whole console on the next render. The least important
+thing on the screen was able to take the screen down.
+Rule: never store a server answer without shaping it, and never call a screen
+done until it has been rendered. /shots exists for exactly this and costs a
+minute. Both faults were invisible to npm test and to every source-level
+assertion I had written about these very files.

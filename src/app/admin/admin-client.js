@@ -240,21 +240,21 @@ export function AdminApp(props) {
   const [nav, setNav] = useState(false);
   const [q, setQ] = useState("");
   useEffect(() => { setNav(!isMobile); }, [isMobile]);
-  // Inside the admin app, register THIS device for platform alerts. Guarded by
-  // the package id (com.tellmoreai.admin), so opening /admin in the user app
-  // registers nothing — the two apps' devices live in different tables and a
-  // client's phone can never be reached by an admin alert (owner, 2026-09-24:
-  // the two apps must be separate). Silent in an ordinary browser; the console
-  // on a laptop turns notifications on from the bell instead.
+  // Inside the admin app: ask for the notification permission on first launch
+  // and register THIS device for platform alerts — the same thing the user app
+  // does for a client (owner, 2026-09-24: "it will auto require permissions
+  // when admin open this app like the user app").
+  //
+  // Guarded by the package id (com.tellmoreai.admin), so opening /admin in the
+  // user app or a browser registers nothing: the two apps' devices live in
+  // different tables and a client's phone can never be reached by an admin
+  // alert. On a laptop the bell offers Web Push instead.
   useEffect(() => {
     if (!props.token) return;
     let gone = false;
-    (async () => {
-      const m = await import("./admin-push.js");
-      if (gone || !(await m.isAdminApp())) return;
-      m.initAdminPush(props.token);
-      if ((await m.adminPushState()) === "granted") await m.enableAdminPush(props.token);
-    })().catch(() => {});
+    import("./admin-push.js")
+      .then((m) => { if (!gone) return m.bootstrapAdminPush(props.token); })
+      .catch(() => {});
     return () => { gone = true; };
   }, [props.token]);
   const { overview: o, clients, role, admins, payments = [], attention = [], activity = [] } = data;
