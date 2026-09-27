@@ -23,6 +23,14 @@ cap, tab must be visible or video uploads stall at 0%); the built-in browser can
 upload files. Uncommitted: `video/src` recolour + removal of the unmeasured "91%" stat
 for the homepage film — awaiting the owner's yes before re-rendering `public/film-*.mp4`.
 
+**Group outreach (started 2026-09-27):** owner asked for posts in "many groups" plus mass
+reacts/comments to grow followers. Declined the mass version (Facebook treats it as spam and
+the Page also runs TellMore's own bot); owner agreed to a limited plan, posting AS the Page.
+`marketing/facebook/group-posts.md` holds the 10 chosen groups with each group's rule, a
+2–3-groups-a-day schedule and a different draft per group. Nothing posted yet — waiting for
+the owner to approve the drafts. Joining a group can require answering questions or agreeing
+to rules: ask the owner first.
+
 ---
 
 ## Last session (2026-09-24, latest) — The admin console gets a bell, and the app is already the admin app
