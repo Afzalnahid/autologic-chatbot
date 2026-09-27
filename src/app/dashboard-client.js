@@ -34,6 +34,7 @@ import Shell from "./dashboard/components/Shell.js";
 import { useT } from "./dashboard/components/i18n.js";
 import { runBack, useBackClose } from "./dashboard/components/back.js";
 import { openConnect, hideNativeSplash } from "./dashboard/components/native-connect.js";
+import { afterChannelConnect } from "@/lib/connect-flow.js";
 import { isValidEmail } from "@/lib/valid-email.js";
 import { checkPassword } from "@/lib/password-rules.js";
 import PasswordRules from "./dashboard/components/PasswordRules.js";
@@ -795,6 +796,9 @@ function DashboardApp({ onLaunchReady }) {
   // request twice in a row still counts as two.
   const [invIntent,setInvIntent]=useState(null);
   const [justConnected,setJustConnected]=useState(null);
+  // True while the connect screen was opened from the Channels tab rather than
+  // by signup — it decides where that screen goes when done (connect-flow.js).
+  const connectFromApp=useRef(false);
   // A popup (Google Calendar, or a channel opened in a new window) reports
   // back with a message; a full-page connect comes back with ?connected=.
   useEffect(()=>{
@@ -1086,8 +1090,10 @@ function DashboardApp({ onLaunchReady }) {
   if(stage==="auth") return <AuthGate onReady={async()=>{try{localStorage.setItem("gv_app_signed_in","1");}catch{} setAuthed(true);await loadMe();}}/>;
   // The first-run screens need the palette and motion sheet too — without them
   // every CSS variable is undefined and the pages render unstyled.
-  if(stage==="onboarding") return <><Theme/><Motion/><Onboarding me={me} onTrial={async()=>{await loadMe();setStage("connect");}}/></>;
-  if(stage==="connect") return <><Theme/><Motion/><ConnectChannel clientId={me?.client?.id} onDone={async()=>{const bt=me?.client?.business_type;await loadMe();setStage(bt==="agency"?"connect-cal":"app");}}/></>;
+  if(stage==="onboarding") return <><Theme/><Motion/><Onboarding me={me} onTrial={async()=>{await loadMe();connectFromApp.current=false;setStage("connect");}}/></>;
+  if(stage==="connect") return <><Theme/><Motion/><ConnectChannel clientId={me?.client?.id} onDone={async()=>{
+    const next=afterChannelConnect({fromApp:connectFromApp.current,businessType:me?.client?.business_type,calendarConnected:!!me?.client?.gcal_connected});
+    connectFromApp.current=false;await loadMe();setStage(next);}}/></>;
   if(stage==="connect-cal") return <><Theme/><Motion/><ConnectCalendar clientId={me?.client?.id} onDone={async()=>{await loadMe();setStage("app");}}/></>;
 
   const activeCount=convoRead.count(convos);
@@ -1148,7 +1154,7 @@ function DashboardApp({ onLaunchReady }) {
             {page==="comments"&&<Comments/>}
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent} onIntentDone={()=>setInvIntent(null)}/>)}
             {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load} focus={focus?.tab==="orders"?focus:null} onGo={goTo}/>)}
-            {page==="channels"&&<Channels onConnect={()=>setStage("connect")} justConnected={justConnected} onDismissConnected={()=>setJustConnected(null)}/>}
+            {page==="channels"&&<Channels onConnect={()=>{connectFromApp.current=true;setStage("connect");}} justConnected={justConnected} onDismissConnected={()=>setJustConnected(null)}/>}
             {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}
             {page==="profile"&&<Profile/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}
