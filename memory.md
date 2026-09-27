@@ -42,6 +42,14 @@ the TellMore FB Page (Edit profile → Page) so the bot answers IG DMs. Post ids
 DdyS1K8JEgq EN, DdyTGyJIINB pricing, DdyTUIrhkMQ meetings, DdyTkESyneG photo,
 DdyT3glOV1Z midnight, DdyUMeBA7gM Bangla intro.
 
+**Teaser "২টা ১৭" (2026-09-27):** 47 s, 9:16, no people (owner's choice), Remotion in
+`video/src/trailer/` with its own entry (`src/trailer/index.jsx`) so it never touches the
+homepage film's uncommitted work. Sound design synthesised by `marketing/trailer/sfx.mjs`;
+voice is a scratch computer take until the owner records his own (guide in
+`marketing/trailer/README.md`, then `prepare-vo.mjs`). Render, then loudnorm to −14 LUFS for
+Reels. Fonts must load through a `useFonts()` hook — a module-level delayRender timed out
+with concurrency. Waiting on: the owner's recordings.
+
 **Content plan (2026-09-27):** `marketing/facebook/content-plan.md` — two weeks, four posts a week, images from `week1.mjs`; W1-1 is live on the Page, see its Status line for the next dates. Chrome must be in front for "Next"/"Post" on Facebook too.
 
 **Group outreach (started 2026-09-27):** owner asked for posts in "many groups" plus mass

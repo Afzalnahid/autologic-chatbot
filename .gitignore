@@ -27,3 +27,9 @@ marketing/explainer-video/shots/
 marketing/explainer-video/*-preview-*.mp4
 marketing/explainer-video/films/*/audio/
 marketing/explainer-video/films/*/timeline-*.json
+
+# Teaser: rendered films, the owner's raw recordings, and generated audio
+marketing/trailer/out/
+marketing/trailer/recordings/
+video/public/trailer/vo/
+video/public/trailer/sfx.wav
