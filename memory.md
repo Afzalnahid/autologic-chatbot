@@ -42,6 +42,21 @@ the TellMore FB Page (Edit profile → Page) so the bot answers IG DMs. Post ids
 DdyS1K8JEgq EN, DdyTGyJIINB pricing, DdyTUIrhkMQ meetings, DdyTkESyneG photo,
 DdyT3glOV1Z midnight, DdyUMeBA7gM Bangla intro.
 
+**Bug fixed 2026-09-28 (663e16f):** connecting a channel from the Channels tab ended on
+"Connect Google Calendar" — the tab reused the signup connect screen, whose finish sent every
+agency on to the calendar step. `afterChannelConnect()` (src/lib/connect-flow.js, tested in
+tests/t-connect-flow.mjs) now decides: calendar step only for a new service business at signup
+with no calendar; from the Channels tab, back to the tab. Unverified on the live site with a
+real Meta login (needs the owner's click-through).
+
+**Teaser voice (2026-09-28):** the owner's own voice, cloned with IndicF5 (ai4bharat, MIT, gated
+on Hugging Face — owner accepted and put HF_TOKEN in .env.local himself) from a 9.5 s cut of his
+WhatsApp voice note, on the CPU (~8.5 min a line, Python 3.11 venv in marketing/trailer/.venv311,
+transformers pinned <4.50, torchaudio.load patched to soundfile). Lines rewritten in natural
+spoken Bangla at his request. `polish_vo.py` = DeepFilterNet denoise + voiceover EQ/compression;
+the ceiling is the WhatsApp-quality reference — a Voice Recorder take sent as a document would
+clone cleaner.
+
 **Teaser "২টা ১৭" (2026-09-27):** 47 s, 9:16, no people (owner's choice), Remotion in
 `video/src/trailer/` with its own entry (`src/trailer/index.jsx`) so it never touches the
 homepage film's uncommitted work. Sound design synthesised by `marketing/trailer/sfx.mjs`;

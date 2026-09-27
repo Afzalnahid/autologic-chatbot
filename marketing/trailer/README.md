@@ -11,9 +11,15 @@ Story: `script.md`. Voiceover lines and start times: `lines.json`.
 | Real voice | the owner's recordings in `recordings/`, then `node prepare-vo.mjs` |
 | Fonts | Tiro Bangla, Hind Siliguri (OFL) in `video/public/trailer/fonts/` |
 
-Render (from `video/`):
+| Cloned voice | `recordings/me.wav` + `me.txt` → `.venv311/Scripts/python clone_vo.py` (IndicF5, CPU, ~8 min a line) → `polish_vo.py` (DeepFilterNet + voiceover EQ) |
 
-    npx remotion render src/trailer/index.jsx Trailer ../marketing/trailer/out/tellmore-trailer-bn.mp4
+Render the picture (from `video/`), then put the sound on it (from here):
+
+    npx remotion render src/trailer/index.jsx Trailer ../marketing/trailer/out/tellmore-trailer-bn-picture.mp4 --muted
+    node mix.mjs      → out/tellmore-trailer-bn-final.mp4 (−14 LUFS)
+
+The sound is mixed outside Remotion because its bundled ffmpeg crashed on this
+machine (0xC0000005) every time it probed the audio files.
 
 ## Recording the voice (for the owner)
 

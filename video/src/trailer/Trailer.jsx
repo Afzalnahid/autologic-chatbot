@@ -5,7 +5,7 @@
 // Every chat in it is an example; the end card says so.
 import React from "react";
 import {
-  AbsoluteFill, Audio, Easing, Sequence, continueRender, delayRender, interpolate,
+  AbsoluteFill, Easing, continueRender, delayRender, interpolate,
   spring, staticFile, useCurrentFrame, useVideoConfig,
 } from "remotion";
 import VO from "../../../marketing/trailer/lines.json";
@@ -187,13 +187,14 @@ const CHAT_LOG = [
   { at: 25.0, text: "জি আপু, আছে 😊 দাম ৳১,২৫০। কোন সাইজ লাগবে?" },
   { at: 26.6, me: true, text: "vai XL hobe? dhakar baire den?" },
   { at: 27.3, text: "জি, XL আছে। ঢাকার বাইরেও পাঠাই — ৩–৪ দিনে পৌঁছাবে।" },
-  { at: 28.4, me: true, voice: true },
-  { at: 29.3, text: "শুনেছি 🙂 নীল রঙেরটাও স্টকে আছে। পাঠিয়ে দেব?" },
-  { at: 30.4, me: true, photo: true },
-  { at: 31.2, text: "ছবির পণ্যটা পেয়েছি — এটাও আছে। দুটোই অর্ডার করবেন?" },
-  { at: 32.3, order: true },
+  { at: 28.0, me: true, voice: true },
+  { at: 28.8, text: "শুনেছি 🙂 নীল রঙেরটাও স্টকে আছে। পাঠিয়ে দেব?" },
+  { at: 29.3, me: true, photo: true },
+  { at: 30.1, text: "ছবির পণ্যটা পেয়েছি — এটাও আছে। দুটোই অর্ডার করবেন?" },
+  { at: 31.4, order: true },
 ];
-const WORDS = [[25.7, "বাংলায়।"], [27.2, "বাংলিশে।"], [28.9, "ভয়েস মেসেজে।"], [31.0, "ছবি দেখে।"]];
+// in step with the owner's voice: the words of line 06 land at these seconds
+const WORDS = [[25.95, "বাংলায়।"], [27.05, "বাংলিশে।"], [28.25, "ভয়েস মেসেজে।"], [29.3, "ছবি দেখে।"]];
 
 function Bubble({ m, age }) {
   const { fps } = useVideoConfig();
@@ -303,7 +304,7 @@ function Reveal({ t }) {
           <Mark size={290} />
         </div>
         <div style={{ marginTop: 56, fontFamily: SANS, fontWeight: 600, fontSize: 92, color: INK, letterSpacing: 1 }}>TellMore AI</div>
-        <div style={{ marginTop: 6, fontFamily: SERIF, fontSize: 84, color: ACCENT, opacity: line, filter: `blur(${(1 - line) * 8}px)` }}>জেগে থাকে।</div>
+        <div style={{ marginTop: 6, fontFamily: SERIF, fontSize: 84, color: ACCENT, opacity: line, filter: `blur(${(1 - line) * 8}px)` }}>জেগেই আছে।</div>
       </div>
     </AbsoluteFill>
   );
@@ -342,10 +343,8 @@ export function Trailer() {
       <AbsoluteFill style={{ background: "#ffe2b8", opacity: flash * 0.8 }} />
       <Subtitle t={t} />
       <Grain amount={t < CUT ? 0.09 : 0.06} />
-      <Audio src={staticFile("trailer/sfx.wav")} volume={0.6} />
-      {VO.lines.map((l) => (
-        <Sequence key={l.id} from={Math.round(l.at * FPS)}><Audio src={staticFile(`trailer/vo/${l.id}.${l.ext || "mp3"}`)} volume={1} /></Sequence>
-      ))}
+      {/* No <Audio> here: the sound goes on afterwards (marketing/trailer/mix.mjs),
+          because Remotion's bundled ffmpeg crashed on this machine probing it. */}
     </AbsoluteFill>
   );
 }

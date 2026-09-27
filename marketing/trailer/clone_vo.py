@@ -70,12 +70,28 @@ def reference():
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
     want = set(sys.argv[1:])
     doc = json.loads(LINES.read_text(encoding="utf-8"))
     ref_wav, ref_text = reference()
 
+    # The model's own code downloads more files with no token argument, so the
+    # token goes in the environment where huggingface_hub looks for it.
+    import os
+    os.environ["HF_TOKEN"] = token()
+    # New torchaudio reads audio through torchcodec, which needs FFmpeg DLLs this
+    # machine does not have; the model only ever loads our reference WAV, so
+    # soundfile reads it instead.
+    import torch
+    import torchaudio
+
+    def _load(path, *args, **kwargs):
+        data, sr = sf.read(path, dtype="float32", always_2d=True)
+        return torch.from_numpy(data.T.copy()), sr
+
+    torchaudio.load = _load
     from transformers import AutoModel  # heavy; only after the inputs check out
-    model = AutoModel.from_pretrained("ai4bharat/IndicF5", trust_remote_code=True, token=token())
+    model = AutoModel.from_pretrained("ai4bharat/IndicF5", trust_remote_code=True)
 
     VO.mkdir(parents=True, exist_ok=True)
     for line in doc["lines"]:

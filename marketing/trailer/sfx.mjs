@@ -112,9 +112,9 @@ pop(20.6, 1200, 0.05);
 // the swell under the answers (A minor, lifting to F major)
 chord(24.8, 5.2, [110, 164.8, 220, 261.6], 0.22, 2.2, 1.5);
 chord(29.2, 5.0, [87.3, 174.6, 220, 261.6, 349.2], 0.24, 1.2, 2.0);
-[25.0, 27.3, 29.3, 31.2].forEach((x) => pop(x, 760, 0.10));   // bot replies
-[26.6, 28.4, 30.4].forEach((x) => pop(x, 480, 0.07));         // customer messages
-pop(32.3, 980, 0.13);                                            // order confirmed
+[25.0, 27.3, 28.8, 30.1].forEach((x) => pop(x, 760, 0.10));   // bot replies
+[26.6, 28.0, 29.3].forEach((x) => pop(x, 480, 0.07));         // customer messages
+pop(31.4, 980, 0.13);                                           // order confirmed
 // morning: C major, birds
 chord(33.6, 5.0, [130.8, 196, 261.6, 329.6, 392], 0.2, 1.4, 2.4);
 [34.0, 35.1, 36.3, 37.2].forEach((x, i) => chirp(x, 0.03 + 0.01 * (i % 2)));
