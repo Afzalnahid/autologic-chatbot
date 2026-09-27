@@ -33,3 +33,5 @@ marketing/trailer/out/
 marketing/trailer/recordings/
 video/public/trailer/vo/
 video/public/trailer/sfx.wav
+marketing/trailer/.venv/
+marketing/trailer/.venv311/
