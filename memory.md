@@ -4,6 +4,27 @@ Update the top two sections after every session.
 
 ---
 
+## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
+
+The old "AutoLogic Systems" Page (page id 975965988929117, the owner's own test tenant
+"Autologic System" in `clients`) was converted: name TellMore AI, username `tellmoreai`,
+bio, category Software + Internet company, links tellmoreai.com + autolinium.com,
+contact details from /contact (office@autolinium.com, +880 1533 633084, CSTP Agrabad,
+Sat–Thu 10–7), privacy link /privacy, five Services, the personal "Work: Autolinium"
+entry removed. Profile picture and cover from `marketing/facebook/build.mjs`.
+Posts: 119 old posts archived, then 29 moved to Trash; six new posts published from
+`marketing/facebook/posts.md` (5 reels from `marketing/explainer-video/` + a pricing
+image post), the Bangla intro reel pinned. Reels carry Meta's AI label (AI voiceover).
+**Owner still to do:** empty the Trash and trash the 119 archived posts (the archive
+page errors for us), delete the three old photos (AutoLogic logo, office woman, "A"),
+and **turn off the n8n workflow that auto-posts as "Tellmore AI"**, or it will keep
+publishing off-brand posts. Uploads go through Claude in Chrome (`file_upload`, 10 MB
+cap, tab must be visible or video uploads stall at 0%); the built-in browser cannot
+upload files. Uncommitted: `video/src` recolour + removal of the unmeasured "91%" stat
+for the homepage film — awaiting the owner's yes before re-rendering `public/film-*.mp4`.
+
+---
+
 ## Last session (2026-09-24, latest) — The admin console gets a bell, and the app is already the admin app
 
 Answering the owner's question "Should I need an admin app like the TellMore AI user app?" —
