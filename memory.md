@@ -31,7 +31,12 @@ og-bn.png, AI label on the reels) — **but their captions did not save**: pasti
 Lexical caption box changes the screen, not Instagram's state. What does register:
 `document.execCommand('insertText')` per line + a synthetic `keydown` Enter between lines
 (the counter then matches). Saving via Edit → Done still failed while the window was hidden;
-redo with Chrome in front. App-only for the owner: website link, pin the Bangla intro reel,
+redo with Chrome in front. With Chrome in front, a REAL click on Done saved the pricing
+post's caption (verified); a JS `.click()` on Done closes the dialog without saving. Then, on
+the next edit, Instagram locked the account behind "Confirm you're human" — too much
+automated activity in one session. Stopped there; the owner does the check himself and adds
+the other five captions from the phone app (text is in `marketing/facebook/posts.md`).
+Do not automate this account again for a while. App-only for the owner: website link, pin the Bangla intro reel,
 archive the 3 old posts (web "Delete" may be permanent — not used), link the IG account to
 the TellMore FB Page (Edit profile → Page) so the bot answers IG DMs. Post ids (oldest→newest):
 DdyS1K8JEgq EN, DdyTGyJIINB pricing, DdyTUIrhkMQ meetings, DdyTkESyneG photo,
