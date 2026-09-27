@@ -23,6 +23,20 @@ cap, tab must be visible or video uploads stall at 0%); the built-in browser can
 upload files. Uncommitted: `video/src` recolour + removal of the unmeasured "91%" stat
 for the homepage film — awaiting the owner's yes before re-rendering `public/film-*.mp4`.
 
+**Instagram (2026-09-27):** the owner's own professional account `norayafzalnahid`
+(owner's choice) is now `instagram.com/tellmoreai`: name TellMore AI, TellMore profile
+picture, bio, business email office@autolinium.com, phone +880 1533 633084, category
+Product/service ("Software company" search would not load). Six posts shared (5 reels +
+og-bn.png, AI label on the reels) — **but their captions did not save**: pasting into the
+Lexical caption box changes the screen, not Instagram's state. What does register:
+`document.execCommand('insertText')` per line + a synthetic `keydown` Enter between lines
+(the counter then matches). Saving via Edit → Done still failed while the window was hidden;
+redo with Chrome in front. App-only for the owner: website link, pin the Bangla intro reel,
+archive the 3 old posts (web "Delete" may be permanent — not used), link the IG account to
+the TellMore FB Page (Edit profile → Page) so the bot answers IG DMs. Post ids (oldest→newest):
+DdyS1K8JEgq EN, DdyTGyJIINB pricing, DdyTUIrhkMQ meetings, DdyTkESyneG photo,
+DdyT3glOV1Z midnight, DdyUMeBA7gM Bangla intro.
+
 **Group outreach (started 2026-09-27):** owner asked for posts in "many groups" plus mass
 reacts/comments to grow followers. Declined the mass version (Facebook treats it as spam and
 the Page also runs TellMore's own bot); owner agreed to a limited plan, posting AS the Page.
