@@ -30,6 +30,18 @@ Skipped on purpose: Bangladesh Startups & Entrepreneurs ("no self-promotion"),
 "page promotion" groups (only other promoters read them), ChatGPT account-sale
 groups, USA groups.
 
+## Status
+
+- 2026-09-27 — posted as the Page, all "awaiting admin approval":
+  #1 BECC (A1 + midnight reel link), #6 AI Automation (D + English reel link),
+  #8 Business Ideas (B2). #7 FCCB: joined, but the group shows no composer to the
+  Page — skipped for now.
+- Reel links: midnight `reel/1888182039255501`, photo-to-order `reel/1455290506498702`,
+  book-meetings `reel/1666739041477049`, English `reel/972942429161283`,
+  Bangla intro `reel/1122583400349693`.
+- Next: day 2 = #2 Online business BD (A2) + #3 অনলাইন বিজনেস উদ্দ্যোক্তা (A3);
+  day 3 = #4 Business Group BD (A4) + #5 উদ্যোক্তা হও (C).
+
 ## Schedule (2–3 a day, hours apart)
 
 - Day 1: #1 BECC (A1) · #6 AI Automation (D) · #7 FCCB (B1)

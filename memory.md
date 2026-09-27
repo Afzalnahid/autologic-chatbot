@@ -27,9 +27,13 @@ for the homepage film — awaiting the owner's yes before re-rendering `public/f
 reacts/comments to grow followers. Declined the mass version (Facebook treats it as spam and
 the Page also runs TellMore's own bot); owner agreed to a limited plan, posting AS the Page.
 `marketing/facebook/group-posts.md` holds the 10 chosen groups with each group's rule, a
-2–3-groups-a-day schedule and a different draft per group. Nothing posted yet — waiting for
-the owner to approve the drafts. Joining a group can require answering questions or agreeing
-to rules: ask the owner first.
+2–3-groups-a-day schedule and a different draft per group. Owner approved; day 1 done
+(3 posts pending admin approval — see the Status section of that file for which and what is
+next). Joining a group can require answering questions or agreeing to rules: ask the owner
+first. When Chrome's window is behind other windows (`document.visibilityState` hidden),
+typing drops spaces and Latin letters and key presses fail — but a JS `.click()` opens the
+composer, `__lexicalEditor.setEditorState(...)` clears it, and a synthetic `paste`
+ClipboardEvent inserts the text exactly; compare `innerText` with the draft before Post.
 
 ---
 
