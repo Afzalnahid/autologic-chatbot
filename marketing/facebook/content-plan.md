@@ -22,6 +22,10 @@ Facts allowed are only those in `posts.md`. Chat examples on images are marked
 | W2 Fri | For service businesses: re-share the meetings reel with a new caption | — | use case |
 | W2 Sun | Built in Chattogram: who makes TellMore (text + profile photo) | — | trust |
 
+Status: W1-1 published on the Facebook Page 2026-09-27 (Sat) — so W1-2 goes out
+Wed 2026-10-01, W1-3 Fri 10-03, W1-4 Sun 10-05, then week 2. Not on Instagram yet
+(the account was locked for a human check that day; wait before automating it).
+
 Every post ends with a question, and every comment gets an answer the same day.
 Best times for Bangladeshi small-business owners: 9–11 PM, then 1–3 PM.
 

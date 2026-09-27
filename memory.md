@@ -42,6 +42,8 @@ the TellMore FB Page (Edit profile → Page) so the bot answers IG DMs. Post ids
 DdyS1K8JEgq EN, DdyTGyJIINB pricing, DdyTUIrhkMQ meetings, DdyTkESyneG photo,
 DdyT3glOV1Z midnight, DdyUMeBA7gM Bangla intro.
 
+**Content plan (2026-09-27):** `marketing/facebook/content-plan.md` — two weeks, four posts a week, images from `week1.mjs`; W1-1 is live on the Page, see its Status line for the next dates. Chrome must be in front for "Next"/"Post" on Facebook too.
+
 **Group outreach (started 2026-09-27):** owner asked for posts in "many groups" plus mass
 reacts/comments to grow followers. Declined the mass version (Facebook treats it as spam and
 the Page also runs TellMore's own bot); owner agreed to a limited plan, posting AS the Page.
