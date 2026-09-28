@@ -39,3 +39,12 @@ video/public/trailer/stock/
 video/public/trailer/cut/
 video/public/trailer/vo-drama/
 video/public/trailer/sfx2.wav
+
+# promo ad: downloaded media and generated sound stay local
+marketing/promo/out/
+marketing/promo/.venv-rembg/
+video/public/promo/people/
+video/public/promo/vo/
+video/public/promo/music-*.mp3
+video/public/promo/sfx-*.wav
+__pycache__/

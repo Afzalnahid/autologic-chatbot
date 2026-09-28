@@ -4,6 +4,25 @@ Update the top two sections after every session.
 
 ---
 
+## 2026-09-28 — Promo ad in the style of the owner's reference (IN PROGRESS)
+
+Owner sent a Bangla sales-ad reference (big kinetic words, cut-out people, chat proof,
+chatty Dhaka-style voice) and asked for the same for TellMore, in two lengths (short ~40 s,
+long ~80 s) × two frames (9:16 Reels, 1:1 post). He asked to clone the reference narrator's
+voice — **declined** (someone else's voice, no consent); the ad uses the owner's own cloned
+voice in the chatty style instead (he can swap in a consenting voice artist later).
+Everything is in `marketing/promo/` (README-style docstrings in each file):
+lines.json (25 lines; `in` S/L) → clone_promo.py (IndicF5, speed 1.08, 16 flow steps, ~4 min
+a line) → polish_promo.py → timeline.mjs (timeline.json: line starts per cut, word times,
+effect cues on words) → video/src/promo/Promo.jsx (entry src/promo/index.jsx, comps
+PromoS-V, PromoS-Q, PromoL-V, PromoL-Q) → render.mjs (muted) → sfx.mjs → mix.mjs (−14 LUFS).
+stills.mjs renders proof frames. Owner approved downloads: 9 Pexels photos, rembg u2net_human_seg
+model (cutouts.py, own venv `.venv-rembg` — installing rembg into .venv311 once broke its numpy;
+repaired with numpy==1.26.4), Baloo Da 2 + Anek Bangla fonts (OFL, committed), Pixabay music
+"Advertising Presentation (Beat Way Up)" (BombinSound). Feature claims checked in code
+(handoff.js push, broadcasts in the 24 h window, photo import, calendar, comments).
+**Next:** finish the voice (lines after 07, then 23–25), polish, timeline, render 4, mix, send.
+
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
 
 The old "AutoLogic Systems" Page (page id 975965988929117, the owner's own test tenant
