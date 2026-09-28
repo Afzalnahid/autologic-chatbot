@@ -39,8 +39,6 @@ function useFonts() {
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
 const ramp = (t, a, b, x = 0, y = 1, easing = Easing.inOut(Easing.cubic)) => interpolate(t, [a, b], [x, y], { ...clamp, easing });
 const pop = (t, at, fps, cfg = { damping: 13, stiffness: 190, mass: 0.8 }) => (t < at ? 0 : spring({ frame: (t - at) * fps, fps, config: cfg }));
-const seg = new Intl.Segmenter("bn", { granularity: "grapheme" });
-const glen = (s) => [...seg.segment(s)].length;
 
 function useLayout() {
   const { width: W, height: H, fps } = useVideoConfig();
@@ -68,9 +66,21 @@ function Headline({ id, t, hi = [], area, scale = 1, style }) {
   const cur = [...phrases].reverse().find((p) => t >= p[0].t - 0.12) || phrases[0];
   const [top, h] = area || L.head;
   const width = L.W - 100 * L.u;
-  const g = glen(cur.map((w) => w.w).join(" "));
+  // Size by measuring the real words in the real face (the fonts are loaded
+  // before the first frame), wrapping them the way the browser will.
+  const boxed = (w) => hi.find(([k]) => w.includes(k))?.[2] === "box";
+  const lines = (s) => {
+    const ctx = (Headline.ctx ||= document.createElement("canvas").getContext("2d"));
+    ctx.font = `800 ${s}px "Baloo Da 2"`;
+    let n = 1, x = 0;
+    for (const { w } of cur) {
+      const ww = ctx.measureText(w).width + 0.28 * s + (boxed(w) ? 0.36 * s : 0);
+      if (x > 0 && x + ww > width) { n++; x = ww; } else x += ww;
+    }
+    return n;
+  };
   let size = (L.V ? 150 : 124) * L.u * scale;
-  const fits = (s) => Math.ceil((g * 0.6 * s) / width) * 1.22 * s <= h;
+  const fits = (s) => lines(s) * 1.18 * s <= h;
   while (size > 50 * L.u && !fits(size)) size -= 4 * L.u;
   return (
     <div style={{ position: "absolute", left: 50 * L.u, top, width, height: h, display: "flex", alignItems: "center", justifyContent: "center", ...style }}>
@@ -345,7 +355,7 @@ const SCENES = {
         return <div key={i} style={{ position: "absolute", left: (0.02 + rx * 0.62) * L.W, top: y0 + ry * (y1 - y0) * 0.8, transform: `scale(${s}) rotate(${(rx - 0.5) * 8}deg)`,
           padding: `${12 * L.u}px ${22 * L.u}px`, borderRadius: 28 * L.u, background: "#2A2A31", border: `1.5px solid ${LINE}`, fontFamily: UI, fontWeight: 500, fontSize: 32 * L.u, color: "#fff",
           boxShadow: "0 10px 28px rgba(0,0,0,.55)", whiteSpace: "nowrap" }}>{qs[i % 3]}</div>; })}
-      <Sticker t={t} at={w(6)} x={L.W * 0.72} y={L.head[0] + L.head[1] + 20 * L.u} rot={6}>একই প্রশ্ন ×১০০</Sticker>
+      <Sticker t={t} at={w(6)} x={L.W * 0.72} y={L.head[0] + L.head[1] + (L.V ? 90 : 70) * L.u} rot={6}>একই প্রশ্ন ×১০০</Sticker>
       <Headline id="07" t={t} hi={[["ঝামেলা", RED], ["একশো", YELLOW], ["ডেলিভারি", ROSE], ["সাইজ", ROSE], ["ক্যাশ", ROSE]]} />
     </>);
   },
@@ -475,7 +485,7 @@ const SCENES = {
         {row(w(2), "নুসরাত", "price?")}
         {row(w(5), "আপনার শপ", "ইনবক্সে জানিয়েছি আপু!", true)}
       </div>
-      {t >= w(7) && <div style={{ position: "absolute", right: 40 * L.u, top: top + (L.V ? 700 : 260) * L.u, width: (L.V ? 640 : 460) * L.u }}>
+      {t >= w(7) && <div style={{ position: "absolute", right: 40 * L.u, top: top + (L.V ? 700 : 430) * L.u, width: (L.V ? 640 : 460) * L.u }}>
         <Msg t={t} at={w(7)} time="Messenger · উদাহরণ" maxW={1}>হাই নুসরাত আপু! এটার দাম ১,২৫০ টাকা। অর্ডার করবেন?</Msg></div>}
       <Headline id="14" t={t} hi={[["কমেন্ট", YELLOW], ["ইনবক্স", ROSE]]} />
     </>);
@@ -489,7 +499,7 @@ const SCENES = {
       {t >= w(4) && <div style={{ textAlign: "center", fontFamily: UI, fontSize: 26 * L.u, color: GREY, opacity: pop(t, w(4), L.fps) }}>— ৩ ঘণ্টা পর —</div>}
       <Msg t={t} at={w(7)}>আপু, জামাটা কি নিবেন? স্টক কিন্তু কম আছে।</Msg>
     </Chat>
-    <Sticker t={t} at={w(8)} x={L.W * 0.7} y={L.V ? L.stage[0] + 640 * L.u : L.stage[0] + 560 * L.u} rot={-5}>অটো ফলো-আপ</Sticker>
+    <Sticker t={t} at={w(8)} x={L.W * 0.7} y={L.V ? L.stage[0] + 700 * L.u : L.stage[0] + 670 * L.u} rot={-5}>অটো ফলো-আপ</Sticker>
     <Headline id="15" t={t} hi={[["চুপ", RED], ["মনে", YELLOW], ["করায়", YELLOW]]} />
   </>),
 
@@ -501,7 +511,7 @@ const SCENES = {
         <Msg t={t} at={w(4)} me>কাল একটু কথা বলা যাবে?</Msg>
         <Msg t={t} at={w(6)}>অবশ্যই! বৃহস্পতিবার বিকাল ৪টা ঠিক আছে?</Msg>
       </Chat>
-      {t >= cal && <div style={{ position: "absolute", left: (L.W - 700 * L.u) / 2, top: L.stage[0] + (L.V ? 480 : 360) * L.u, width: 700 * L.u, display: "flex", gap: 24 * L.u, alignItems: "center",
+      {t >= cal && <div style={{ position: "absolute", left: (L.W - 700 * L.u) / 2, top: L.stage[0] + (L.V ? 480 : 470) * L.u, width: 700 * L.u, display: "flex", gap: 24 * L.u, alignItems: "center",
         padding: 26 * L.u, borderRadius: 26 * L.u, background: "#fff", transform: `scale(${s}) rotate(-2deg)`, boxShadow: "0 30px 70px rgba(0,0,0,.6)" }}>
         <div style={{ width: 120 * L.u, borderRadius: 16 * L.u, overflow: "hidden", textAlign: "center", fontFamily: UI, flex: "none" }}>
           <div style={{ background: "#EA4335", color: "#fff", fontSize: 26 * L.u, fontWeight: 700, padding: `${4 * L.u}px 0` }}>বৃহঃ</div>
@@ -595,7 +605,7 @@ const SCENES = {
   "19": ({ t, w, L }) => {
     const shots = [["17595470", 0.55, 0.55, 2.2, "নীল জামদানি", "৩,৪৫০"], ["27442252", 0.5, 0.45, 2.4, "টিল শার্ট", "৯৫০"], ["12772053", 0.5, 0.55, 2.2, "কমলা জ্যাকেট", "১,৮০০"], ["12167590", 0.45, 0.4, 2.4, "ফ্লোরাল শার্ট", "১,১৫০"]];
     const made = w(7);
-    const cell = (L.V ? 440 : 300) * L.u, gap = 26 * L.u, cols = L.V ? 2 : 4;
+    const cell = (L.V ? 440 : 232) * L.u, gap = 22 * L.u, cols = L.V ? 2 : 4;
     const gx = (L.W - cols * cell - (cols - 1) * gap) / 2, gy = L.stage[0] + (L.V ? 10 : 20) * L.u;
     return (<>
       <Backdrop t={t} />
@@ -603,7 +613,7 @@ const SCENES = {
         return t < at ? null : <div key={id} style={{ position: "absolute", left: gx + (i % cols) * (cell + gap), top: gy + Math.floor(i / cols) * (cell * 1.32 + gap), width: cell,
           transform: `scale(${s}) rotate(${m ? 0 : (i - 1.5) * 4}deg)`, borderRadius: 22 * L.u, overflow: "hidden", background: PANEL, border: `2px solid ${m ? ROSE : LINE}` }}>
           <Crop id={id} x={x} y={y} zoom={z} size={cell} radius={0} />
-          <div style={{ padding: 14 * L.u, fontFamily: UI, height: cell * 0.32 - 28 * L.u, opacity: m ? pop(t, made + i * 0.08, L.fps) : 0.25 }}>
+          <div style={{ padding: 14 * L.u, fontFamily: UI, height: Math.max(cell * 0.32 - 28 * L.u, 76 * L.u), opacity: m ? pop(t, made + i * 0.08, L.fps) : 0.25 }}>
             <div style={{ fontSize: 28 * L.u, fontWeight: 700, color: "#fff" }}>{m ? name : "…"}</div>
             <div style={{ fontSize: 26 * L.u, color: ROSE, fontWeight: 700 }}>{m ? `৳${price}` : ""}</div></div>
         </div>; })}
@@ -674,7 +684,10 @@ const SCENES = {
 // ---- the film -----------------------------------------------------------------------------
 export function makePromo(cut) {
   const { order, at, seconds } = TL.cuts[cut];
-  const PRE = 0.12; // cut to the picture a beat before the voice
+  // The cut lands one frame before the voice. (It was 0.12 s early, which left
+  // ~4 frames of empty background at every cut: the scene's pieces pop in from
+  // about -0.1 s.)
+  const PRE = 1 / 30;
   function Promo() {
     useFonts();
     const { fps } = useVideoConfig();

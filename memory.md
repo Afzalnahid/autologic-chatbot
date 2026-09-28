@@ -4,7 +4,7 @@ Update the top two sections after every session.
 
 ---
 
-## 2026-09-28 — Promo ad in the style of the owner's reference (IN PROGRESS)
+## 2026-09-28 — Promo ad in the style of the owner's reference (rendered, awaiting owner feedback)
 
 Owner sent a Bangla sales-ad reference (big kinetic words, cut-out people, chat proof,
 chatty Dhaka-style voice) and asked for the same for TellMore, in two lengths (short ~40 s,
@@ -21,7 +21,7 @@ model (cutouts.py, own venv `.venv-rembg` — installing rembg into .venv311 onc
 repaired with numpy==1.26.4), Baloo Da 2 + Anek Bangla fonts (OFL, committed), Pixabay music
 "Advertising Presentation (Beat Way Up)" (BombinSound). Feature claims checked in code
 (handoff.js push, broadcasts in the 24 h window, photo import, calendar, comments).
-**Next:** finish the voice (lines after 07, then 23–25), polish, timeline, render 4, mix, send.
+**Done:** all 25 lines cloned + polished; S = 46.6 s, L = 94.8 s; four finals in marketing/promo/out/tellmore-promo-{S,L}-{V,Q}.mp4 at −14 LUFS (+ -phone copies of L, and 720p previews). Verified by frames at every cut and loudness. Headline size is measured with canvas measureText (a grapheme-count guess overflowed the square frame). Cuts land 1 frame before the voice (0.12 s early left empty frames). Sending files over ~5 MB to the phone timed out on this network; the desktop app shows them. **Next:** owner's feedback; he posts them himself.
 
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
 
