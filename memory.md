@@ -31,6 +31,17 @@ recordings/hype.m4a, gitignored). `prep_ref.py` denoises (DeepFilterNet), levels
 reference (sentence ends estimated by text share, snapped to pauses — all within 0.25 s). clone_promo.py now uses
 out/hype-ref.*, speed 1.0. Calm takes kept in out/raw-calm and video/public/promo/vo-calm.
 **Next:** send the owner a ~30 s sample (lines 01–06, 08–12); on his OK clone the rest, re-time, re-render 4, mix.
+**Stock voices (2026-09-29):** the owner rejected the CPU clone as not professional and chose Gemini TTS (his own
+free key, GEMINI_TTS_KEY in .env.local — he pasted it in chat first; I would not type it, he added it himself and
+was told to rotate the pasted one). gemini_tts.mjs (model gemini-3.8-flash-tts; direction in Google's labelled
+PROFILE/NOTES/TRANSCRIPT layout — as plain text the model READ the direction aloud, and it refuses a system
+instruction). He liked Puck, Fenrir, Sadachbia and asked for a short Reel in each + one with all three
+(make_trio.mjs: Fenrir raises, Sadachbia jumps in, Puck answers, line 10 in chorus). **Free tier = 10 requests/day
+for this model** (reset 13:00 Bangladesh). So one request per voice for the whole cut, split at the pauses by a
+DP alignment (splitTake); lines 01–06 came from the approved samples at no cost. Per-voice folders vo-<voice>/
++ durations.json, timeline-<voice>.json, sfx-S-<voice>.wav, compositions PromoS-V-<voice>. polish_promo.py needed
+aresample=48000 first (a 24 kHz take made the chain output nothing). **Next:** stock_run.ps1 after 13:00 → send
+the four tellmore-promo-S-V-{puck,fenrir,sadachbia,trio}.mp4.
 
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
 

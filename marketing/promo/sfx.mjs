@@ -2,16 +2,17 @@
 // whoosh on each cut, a pop per chat bubble, a click, a notification ding, a hit
 // on the big words, a riser into the logo and a boom on it, a till for "৳০".
 // One file per cut and frame-independent (the sound is the same in 9:16 and 1:1).
-//   node sfx.mjs S   → video/public/promo/sfx-S.wav (48 kHz stereo)
+//   node sfx.mjs S        → video/public/promo/sfx-S.wav (48 kHz stereo)
+//   node sfx.mjs S puck   → sfx-S-puck.wav, from timeline-puck.json (a stock voice's timing)
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const TL = JSON.parse(fs.readFileSync(path.join(here, "timeline.json"), "utf8"));
-const cut = process.argv[2] || "S";
+const [cut = "S", variant] = process.argv.slice(2);
+const TL = JSON.parse(fs.readFileSync(path.join(here, variant ? `timeline-${variant}.json` : "timeline.json"), "utf8"));
 const { order, at, seconds } = TL.cuts[cut];
-const OUT = path.resolve(here, `../../video/public/promo/sfx-${cut}.wav`);
+const OUT = path.resolve(here, `../../video/public/promo/sfx-${cut}${variant ? `-${variant}` : ""}.wav`);
 const SR = 48000, N = Math.ceil(SR * seconds);
 const bus = [new Float32Array(N), new Float32Array(N)];
 let seed = 7;

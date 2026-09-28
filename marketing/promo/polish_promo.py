@@ -7,6 +7,7 @@ Writes video/public/promo/vo/NN.wav and each line's length into lines.json.
 
     ../trailer/.venv311/Scripts/python polish_promo.py        # every raw line
     ../trailer/.venv311/Scripts/python polish_promo.py 05     # just this one
+    ../trailer/.venv311/Scripts/python polish_promo.py --voice Puck   # a Gemini voice → vo-puck/
 """
 import json
 import subprocess
@@ -32,6 +33,9 @@ VO = ROOT / "video" / "public" / "promo" / "vo"
 LINES = HERE / "lines.json"
 
 CHAIN = ",".join([
+    # 48 kHz first: a 24 kHz input (a Gemini take, which skips the denoiser that
+    # resamples) cannot hold the exciter's 16 kHz ceiling and the chain output nothing
+    "aresample=48000",
     "highpass=f=85",
     "equalizer=f=230:t=q:w=1.0:g=-3.5",   # mud
     "equalizer=f=3000:t=q:w=1.2:g=3.5",   # presence: the words cut through the beat
@@ -58,24 +62,42 @@ def run(*args):
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    want = set(sys.argv[1:])
+    args = sys.argv[1:]
+    # --voice NAME: a stock (Gemini) voice — raw from out/gemini/NAME, polished into
+    # video/public/promo/vo-name/ with its lengths in durations.json there; no
+    # denoise (a TTS take has no room noise, and the filter would only dull it).
+    voice = args[args.index("--voice") + 1] if "--voice" in args else None
+    want = {a for a in args if a != "--voice" and a != voice}
+    raw_dir = HERE / "out" / "gemini" / voice if voice else RAW
+    vo_dir = VO.parent / f"vo-{voice.lower()}" if voice else VO
     doc = json.loads(LINES.read_text(encoding="utf-8"))
-    model, state, _ = init_df()
-    VO.mkdir(parents=True, exist_ok=True)
+    durs_file = vo_dir / "durations.json"
+    durs = json.loads(durs_file.read_text(encoding="utf-8")) if durs_file.exists() else {}
+    model, state = (None, None) if voice else init_df()[:2]
+    vo_dir.mkdir(parents=True, exist_ok=True)
     for line in doc["lines"]:
-        raw = RAW / f"{line['id']}.wav"
+        raw = raw_dir / f"{line['id']}.wav"
         if (want and line["id"] not in want) or not raw.exists():
             continue
-        x, sr = sf.read(raw, dtype="float32", always_2d=True)
-        t = AF.resample(torch.from_numpy(x.mean(axis=1))[None], sr, state.sr())
-        clean = RAW / f"{line['id']}-clean.wav"
-        sf.write(clean, enhance(model, state, t)[0].numpy(), state.sr())
-        out = VO / f"{line['id']}.wav"
+        clean = raw
+        if model:
+            x, sr = sf.read(raw, dtype="float32", always_2d=True)
+            t = AF.resample(torch.from_numpy(x.mean(axis=1))[None], sr, state.sr())
+            clean = raw_dir / f"{line['id']}-clean.wav"
+            sf.write(clean, enhance(model, state, t)[0].numpy(), state.sr())
+        out = vo_dir / f"{line['id']}.wav"
         run("ffmpeg", "-y", "-loglevel", "error", "-i", str(clean), "-af", CHAIN, "-ar", "48000", "-ac", "1", str(out))
-        line["dur"] = round(float(run("ffprobe", "-v", "error", "-show_entries", "format=duration",
-                                      "-of", "default=nw=1:nk=1", str(out)).stdout), 2)
-        print(line["id"], f"{line['dur']}s", flush=True)
-    LINES.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        dur = round(float(run("ffprobe", "-v", "error", "-show_entries", "format=duration",
+                              "-of", "default=nw=1:nk=1", str(out)).stdout), 2)
+        if voice:
+            durs[line["id"]] = dur
+        else:
+            line["dur"] = dur
+        print(line["id"], f"{dur}s", flush=True)
+    if voice:
+        durs_file.write_text(json.dumps(durs, indent=1) + "\n", encoding="utf-8")
+    else:
+        LINES.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

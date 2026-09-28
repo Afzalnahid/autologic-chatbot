@@ -6,13 +6,19 @@
 //   · effect cues are written against words, not seconds, and resolved here.
 // Lines without a polished take yet get an estimated length, so the picture can
 // be previewed before the voice is finished.
-//   node timeline.mjs   → timeline.json
+//   node timeline.mjs          → timeline.json       (the cloned voice, vo/, lengths in lines.json)
+//   node timeline.mjs puck     → timeline-puck.json  (a stock voice, vo-puck/, lengths in its durations.json)
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const { lines } = JSON.parse(fs.readFileSync(path.join(here, "lines.json"), "utf8"));
+const variant = process.argv[2];
+const VO = variant ? `vo-${variant}` : "vo";
+const durFile = path.resolve(here, `../../video/public/promo/${VO}/durations.json`);
+const DURS = variant && fs.existsSync(durFile) ? JSON.parse(fs.readFileSync(durFile, "utf8")) : null;
+const lengthOf = (l) => (DURS ? DURS[l.id] : l.dur);
 const seg = new Intl.Segmenter("bn", { granularity: "grapheme" });
 const glen = (s) => [...seg.segment(s.replace(/[।?!,.]/g, ""))].length;
 
@@ -61,15 +67,15 @@ function wordTimes(text, dur) {
   return words.map((w) => { const t = +(dur * 0.94 * acc / total).toFixed(3); acc += weight(w); return { w, t }; });
 }
 
-const out = { lines: {}, cuts: {} };
+const out = { vo: VO, lines: {}, cuts: {} };
 for (const l of lines) {
-  const dur = l.dur ?? +(glen(l.text) * 0.072 + 0.2).toFixed(2);
+  const dur = lengthOf(l) ?? +(glen(l.text) * 0.072 + 0.2).toFixed(2);
   const words = wordTimes(l.text, dur);
   const cues = (CUES[l.id] || []).map(([k, s, off = 0, until]) => {
     const t = +((k === "end" ? dur : words[Math.min(k, words.length - 1)].t) + off).toFixed(3);
     return until ? { t, s, until: dur } : { t, s };
   });
-  out.lines[l.id] = { text: l.text, dur, estimated: l.dur == null, words, cues };
+  out.lines[l.id] = { text: l.text, dur, estimated: lengthOf(l) == null, words, cues };
 }
 for (const cut of ["S", "L"]) {
   const ids = lines.filter((l) => l.in.includes(cut)).map((l) => l.id);
@@ -82,6 +88,6 @@ for (const cut of ["S", "L"]) {
   const seconds = Math.ceil((t + TAIL) * 10) / 10;
   out.cuts[cut] = { seconds, order: ids, at };
 }
-fs.writeFileSync(path.join(here, "timeline.json"), JSON.stringify(out, null, 1) + "\n");
-const est = lines.filter((l) => l.dur == null).length;
+fs.writeFileSync(path.join(here, variant ? `timeline-${variant}.json` : "timeline.json"), JSON.stringify(out, null, 1) + "\n");
+const est = lines.filter((l) => l.in.includes("S") && lengthOf(l) == null).length;
 console.log(`S ${out.cuts.S.seconds}s · L ${out.cuts.L.seconds}s${est ? ` · ${est} lines still estimated` : ""}`);

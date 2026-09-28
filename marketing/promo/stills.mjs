@@ -15,13 +15,15 @@ const { bundle } = require("@remotion/bundler");
 const { selectComposition, renderStill } = require("@remotion/renderer");
 
 const [cut = "S", frame = "V", ...only] = process.argv.slice(2);
-const TL = JSON.parse(fs.readFileSync(path.join(here, "timeline.json"), "utf8"));
+// VOICE=puck node stills.mjs S V   → the stock-voice render (timeline-puck.json)
+const V = process.env.VOICE;
+const TL = JSON.parse(fs.readFileSync(path.join(here, V ? `timeline-${V}.json` : "timeline.json"), "utf8"));
 const { order, at, seconds } = TL.cuts[cut];
-const out = path.join(here, "out", "stills", `${cut}-${frame}`);
+const out = path.join(here, "out", "stills", `${cut}-${frame}${V ? `-${V}` : ""}`);
 fs.mkdirSync(out, { recursive: true });
 
 const serveUrl = await bundle({ entryPoint: path.join(VIDEO, "src/promo/index.jsx"), publicDir: path.join(VIDEO, "public") });
-const composition = await selectComposition({ serveUrl, id: `Promo${cut}-${frame}` });
+const composition = await selectComposition({ serveUrl, id: `Promo${cut}-${frame}${V ? `-${V}` : ""}` });
 const ids = order.filter((id) => !only.length || only.includes(id));
 for (const id of ids) {
   const i = order.indexOf(id);

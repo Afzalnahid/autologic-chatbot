@@ -11,6 +11,11 @@ import {
   spring, staticFile, useCurrentFrame, useVideoConfig,
 } from "remotion";
 import TL from "../../../marketing/promo/timeline.json";
+
+// Each render has its own timeline (the cloned voice's, or one stock voice's:
+// their lines last differently), handed down from makePromo.
+const TLCtx = React.createContext(TL);
+const useTL = () => React.useContext(TLCtx);
 import { Mark, Grain, bn, shake } from "../trailer/Trailer.jsx";
 
 export const PFPS = 30;
@@ -56,7 +61,7 @@ function useLayout() {
 // as they are spoken. `hi`: [part of a word, colour, "box"?] — the first match wins.
 function Headline({ id, t, hi = [], area, scale = 1, style }) {
   const L = useLayout();
-  const { words } = TL.lines[id];
+  const { words } = useTL().lines[id];
   const phrases = [];
   words.forEach((w, i) => {
     const prev = phrases[phrases.length - 1];
@@ -301,8 +306,8 @@ const SCENES = {
     </>);
   },
 
-  "05": ({ t, d, w, L }) => {
-    const n1 = w(5), n2 = TL.lines["05"].dur + 0.15;
+  "05": ({ t, d, w, L, line }) => {
+    const n1 = w(5), n2 = line.dur + 0.15;
     const top = L.stage[0] + (L.V ? 110 : 80) * L.u;
     const Note = ({ at, text, i }) => { const s = pop(t, at, L.fps, { damping: 16, stiffness: 170 }); return t < at ? null : (
       <div style={{ position: "absolute", left: 60 * L.u, right: 60 * L.u, top: top + i * 150 * L.u, display: "flex", gap: 20 * L.u, alignItems: "center", padding: 24 * L.u,
@@ -682,8 +687,8 @@ const SCENES = {
 };
 
 // ---- the film -----------------------------------------------------------------------------
-export function makePromo(cut) {
-  const { order, at, seconds } = TL.cuts[cut];
+export function makePromo(cut, tl = TL) {
+  const { order, at, seconds } = tl.cuts[cut];
   // The cut lands one frame before the voice. (It was 0.12 s early, which left
   // ~4 frames of empty background at every cut: the scene's pieces pop in from
   // about -0.1 s.)
@@ -693,7 +698,7 @@ export function makePromo(cut) {
     const { fps } = useVideoConfig();
     const starts = order.map((id, i) => (i === 0 ? 0 : at[id] - PRE));
     return (
-      <AbsoluteFill style={{ background: BG }}>
+      <TLCtx.Provider value={tl}><AbsoluteFill style={{ background: BG }}>
         {order.map((id, i) => {
           const from = Math.round(starts[i] * fps);
           const to = i < order.length - 1 ? Math.round(starts[i + 1] * fps) : Math.round(seconds * fps);
@@ -705,7 +710,7 @@ export function makePromo(cut) {
           );
         })}
         <Grain amount={0.05} />
-      </AbsoluteFill>
+      </AbsoluteFill></TLCtx.Provider>
     );
   }
   return Promo;
@@ -716,7 +721,7 @@ function SceneWithLength({ id, lead, d }) {
   const f = useCurrentFrame();
   const L = useLayout();
   const t = f / L.fps - lead;
-  const line = TL.lines[id];
+  const line = useTL().lines[id];
   const w = (k) => line.words[Math.min(k, line.words.length - 1)].t;
   const Body = SCENES[id];
   const punch = 1 + 0.07 * (1 - ramp(f / L.fps, 0, 0.22, 0, 1, Easing.out(Easing.cubic)));
