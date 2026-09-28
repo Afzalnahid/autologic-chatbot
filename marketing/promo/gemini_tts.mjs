@@ -166,6 +166,24 @@ const [cmd, ...rest] = process.argv.slice(2);
 if (cmd === "models") {
   const { models = [] } = await call("models?pageSize=200");
   console.log(models.filter((m) => /tts/i.test(m.name)).map((m) => m.name).join("\n") || "no TTS models on this key");
+} else if (cmd === "cost") {
+  // node gemini_tts.mjs cost Puck Fenrir …  — what the whole-cut takes on disk cost:
+  // prompt tokens counted by the (free) countTokens call, audio at 25 tokens a
+  // second; prices per 1M tokens for gemini-3.8-flash-tts until 2026-12-31.
+  const PRICE_IN = 0.5, PRICE_OUT = 9.0;
+  const ids = GROUPS.S[0].filter((id) => !["01", "02", "03", "04", "05", "06"].includes(id));
+  const texts = ids.map((id) => lines.find((l) => l.id === id).text);
+  const prompt = `${STYLE}\n\n#### TRANSCRIPT\n${texts.map(say).join("\n")}`;
+  const { totalTokens } = await call(`${await model()}:countTokens`, { contents: [{ parts: [{ text: prompt }] }] });
+  let sum = 0;
+  for (const voice of rest) {
+    const take = path.join(OUT, voice, "take-S.wav");
+    const sec = pausesOf(take).dur;
+    const cost = (totalTokens * PRICE_IN + sec * 25 * PRICE_OUT) / 1e6;
+    sum += cost;
+    console.log(`${voice}: ${totalTokens} text tokens + ${sec.toFixed(2)} s audio = ${Math.round(sec * 25)} audio tokens → $${cost.toFixed(6)}`);
+  }
+  console.log(`total $${sum.toFixed(6)}`);
 } else if (cmd === "split") {
   // node gemini_tts.mjs split <voice> <take.wav> 01 02 …  — split a take already made (no request)
   const [voice, take, ...ids] = rest;
