@@ -40,8 +40,9 @@ instruction). He liked Puck, Fenrir, Sadachbia and asked for a short Reel in eac
 for this model** (reset 13:00 Bangladesh). So one request per voice for the whole cut, split at the pauses by a
 DP alignment (splitTake); lines 01–06 came from the approved samples at no cost. Per-voice folders vo-<voice>/
 + durations.json, timeline-<voice>.json, sfx-S-<voice>.wav, compositions PromoS-V-<voice>. polish_promo.py needed
-aresample=48000 first (a 24 kHz take made the chain output nothing). **Next:** stock_run.ps1 after 13:00 → send
-the four tellmore-promo-S-V-{puck,fenrir,sadachbia,trio}.mp4.
+aresample=48000 first (a 24 kHz take made the chain output nothing). **Done 2026-09-29:** the owner switched GEMINI_TTS_KEY to a paid key himself; stock_run.ps1 built all four:
+out/tellmore-promo-S-V-{puck 48.1 s, fenrir 53.1 s, sadachbia 48.8 s, trio 49.7 s}.mp4, −14 LUFS, splits 0.78–1.42×
+of expected, frames checked; sent full-HD + 720p previews. **Next:** owner's verdict; long cut / square frames on request.
 
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
 
