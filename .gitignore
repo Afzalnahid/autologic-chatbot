@@ -48,3 +48,4 @@ video/public/promo/vo/
 video/public/promo/music-*.mp3
 video/public/promo/sfx-*.wav
 __pycache__/
+marketing/promo/recordings/

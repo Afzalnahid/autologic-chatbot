@@ -23,6 +23,15 @@ repaired with numpy==1.26.4), Baloo Da 2 + Anek Bangla fonts (OFL, committed), P
 (handoff.js push, broadcasts in the 24 h window, photo import, calendar, comments).
 **Done:** all 25 lines cloned + polished; S = 46.6 s, L = 94.8 s; four finals in marketing/promo/out/tellmore-promo-{S,L}-{V,Q}.mp4 at −14 LUFS (+ -phone copies of L, and 720p previews). Verified by frames at every cut and loudness. Headline size is measured with canvas measureText (a grapheme-count guess overflowed the square frame). Cuts land 1 frame before the voice (0.12 s early left empty frames). Sending files over ~5 MB to the phone timed out on this network; the desktop app shows them. **Next:** owner's feedback; he posts them himself.
 
+**Voice redo (2026-09-28, evening):** owner disliked the calm clone ("vibe doesn't match"). He first sent the
+reference ad's own audio (110.18 s, the ad's title in its tags) and asked to clone it — declined (third-party
+voice, no consent); he also had voicebox (jamiepine, MIT) installed per his request (per-user, %LOCALAPPDATA%\Voicebox,
+checksum verified) — it has no Bangla engine. Then he recorded the 30 s hype script himself (Windows Sound Recorder,
+recordings/hype.m4a, gitignored). `prep_ref.py` denoises (DeepFilterNet), levels, and cuts a 14.3 s / 4-sentence
+reference (sentence ends estimated by text share, snapped to pauses — all within 0.25 s). clone_promo.py now uses
+out/hype-ref.*, speed 1.0. Calm takes kept in out/raw-calm and video/public/promo/vo-calm.
+**Next:** send the owner a ~30 s sample (lines 01–06, 08–12); on his OK clone the rest, re-time, re-render 4, mix.
+
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
 
 The old "AutoLogic Systems" Page (page id 975965988929117, the owner's own test tenant

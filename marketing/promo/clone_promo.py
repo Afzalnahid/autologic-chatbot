@@ -29,6 +29,18 @@ import clone_vo  # noqa: E402  (reference() and token())
 RAW = HERE / "out" / "raw"
 
 
+def reference():
+    """The owner's energetic recording, prepared by prep_ref.py (denoised,
+    levelled, cut to whole sentences, ~14 s): out/hype-ref.wav + hype-ref.txt.
+    The clone copies the reference's delivery as well as its voice — the first
+    cut sounded calm because the teaser's reference was a calm voice note
+    (owner, 2026-09-28). Without a prepared reference, the teaser's is used.
+    Returns (wav, text, speed): an energetic reference already has the pace."""
+    wav, txt = HERE / "out" / "hype-ref.wav", HERE / "out" / "hype-ref.txt"
+    if wav.exists() and txt.exists():
+        return str(wav), txt.read_text(encoding="utf-8").strip(), 1.0
+    return (*clone_vo.reference(), 1.08)
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     want = set(sys.argv[1:])
@@ -39,7 +51,8 @@ def main():
         todo = [l for l in lines if not (RAW / f"{l['id']}.wav").exists()]
     if not todo:
         return print("every line is already made")
-    ref_wav, ref_text = clone_vo.reference()
+    ref_wav, ref_text, speed = reference()
+    print("reference:", Path(ref_wav).name, f"speed {speed}", flush=True)
     os.environ["HF_TOKEN"] = clone_vo.token()
     import torch
     import torchaudio
@@ -53,7 +66,7 @@ def main():
     model = AutoModel.from_pretrained("ai4bharat/IndicF5", trust_remote_code=True)
     mod = sys.modules[type(model).__module__]
     mod.infer_process = functools.partial(mod.infer_process, nfe_step=16)
-    model.config.speed = 1.08
+    model.config.speed = speed
 
     RAW.mkdir(parents=True, exist_ok=True)
     for line in todo:
