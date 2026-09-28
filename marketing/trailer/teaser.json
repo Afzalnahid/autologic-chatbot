@@ -1,0 +1,8 @@
+{
+  "_note": "Second cut (owner, 2026-09-28: 'make it like a real cinema trailer, under a minute'). One timeline for the picture (video/src/trailer/Teaser.jsx) and the mix (mix2.mjs). Seconds in the film. The music is Pixabay 'Dark Mystery Trailer' (AlexGrohl): part A plays from its start, then it is cut for the silence and part B resumes on its big hit.",
+  "seconds": 58,
+  "music": { "file": "stock/music-dark-mystery.mp3", "a": { "from": 0, "to": 37.5, "at": 0 }, "b": { "from": 38.9, "to": 48.0, "at": 40.3 } },
+  "vo": { "01": 1.4, "02": 4.6, "03": 19.6, "04": 33.0, "05": 37.8, "06": 40.6, "07": 47.6, "08": 50.9 },
+  "silence": [37.5, 40.3],
+  "hit": 50.3
+}

@@ -348,3 +348,6 @@ export function Trailer() {
     </AbsoluteFill>
   );
 }
+
+// Shared with the second cut (Teaser.jsx).
+export { MAROON, ACCENT, INK, SERIF, SANS, useFonts, bn, ramp, graphemes, shake, NAMES, TEXTS, Grain, Vignette, Mark, Notification, Dots, Bubble };

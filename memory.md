@@ -49,6 +49,16 @@ tests/t-connect-flow.mjs) now decides: calendar step only for a new service busi
 with no calendar; from the Channels tab, back to the tab. Unverified on the live site with a
 real Meta login (needs the owner's click-through).
 
+**Teaser second cut (2026-09-28):** owner found cut one "not so fantastic" — wanted a real
+film-trailer feel under a minute. `Teaser` composition (video/src/trailer/Teaser.jsx, 58 s):
+Pexels footage (6 clips, owner approved the download; graded by grade_clips.mjs), Pixabay score
+"Dark Mystery Trailer" (AlexGrohl) cut around a dead-silence beat, title cards on the hits,
+synthesised effects (sfx2.mjs), the cloned voice made dramatic (drama_vo.mjs: rubberband
+pitch 0.865 / tempo 0.94 + hall IR). Timeline in marketing/trailer/teaser.json; picture rendered
+--muted, sound laid on by mix2.mjs (−14 LUFS). Remotion's bundled ffprobe crashes randomly
+(0xC0000005) even on video clips — the render loop retries; attempt 3 got through. Downloaded
+media stays local (gitignored). Pixabay music can trigger a mistaken Facebook copyright claim.
+
 **Teaser voice (2026-09-28):** the owner's own voice, cloned with IndicF5 (ai4bharat, MIT, gated
 on Hugging Face — owner accepted and put HF_TOKEN in .env.local himself) from a 9.5 s cut of his
 WhatsApp voice note, on the CPU (~8.5 min a line, Python 3.11 venv in marketing/trailer/.venv311,
