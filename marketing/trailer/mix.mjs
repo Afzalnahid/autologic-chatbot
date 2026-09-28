@@ -12,14 +12,16 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PUB = path.resolve(here, "../../video/public/trailer");
-const picture = path.join(here, "out", "tellmore-trailer-bn-picture.mp4");
-const out = path.join(here, "out", "tellmore-trailer-bn-final.mp4");
+// the three Gemini voices (vo-trio/, gemini_trio.mjs); `node mix.mjs clone` for the owner's clone (vo/*.mp3)
+const CLONE = process.argv[2] === "clone";
+const picture = path.join(here, "out", CLONE ? "tellmore-trailer-bn-picture.mp4" : "tellmore-trailer-bn-trio-picture.mp4");
+const out = path.join(here, "out", CLONE ? "tellmore-trailer-bn-final.mp4" : "tellmore-trailer-bn-trio.mp4");
 const { lines } = JSON.parse(fs.readFileSync(path.join(here, "lines.json"), "utf8"));
 
 const inputs = ["-i", picture, "-i", path.join(PUB, "sfx.wav")];
 const parts = ["[1:a]volume=0.6[s]"];
 lines.forEach((l, i) => {
-  inputs.push("-i", path.join(PUB, "vo", `${l.id}.${l.ext || "mp3"}`));
+  inputs.push("-i", path.join(PUB, CLONE ? "vo" : "vo-trio", CLONE ? `${l.id}.mp3` : `${l.id}.wav`));
   const ms = Math.round(l.at * 1000);
   parts.push(`[${i + 2}:a]aformat=sample_rates=48000:channel_layouts=stereo,adelay=${ms}|${ms}[v${i}]`);
 });

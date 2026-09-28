@@ -34,6 +34,17 @@ const STYLE = [
   "Pace: brisk, like a Reel, with a clear one-second pause after every line.",
   "Accent: natural colloquial Dhaka Bangla (Bangladesh), not West Bengal. Brand names in English as written.",
 ].join("\n");
+// The cinematic teaser (marketing/trailer/, owner 2026-09-29: its voices redone
+// with these three). A film-trailer narrator, not a salesman.
+const TRAILER_STYLE = [
+  "# AUDIO PROFILE: the narrator of a suspense film trailer, in Bangla",
+  "## THE SCENE: 2 a.m. in a dark room; a shop's phone keeps lighting up with messages nobody answers.",
+  "### DIRECTOR'S NOTES",
+  "Style: low, close to the microphone, restrained and suspenseful, like a cinema trailer; every word clear. " +
+    "An ellipsis (…) is a held breath. Near-whisper on 'তারপর হঠাৎ… কেউ একজন উত্তর দিল'; quiet confidence on the last line.",
+  "Pace: unhurried but never slow enough to drag, with a clear two-second pause after every line.",
+  "Accent: standard Bangladeshi Bangla. Brand names in English as written.",
+].join("\n");
 // how brand words are written FOR THE VOICE; the screen keeps lines.json's text
 const SAY = [["টেলমোর এআই", "TellMore AI"], ["এআই", "AI"]];
 const say = (t) => SAY.reduce((s, [a, b]) => s.replaceAll(a, b), t);
@@ -68,13 +79,13 @@ const wav = (pcm, rate = 24000) => {
   return Buffer.concat([h, pcm]);
 };
 
-async function speak(voice, texts, file) {
+async function speak(voice, texts, file, style = STYLE) {
   // Direction and words in Google's TTS prompt layout (profile / notes /
   // transcript), so only the transcript is performed: as one plain paragraph the
   // model READ THE DIRECTION ALOUD (17 s of English, first samples 2026-09-29),
   // and this model refuses a system instruction.
   const r = await call(`${await model()}:generateContent`, {
-    contents: [{ parts: [{ text: `${STYLE}\n\n#### TRANSCRIPT\n${texts.map(say).join("\n")}` }] }],
+    contents: [{ parts: [{ text: `${style}\n\n#### TRANSCRIPT\n${texts.map(say).join("\n")}` }] }],
     generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
   });
   const part = r.candidates?.[0]?.content?.parts?.find((p) => p.inlineData);
@@ -166,6 +177,19 @@ const [cmd, ...rest] = process.argv.slice(2);
 if (cmd === "models") {
   const { models = [] } = await call("models?pageSize=200");
   console.log(models.filter((m) => /tts/i.test(m.name)).map((m) => m.name).join("\n") || "no TTS models on this key");
+} else if (cmd === "trailer") {
+  // node gemini_tts.mjs trailer Puck  → out/gemini-trailer/Puck/NN.wav, the teaser's 8 lines in one request
+  const voice = rest[0] || "Puck";
+  const tl = JSON.parse(fs.readFileSync(path.join(here, "..", "trailer", "lines.json"), "utf8")).lines;
+  const dir = path.join(here, "out", "gemini-trailer", voice);
+  fs.mkdirSync(dir, { recursive: true });
+  const texts = tl.map((l) => l.text);
+  const takeFile = path.join(dir, "take.wav");
+  const take = fs.existsSync(takeFile) ? takeFile : await speak(voice, texts, takeFile, TRAILER_STYLE);
+  const pieces = splitTake(take, texts);
+  if (!pieces) { console.error(voice, "the take did not split cleanly — kept at", take); process.exit(2); }
+  pieces.forEach(([s, e], i) => ff(["-y", "-loglevel", "error", "-i", take, "-ss", Math.max(0, s - 0.06).toFixed(3), "-to", (e + 0.12).toFixed(3), path.join(dir, `${tl[i].id}.wav`)]));
+  console.log(voice, "trailer lines done");
 } else if (cmd === "cost") {
   // node gemini_tts.mjs cost Puck Fenrir …  — what the whole-cut takes on disk cost:
   // prompt tokens counted by the (free) countTokens call, audio at 25 tokens a

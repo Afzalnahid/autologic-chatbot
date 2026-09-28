@@ -3,7 +3,8 @@
 //     dead for the silence, part B back in on its big hit — and pulled down
 //     under every spoken line so the voice sits on top;
 //   · the effects layer (sfx2.wav);
-//   · the dramatised voice lines (vo-drama/NN.wav) at their seconds.
+//   · the voice lines at their seconds: the three Gemini voices (vo-trio/, gemini_trio.mjs),
+//     or with `node mix2.mjs clone` the owner's dramatised clone (vo-drama/).
 // Levelled to −14 LUFS for Reels.
 //   node mix2.mjs   → out/tellmore-teaser-final.mp4
 import fs from "node:fs";
@@ -15,8 +16,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const PUB = path.resolve(here, "../../video/public/trailer");
 const TL = JSON.parse(fs.readFileSync(path.join(here, "teaser.json"), "utf8"));
 const { lines } = JSON.parse(fs.readFileSync(path.join(here, "lines.json"), "utf8"));
-const picture = path.join(here, "out", "tellmore-teaser-picture.mp4");
-const out = path.join(here, "out", "tellmore-teaser-final.mp4");
+const CLONE = process.argv[2] === "clone";
+const VODIR = CLONE ? "vo-drama" : "vo-trio";
+const picture = path.join(here, "out", CLONE ? "tellmore-teaser-picture.mp4" : "tellmore-teaser-trio-picture.mp4");
+const out = path.join(here, "out", CLONE ? "tellmore-teaser-final.mp4" : "tellmore-teaser-trio.mp4");
 const { a, b } = TL.music;
 
 // music level: full, but a third lower wherever a line is being spoken
@@ -33,7 +36,7 @@ const parts = [
   `[2:a]volume=0.9[fx]`,
 ];
 lines.forEach((l, i) => {
-  inputs.push("-i", path.join(PUB, "vo-drama", `${l.id}.wav`));
+  inputs.push("-i", path.join(PUB, VODIR, `${l.id}.wav`));
   const ms = Math.round(TL.vo[l.id] * 1000);
   parts.push(`[${i + 3}:a]aresample=48000,aformat=channel_layouts=stereo,volume=1.15,adelay=${ms}|${ms}[v${i}]`);
 });
