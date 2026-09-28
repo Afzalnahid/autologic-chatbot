@@ -57,7 +57,9 @@ def main():
     x, sr = sf.read(raw, dtype="float32", always_2d=True)
     t = AF.resample(torch.from_numpy(x.mean(axis=1))[None], sr, state.sr())
     den = OUT / "hype-den.wav"
-    sf.write(den, enhance(model, state, t)[0].numpy(), state.sr())
+    # at most 18 dB of noise taken out: full-strength denoise leaves a faint metallic
+    # edge, and the clone copies it (owner: "not crystal clear", 2026-09-29)
+    sf.write(den, enhance(model, state, t, atten_lim_db=18)[0].numpy(), state.sr())
     clean = OUT / "hype-clean.wav"
     # level it and give it a little presence; no heavy compression, the ups and downs ARE the expression
     run("ffmpeg", "-y", "-loglevel", "error", "-i", str(den), "-af",

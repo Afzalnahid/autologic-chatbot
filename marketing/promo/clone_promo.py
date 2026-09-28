@@ -3,10 +3,9 @@ chatty read of a Bangla sales ad (owner, 2026-09-28: "this type voice" — the
 STYLE of his reference ad; the narrator of that ad is never cloned, only the
 owner, who recorded marketing/trailer/recordings/me.* for this).
 
-Reuses the teaser's reference cut (marketing/trailer/clone_vo.py) and model.
-Two changes from the teaser: the model speaks 8% faster itself (no stretching
-afterwards), and it takes 16 flow steps instead of 32 — half the CPU time for a
-barely audible difference.
+Same model as the teaser (marketing/trailer/clone_vo.py). The reference is the
+owner's own energetic recording, prepared by prep_ref.py; the full 32 flow steps
+(~8 min a line on this CPU) — 16 was tried and blurred the words.
 
     ../trailer/.venv311/Scripts/python clone_promo.py          # every line not done yet
     ../trailer/.venv311/Scripts/python clone_promo.py 05 11    # just these (redo)
@@ -27,6 +26,21 @@ sys.path.insert(0, str(HERE.parent / "trailer"))
 import clone_vo  # noqa: E402  (reference() and token())
 
 RAW = HERE / "out" / "raw"
+
+# How words are SPELLED FOR THE MODEL, when its reading of the real spelling is
+# wrong (owner, 2026-09-29: "টেলমোর এআই" and "বুস্টও" mispronounced). The screen
+# still shows lines.json's text; only what the model reads changes. Longest first.
+SAY = [
+    ("টেলমোর এআই", "টেল মোর, এ আই"),
+    ("এআই", "এ আই"),
+    ("বুস্টও", "বুস্ট ও"),
+]
+
+
+def say(text):
+    for written, spoken in SAY:
+        text = text.replace(written, spoken)
+    return text
 
 
 def reference():
@@ -65,12 +79,14 @@ def main():
     from transformers import AutoModel
     model = AutoModel.from_pretrained("ai4bharat/IndicF5", trust_remote_code=True)
     mod = sys.modules[type(model).__module__]
-    mod.infer_process = functools.partial(mod.infer_process, nfe_step=16)
+    # 32 flow steps, the model's full quality: 16 halved the time but blurred
+    # words (owner: accent and pronunciation "not perfect", 2026-09-29)
+    mod.infer_process = functools.partial(mod.infer_process, nfe_step=32)
     model.config.speed = speed
 
     RAW.mkdir(parents=True, exist_ok=True)
     for line in todo:
-        audio = np.asarray(model(line["text"], ref_audio_path=ref_wav, ref_text=ref_text), dtype=np.float32)
+        audio = np.asarray(model(say(line["text"]), ref_audio_path=ref_wav, ref_text=ref_text), dtype=np.float32)
         if np.abs(audio).max() > 1.5:
             audio = audio / 32768.0
         sf.write(RAW / f"{line['id']}.wav", audio, 24000)
