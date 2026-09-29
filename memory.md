@@ -66,7 +66,10 @@ public_profile, email, whatsapp_business_messaging, whatsapp_business_management
 instagram_business_manage_comments, instagram_business_basic, business_management, pages_show_list,
 pages_read_user_content, pages_manage_engagement. **pages_read_engagement: App Review REJECTED** (standard access only) —
 check what that breaks for client Pages. Marketing wording: "Meta Tech Provider (WhatsApp Business Platform)", "business
-verified by Meta"; never "Meta Verified" (a different paid product), "official Meta partner" or "Meta Business Partner". Facebook said no copyright
+verified by Meta"; never "Meta Verified" (a different paid product), "official Meta partner" or "Meta Business Partner".
+Done the same day: homepage hero badge (7c43433, live on tellmoreai.com, EN+BN, circle-check icon — the public icon subset
+has no shield), FB Page bio (saved + verified). IG bio NOT saved: Instagram web silently drops scripted AND keyboard-typed
+bio edits from this Chrome; stopped (lock risk) — owner pastes it in the app. Next videos: add the trust line (memory file). Facebook said no copyright
 issues on all three. **Next:** groups (3–5, as the Page) once a reel is live — Wed 9 PM or Fri.
 
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
