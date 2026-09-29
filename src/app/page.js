@@ -3,6 +3,7 @@ import PublicFonts from "./public-fonts.js";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
 import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
 import { BotMark } from "@/lib/brand.js";
+import { TECH_LOGOS } from "@/lib/tech-logos.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
@@ -452,6 +453,22 @@ export default async function Home({ searchParams }) {
         @media (max-width: 900px) { .two { grid-template-columns: 1fr !important } .hide-sm { display: none } }
         @media (prefers-reduced-motion: reduce) { .r, .card, .btn { animation: none !important; transition: none !important } .al-obs { opacity: 1 !important; transform: none !important } }
 
+        /* "Built with" — one slow loop, faded at both edges, paused while pointed at */
+        .tech-strip { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+          -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent) }
+        .tech-track { display: flex; width: max-content; gap: 34px; animation: tech-scroll 55s linear infinite }
+        .tech-strip:hover .tech-track { animation-play-state: paused }
+        .tech-item { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 14px; font-weight: 600;
+          color: ${P.inkSoft}; transition: color .2s }
+        .tech-item:hover { color: ${P.ink} }
+        /* the track holds the list twice; moving it by half (plus half a gap) lands on the copy, so the loop is seamless */
+        @keyframes tech-scroll { from { transform: translateX(0) } to { transform: translateX(calc(-50% - 17px)) } }
+        @media (prefers-reduced-motion: reduce) {
+          .tech-strip { mask-image: none; -webkit-mask-image: none }
+          .tech-track { animation: none; width: auto; flex-wrap: wrap; justify-content: center; gap: 12px 26px }
+          .tech-item[aria-hidden="true"] { display: none }
+        }
+
         .al-phone { width: 100%; max-width: 300px; margin: 0 auto; border-radius: 38px; padding: 9px }
         .al-screen { border-radius: 30px; overflow: hidden; position: relative; height: 460px; display: block }
         .al-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 80px; height: 18px;
@@ -626,16 +643,23 @@ export default async function Home({ searchParams }) {
           </div>
         </div>
 
-        {/* The channels it answers on — where the Figma draft listed other
-            companies' logos as "trusted by". */}
-        <div style={{ marginTop: "clamp(36px,5vw,56px)", paddingTop: 22, borderTop: `1px solid ${P.line}`,
-          display: "flex", alignItems: "center", justifyContent: "center", gap: "12px 30px", flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12.5, color: P.inkSoft }}>{bn ? "যেখানে উত্তর দেয়:" : "Answers on:"}</span>
-          {Object.values(CH).map((x) => (
-            <span key={x.name} style={{ fontSize: 14, fontWeight: 600, color: P.ink, display: "inline-flex", alignItems: "center", gap: 7 }}>
-              <i className={`ti ${x.icon}`} style={{ fontSize: 19, color: P.inkSoft }} />{x.short}
-            </span>
-          ))}
+        {/* What it is built with — where the Figma draft listed other companies'
+            logos as "trusted by". "Built with" is the true claim; see TECH_LOGOS. */}
+        <div style={{ marginTop: "clamp(36px,5vw,56px)", paddingTop: 22, borderTop: `1px solid ${P.line}` }}>
+          <div style={{ textAlign: "center", fontSize: 12.5, color: P.inkSoft, marginBottom: 14 }}>{bn ? "যা দিয়ে তৈরি" : "Built with"}</div>
+          <div className="tech-strip">
+            {/* the list twice, so the scroll can loop without a seam; the copy is hidden from screen readers */}
+            <div className="tech-track">
+              {[0, 1].map((copy) => TECH_LOGOS.map((x) => (
+                <span key={copy + x.name} className="tech-item" aria-hidden={copy ? "true" : undefined}>
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d={x.d} fill="currentColor" /></svg>{x.name}
+                </span>
+              )))}
+            </div>
+          </div>
+          <div style={{ textAlign: "center", fontSize: 11, color: P.inkSoft, marginTop: 10, opacity: 0.8 }}>
+            {bn ? "লোগোগুলো তাদের নিজ নিজ মালিকের ট্রেডমার্ক" : "Logos are trademarks of their respective owners"}
+          </div>
         </div>
       </section>
 
