@@ -57,7 +57,16 @@ caught by patching HTMLInputElement.click, never a real click that opens the OS 
 no single-voice versions; no "AI voice" line in captions (told him Meta's disclosure rule, his call). Times: Meta's
 Active times say IG 1 PM; FB data too thin, so FB 9 PM (BD evening). Schedule: Sep 30 teaser cut 2, Oct 2 promo trio,
 Oct 3 teaser cut 1 — each IG 1 PM / FB 9 PM. Today's live promo: FB copy EXPIRED; the owner deleted its IG copy and the Puck drafts himself (verified: drafts empty,
-reel gone). Six scheduled items checked (Sep 30 / Oct 2 / Oct 3, IG 1 PM + FB 9 PM). Facebook said no copyright
+reel gone). Six scheduled items checked (Sep 30 / Oct 2 / Oct 3, IG 1 PM + FB 9 PM).
+**Meta developer app audit (2026-09-29, read-only):** "Tellmore AI" app ID 914246304594380, Live, Business type, business
+portfolio TellMore AI (1214039840198586). WhatsApp → Become Tech Provider page says "Congratulations! You are now a Tech
+Provider" (2 of 2 steps). WhatsApp Step 3 Business verification: Approved. Products: FB Login for Business, Webhooks,
+Messenger, WhatsApp, Instagram. Advanced access granted: pages_messaging (22.3K calls), pages_manage_metadata,
+public_profile, email, whatsapp_business_messaging, whatsapp_business_management, instagram_business_manage_messages,
+instagram_business_manage_comments, instagram_business_basic, business_management, pages_show_list,
+pages_read_user_content, pages_manage_engagement. **pages_read_engagement: App Review REJECTED** (standard access only) —
+check what that breaks for client Pages. Marketing wording: "Meta Tech Provider (WhatsApp Business Platform)", "business
+verified by Meta"; never "Meta Verified" (a different paid product), "official Meta partner" or "Meta Business Partner". Facebook said no copyright
 issues on all three. **Next:** groups (3–5, as the Page) once a reel is live — Wed 9 PM or Fri.
 
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
