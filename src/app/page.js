@@ -599,6 +599,13 @@ export default async function Home({ searchParams }) {
                 </span>
               ))}
             </div>
+            {/* Meta's own standing for the app — see COPY.meta for what is and is not claimed. */}
+            <div className="r" style={{ animationDelay: ".32s", marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "7px 14px", borderRadius: 999, border: `1px solid ${P.line}`, background: P.paper2, fontSize: 13, fontWeight: 600, color: P.ink }}>
+              {/* circle-check, not a shield: the public pages load an icon subset
+                  (scripts/make-icon-font.mjs) and the shield is not in it */}
+              <i className="ti ti-circle-check" style={{ fontSize: 17, color: P.accent }} />{c.meta}
+            </div>
           </div>
           <div className="r" style={{ animationDelay: ".1s" }}>
             <div className="board-wrap" style={{ maxWidth: 330, margin: "0 auto", width: "100%" }}>

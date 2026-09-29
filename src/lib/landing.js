@@ -116,6 +116,11 @@ export const COPY = {
     lead: "Connects to Facebook, Instagram, WhatsApp and your own website, answers in Bangla or English, and books meetings straight into your Google Calendar.",
     cta: "Start free trial", cta2: "See pricing",
     proof: ["3-day free trial", "No card required", "Bangla and English"],
+    // Both true, checked in Meta's developer console on 2026-09-29: the app's
+    // "Become Tech Provider" page reads "You are now a Tech Provider", and its
+    // business verification step reads "Approved". Never "Meta Verified" (a
+    // different, paid Meta product) and never "partner" — Meta does not endorse us.
+    meta: "Meta Tech Provider · Business verified by Meta",
     convLabel: "Real conversations",
     convTitle: "Whether you sell products or services",
     convLead: "The same assistant, trained on your own catalogue or your own documents. It replies in the language the customer wrote in.",
@@ -139,6 +144,7 @@ export const COPY = {
     lead: "ফেসবুক, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর আপনার নিজের ওয়েবসাইটে যুক্ত হয়, বাংলা বা ইংরেজিতে উত্তর দেয়, আর মিটিং সরাসরি আপনার গুগল ক্যালেন্ডারে বুক করে।",
     cta: "ফ্রি ট্রায়াল শুরু করুন", cta2: "দাম দেখুন",
     proof: ["৩ দিনের ফ্রি ট্রায়াল", "কার্ড লাগবে না", "বাংলা ও ইংরেজি"],
+    meta: "Meta-র Tech Provider · Meta-য় যাচাই করা ব্যবসা",
     convLabel: "সত্যিকারের কথোপকথন",
     convTitle: "পণ্য বিক্রি করুন বা সেবা — দুটোতেই",
     convLead: "একই সহকারী, আপনার নিজের পণ্য বা নিজের ডকুমেন্ট থেকে শেখা। গ্রাহক যে ভাষায় লেখেন, সেই ভাষাতেই উত্তর দেয়।",
