@@ -56,8 +56,8 @@ Uploads via Claude in Chrome (10 MB cap → marketing/upload/*.mp4, ~8 MB 1080p 
 caught by patching HTMLInputElement.click, never a real click that opens the OS picker). Owner: only the 3-voice promo,
 no single-voice versions; no "AI voice" line in captions (told him Meta's disclosure rule, his call). Times: Meta's
 Active times say IG 1 PM; FB data too thin, so FB 9 PM (BD evening). Schedule: Sep 30 teaser cut 2, Oct 2 promo trio,
-Oct 3 teaser cut 1 — each IG 1 PM / FB 9 PM. Today's live promo: FB copy EXPIRED; its IG copy (3:29 PM) is still live —
-owner to archive/delete it in the IG app. Drafts left for the owner to delete: Puck (FB+IG). Facebook said no copyright
+Oct 3 teaser cut 1 — each IG 1 PM / FB 9 PM. Today's live promo: FB copy EXPIRED; the owner deleted its IG copy and the Puck drafts himself (verified: drafts empty,
+reel gone). Six scheduled items checked (Sep 30 / Oct 2 / Oct 3, IG 1 PM + FB 9 PM). Facebook said no copyright
 issues on all three. **Next:** groups (3–5, as the Page) once a reel is live — Wed 9 PM or Fri.
 
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
