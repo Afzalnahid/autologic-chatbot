@@ -18,7 +18,11 @@ const PUB = path.resolve(here, "../../video/public/promo");
 const [cut = "S", frame = "V", variant] = process.argv.slice(2);
 const TL = JSON.parse(fs.readFileSync(path.join(here, variant ? `timeline-${variant}.json` : "timeline.json"), "utf8"));
 const tag = `-${cut}-${frame}${variant ? `-${variant}` : ""}`;
-const { order, at, seconds } = TL.cuts[cut];
+// brand.json's variants run brand.outro seconds longer (Autolinium's end card);
+// the music's own ending then lands on that card
+const BRAND = JSON.parse(fs.readFileSync(path.join(here, "brand.json"), "utf8"));
+const { order, at } = TL.cuts[cut];
+const seconds = TL.cuts[cut].seconds + (BRAND.variants.includes(variant) ? BRAND.outro : 0);
 const picture = path.join(here, "out", `promo${tag}-picture.mp4`);
 const out = path.join(here, "out", `tellmore-promo${tag}.mp4`);
 

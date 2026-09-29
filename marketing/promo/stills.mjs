@@ -38,8 +38,16 @@ for (const id of ids) {
     } catch (e) { if (attempt >= 3) { console.error(id, e.message); break; } }
   }
 }
+// Autolinium's end card, on the variants brand.json lists
+const BRAND = JSON.parse(fs.readFileSync(path.join(here, "brand.json"), "utf8"));
+if (BRAND.variants.includes(V) && (!only.length || only.includes("outro"))) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try { await renderStill({ serveUrl, composition, frame: Math.round((seconds + BRAND.outro * 0.8) * 30), output: path.join(out, "outro.png"), imageFormat: "png" }); console.log("outro"); break; }
+    catch (e) { if (attempt >= 3) console.error("outro", e.message); }
+  }
+}
 // a contact sheet of whatever exists
-const pngs = order.filter((id) => fs.existsSync(path.join(out, `${id}.png`)));
+const pngs = [...order, "outro"].filter((id) => fs.existsSync(path.join(out, `${id}.png`)));
 const cols = frame === "V" ? 7 : 6, w = frame === "V" ? 270 : 320, h = frame === "V" ? 480 : 320;
 const args = ["-hide_banner", "-loglevel", "error", "-y"];
 pngs.forEach((id) => args.push("-i", path.join(out, `${id}.png`)));

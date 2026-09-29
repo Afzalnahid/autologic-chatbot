@@ -58,6 +58,16 @@ no single-voice versions; no "AI voice" line in captions (told him Meta's disclo
 Active times say IG 1 PM; FB data too thin, so FB 9 PM (BD evening). Schedule: Sep 30 teaser cut 2, Oct 2 promo trio,
 Oct 3 teaser cut 1 — each IG 1 PM / FB 9 PM. Today's live promo: FB copy EXPIRED; the owner deleted its IG copy and the Puck drafts himself (verified: drafts empty,
 reel gone). Six scheduled items checked (Sep 30 / Oct 2 / Oct 3, IG 1 PM + FB 9 PM).
+**Autolinium branding on the trio promo (2026-09-29):** owner asked for Autolinium's logo + name through the whole
+3-voice promo (no background, only mark + text), a bottom-centre "An Autolinium product" + contact line, and an end card
+saying it is Autolinium's product with its contacts. His answers: only the trio promo; logo top left; bottom line =
+product · autolinium.com · +880 1533-633084; add the Meta Tech Provider line on the end card; swap the new file into
+the Oct 2 scheduled posts. Built: marketing/promo/brand.json (variants ["trio"], outro 4.5 s, contacts from the
+Autolinium letterhead), brand/make_mark.py (his navy master → light-blue gradient on transparent,
+video/public/promo/brand/autolinium-mark-light.png), Promo.jsx BrandBug + BrandCard (Latin text in system Segoe UI),
+index.jsx/mix.mjs/sfx.mjs/stills.mjs add the outro for branded variants (music's own ending lands on the card).
+Scheduled reels can't have their video replaced in Business Suite (Edit reel = caption/thumbnail only), so the
+swap = new FB + IG reels with the same caption and times, old ones moved to Drafts for the owner to delete.
 **Meta developer app audit (2026-09-29, read-only):** "Tellmore AI" app ID 914246304594380, Live, Business type, business
 portfolio TellMore AI (1214039840198586). WhatsApp → Become Tech Provider page says "Congratulations! You are now a Tech
 Provider" (2 of 2 steps). WhatsApp Step 3 Business verification: Approved. Products: FB Login for Business, Webhooks,

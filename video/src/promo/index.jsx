@@ -11,18 +11,21 @@ import PUCK from "../../../marketing/promo/timeline-puck.json";
 import FENRIR from "../../../marketing/promo/timeline-fenrir.json";
 import SADACHBIA from "../../../marketing/promo/timeline-sadachbia.json";
 import TRIO from "../../../marketing/promo/timeline-trio.json";
+import BRAND from "../../../marketing/promo/brand.json";
 import { makePromo, PFPS } from "./Promo.jsx";
 
 const VOICES = { "": TL, "-puck": PUCK, "-fenrir": FENRIR, "-sadachbia": SADACHBIA, "-trio": TRIO };
 const FRAMES = { V: [1080, 1920], Q: [1080, 1080] };
-const PROMOS = Object.fromEntries(Object.entries(VOICES).flatMap(([v, tl]) => ["S", "L"].map((cut) => [cut + v, makePromo(cut, tl)])));
+// Autolinium's marks and end card, on the variants brand.json lists (only the trio)
+const branded = (v) => BRAND.variants.includes(v.slice(1));
+const PROMOS = Object.fromEntries(Object.entries(VOICES).flatMap(([v, tl]) => ["S", "L"].map((cut) => [cut + v, makePromo(cut, tl, branded(v) ? BRAND : null)])));
 
 function Root() {
   return (
     <>
       {Object.entries(VOICES).flatMap(([v, tl]) => ["S", "L"].flatMap((cut) => Object.entries(FRAMES).map(([f, [width, height]]) => (
         <Composition key={cut + f + v} id={`Promo${cut}-${f}${v}`} component={PROMOS[cut + v]} fps={PFPS}
-          durationInFrames={Math.round(tl.cuts[cut].seconds * PFPS)} width={width} height={height} />
+          durationInFrames={Math.round((tl.cuts[cut].seconds + (branded(v) ? BRAND.outro : 0)) * PFPS)} width={width} height={height} />
       ))))}
     </>
   );

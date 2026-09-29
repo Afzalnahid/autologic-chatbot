@@ -11,7 +11,11 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const [cut = "S", variant] = process.argv.slice(2);
 const TL = JSON.parse(fs.readFileSync(path.join(here, variant ? `timeline-${variant}.json` : "timeline.json"), "utf8"));
-const { order, at, seconds } = TL.cuts[cut];
+// brand.json's variants run brand.outro seconds longer: a whoosh into Autolinium's end card
+const BRAND = JSON.parse(fs.readFileSync(path.join(here, "brand.json"), "utf8"));
+const { order, at } = TL.cuts[cut];
+const outro = BRAND.variants.includes(variant) ? BRAND.outro : 0;
+const seconds = TL.cuts[cut].seconds + outro;
 const OUT = path.resolve(here, `../../video/public/promo/sfx-${cut}${variant ? `-${variant}` : ""}.wav`);
 const SR = 48000, N = Math.ceil(SR * seconds);
 const bus = [new Float32Array(N), new Float32Array(N)];
@@ -40,6 +44,8 @@ for (const [i, id] of order.entries()) {
   for (const c of TL.lines[id].cues) FX[c.s](base + c.t, undefined, c.until != null ? c.until - c.t : undefined);
   if (id === "07") { const end = i < order.length - 1 ? at[order[i + 1]] - base : 0; for (let x = TL.lines[id].dur + 0.1; x < end; x += 0.13) FX.pop(base + x, 0.09); }
 }
+
+if (outro) { FX.whoosh(TL.cuts[cut].seconds, 0.24); FX.ding(TL.cuts[cut].seconds + 0.25, 0.07); }
 
 let peak = 0; for (const c of bus) for (const v of c) peak = Math.max(peak, Math.abs(v));
 const gain = peak > 0.89 ? 0.89 / peak : 1;
