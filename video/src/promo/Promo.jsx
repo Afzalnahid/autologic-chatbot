@@ -708,10 +708,11 @@ function BrandBug({ brand, until }) {
         <Img src={staticFile("promo/brand/autolinium-mark-light.png")} style={{ height: mark }} />
         <div style={{ fontFamily: LATIN, fontWeight: 600, fontSize: mark * 0.62, color: "#fff", letterSpacing: 0.3 * u }}>{brand.name}</div>
       </div>
-      {/* a feathered shade, not a box, so the line reads over a white shirt too */}
-      <div style={{ position: "absolute", left: 0, right: 0, top: (L.V ? L.stage[1] - 12 * u : L.H - 62 * u) - 34 * u, height: 108 * u,
-        background: "radial-gradient(ellipse 62% 50% at 50% 50%, rgba(0,0,0,.62), rgba(0,0,0,0))" }} />
-      <div style={{ position: "absolute", left: 0, right: 0, top: L.V ? L.stage[1] - 12 * u : L.H - 62 * u, textAlign: "center",
+      {/* at the very bottom of the frame (owner, 2026-09-29), on a feathered
+          shade, not a box, so it reads over a white shirt too */}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 150 * u,
+        background: "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.6) 60%, rgba(0,0,0,.7))" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: (L.V ? 44 : 22) * u, textAlign: "center",
         fontFamily: LATIN, fontWeight: 600, fontSize: (L.V ? 29 : 24) * u, color: "rgba(255,255,255,.9)", textShadow: soft(u), whiteSpace: "nowrap" }}>
         An {brand.name} product<span style={{ color: SKY, margin: `0 ${14 * u}px` }}>·</span>{brand.web}<span style={{ color: SKY, margin: `0 ${14 * u}px` }}>·</span>{brand.phone}
       </div>
