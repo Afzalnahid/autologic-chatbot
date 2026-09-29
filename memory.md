@@ -44,6 +44,13 @@ aresample=48000 first (a 24 kHz take made the chain output nothing). **Done 2026
 out/tellmore-promo-S-V-{puck 48.1 s, fenrir 53.1 s, sadachbia 48.8 s, trio 49.7 s}.mp4, −14 LUFS, splits 0.78–1.42×
 of expected, frames checked; sent full-HD + 720p previews. **Next:** owner's verdict; long cut / square frames on request.
 
+**Teasers re-voiced (2026-09-29):** owner asked for the two cinematic teasers with the three Gemini voices together.
+gemini_tts.mjs `trailer <Voice>` (a film-trailer direction, 8 lines in one request each) → marketing/trailer/gemini_trio.mjs
+(Fenrir/Sadachbia/Puck, line 08 in chorus, hall + chest, fitted to both cuts' slots — only 05 sped ×1.13) →
+video/public/trailer/vo-trio/; lines.json dur/dramaDur now describe vo-trio. Rendered + mixed:
+out/tellmore-trailer-bn-trio.mp4 (47 s, −15 LUFS), tellmore-teaser-trio.mp4 (58 s, −14.1, +11.8 MB -phone). Clone still
+reachable: `node mix.mjs clone` / `node mix2.mjs clone`. Sent.
+
 ## 2026-09-27 — The Facebook Page is now TellMore AI (facebook.com/tellmoreai)
 
 The old "AutoLogic Systems" Page (page id 975965988929117, the owner's own test tenant
