@@ -1727,3 +1727,16 @@ Rule: never store a server answer without shaping it, and never call a screen
 done until it has been rendered. /shots exists for exactly this and costs a
 minute. Both faults were invisible to npm test and to every source-level
 assertion I had written about these very files.
+
+## 2026-09-29 — a scheduled post went out "now"
+Scheduling Reels in Meta Business Suite, I clicked the bottom-right button twice
+by position to go Create → Edit → Share. On the Share step that same spot is the
+submit button, and the Schedule option pre-fills the CURRENT time, so a teaser
+was "scheduled" for 4:39 PM that day — i.e. published at once — instead of the
+Saturday slot. Caught from the Planner and moved to Drafts before it spread.
+Also: the Chrome extension's pixel frame changed size mid-session (the window was
+resized), so coordinate clicks landed on the wrong boxes.
+Rule: in a composer, click by element reference (find → ref), read the step and
+the date/time back before pressing the final button, and never trust coordinates
+after the window may have changed. Prefer "Move to Drafts" / "Expire" over delete —
+delete is the owner's own action.
