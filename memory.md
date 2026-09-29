@@ -5674,3 +5674,10 @@ automation looks natural to a reviewer.
 
 
 
+
+
+**Homepage 'Built with' strip (2026-09-29, a4a7ad8):** replaces the 'Answers on' row under the hero. 20 logos in
+src/lib/tech-logos.js (Simple Icons 13, CC0; list checked against package.json/mobile/src — SSLCommerz out, bKash/Nagad are
+manual payments not tech). CSS marquee (.tech-strip/.tech-track in page.js), seamless (offset measured 2575 vs 2574.5),
+pauses on hover, static wrap under prefers-reduced-motion, trademark note, EN+BN. Seen: dev console hydration warning on
+the theme toggle icon (ti-sun vs ti-moon) — pre-existing, not fixed here.
