@@ -68,6 +68,9 @@ video/public/promo/brand/autolinium-mark-light.png), Promo.jsx BrandBug + BrandC
 index.jsx/mix.mjs/sfx.mjs/stills.mjs add the outro for branded variants (music's own ending lands on the card).
 Scheduled reels can't have their video replaced in Business Suite (Edit reel = caption/thumbnail only), so the
 swap = new FB + IG reels with the same caption and times, old ones moved to Drafts for the owner to delete.
+DONE same day: upload copy marketing/upload/tellmore-promo-trio-autolinium.mp4 (54.2 s, 7.2 MB, -14.4 LUFS, frames checked);
+new reels scheduled Fri Oct 2 IG 1 PM + FB 9 PM (thumbnail: the 'kintu reply dibe ke?' frame, FB 'no copyright
+issues'); the two old Oct 2 reels are in Drafts - owner deletes them himself.
 **Meta developer app audit (2026-09-29, read-only):** "Tellmore AI" app ID 914246304594380, Live, Business type, business
 portfolio TellMore AI (1214039840198586). WhatsApp → Become Tech Provider page says "Congratulations! You are now a Tech
 Provider" (2 of 2 steps). WhatsApp Step 3 Business verification: Approved. Products: FB Login for Business, Webhooks,
