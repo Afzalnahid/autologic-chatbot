@@ -71,6 +71,11 @@ swap = new FB + IG reels with the same caption and times, old ones moved to Draf
 DONE same day: upload copy marketing/upload/tellmore-promo-trio-autolinium.mp4 (54.2 s, 7.2 MB, -14.4 LUFS, frames checked);
 new reels scheduled Fri Oct 2 IG 1 PM + FB 9 PM (thumbnail: the 'kintu reply dibe ke?' frame, FB 'no copyright
 issues'); the two old Oct 2 reels are in Drafts - owner deletes them himself.
+Same evening, owner: the bottom line must sit at the VERY BOTTOM of the frame (not above the Reels caption band) ->
+BrandBug now bottom: 44 px on a bottom fade; v2 = marketing/upload/tellmore-promo-trio-autolinium-v2.mp4. v1 reels
+moved to Drafts, v2 scheduled Oct 2 IG 1 PM + FB 9 PM. Owner: keep ONLY the 3-voice promo scheduled -> the Sep 30
+and Oct 3 teasers (FB + IG) moved to Drafts too. Schedule now = just those two v2 reels. Standing rule: every future
+TellMore video carries the Autolinium mark, bottom line and end card (brand.json / BrandBug / BrandCard).
 **Meta developer app audit (2026-09-29, read-only):** "Tellmore AI" app ID 914246304594380, Live, Business type, business
 portfolio TellMore AI (1214039840198586). WhatsApp → Become Tech Provider page says "Congratulations! You are now a Tech
 Provider" (2 of 2 steps). WhatsApp Step 3 Business verification: Approved. Products: FB Login for Business, Webhooks,
