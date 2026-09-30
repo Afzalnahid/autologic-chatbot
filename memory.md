@@ -112,6 +112,25 @@ STATUS 2026-09-30 18:30: DONE and filed: 00, 01, 02 (all 4 versions each). Gemin
 gemini-3.8-flash-tts; resets ~05:40 BD). tts.mjs now asks ONE take per video+language and splits it at pauses (tested: 7/7 lines
 matched). Background task: capture-only 05-19 now, then at 2026-10-01 06:00 `build.mjs 03..19 --no-capture` →
 out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot-check videos, tell the owner.
+**NEW BRANDING 2026-09-30 evening (supersedes the Autolinium-top-left rule; commits 56024b4, 2fc3732, fea7b5e):**
+- Owner's rules for EVERY video:
+  - TellMore AI logo top left (left 88 / top 108 in 1080-wide units, as he approved);
+  - at the very bottom, "A product of" plus the ONE stacked Autolinium logo (mark over the word, text-sized, no contacts;
+    video/public/promo/brand/autolinium-logo.png made by make_logo.py);
+  - the contact end card only on the promo and tutorials 00 and 19 (`"endCard": true`); other tutorials end on a
+    1.2 s hold;
+  - NO button-like graphics anywhere: plain text only. Free trial may be SAID/written.
+- Promo trio rebuilt: out/tellmore-promo-S-V-trio.mp4 (54.2 s, -14.4 LUFS), owner confirmed. Upload copy
+  marketing/upload/tellmore-promo-trio-autolinium-v3.mp4 (7.5 MB).
+- NOT YET SCHEDULED: typing the caption in Business Suite was blocked by the permission classifier (external write).
+  The Oct 2 v2 reels (IG 1 PM, FB 9 PM) are still scheduled. Waiting on the owner (see chat).
+- Tutorials:
+  - step label is plain text now;
+  - notes on the right half hang from the box's right edge (the phone overlap fix);
+  - bundle-cleanup.mjs stops temp bundles filling C: (it did: 20 GB).
+- Background: build 00 01 02 05 `--no-capture --no-voice` now → out/build-rebrand-now.log; at 2026-10-01 06:00 the
+  other 16 `--no-capture` → out/build-rebrand-morning.log. Next: check the logs, rebuild failures, spot-check, tell
+  the owner.
 **Meta developer app audit (2026-09-29, read-only):** "Tellmore AI" app ID 914246304594380, Live, Business type, business
 portfolio TellMore AI (1214039840198586). WhatsApp → Become Tech Provider page says "Congratulations! You are now a Tech
 Provider" (2 of 2 steps). WhatsApp Step 3 Business verification: Approved. Products: FB Login for Business, Webhooks,
