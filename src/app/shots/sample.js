@@ -229,30 +229,37 @@ const BOOKINGS = [
 ];
 
 // ----------------------------------------------------------- bot training
+// Shaped the way Settings.js stores it (2026-09-30, for the tutorial videos):
+// the Train answers, tone and languages live in `questionnaire`; an offer has
+// `title` / `active` and its products are picked items; follow-up reads
+// `delay_hours`. The flat shape left every Train field and the offer title
+// blank on screen.
 const SETTINGS = {
   botName: "Nokshi Assistant", businessName: "Nokshi Threads",
   greeting: "Assalamu alaikum! Ki khujchen bolun, ami help korte pari.",
-  tone: "friendly", languages: "auto",
-  description: "We sell hand-finished cotton clothing for men, women and children. Prices run from 850 to 2,400 taka.",
-  products: "Panjabi, polo shirts, kids' kurta sets and handloom shawls. Best sellers are the navy panjabi and the handloom shawl.",
-  delivery: "Inside Dhaka 60 taka, one to two days. Outside Dhaka 120 taka, two to three days.",
-  deliveryAreas: "All over the country. No delivery to the hill districts.",
-  payment: "Cash on delivery, bKash and Nagad.",
-  advancePay: "Advance of 100 taka for outside-Dhaka orders. None inside Dhaka.",
-  returnPolicy: "Exchange within 7 days if there is a problem with the item.",
-  stock: "Say it will be back in about a week and suggest a similar item.",
-  warranty: "No warranty on clothing.",
-  hours: "Every day, 10am to 10pm.",
-  faq: "Q: Is it in stock?\nA: Most sizes are in stock; ask for the size you want.",
-  complaints: "Apologise, ask for the order number and photos, promise a call within an hour.",
+  questionnaire: {
+    tone: "Friendly and helpful", languages: "Follow the customer's language",
+    description: "We sell hand-finished cotton clothing for men, women and children. Prices run from 850 to 2,400 taka.",
+    products: "Panjabi, polo shirts, kids' kurta sets and handloom shawls. Best sellers are the navy panjabi and the handloom shawl.",
+    delivery: "Inside Dhaka 60 taka, one to two days. Outside Dhaka 120 taka, two to three days.",
+    deliveryAreas: "All over the country. No delivery to the hill districts.",
+    payment: "Cash on delivery, bKash and Nagad.",
+    advancePay: "Advance of 100 taka for outside-Dhaka orders. None inside Dhaka.",
+    returnPolicy: "Exchange within 7 days if there is a problem with the item.",
+    stock: "Say it will be back in about a week and suggest a similar item.",
+    warranty: "No warranty on clothing.",
+    hours: "Every day, 10am to 10pm.",
+    faq: "Q: Is it in stock?\nA: Most sizes are in stock; ask for the size you want.",
+    complaints: "Apologise, ask for the order number and photos, promise a call within an hour.",
+  },
   systemPrompt: "You sell hand-finished cotton clothing…",
   offers: [
-    { id: "of1", enabled: true, offer: "Buy any two panjabi and delivery is free anywhere in the country.",
+    { id: "of1", active: true, title: "Buy any two panjabi and delivery is free anywhere in the country.",
       details: "Applies to full-price panjabi only. Cannot be combined with the Eid discount.",
-      valid_until: day(-21), products: ["PJ-NVY-01"] },
+      valid_until: day(-21), products: [{ id: "p1", name: "Cotton panjabi — navy", code: "PJ-NVY-01", price: 1450 }] },
   ],
   bargain: { enabled: true, mode: "limited", max_discount_pct: 8, custom: "" },
-  followup: { enabled: true, hours: 6, message: "" },
+  followup: { enabled: true, delay_hours: 6, message_ecommerce: "" },
 };
 
 const ME = { client: { id: "demo", business_type: "ecommerce", business_name: "Nokshi Threads" } };
@@ -503,6 +510,27 @@ export const SAMPLE_POST = {
         skipped_sample: [{ name: "Farhana Akter", reason: "Bot paused for this contact" },
           { name: "Sabbir Ahmed", reason: "Outside Meta's 24-hour window — this person has not messaged recently" }] }
     : { ok: true, done: true, broadcast: { id: "b9", sent: 148, total: 148, failed: 0, skipped: 0 } },
+  // The AI Assistant tab, answering the tutorial's three requests the way the
+  // real model does: a proposal to review (nothing changes until Apply), or a
+  // plain answer. Shapes: lib/inventory-actions.js, lib/assistant-actions.js.
+  "/api/inventory-chat": (b) => {
+    const said = String(b?.messages?.filter((m) => m.role === "user").pop()?.content || "").toLowerCase();
+    if (/eid|offer|অফার/.test(said)) return {
+      reply: "Here's the Eid offer. Check it, then tap Apply — nothing changes until you do.",
+      settingActions: [{ do: "offer.create", set: { title: "Eid offer — 20% off everything", details: "20% off every product until Eid day. Cannot be combined with other offers.", valid_until: day(-10) } }],
+      settingsBefore: SETTINGS,
+    };
+    if (/panjabi|price|দাম/.test(said) && /\d/.test(said)) return {
+      reply: "I'll put the navy panjabi on sale. Check it and tap Apply.",
+      actions: [{ do: "update", id: "p1", set: { sale_price: 1350 } }],
+      before: { p1: PRODUCTS[0] },
+    };
+    return { reply: "Every product has a price. Three have no photo yet — Half-sleeve polo — olive, Kids' kurta set — mustard and Handloom shawl — so the bot cannot find them from a customer's picture. Open one and add a photo." };
+  },
+  "/api/inventory-apply": (b) => {
+    const n = (b?.actions?.length || 0) + (b?.settingActions?.length || 0);
+    return { done: n, results: Array.from({ length: n }, () => ({ ok: true })) };
+  },
 };
 
 export const SAMPLE = {
