@@ -28,7 +28,8 @@ export async function GET(request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const perModel = callsPerModel(data);
-  const warnAt = warnMark();
+  // read by name here so tests/t-env.mjs sees the variable is used
+  const warnAt = warnMark({ AI_DAILY_WARN_CALLS: process.env.AI_DAILY_WARN_CALLS });
   const busy = busyModels(perModel, warnAt);
   const ev = busyEvent(busy, warnAt);
   // logEvent collapses repeats (ai_busy: once in 20 hours)
