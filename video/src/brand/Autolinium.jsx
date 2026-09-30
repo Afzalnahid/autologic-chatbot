@@ -1,18 +1,21 @@
 // Autolinium, the company behind TellMore AI (marketing/promo/brand.json). The
-// owner's standing rule (2026-09-29): EVERY TellMore video carries its mark and
-// name top left and a product/contact line at the very bottom for the whole
-// film, then its own end card. Shared by the promo and the tutorials so they
-// cannot drift apart.
-// Latin text is set in the system's Segoe UI (every render runs on Windows);
-// the mark is marketing/promo/brand/make_mark.py's light version. The host
-// composition loads "Baloo Da 2" (the end card's Bangla line).
+// owner's standing rule (2026-09-29, revised 2026-09-30): EVERY TellMore video
+// carries TellMore AI's logo top left and "A product of" + Autolinium's one
+// stacked logo at the very bottom for the whole film; only the important films
+// end on the contact card. Nothing may look like a button. Shared by the promo
+// and the tutorials so they cannot drift apart.
+// Latin text is set in the system's Segoe UI (every render runs on Windows).
 import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { Mark } from "../trailer/Trailer.jsx";
 
 const LATIN = "'Segoe UI', 'Anek Bangla', sans-serif";
 const DISPLAY = "'Baloo Da 2', 'Hind Siliguri', sans-serif";
 const SKY = "#6EC8FF";
-const MARK = "promo/brand/autolinium-mark-light.png";
+const MAROON = "#7B1C3E", ROSE = "#E0588A";
+// the logo the owner sent on 2026-09-30, made transparent by
+// marketing/promo/brand/make_logo.py
+const LOGO = "promo/brand/autolinium-logo.png";
 const soft = (u) => `0 ${2 * u}px ${10 * u}px rgba(0,0,0,.75)`;
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
 const ramp = (t, a, b, x = 0, y = 1) => interpolate(t, [a, b], [x, y], { ...clamp, easing: Easing.inOut(Easing.cubic) });
@@ -24,28 +27,35 @@ function useFrameUnits() {
   return { V: H > W, u: Math.min(W, H) / 1080, fps };
 }
 
-// The mark top left and the product line at the bottom, from the start until
-// `until` seconds (the end card takes over from there).
-export function BrandBug({ brand, until }) {
+// TellMore AI's own mark top left, and "A product of" + Autolinium's logo at
+// the very bottom, from the start until `until` seconds (an end card, where a
+// video has one, takes over from there). Owner, 2026-09-30: TellMore on top,
+// Autolinium at the bottom, no contact details in the line, English everywhere.
+export function BrandBug({ until }) {
   const { V, u, fps } = useFrameUnits();
   const t = useCurrentFrame() / fps;
   const o = ramp(t, 0.2, 0.7) * (1 - ramp(t, until - 0.3, until));
   if (o <= 0) return null;
   const mark = (V ? 66 : 50) * u;
+  // the size of the words beside it, not a second headline (owner, 2026-09-30)
+  const fs = (V ? 28 : 23) * u, logoH = fs * 2.3;
   return (
     <AbsoluteFill style={{ opacity: o, pointerEvents: "none" }}>
-      <div style={{ position: "absolute", left: (V ? 52 : 36) * u, top: (V ? 150 : 26) * u, display: "flex", alignItems: "center", gap: 16 * u,
+      <div style={{ position: "absolute", left: (V ? 88 : 56) * u, top: (V ? 108 : 20) * u, display: "flex", alignItems: "center", gap: 14 * u,
         filter: `drop-shadow(0 ${2 * u}px ${8 * u}px rgba(0,0,0,.7))` }}>
-        <Img src={staticFile(MARK)} style={{ height: mark }} />
-        <div style={{ fontFamily: LATIN, fontWeight: 600, fontSize: mark * 0.62, color: "#fff", letterSpacing: 0.3 * u }}>{brand.name}</div>
+        <div style={{ width: mark, height: mark, borderRadius: "50%", background: `linear-gradient(145deg, ${ROSE}, ${MAROON})`, display: "grid", placeItems: "center" }}>
+          <Mark size={mark * 0.74} /></div>
+        <div style={{ fontFamily: LATIN, fontWeight: 700, fontSize: mark * 0.6, color: "#fff", letterSpacing: 0.2 * u }}>TellMore AI</div>
       </div>
       {/* at the very bottom of the frame (owner, 2026-09-29), on a feathered
           shade, not a box, so it reads over a white shirt too */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 150 * u,
-        background: "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.6) 60%, rgba(0,0,0,.7))" }} />
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: (V ? 44 : 22) * u, textAlign: "center",
-        fontFamily: LATIN, fontWeight: 600, fontSize: (V ? 29 : 24) * u, color: "rgba(255,255,255,.9)", textShadow: soft(u), whiteSpace: "nowrap" }}>
-        An {brand.name} product<span style={{ color: SKY, margin: `0 ${14 * u}px` }}>·</span>{brand.web}<span style={{ color: SKY, margin: `0 ${14 * u}px` }}>·</span>{brand.phone}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: (V ? 200 : 150) * u,
+        background: "linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.62) 55%, rgba(0,0,0,.75))" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: (V ? 36 : 12) * u, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 * u }}>
+        <div style={{ fontFamily: LATIN, fontWeight: 600, fontSize: fs, color: "rgba(255,255,255,.88)", textShadow: soft(u), whiteSpace: "nowrap" }}>A product of</div>
+        {/* the one stacked logo, mark over the word (owner, 2026-09-30:
+            "only the one with the name under it") */}
+        <Img src={staticFile(LOGO)} style={{ height: logoH, filter: `drop-shadow(0 0 ${10 * u}px rgba(90,170,255,.45))` }} />
       </div>
     </AbsoluteFill>
   );
@@ -62,10 +72,11 @@ function Icon({ d, size }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" style={{ flex: "none" }}><path d={d} fill="none" stroke={SKY} strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" /></svg>;
 }
 
-// The last card: Autolinium's mark, name and tagline, "TellMore AI — an
-// Autolinium product", its contacts and the Meta line. `lang` picks the
-// product line's language (the Bangla films say it in Bangla).
-export function BrandCard({ brand, lang = "bn" }) {
+// The last card: Autolinium's logo and tagline, "TellMore AI — a product of
+// Autolinium", its contacts and the Meta line. Only on the films that matter
+// most (owner, 2026-09-30: the promo, "how it works" and the series' last
+// video), not on every tutorial.
+export function BrandCard({ brand }) {
   const { V, u, fps } = useFrameUnits();
   const t = useCurrentFrame() / fps;
   const rise = (at) => ({ opacity: ramp(t, at, at + 0.35), transform: `translateY(${ramp(t, at, at + 0.45, 26 * u, 0)}px)` });
@@ -81,23 +92,21 @@ export function BrandCard({ brand, lang = "bn" }) {
     <AbsoluteFill style={{ background: "#07090F" }}>
       <AbsoluteFill style={{ background: `radial-gradient(ellipse 75% 45% at 50% ${V ? 30 : 34}%, #123A66 0%, #0B1A30 45%, transparent 75%)`, opacity: 0.9 }} />
       <AbsoluteFill style={{ alignItems: "center", paddingTop: (V ? 340 : 70) * u }}>
-        <Img src={staticFile(MARK)} style={{ height: mark, transform: `scale(${s})`, filter: `drop-shadow(0 0 ${40 * u}px rgba(80,170,255,.35))` }} />
-        <div style={{ fontFamily: LATIN, fontWeight: 700, fontSize: (V ? 104 : 72) * u, color: "#fff", marginTop: 18 * u, letterSpacing: 1 * u, ...rise(0.25) }}>{brand.name}</div>
-        <div style={{ fontFamily: LATIN, fontSize: (V ? 31 : 24) * u, color: "#9FB3CC", marginTop: 2 * u, ...rise(0.35) }}>{brand.tagline}</div>
+        <Img src={staticFile(LOGO)} style={{ height: mark * 1.45, transform: `scale(${s})`, filter: `drop-shadow(0 0 ${40 * u}px rgba(80,170,255,.4))` }} />
+        <div style={{ fontFamily: LATIN, fontSize: (V ? 31 : 24) * u, color: "#9FB3CC", marginTop: 14 * u, ...rise(0.35) }}>{brand.tagline}</div>
         <div style={{ width: 140 * u, height: 3 * u, borderRadius: 2 * u, background: SKY, margin: `${(V ? 44 : 26) * u}px 0`, opacity: ramp(t, 0.45, 0.8) }} />
-        {lang === "bn"
-          ? <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: (V ? 50 : 38) * u, color: "#fff", ...rise(0.5) }}>
-              TellMore AI <span style={{ color: "#9FB3CC", fontWeight: 600 }}>— {brand.name}-এর একটি প্রোডাক্ট</span></div>
-          : <div style={{ fontFamily: LATIN, fontWeight: 700, fontSize: (V ? 46 : 35) * u, color: "#fff", ...rise(0.5) }}>
-              TellMore AI <span style={{ color: "#9FB3CC", fontWeight: 600 }}>— an {brand.name} product</span></div>}
+        {/* English in every film (owner, 2026-09-30) */}
+        <div style={{ fontFamily: LATIN, fontWeight: 700, fontSize: (V ? 46 : 35) * u, color: "#fff", ...rise(0.5) }}>
+          TellMore AI <span style={{ color: "#9FB3CC", fontWeight: 600 }}>— a product of {brand.name}</span></div>
         <div style={{ display: "flex", flexDirection: "column", gap: (V ? 22 : 12) * u, marginTop: (V ? 46 : 24) * u }}>
           {row("phone", brand.phone, 0.7)}
           {row("email", brand.email, 0.8)}
           {row("web", brand.web, 0.9)}
           {row("place", brand.address, 1.0)}
         </div>
-        <div style={{ marginTop: (V ? 60 : 26) * u, display: "flex", alignItems: "center", gap: 14 * u, padding: `${14 * u}px ${30 * u}px`, borderRadius: 40 * u,
-          border: `2px solid rgba(110,200,255,.45)`, background: "rgba(110,200,255,.08)", fontFamily: LATIN, fontWeight: 600, fontSize: (V ? 30 : 23) * u, color: "#fff", ...rise(1.2) }}>
+        {/* words and a tick, no frame: nothing may look like a button (owner, 2026-09-30) */}
+        <div style={{ marginTop: (V ? 60 : 26) * u, display: "flex", alignItems: "center", gap: 14 * u,
+          fontFamily: LATIN, fontWeight: 600, fontSize: (V ? 30 : 23) * u, color: "#fff", ...rise(1.2) }}>
           <svg width={34 * u} height={34 * u} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill={SKY} /><path d="M7.5 12.3l3 3 6-6.3" fill="none" stroke="#07090F" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
           {brand.meta}
         </div>

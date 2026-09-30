@@ -1,4 +1,5 @@
 {
+  "endCard": true,
   "_": "Tutorial 00 — how the whole system works, for anyone deciding or just starting. Mostly motion graphics; a few real screens. Facts from lib/bot.js (the reply path), lib/plans.js (every package has every feature, unlimited channels), lib/message-usage.js (only bot replies count) and Meta's 24-hour rule (2026-09-30).",
   "id": "00-how-it-works",
   "title": { "bn": "টেলমোর এআই কীভাবে কাজ করে", "en": "How TellMore AI works" },

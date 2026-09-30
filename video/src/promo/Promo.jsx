@@ -657,8 +657,10 @@ const SCENES = {
     return (<>
       <Backdrop t={t} tint="#3d0f22" />
       <Person id="12772053" t={t} at={0.05} x={L.V ? 0.5 : 0.78} h={L.V ? 0.4 : 0.56} blob={ROSE} d={d} />
-      <div style={{ position: "absolute", left: bx, top: by, width: bw, padding: `${30 * L.u}px 0`, textAlign: "center", borderRadius: 30 * L.u, border: `${5 * L.u}px solid ${ROSE}`,
-        boxShadow: `0 0 ${60 * glow * L.u}px ${ROSE}, inset 0 0 ${40 * glow * L.u}px ${ROSE}66`, background: "rgba(11,11,14,.8)", transform: `scale(${pop(t, 0, L.fps, { damping: 10, stiffness: 180 })})` }}>
+      {/* words only, no box around them: nothing in the promo may look like a
+          button (owner, 2026-09-30) */}
+      <div style={{ position: "absolute", left: bx, top: by, width: bw, padding: `${30 * L.u}px 0`, textAlign: "center",
+        textShadow: `0 0 ${40 * glow * L.u}px ${ROSE}, 0 ${4 * L.u}px ${18 * L.u}px rgba(0,0,0,.8)`, transform: `scale(${pop(t, 0, L.fps, { damping: 10, stiffness: 180 })})` }}>
         <div style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 70 * L.u, color: "#fff" }}>ফ্রি ট্রায়াল</div>
         {t >= w(3) && <div style={{ fontFamily: UI, fontWeight: 800, fontSize: 150 * L.u, lineHeight: 1, color: YELLOW, transform: `scale(${pop(t, w(3), L.fps, { damping: 9, stiffness: 220 })})` }}>৳০</div>}
         <div style={{ fontFamily: UI, fontSize: 28 * L.u, color: GREY }}>কোনো কার্ড লাগে না</div>
@@ -677,9 +679,8 @@ const SCENES = {
         <div style={{ position: "absolute", left: 0, right: 0, top: cy - size * 0.2, textAlign: "center", opacity: ramp(t, logo + 0.15, logo + 0.4) }}>
           <div style={{ fontFamily: UI, fontWeight: 800, fontSize: 104 * L.u, color: "#fff" }}>TellMore AI</div>
           <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 46 * L.u, color: "#F5B8CD", marginTop: -6 * L.u }}>আপনার শপের ২৪ ঘণ্টার সেলস অ্যাসিস্ট্যান্ট</div>
-          <div style={{ display: "inline-block", marginTop: 36 * L.u, padding: `${22 * L.u}px ${54 * L.u}px`, borderRadius: 18 * L.u, background: "#fff", color: MAROON,
-            fontFamily: DISPLAY, fontWeight: 800, fontSize: 52 * L.u, transform: `scale(${1 + 0.04 * Math.sin((t - logo) * 5)})` }}>ফ্রি শুরু করুন →</div>
-          <div style={{ fontFamily: UI, fontWeight: 700, fontSize: 44 * L.u, color: "#fff", marginTop: 26 * L.u }}>tellmoreai.com</div>
+          {/* the address as plain words, never a button-like box (owner, 2026-09-30) */}
+          <div style={{ marginTop: 34 * L.u, color: "#fff", fontFamily: UI, fontWeight: 800, fontSize: 56 * L.u, letterSpacing: 0.5 * L.u }}>tellmoreai.com</div>
           <div style={{ fontFamily: UI, fontSize: 22 * L.u, color: "#b9a3ad", marginTop: 20 * L.u }}>ভিডিওর চ্যাট, নাম ও দাম উদাহরণ মাত্র</div>
         </div></>)}
       <Flash t={t} at={logo} dur={0.3} />

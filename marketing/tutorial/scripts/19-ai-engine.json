@@ -1,4 +1,5 @@
 {
+  "endCard": true,
   "_": "Tutorial 19 — AI Engine: TellMore's own AI by default; optionally the owner's own Google AI Studio or OpenAI key (lower own-key price), verified before saving; if the key fails the bot pauses and never falls back. Studio: shell-ai; no key is typed on screen. Facts: AIEngine.js, lib/ai-providers.js, plans.js own-key prices, CLAUDE.md invariants (2026-09-30).",
   "id": "19-ai-engine",
   "title": { "bn": "AI Engine: নিজের এআই কী", "en": "AI Engine: using your own AI key" },

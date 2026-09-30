@@ -11,7 +11,10 @@
 // a new page shows that page from its first frame while the action waits.
 export const FPS = 30;
 export const INTRO = 2.6;        // title card
-export const OUTRO = 4.5;        // Autolinium's end card
+export const OUTRO = 4.5;        // Autolinium's end card (only where the script asks: "endCard": true)
+// Every other video just holds its last frame a moment with the brand line on
+// it; the contact card belongs on the important films only (owner, 2026-09-30).
+export const SHORT_OUTRO = 1.2;
 const LEAD = 0.15, VOICE_AT = 0.3, BREATH = 0.7, TAIL = 0.45;
 
 export function tutorialTimeline(script, capture, durations) {
@@ -34,7 +37,8 @@ export function tutorialTimeline(script, capture, durations) {
     const a = segs[i - 1], b = segs[i];
     if (a.voiceAt + a.voice > b.voiceAt - 0.2) throw new Error(`voices ${a.id} and ${b.id} would overlap`);
   }
-  return { segs, body: at, total: at + OUTRO };
+  const endCard = !!script.endCard;
+  return { segs, body: at, endCard, total: at + (endCard ? OUTRO : SHORT_OUTRO) };
 }
 
 // capture-clock time shown at video time v (seconds)

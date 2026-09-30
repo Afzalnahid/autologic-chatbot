@@ -166,11 +166,12 @@ export function Tutorial(props) {
       </div>
       </AbsoluteFill>
 
-      {/* the step */}
+      {/* the step, as words level with the TellMore logo: no pill behind it,
+          nothing on screen may look like a button (owner, 2026-09-30) */}
       {inBody && line.step && (
-        <div style={{ position: "absolute", right: st.V ? 52 : 36, top: st.V ? 152 : 26, opacity: ramp(v, seg.at, seg.at + 0.3),
-          padding: st.V ? "10px 26px" : "8px 20px", borderRadius: 40, background: MAROON, color: "#fff", fontFamily: UI, fontWeight: 700,
-          fontSize: st.V ? 34 : 24, boxShadow: "0 10px 30px rgba(0,0,0,.45)" }}>{line.step[lang]}</div>
+        <div style={{ position: "absolute", right: st.V ? 88 : 56, top: st.V ? 116 : 29, opacity: ramp(v, seg.at, seg.at + 0.3),
+          color: "#F5B8CD", fontFamily: UI, fontWeight: 700, fontSize: st.V ? 34 : 24, lineHeight: 1.1,
+          textShadow: "0 2px 12px rgba(0,0,0,.85)" }}>{line.step[lang]}</div>
       )}
 
       {/* subtitles */}
@@ -185,8 +186,8 @@ export function Tutorial(props) {
       {/* title card */}
       {v < INTRO + 0.4 && <Intro v={v} title={script.title[lang]} lang={lang} fps={fps} V={st.V} />}
 
-      <Sequence from={Math.round(tl.body * fps)}><BrandCard brand={brand} lang={lang} /></Sequence>
-      <BrandBug brand={brand} until={tl.body} />
+      {tl.endCard && <Sequence from={Math.round(tl.body * fps)}><BrandCard brand={brand} /></Sequence>}
+      <BrandBug until={tl.endCard ? tl.body : tl.total} />
     </AbsoluteFill>
   );
 }
@@ -230,6 +231,11 @@ function Note({ n, toScreen, age, lang, st, fps }) {
   const text = n.text?.[lang];
   const below = a.y < st.screen.h * 0.5;
   const fs = st.V ? 30 : 21;
+  // a box on the right half hangs its label from the box's right edge: clamping
+  // every label by its widest possible size pushed them all into the phone's
+  // left corner, on top of each other (tutorial 05, "people today" / "handled")
+  const right = (a.x + b.x) / 2 > st.screen.w / 2;
+  const side = right ? { right: Math.max(12, st.screen.w - b.x) } : { left: Math.max(12, a.x) };
   return (
     <>
       <svg style={{ position: "absolute", left: a.x - 4, top: a.y - 4, overflow: "visible" }} width={w + 8} height={h + 8}>
@@ -237,10 +243,10 @@ function Note({ n, toScreen, age, lang, st, fps }) {
           pathLength="1" strokeDasharray="1" strokeDashoffset={1 - draw} />
       </svg>
       {text && (
-        <div style={{ position: "absolute", left: Math.min(Math.max(12, a.x), st.screen.w - 12 - 460), top: below ? b.y + 12 : undefined, bottom: below ? undefined : st.screen.h - a.y + 12,
-          maxWidth: 460, padding: st.V ? "12px 20px" : "8px 16px", borderRadius: 14, background: "#1a1a20", color: "#fff", fontFamily: lang === "bn" ? UI_BN : UI_EN,
+        <div style={{ position: "absolute", ...side, top: below ? b.y + 12 : undefined, bottom: below ? undefined : st.screen.h - a.y + 12,
+          maxWidth: Math.min(460, st.screen.w - 24), width: "max-content", padding: st.V ? "12px 20px" : "8px 16px", borderRadius: 14, background: "#1a1a20", color: "#fff", fontFamily: lang === "bn" ? UI_BN : UI_EN,
           fontWeight: 600, fontSize: fs, lineHeight: 1.35, boxShadow: "0 12px 30px rgba(0,0,0,.35)", border: `2px solid ${ROSE}`,
-          transform: `scale(${s})`, transformOrigin: below ? "top left" : "bottom left", opacity: Math.min(1, s * 2) }}>{text}</div>
+          transform: `scale(${s})`, transformOrigin: `${below ? "top" : "bottom"} ${right ? "right" : "left"}`, opacity: Math.min(1, s * 2) }}>{text}</div>
       )}
     </>
   );
