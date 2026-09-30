@@ -552,6 +552,8 @@ export const SAMPLE = {
     meta: Object.fromEntries(ADMIN_PACKAGES.plans.map((p) => [p.id, { name: p.name }])),
   },
   "/api/profile": PROFILE,
+  // Onboarding step 2 in the tutorial videos: what "Generate" hands back.
+  "/api/generate-prompt": { prompt: "Nokshi Threads is an online clothing shop in Dhaka selling sarees, kurtis and shirts.\n\nPrices: sarees 1,250–3,450 BDT, kurtis 950–1,450 BDT.\nDelivery: 60 BDT inside Dhaka (2 days), 120 BDT outside (3–4 days).\nPayment: cash on delivery or bKash.\nReturns: within 3 days if the item is unused.\n\nReply warmly in the customer's own language (Bangla, English or Banglish), keep answers short, and always offer to take the order." },
   "/api/admin/packages": ADMIN_PACKAGES,
 };
 

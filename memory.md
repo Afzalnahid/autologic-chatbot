@@ -76,6 +76,18 @@ BrandBug now bottom: 44 px on a bottom fade; v2 = marketing/upload/tellmore-prom
 moved to Drafts, v2 scheduled Oct 2 IG 1 PM + FB 9 PM. Owner: keep ONLY the 3-voice promo scheduled -> the Sep 30
 and Oct 3 teasers (FB + IG) moved to Drafts too. Schedule now = just those two v2 reels. Standing rule: every future
 TellMore video carries the Autolinium mark, bottom line and end card (brand.json / BrandBug / BrandCard).
+**Tutorial videos (2026-09-30):** owner wants how-to videos with narration (account, channels, products, knowledge,
+then every feature). His picks: BOTH desktop 16:9 and phone 9:16, BOTH Bangla and English, one voice (Gemini Sadachbia).
+Pipeline marketing/tutorial/: script.json (lines bn/en + on-screen do steps) -> capture.mjs (headless Chrome over CDP
+drives the local /shots studio, a PNG after every step, pointer + virtual clock; network guard stops on any Supabase or
+post-typing off-machine request) -> tts.mjs (one request per line) -> render.mjs (video/src/tutorial, input props,
+--stills) -> mix.mjs (voice + synthesised pad + click ticks, -14 LUFS). Studio gained ?tab=auth (AuthGate in demo
+mode: submit never reaches Supabase), ?tab=onboarding, ?tab=connect; dashboard-client.js exports AuthGate/Onboarding/
+ConnectChannel. Sample "account" done in all 4 (95-100 s), sent. Known polish: line 01 zoom crops the hero headline;
+actions finish before long voice lines (align action to voice end next). Owner then asked for a LIVE recording with a
+real account: told him I cannot create accounts or type passwords (even with his permission) - he signs up/confirms/
+signs in himself (screen-recording that part with Win+Alt+R), then I work his logged-in Chrome (profile, train bot,
+products, knowledge, test chat) and capture it. Waiting for him to sign in.
 **Meta developer app audit (2026-09-29, read-only):** "Tellmore AI" app ID 914246304594380, Live, Business type, business
 portfolio TellMore AI (1214039840198586). WhatsApp → Become Tech Provider page says "Congratulations! You are now a Tech
 Provider" (2 of 2 steps). WhatsApp Step 3 Business verification: Approved. Products: FB Login for Business, Webhooks,

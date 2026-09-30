@@ -54,3 +54,7 @@ marketing/promo/recordings/
 video/public/promo/vo-*/
 video/public/trailer/vo-trio/
 marketing/upload/
+
+# tutorial videos: screen captures, voices and renders are rebuilt by marketing/tutorial
+video/public/tutorial/
+marketing/tutorial/out/

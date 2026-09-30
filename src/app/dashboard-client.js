@@ -67,7 +67,10 @@ const LABELS = ["Overview","AI Assistant","Analytics","Inbox","Comments","Broadc
 
 
 
-function AuthGate({onReady}) {
+// `demo` is only ever passed by the screenshot studio (/shots, dev only), for
+// the tutorial videos: the form behaves exactly as it looks, but submitting
+// never reaches Supabase — no account is made and no password leaves the page.
+export function AuthGate({onReady,demo=false}) {
   // Default to SIGN IN, like every app the owner already uses — typing an email
   // and password means "let me in", not "make me a new account". Creating one is
   // a deliberate tap on "Create account". Only an explicit ?auth=signup from the
@@ -112,6 +115,14 @@ function AuthGate({onReady}) {
     }
     if(mode==="signup"&&!agreed){ setErr("Please accept the terms to continue."); return; }
     setBusy(true); setErr(""); setMsg("");
+    if(demo){
+      await new Promise(r=>setTimeout(r,600));
+      if(mode==="signup"){
+        setAwaiting(cleanEmail); setMode("signin"); setPw("");
+        setMsg(`We sent a confirmation link to ${cleanEmail}. Open it, then come back here and sign in.`);
+      } else onReady();
+      setBusy(false); return;
+    }
     try{
       let res;
       // The business name rides along in the account itself: with "Confirm
@@ -331,7 +342,7 @@ function AuthGate({onReady}) {
   </div>;
 }
 
-function Onboarding({me,onTrial}) {
+export function Onboarding({me,onTrial}) {
   // New signups complete their business profile first, teach the bot, then start the trial.
   const c=me?.client||{};
   const needProfile=!c.phone&&!c.address;
@@ -497,7 +508,7 @@ function Onboarding({me,onTrial}) {
   </OnboardFrame>;
 }
 
-function ConnectChannel({onDone,clientId}) {
+export function ConnectChannel({onDone,clientId}) {
   useEffect(()=>{
     const h=e=>{
       if(e.data==="fb_connected"||e.data==="ig_connected"||e.data==="wa_connected") onDone();
