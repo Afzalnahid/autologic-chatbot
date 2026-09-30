@@ -126,6 +126,17 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
   Edit reel → Choose frame, slider 134/1000) and IG 1 PM (IG's edit has no cover option, so its cover is Meta's
   pick). Same caption as before. The v2 reels were moved to Drafts. The Scheduled list still shows them as "Failed to
   publish", which is Meta's display of a pulled post. The owner deletes the drafts himself (I never delete).
+- SAME NIGHT, owner changes (commit 682e68d):
+  - the "ছবি" card shows his ARJONNS mixed-nuts product photo, not the woman;
+  - line 20 = "আর বিশ্বাস না হইলে?".
+  The TTS quota was out, so a background job waits until 2026-10-01 05:45, voices line 20 and rebuilds →
+  out/promo-morning.log, upload copy marketing/upload/tellmore-promo-trio-autolinium-v4.mp4.
+  NEXT:
+  1. Check that log.
+  2. Send the video to the owner.
+  3. After he confirms, replace the v3 reels (FB 9 PM / IG 1 PM Oct 2) with v4 the same way:
+     new reels, FB cover frame 'kintu reply dibe ke?', v3 moved to Drafts.
+  Do this BEFORE Oct 2 1 PM.
 - Tutorials:
   - step label is plain text now;
   - notes on the right half hang from the box's right edge (the phone overlap fix);
