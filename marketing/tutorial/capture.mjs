@@ -86,7 +86,11 @@ const box = (sel) => js(`(() => {
   // text=… exact text · has=… the innermost element whose text contains it · up=N:<sel> that element's Nth parent
   let up = 0, q = s;
   if (q.startsWith("up=")) { up = Number(q.slice(3, q.indexOf(":"))); q = q.slice(q.indexOf(":") + 1); }
-  if (q.startsWith("text=") || q.startsWith("has=")) {
+  if (q.startsWith("btn=")) {
+    // a button with exactly this text (when the same words also appear as a label)
+    const want = q.slice(4).trim();
+    el = [...document.querySelectorAll("button")].find((e) => e.offsetParent && e.innerText.trim() === want);
+  } else if (q.startsWith("text=") || q.startsWith("has=")) {
     const want = q.slice(q.indexOf("=") + 1).trim(), exact = q.startsWith("text=");
     const all = [...document.querySelectorAll("button, a, span, div, label, p, h1, h2, h3, h4, li, td")]
       // has= ignores case: labels are upper-cased by CSS, and innerText follows it

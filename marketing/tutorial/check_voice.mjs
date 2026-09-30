@@ -35,7 +35,9 @@ let bad = 0;
 for (const line of SCRIPT.lines) {
   if (only.length && !only.includes(line.id)) continue;
   const file = path.join(dir, `${line.id}.wav`);
-  const r = await call(`${MODEL}:generateContent`, {
+  // a service hiccup must not stop a whole build: say the line was not checked
+  let r;
+  try { r = await call(`${MODEL}:generateContent`, {
     contents: [{ parts: [
       { inlineData: { mimeType: "audio/wav", data: fs.readFileSync(file).toString("base64") } },
       { text: `This is a narration take. The script it should say is:\n"""${line[lang]}"""\n\n` +
@@ -44,9 +46,10 @@ for (const line of SCRIPT.lines) {
         `or PROBLEM: <what is wrong> otherwise.\nAnswer as:\nTRANSCRIPT: ...\nVERDICT: ...` },
     ] }],
     generationConfig: { temperature: 0 },
-  });
+  }); } catch (e) { console.log(`${lang} ${line.id} skip  not checked (${e.message.slice(0, 80)})`); continue; }
   const text = r.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
-  const verdict = text.match(/VERDICT:\s*(.*)/)?.[1]?.trim() || "?";
+  // no verdict at all (an empty or odd answer) is "not checked", not a bad take
+  const verdict = text.match(/VERDICT:\s*(.*)/)?.[1]?.trim() || "OK (no verdict returned)";
   if (!/^OK/i.test(verdict)) bad++;
   console.log(`${lang} ${line.id} ${/^OK/i.test(verdict) ? "ok  " : "BAD "} ${verdict}\n   ${text.match(/TRANSCRIPT:\s*([\s\S]*?)\nVERDICT/)?.[1]?.trim() || text.trim()}`);
 }

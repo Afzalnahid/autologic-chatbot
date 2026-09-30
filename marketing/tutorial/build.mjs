@@ -39,7 +39,12 @@ function run(file, argv, env, tries = 4) {
 // file names may not carry : / \ ? * " < > |
 const safe = (s) => s.replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim();
 
+const failed = [];
 for (const id of ids) {
+  // one tutorial going wrong must not stop the rest of a long batch
+  try { buildOne(id); } catch (e) { failed.push(id); console.log(`  FAILED ${id}: ${e.message}`); }
+}
+function buildOne(id) {
   const s = loadScript(id);
   const env = { TUT: id };
   console.log(`\n=== ${id} — ${s.title.en}`);
@@ -70,4 +75,4 @@ for (const id of ids) {
     console.log(`  ${d}-${l} → ${path.relative(ROOT, to)}`);
   }
 }
-console.log("\nALL DONE");
+console.log(failed.length ? `\nALL DONE — failed: ${failed.join(" ")}` : "\nALL DONE");

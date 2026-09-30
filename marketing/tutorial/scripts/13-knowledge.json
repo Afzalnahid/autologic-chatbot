@@ -15,7 +15,8 @@
     { "id": "03", "step": { "bn": "নতুন ডকুমেন্ট", "en": "Add a document" },
       "bn": "নতুন ডকুমেন্ট যোগ করতে এখানে চেপে ফাইল বেছে নিন, বা ফাইলটা টেনে এনে ছেড়ে দিন। PDF, Word, টেক্সট, সব চলে।",
       "en": "To add a document, tap here and pick the file, or drag it in. PDF, Word and text files all work.",
-      "do": [["move", "has=Tap to add a document"], ["tap"], ["file", "input[type=file]", "media/pixel-studio-services.txt"], ["wait", 1.2]] },
+      "do": [["move", "has=or tap to choose"], ["tap"], ["file", "input[type=file]", "media/pixel-studio-services.txt"], ["wait", 1.2]],
+      "do_phone": [["move", "has=Tap to add a document"], ["tap"], ["file", "input[type=file]", "media/pixel-studio-services.txt"], ["wait", 1.2]] },
     { "id": "04", "scene": "flow", "hub": 2, "step": { "bn": "বট যেভাবে পড়ে", "en": "How the bot reads it" },
       "title": { "bn": "ডকুমেন্ট থেকে উত্তর", "en": "From document to answer" },
       "nodes": [
