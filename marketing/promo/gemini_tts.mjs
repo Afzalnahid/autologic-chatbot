@@ -217,6 +217,23 @@ if (cmd === "models") {
   fs.mkdirSync(path.join(OUT, voice), { recursive: true });
   pieces.forEach(([s, e], i) => ff(["-y", "-loglevel", "error", "-i", take, "-ss", Math.max(0, s - 0.06).toFixed(3), "-to", (e + 0.08).toFixed(3), path.join(OUT, voice, `${ids[i]}.wav`)]));
   console.log(voice, ids.join(" "), "split");
+} else if (cmd === "line") {
+  // node gemini_tts.mjs line Sadachbia 20  → out/gemini/Sadachbia/20.wav, just this line
+  // re-read after its text changed (the old file is kept as 20-prev.wav). One request.
+  const [voice, id] = rest;
+  const text = lines.find((l) => l.id === id)?.text;
+  if (!voice || !text) { console.error("usage: node gemini_tts.mjs line <Voice> <line id>"); process.exit(1); }
+  const dir = path.join(OUT, voice), file = path.join(dir, `${id}.wav`);
+  // --reuse: cut the take already on disk again instead of asking for a new one
+  const takeFile = path.join(dir, `take-${id}.wav`);
+  const take = rest.includes("--reuse") && fs.existsSync(takeFile) ? takeFile : await speak(voice, [text], takeFile);
+  const [[s, e0]] = splitTake(take, [text]);
+  // the line ends at its first long pause: the model can add a breath after a
+  // second of silence, and that tail made "বিশ্বাস না হইলে?" 3.5 s instead of 0.9 s
+  const e = pausesOf(take).pauses.find(([ps, pe]) => ps > s + 0.2 && pe - ps > 0.6)?.[0] ?? e0;
+  if (fs.existsSync(file)) fs.renameSync(file, path.join(dir, `${id}-prev.wav`));
+  ff(["-y", "-loglevel", "error", "-i", take, "-ss", Math.max(0, s - 0.06).toFixed(3), "-to", (e + 0.08).toFixed(3), file]);
+  console.log(voice, id, "done:", text);
 } else if (cmd === "lines") {
   await allLines(rest[0] || "Puck", rest[1] || "S");
 } else if (cmd === "test") {

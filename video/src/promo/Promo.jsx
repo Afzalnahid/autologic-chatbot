@@ -225,6 +225,18 @@ function Channel({ kind, size }) {
 }
 
 // A crop of a stock photo, used as "a customer's photo" / "a product photo".
+
+// The product photo a customer sends ("এটা আছে?"): a real product the owner chose
+// (2026-09-30), never a person. Square crop around the two jars: the region
+// x 90-930, y 390-1230 of the 1086x1448 photo.
+function ProductPhoto({ size, radius }) {
+  const k = size / 840;
+  return (
+    <div style={{ width: size, height: size, borderRadius: radius, overflow: "hidden", position: "relative", flex: "none", background: "#fff" }}>
+      <Img src={staticFile("promo/products/arjonns-mixed-nuts.jpg")} style={{ position: "absolute", width: 1086 * k, height: 1448 * k, left: -90 * k, top: -390 * k }} />
+    </div>
+  );
+}
 function Crop({ id, x, y, zoom, size, radius }) {
   return (
     <div style={{ width: size, height: size, borderRadius: radius, overflow: "hidden", position: "relative", flex: "none" }}>
@@ -450,7 +462,7 @@ const SCENES = {
         {Array.from({ length: 16 }, (_, i) => <div key={i} style={{ width: 8 * L.u, borderRadius: 4 * L.u, background: "#ccc", height: (10 + Math.abs(Math.sin(i * 1.7 + t * 6)) * (L.V ? 60 : 40)) * L.u }} />)}
       </div>)}
       {card(3, w(6), "ছবি", <div style={{ display: "flex", gap: 14 * L.u, alignItems: "flex-end" }}>
-        <Crop id="17595470" x={0.55} y={0.55} zoom={2.2} size={(L.V ? 190 : 100) * L.u} radius={18 * L.u} />
+        <ProductPhoto size={(L.V ? 190 : 100) * L.u} radius={18 * L.u} />
         <div style={{ fontFamily: UI, fontSize: 28 * L.u, color: "#ddd" }}>এটা আছে?</div></div>)}
       <Headline id="12" t={t} hi={[["বাংলায়", ROSE], ["বাংলিশে", ROSE], ["ভয়েস", ROSE], ["ছবি", ROSE], ["বোঝে", YELLOW]]} />
     </>);
@@ -462,12 +474,12 @@ const SCENES = {
     return (<>
       <Backdrop t={t} />
       <div style={{ position: "absolute", left, top, transform: `scale(${pop(t, w(0), L.fps)})` }}>
-        <Crop id="17595470" x={0.55} y={0.5} zoom={2} size={size} radius={30 * L.u} />
+        <ProductPhoto size={size} radius={30 * L.u} />
         {t >= w(1) && t < w(4) + 0.2 && <div style={{ position: "absolute", left: 0, right: 0, top: scan * size, height: 6 * L.u, background: ROSE, boxShadow: `0 0 ${30 * L.u}px ${ROSE}` }} />}
         {t >= w(4) && <div style={{ position: "absolute", inset: 0, borderRadius: 30 * L.u, border: `${6 * L.u}px solid ${ROSE}` }} />}
       </div>
       <div style={{ position: "absolute", left: 60 * L.u, right: 60 * L.u, top: top + size + 30 * L.u }}>
-        <Msg t={t} at={w(4)} time="উদাহরণ" maxW={0.95}>এটা আমাদের নীল জামদানি, ৩,৪৫০ টাকা। স্টকে আছে আপু!</Msg>
+        <Msg t={t} at={w(4)} time="উদাহরণ" maxW={0.95}>এটা আমাদের মিক্স সিড নাটস, ৫০০ গ্রামের জার। স্টকে আছে আপু!</Msg>
       </div>
       <Headline id="13" t={t} hi={[["ছবি", ROSE], ["প্রোডাক্ট", YELLOW]]} />
     </>);
@@ -648,7 +660,7 @@ const SCENES = {
   "20": ({ t, L }) => (<>
     <AbsoluteFill style={{ background: "#050506" }} />
     <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 50%, ${YELLOW}22, transparent 60%)` }} />
-    <Headline id="20" t={t} hi={[["ভালো", YELLOW], ["না", YELLOW], ["লাগে", YELLOW]]} area={[L.H * 0.3, L.H * 0.4]} scale={1.2} />
+    <Headline id="20" t={t} hi={[["বিশ্বাস", YELLOW], ["না", YELLOW]]} area={[L.H * 0.3, L.H * 0.4]} scale={1.2} />
   </>),
 
   "21": ({ t, d, w, L }) => {
