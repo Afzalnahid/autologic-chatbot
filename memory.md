@@ -76,6 +76,14 @@ BrandBug now bottom: 44 px on a bottom fade; v2 = marketing/upload/tellmore-prom
 moved to Drafts, v2 scheduled Oct 2 IG 1 PM + FB 9 PM. Owner: keep ONLY the 3-voice promo scheduled -> the Sep 30
 and Oct 3 teasers (FB + IG) moved to Drafts too. Schedule now = just those two v2 reels. Standing rule: every future
 TellMore video carries the Autolinium mark, bottom line and end card (brand.json / BrandBug / BrandCard).
+**AI limit alerts (2026-09-30, 5fd47cf, deployed):** owner asked whether an API limit could stop the product. Checked: the video TTS key is
+separate (GEMINI_TTS_KEY ≠ platform key); platform key billing is on (owner checked). Built admin alerts for the PLATFORM key: ai_quota
+(a model hit its limit, chain moved on), ai_down (all models / the embedding model failed — urgent + email), ai_busy (today's calls
+> AI_DAILY_WARN_CALLS, default 5000, via /api/cron/ai-usage in the half-hourly followups workflow). lib/ai-alerts.js +
+tests/t-ai-alerts.mjs (32). Live route answers 401 without the secret (deployed). NOT YET VERIFIED: the first GitHub Actions run of
+the new 'Check today's AI use' step (no gh CLI here — check the Actions page). Explained option 3 (embedding fallback) to the owner;
+not built — it needs a second embedding space and a re-embed, decided against for now unless he asks.
+
 **Tutorial videos (2026-09-30):** owner wants how-to videos with narration (account, channels, products, knowledge,
 then every feature). His picks: BOTH desktop 16:9 and phone 9:16, BOTH Bangla and English, one voice (Gemini Sadachbia).
 Pipeline marketing/tutorial/: script.json (lines bn/en + on-screen do steps) -> capture.mjs (headless Chrome over CDP
