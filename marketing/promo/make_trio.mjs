@@ -6,7 +6,7 @@
 //   node make_trio.mjs   → video/public/promo/vo-trio/NN.wav + durations.json, then node timeline.mjs trio
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -21,6 +21,30 @@ const WHO = {
 const VOICES = ["puck", "fenrir", "sadachbia"];
 const run = (bin, args) => { for (let a = 0; ; a++) { try { return execFileSync(bin, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }); } catch (e) { if (a >= 3) throw e; } } };
 const length = (f) => +(+run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).trim()).toFixed(2);
+
+// Every line at the same loudness. Three voices, each take read on its own day,
+// came out anywhere from -14 to -22 LUFS, and the owner heard line 20 drop
+// (2026-10-01: "the voice got quieter here"). Each line is measured (EBU R128)
+// and moved to TARGET, with a limiter so a raised line cannot clip.
+const TARGET = -16;
+function loudness(f) {
+  for (let a = 0; a < 4; a++) {
+    const r = spawnSync("ffmpeg", ["-hide_banner", "-nostats", "-i", f, "-af", "ebur128=framelog=quiet", "-f", "null", "-"], { encoding: "utf8" });
+    const m = r.stderr?.match(/I:\s+(-?[\d.]+) LUFS/g);
+    if (r.status === 0 && m) return +m.at(-1).match(/-?[\d.]+/)[0];
+  }
+  return NaN;
+}
+function level(f) {
+  const i = loudness(f);
+  if (!Number.isFinite(i) || i < -60) { console.log(`  ${path.basename(f)}: loudness not measured, left as it is`); return; }
+  const gain = Math.max(-12, Math.min(12, TARGET - i));
+  if (Math.abs(gain) < 0.3) return;
+  const tmp = f.replace(/\.wav$/, ".lvl.wav");
+  run("ffmpeg", ["-y", "-loglevel", "error", "-i", f, "-af", `volume=${gain.toFixed(2)}dB,alimiter=limit=0.89`, tmp]);
+  fs.renameSync(tmp, f);
+  console.log(`  ${path.basename(f)}: ${i.toFixed(1)} → ${TARGET} LUFS (${gain > 0 ? "+" : ""}${gain.toFixed(1)} dB)`);
+}
 
 fs.mkdirSync(OUT, { recursive: true });
 const durs = {};
@@ -37,6 +61,7 @@ for (const [id, who] of Object.entries(WHO)) {
     if (!fs.existsSync(src)) continue;
     fs.copyFileSync(src, out);
   }
+  level(out);
   durs[id] = length(out);
 }
 fs.writeFileSync(path.join(OUT, "durations.json"), JSON.stringify(durs, null, 1) + "\n");

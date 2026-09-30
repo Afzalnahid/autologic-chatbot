@@ -137,6 +137,15 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
   3. After he confirms, replace the v3 reels (FB 9 PM / IG 1 PM Oct 2) with v4 the same way:
      new reels, FB cover frame 'kintu reply dibe ke?', v3 moved to Drafts.
   Do this BEFORE Oct 2 1 PM.
+- 2026-10-01 update:
+  - v4 was built (line 20 "আর বিশ্বাস না হইলে?") and sent. Owner: it is NOT a question. Line 20 is now
+    "আর বিশ্বাস না হইলে,", and line 21 is "আজই ফ্রি চালায় দেখেন। এক টাকাও লাগবে না।".
+  - Owner also: the voice was quieter there (line 20 measured -22 LUFS). make_trio.mjs now levels every line to
+    -16 LUFS.
+  - The TTS quota was out again, so a background job at 05:45 voices 20 + 21, levels them and rebuilds →
+    out/promo-morning2.log and marketing/upload/tellmore-promo-trio-autolinium-v5.mp4.
+  - Next: check the log, check the words (transcribe) and the per-line loudness, send to the owner, and after his
+    OK replace the v3 reels with v5.
 - Tutorials:
   - step label is plain text now;
   - notes on the right half hang from the box's right edge (the phone overlap fix);

@@ -677,7 +677,7 @@ const SCENES = {
         {t >= w(3) && <div style={{ fontFamily: UI, fontWeight: 800, fontSize: 150 * L.u, lineHeight: 1, color: YELLOW, transform: `scale(${pop(t, w(3), L.fps, { damping: 9, stiffness: 220 })})` }}>৳০</div>}
         <div style={{ fontFamily: UI, fontSize: 28 * L.u, color: GREY }}>কোনো কার্ড লাগে না</div>
       </div>
-      <Headline id="21" t={t} hi={[["ফ্রি", YELLOW], ["টাকাও", YELLOW]]} />
+      <Headline id="21" t={t} hi={[["আজই", YELLOW], ["ফ্রি", YELLOW], ["টাকাও", YELLOW]]} />
     </>);
   },
 
