@@ -5,6 +5,7 @@
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { cleanUpBundles } from "../bundle-cleanup.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const VIDEO = path.resolve(here, "../../video");
@@ -15,6 +16,7 @@ const { selectComposition, renderMedia } = require("@remotion/renderer");
 const want = process.argv.slice(2);
 const jobs = want.length ? want : ["S-V", "S-Q", "L-V", "L-Q"];
 const serveUrl = await bundle({ entryPoint: path.join(VIDEO, "src/promo/index.jsx"), publicDir: path.join(VIDEO, "public") });
+cleanUpBundles(serveUrl);   // ../bundle-cleanup.mjs: do not fill drive C: with copies
 for (const job of jobs) {
   const composition = await selectComposition({ serveUrl, id: `Promo${job}` });
   const outputLocation = path.join(here, "out", `promo-${job}-picture.mp4`);

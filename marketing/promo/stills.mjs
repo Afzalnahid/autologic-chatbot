@@ -7,6 +7,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { cleanUpBundles } from "../bundle-cleanup.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const VIDEO = path.resolve(here, "../../video");
@@ -23,6 +24,7 @@ const out = path.join(here, "out", "stills", `${cut}-${frame}${V ? `-${V}` : ""}
 fs.mkdirSync(out, { recursive: true });
 
 const serveUrl = await bundle({ entryPoint: path.join(VIDEO, "src/promo/index.jsx"), publicDir: path.join(VIDEO, "public") });
+cleanUpBundles(serveUrl);   // ../bundle-cleanup.mjs: do not fill drive C: with copies
 const composition = await selectComposition({ serveUrl, id: `Promo${cut}-${frame}${V ? `-${V}` : ""}` });
 const ids = order.filter((id) => !only.length || only.includes(id));
 for (const id of ids) {

@@ -9,6 +9,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadScript } from "./script.mjs";
 import { tutorialTimeline, FPS } from "./timeline.mjs";
+import { cleanUpBundles } from "../bundle-cleanup.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const VIDEO = path.resolve(here, "../../video");
@@ -29,6 +30,7 @@ const OUT = path.join(here, "out", script.id);
 fs.mkdirSync(OUT, { recursive: true });
 
 const serveUrl = await bundle({ entryPoint: path.join(VIDEO, "src/tutorial/index.jsx"), publicDir: path.join(VIDEO, "public") });
+cleanUpBundles(serveUrl);   // ../bundle-cleanup.mjs: do not fill drive C: with copies
 const composition = await selectComposition({ serveUrl, id: `Tutorial-${device}`, inputProps });
 const retry = async (what, fn) => { for (let a = 1; ; a++) { try { return await fn(); } catch (e) { console.error(what, "attempt", a, "failed:", e.message.split("\n")[0]); if (a >= 4) throw e; } } };
 
