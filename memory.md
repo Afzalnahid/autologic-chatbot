@@ -100,6 +100,10 @@ sentence-by-sentence subtitles, touch taps on phone, render watchdog (3 min), CD
 gained live packages, shell-<any tab>, SAMPLE_POST (broadcast preview/send, AI Assistant chat/apply), Bot Training sample
 in Settings.js's real shape. Batch 1 (00-04) building; scripts 05-19 written, 05-09 test-captured OK. TODO: re-render 00
 bn desktop+phone (built before the subtitle fix); test-capture 10-19; run build for 05-19; then commit + tell owner.
+STATUS 2026-09-30 18:30: DONE and filed: 00, 01, 02 (all 4 versions each). Gemini TTS daily quota hit (100 requests/day per model,
+gemini-3.8-flash-tts; resets ~05:40 BD). tts.mjs now asks ONE take per video+language and splits it at pauses (tested: 7/7 lines
+matched). Background task: capture-only 05-19 now, then at 2026-10-01 06:00 `build.mjs 03..19 --no-capture` →
+out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot-check videos, tell the owner.
 **Meta developer app audit (2026-09-29, read-only):** "Tellmore AI" app ID 914246304594380, Live, Business type, business
 portfolio TellMore AI (1214039840198586). WhatsApp → Become Tech Provider page says "Congratulations! You are now a Tech
 Provider" (2 of 2 steps). WhatsApp Step 3 Business verification: Approved. Products: FB Login for Business, Webhooks,
