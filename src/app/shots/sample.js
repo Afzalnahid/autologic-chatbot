@@ -14,6 +14,8 @@
 // Shapes were read off the API routes and the components, not guessed. If a
 // route's response changes, a screenshot retake will show it immediately.
 
+import { PLANS, PAID_PLANS } from "@/lib/plans.js";
+
 const iso = (minsAgo) => new Date(Date.now() - minsAgo * 60000).toISOString();
 const day = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
 
@@ -266,22 +268,23 @@ const AI_KEY = {
 
 // ----------------------------------------------------------------- billing
 const BILLING = {
-  plan: "shop_growth", plan_name: "Shop Growth", active: true,
+  // a live package from src/lib/plans.js, so the tutorial videos show real names and prices
+  plan: "shop_pro", plan_name: "Shop Pro", active: true,
   // A shop, so the upgrade list must show the three Shop packages and none of
   // the Service ones. This is the whole point of the fixture carrying a type.
   business_type: "ecommerce",
   trial_end: null, plan_expires_at: new Date(Date.now() + 19 * 86400000).toISOString(),
   suspended: false,
-  usage: { today: 62, month: 1834, daily_limit: null, monthly_limit: 5000, pct: 37 },
+  usage: { today: 62, month: 1834, daily_limit: null, monthly_limit: 5500, pct: 33 },
   methods: [
     { id: "bkash", label: "bKash", number: "01XXXXXXXXX", type: "Send Money" },
     { id: "nagad", label: "Nagad", number: "01XXXXXXXXX", type: "Send Money" },
   ],
   pending_request: null,
   requests: [
-    { id: "r1", plan: "growth", cycle: "monthly", amount: 1500, status: "approved",
+    { id: "r1", plan: "shop_pro", cycle: "monthly", amount: 5999, status: "approved",
       txn_id: "9A7B2C1D5E", created_at: iso(60 * 24 * 11) },
-    { id: "r2", plan: "starter", cycle: "monthly", amount: 800, status: "approved",
+    { id: "r2", plan: "shop_basic", cycle: "monthly", amount: 2699, status: "approved",
       txn_id: "4F8E1B6C2A", created_at: iso(60 * 24 * 42) },
   ],
 };
@@ -292,10 +295,10 @@ const PROFILE = {
   business_name: "Nokshi Threads", phone: "+880 17XX-XXXXXX",
   address: "Kandirpar, Cumilla, Bangladesh", website: "https://nokshithreads.com",
   business_type: "ecommerce", item_label: "", logo_url: "",
-  plan: "growth", trial_end: null, created_at: iso(60 * 24 * 96),
+  plan: "shop_pro", trial_end: null, created_at: iso(60 * 24 * 96),
   // The Resources card reads these counts (products/orders for a shop, files
   // and bookings for an agency, plus channels either way).
-  usage: { today: 62, month: 1834, monthly_limit: 5000,
+  usage: { today: 62, month: 1834, monthly_limit: 5500,
     products: 4, orders: 137, channels: 5, files: 3, bookings: 0 },
 };
 
@@ -489,6 +492,19 @@ const ADMIN_PACKAGES = {
   },
 };
 
+// Answers that depend on what was POSTed, for the few actions the tutorial
+// videos perform (marketing/tutorial). Checked before SAMPLE for a POST; each
+// is a function of the parsed request body. Broadcast's "Check who will get it"
+// read `counts` off the GET fixture and crashed the tab.
+export const SAMPLE_POST = {
+  "/api/broadcast": (b) => b?.action === "preview"
+    ? { counts: { eligible: 148, skipped: 22 }, quota: { remaining: 1642, period: "month" },
+        sample: [{ name: "Tasnim Rahman" }, { name: "Rahim Uddin" }, { name: "Nusrat Jahan" }],
+        skipped_sample: [{ name: "Farhana Akter", reason: "Bot paused for this contact" },
+          { name: "Sabbir Ahmed", reason: "Outside Meta's 24-hour window — this person has not messaged recently" }] }
+    : { ok: true, done: true, broadcast: { id: "b9", sent: 148, total: 148, failed: 0, skipped: 0 } },
+};
+
 export const SAMPLE = {
   "/api/comments": [
     // An Instagram row can only link to its post through the saved permalink;
@@ -545,11 +561,13 @@ export const SAMPLE = {
   // It used to be empty, which meant the Billing tab quietly fell back to the
   // static list in ui.js — so the screen under test was never the one shipped.
   "/api/plans": {
-    plans: ADMIN_PACKAGES.plans.map((p) => ({
+    // The live packages from src/lib/plans.js — the admin fixture above still
+    // carries the retired set, and the tutorial videos must show real prices.
+    plans: PAID_PLANS.map((id) => PLANS[id]).map((p) => ({
       id: p.id, biz: p.biz, name: p.name, tagline: p.tagline,
-      monthly: p.monthly, yearly: p.yearly, highlight: !!p.highlight, features: [],
+      monthly: p.monthly, yearly: p.yearly, highlight: !!p.highlight, features: p.features || [],
     })),
-    meta: Object.fromEntries(ADMIN_PACKAGES.plans.map((p) => [p.id, { name: p.name }])),
+    meta: Object.fromEntries(Object.values(PLANS).map((p) => [p.id, { name: p.name }])),
   },
   "/api/profile": PROFILE,
   // Onboarding step 2 in the tutorial videos: what "Generate" hands back.

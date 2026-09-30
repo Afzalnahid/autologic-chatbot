@@ -25,7 +25,7 @@ import LearnMore from "../dashboard/components/LearnMore.js";
 // The dashboard's own tab keys, so the docs-links scene below lists exactly
 // what the sidebar lists rather than a copy that can fall behind it.
 import { PAGES as DASH_PAGES, GROUPS as DASH_GROUPS, ICONS as DASH_ICONS, LaunchScreen, AuthGate, Onboarding, ConnectChannel } from "../dashboard-client.js";
-import { SAMPLE, PROPS, ADMIN } from "./sample.js";
+import { SAMPLE, SAMPLE_POST, PROPS, ADMIN } from "./sample.js";
 
 // The console takes its data as a prop and its actions as callbacks, so it
 // mounts here without a super-admin login. The callbacks do nothing on
@@ -140,20 +140,24 @@ function ShellScene({ inner }) {
   const [page, setPage] = useState(inner);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   useEffect(() => { setSidebarOpen(!isMobile); }, [isMobile]);
-  const me = { client: { id: "demo", business_name: "Nokshi Threads", business_type: "ecommerce", plan: "shop_growth" }, usage: { today: 62, limit: null }, active: true };
+  const me = { client: { id: "demo", business_name: "Nokshi Threads", business_type: "ecommerce", plan: "shop_pro" }, usage: { today: 62, limit: null }, active: true };
   const navLabel = (i) => t("nav." + (DASH_PAGES[i] || ""));
   // A phone with a chat open fills the screen with it (no header, no bottom
   // bar) — the same rule dashboard-client.js applies.
   const [chatOpen, setChatOpen] = useState(false);
   const fullBleed = isMobile && page === "conversations" && chatOpen;
+  // the dashboard's page keys where they differ from this file's tab keys, so
+  // every sidebar entry opens its own tab (Bot Training and AI Engine fell back
+  // to Overview)
+  const key = { settings: "bot-training", ai: "ai-engine" }[page] || page;
   const render = page === "conversations"
     ? () => <Conversations convos={PROPS.convos} channels={PROPS.channels} products={PROPS.products} refresh={noop} onChatOpen={setChatOpen} />
-    : (TABS[page] || TABS.overview);
+    : (TABS[key] || TABS.overview);
   return <Shell isMobile={isMobile} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} fullBleed={fullBleed}
     me={me} groups={DASH_GROUPS} PAGES={DASH_PAGES} ICONS={DASH_ICONS} channels={PROPS.channels}
     page={page} setPage={setPage} HOME="overview" navLabel={navLabel} t={t} isAgency={false} activeCount={3} pendingOrders={1}
     onLogout={noop} load={noop} loading={false} mode="light" toggleTheme={noop} convos={PROPS.convos} feed={[]}
-    goTo={(p) => { if (TABS[p]) setPage(p); }} orders={PROPS.orders} products={PROPS.products}
+    goTo={(p) => { if (TABS[p] || p === "settings" || p === "ai") setPage(p); }} orders={PROPS.orders} products={PROPS.products}
     onFind={(kind) => setPage(kind === "customer" ? "conversations" : kind === "order" ? "orders" : "inventory")}>
     <div className="ui-scroll" style={{ flex: 1, overflow: "auto", padding: fullBleed ? 0 : (isMobile ? "12px 10px" : 20), minHeight: 0, minWidth: 0 }}>
       <div key={page} className="ui-page" style={fullBleed ? { height: "100%", display: "flex", flexDirection: "column", minHeight: 0 } : undefined}>{render()}</div>
@@ -212,6 +216,13 @@ export default function Studio({ tab, theme }) {
     const real = window.fetch;
     window.fetch = (url, ...rest) => {
       const path = String(typeof url === "string" ? url : url?.url || "");
+      const opts = rest[0] || {};
+      const postKey = String(opts.method || "GET").toUpperCase() === "POST" && Object.keys(SAMPLE_POST).find((k) => path.startsWith(k));
+      if (postKey) {
+        let body = null;
+        try { body = JSON.parse(opts.body || "null"); } catch {}
+        return Promise.resolve(new Response(JSON.stringify(SAMPLE_POST[postKey](body)), { headers: { "content-type": "application/json" } }));
+      }
       const key = KEYS.find((k) => path.startsWith(k));
       if (key) {
         return Promise.resolve(new Response(JSON.stringify(SAMPLE[key]),
@@ -240,7 +251,8 @@ export default function Studio({ tab, theme }) {
   if (tab === "onboarding") return ready ? <><Theme /><Motion /><Onboarding me={{ client: { business_name: "Nokshi Threads", business_type: "ecommerce" } }} onTrial={noop} /></> : null;
   if (tab === "connect") return ready ? <><Theme /><Motion /><ConnectChannel clientId="demo" onDone={noop} /></> : null;
   // The frame draws its own page: full height, no studio margin.
-  if (SHELL_IDS.includes(tab)) {
+  // any "shell-<page>": the tutorial videos open each tab inside the real frame
+  if (tab === "shell" || tab.startsWith("shell-")) {
     return <><Theme /><Motion />{ready && <ShellScene inner={tab === "shell" ? "overview" : tab.slice("shell-".length)} />}</>;
   }
 
