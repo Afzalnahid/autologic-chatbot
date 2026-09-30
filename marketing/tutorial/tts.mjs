@@ -9,10 +9,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { loadScript } from "./script.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, "../..");
-const SCRIPT = JSON.parse(fs.readFileSync(path.join(here, "script.json"), "utf8"));
+const SCRIPT = loadScript();   // TUT=<id> picks the tutorial (script.mjs)
 const [lang = "bn", ...only] = process.argv.slice(2);
 const VOICE = "Sadachbia";
 const OUT = path.join(ROOT, `video/public/tutorial/${SCRIPT.id}/vo-${lang}`);
@@ -68,10 +69,24 @@ const wav = (pcm, rate) => {
   return Buffer.concat([h, pcm]);
 };
 const ff = (args) => { for (let a = 0; ; a++) { try { return execFileSync("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] }); } catch (e) { if (a >= 3) throw e; } } };
-const dur = (f) => Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).stdout.toString().trim());
+// this machine's ffprobe sometimes dies and prints nothing: ask again, and never
+// let a missing length through (it made two lines speak at once, 2026-09-30)
+const dur = (f) => {
+  for (let a = 0; a < 5; a++) {
+    const d = Number(spawnSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).stdout?.toString().trim());
+    if (d > 0) return d;
+  }
+  throw new Error(`cannot read the length of ${f}`);
+};
 
+// A line whose words have not changed keeps its take (the owner approves takes
+// by ear; a new take of the same words would sound different). Asking for a
+// line by id always makes a new take.
+const SAID = path.join(OUT, "text.json");
+const said = fs.existsSync(SAID) ? JSON.parse(fs.readFileSync(SAID, "utf8")) : {};
 for (const line of SCRIPT.lines) {
   if (only.length && !only.includes(line.id)) continue;
+  if (!only.length && said[line.id] === line[lang] && fs.existsSync(path.join(OUT, `${line.id}.wav`))) { console.log(lang, line.id, "unchanged — kept"); continue; }
   const raw = path.join(RAW, `${line.id}.wav`);
   const r = await call(`${MODEL}:generateContent`, {
     contents: [{ parts: [{ text: `${STYLE}\n\n#### TRANSCRIPT\n${say(line[lang])}` }] }],
@@ -84,7 +99,9 @@ for (const line of SCRIPT.lines) {
   ff(["-y", "-i", raw, "-af", "aresample=48000,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.12,areverse,highpass=f=70,acompressor=threshold=-20dB:ratio=2.5:attack=8:release=120,alimiter=limit=0.9",
     "-ac", "2", path.join(OUT, `${line.id}.wav`)]);
   console.log(lang, line.id, dur(path.join(OUT, `${line.id}.wav`)).toFixed(2), "s");
+  said[line.id] = line[lang];
+  fs.writeFileSync(SAID, JSON.stringify(said, null, 1));
 }
-const durations = Object.fromEntries(SCRIPT.lines.map((l) => [l.id, +dur(path.join(OUT, `${l.id}.wav`)).toFixed(3)]).filter(([, d]) => d > 0));
+const durations = Object.fromEntries(SCRIPT.lines.map((l) => [l.id, +dur(path.join(OUT, `${l.id}.wav`)).toFixed(3)]));
 fs.writeFileSync(path.join(OUT, "durations.json"), JSON.stringify(durations, null, 1));
 console.log("wrote", OUT);

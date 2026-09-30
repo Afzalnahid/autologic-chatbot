@@ -1,9 +1,9 @@
 {
-  "_": "Tutorial 01 — creating an account and signing in (owner, 2026-09-30: step-by-step how-to videos, Bangla + English, desktop 16:9 + phone 9:16, one voice: Gemini Sadachbia). One entry per narration line; `do` is what happens on screen while it is spoken (capture.mjs). Every value typed is an example: the studio's sign-in form runs in demo mode and nothing reaches Supabase.",
-  "id": "account",
+  "_": "Tutorial 01 — creating an account and signing in (owner, 2026-09-30). One entry per narration line; `do` is what happens on screen while it is spoken (capture.mjs). Every value typed is an example: the studio's sign-in form runs in demo mode and nothing reaches Supabase. The setup after the first sign-in is tutorial 02.",
+  "id": "01-account",
   "title": { "bn": "অ্যাকাউন্ট খোলা ও লগইন", "en": "Create your account & sign in" },
   "lines": [
-    { "id": "01", "step": { "bn": "শুরু", "en": "Start" },
+    { "id": "01", "step": { "bn": "শুরু", "en": "Start" }, "zoom": 1.25,
       "bn": "টেলমোর এআই-তে অ্যাকাউন্ট খুলতে দুই মিনিটও লাগে না। চলুন, ধাপে ধাপে দেখি।",
       "en": "Opening a TellMore AI account takes less than two minutes. Let's go step by step.",
       "do": [["open", "/"], ["wait", 1.2], ["move", "text=Start free trial"], ["tap"]] },
@@ -31,25 +31,9 @@
       "bn": "তারপর এখানে ফিরে এসে, একই ইমেইল আর পাসওয়ার্ড দিয়ে Sign in করুন।",
       "en": "Then come back here and sign in with the same email and password.",
       "do": [["move", "input[placeholder='Password']"], ["click"], ["type", "Nokshi@2026"], ["move", "button.auth-go"], ["click"], ["wait", 0.8]] },
-    { "id": "08", "step": { "bn": "ধাপ ৭ · ব্যবসার তথ্য", "en": "Step 7 · Business profile" },
-      "bn": "প্রথমবার ঢুকলে ব্যবসার কিছু তথ্য চাইবে। ব্যবসার ধরন, ফোন নম্বর আর ঠিকানা দিয়ে Continue চাপুন।",
-      "en": "The first time in, it asks about your business. Pick the type, add your phone number and address, then tap Continue.",
-      "do": [["open", "/shots?tab=onboarding"], ["wait", 0.8], ["move", "input[placeholder='e.g. 01700000000']"], ["click"], ["type", "01711000111"], ["move", "input[placeholder='City, Country']"], ["click"], ["type", "Dhanmondi, Dhaka"], ["move", "text=Continue"], ["click"], ["wait", 0.8]] },
-    { "id": "09", "step": { "bn": "ধাপ ৮ · বটকে শেখানো", "en": "Step 8 · Teach your bot" },
-      "bn": "এবার আপনার ব্যবসা নিয়ে কয়েক লাইন লিখুন, ঠিক যেভাবে নতুন কর্মচারীকে বোঝাতেন। চাইলে একটা উদাহরণ থেকে শুরু করতে পারেন। তারপর Generate my bot চাপুন।",
-      "en": "Now describe your business in a few lines, the way you'd brief a new employee. You can start from an example. Then tap Generate my bot.",
-      "do": [["move", ".ob-chip"], ["click"], ["wait", 0.8], ["move", "text=Generate my bot"], ["click"], ["wait", 1.0]] },
-    { "id": "10", "step": { "bn": "ধাপ ৯ · মিলিয়ে দেখুন", "en": "Step 9 · Check it" },
-      "bn": "আপনার বট কী শিখল, এখানে দেখাবে। কিছু ভুল থাকলে এখানেই ঠিক করে নিয়ে, পরের ধাপে যান।",
-      "en": "Here's what your bot has learned. If anything's off, fix it right here, then continue.",
-      "do": [["wait", 1.2], ["move", "text=Looks good — continue"], ["click"], ["wait", 0.8]] },
-    { "id": "11", "step": { "bn": "ধাপ ১০ · ট্রায়াল শুরু", "en": "Step 10 · Start the trial" },
-      "bn": "শেষে Start free trial চাপুন। তিন দিন একদম ফ্রি, কোনো কার্ডও লাগবে না।",
-      "en": "Finally, tap Start free trial. Three days completely free, and no card needed.",
-      "do": [["wait", 0.8], ["move", "text=Start free trial"], ["click"], ["wait", 0.6]] },
-    { "id": "12", "step": { "bn": "হয়ে গেছে!", "en": "Done!" },
-      "bn": "ব্যাস, আপনার অ্যাকাউন্ট তৈরি! পরের ভিডিওতে দেখাব, কীভাবে আপনার ফেসবুক পেজ কানেক্ট করবেন।",
-      "en": "That's it, your account is ready! In the next video, we'll connect your Facebook Page.",
-      "do": [["open", "/shots?tab=connect"], ["hold", "text=Facebook Page"], ["wait", 2.2]] }
+    { "id": "08", "step": { "bn": "হয়ে গেছে!", "en": "Done!" }, "zoom": 1,
+      "bn": "ব্যাস, আপনার অ্যাকাউন্ট তৈরি! প্রথমবার ঢুকলে ছোট একটা সেটআপ আসবে: ব্যবসার তথ্য, বটকে শেখানো আর চ্যানেল কানেক্ট। এখনই করতে পারেন, চাইলে পরে ড্যাশবোর্ড থেকেও করা যায়। পরের ভিডিওতে সব দেখাব।",
+      "en": "That's it, your account is ready! The first time you sign in, a short setup follows: your business details, teaching your bot, and connecting a channel. Do it now, or later from the dashboard. The next video shows it all.",
+      "do": [["open", "/shots?tab=onboarding"], ["wait", 3.0]] }
   ]
 }

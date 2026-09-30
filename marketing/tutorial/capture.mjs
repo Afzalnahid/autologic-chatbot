@@ -17,9 +17,10 @@ import path from "node:path";
 import os from "node:os";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { loadScript } from "./script.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const SCRIPT = JSON.parse(fs.readFileSync(path.join(here, "script.json"), "utf8"));
+const SCRIPT = loadScript();   // TUT=<id> picks the tutorial (script.mjs)
 const device = process.argv[2] || "desktop";
 const DEV = { desktop: { width: 1440, height: 810, dpr: 4 / 3, mobile: false }, phone: { width: 360, height: 640, dpr: 3, mobile: true } }[device];
 if (!DEV) throw new Error("device: desktop | phone");
@@ -64,6 +65,9 @@ listeners.push((m) => {
   if (/^(data|blob):/.test(u) || u.startsWith(ORIGIN) || /^https:\/\/(fonts\.(googleapis|gstatic)\.com|cdn\.jsdelivr\.net)\//.test(u)) return;
   if (typed || /supabase/i.test(u)) outside.push(u);
 });
+// the dashboard asks "Delete …?" / "Send this message to N people now?" with the
+// browser's own confirm(): answer yes, as the owner would in the video
+listeners.push((m) => { if (m.method === "Page.javascriptDialogOpening") cdp("Page.handleJavaScriptDialog", { accept: true }).catch(() => {}); });
 await cdp("Network.enable");
 await cdp("Page.enable");
 await cdp("Runtime.enable");
@@ -79,13 +83,19 @@ const guard = () => { if (outside.length) { console.error("STOPPED — the page 
 const box = (sel) => js(`(() => {
   const s = ${JSON.stringify(sel)};
   let el;
-  if (s.startsWith("text=")) {
-    const want = s.slice(5).trim();
-    const all = [...document.querySelectorAll("button, a, span, div, label, p")].filter((e) => e.offsetParent && e.innerText && e.innerText.trim() === want);
+  // text=… exact text · has=… the innermost element whose text contains it · up=N:<sel> that element's Nth parent
+  let up = 0, q = s;
+  if (q.startsWith("up=")) { up = Number(q.slice(3, q.indexOf(":"))); q = q.slice(q.indexOf(":") + 1); }
+  if (q.startsWith("text=") || q.startsWith("has=")) {
+    const want = q.slice(q.indexOf("=") + 1).trim(), exact = q.startsWith("text=");
+    const all = [...document.querySelectorAll("button, a, span, div, label, p, h1, h2, h3, h4, li, td")]
+      // has= ignores case: labels are upper-cased by CSS, and innerText follows it
+      .filter((e) => e.offsetParent && e.innerText && (exact ? e.innerText.trim() === want : e.innerText.toLowerCase().includes(want.toLowerCase())));
     // the innermost match, first on the page (the hero button before the footer one)
     el = all.filter((e) => !all.some((o) => o !== e && e.contains(o)))[0];
-  } else el = [...document.querySelectorAll(s)].find((e) => e.offsetParent || e.getClientRects().length);
+  } else el = [...document.querySelectorAll(q)].find((e) => e.offsetParent || e.getClientRects().length);
   if (!el) return null;
+  for (let i = 0; i < up && el.parentElement; i++) el = el.parentElement;
   el.scrollIntoView({ block: "nearest", inline: "nearest" });   // scroll only when it is off screen
   const r = el.getBoundingClientRect();
   return { x: r.left, y: r.top, w: r.width, h: r.height };
@@ -107,12 +117,16 @@ async function settle(ms = 350) { await sleep(ms); await js(`document.fonts.read
 
 for (const line of SCRIPT.lines) {
   const start = clock, focus = [];
-  for (const [op, arg] of line.do) {
+  // a motion-graphics line (Tutorial.jsx draws it): nothing to record
+  if (line.scene) { clock += 0.1; lines.push({ id: line.id, start: +start.toFixed(3), end: +clock.toFixed(3), focus: null, scene: true }); continue; }
+  // a phone lays some screens out differently (the menu is behind "More"): a
+  // line may give its own steps for one device as do_phone / do_desktop
+  for (const [op, arg, arg2] of line[`do_${device}`] || line.do) {
     if (op === "open") {
       const loaded = once("Page.loadEventFired");
       await cdp("Page.navigate", { url: ORIGIN + arg });
       await loaded; await settle(1800); guard();
-      events.push({ t: clock, type: "cut" });
+      events.push({ t: clock, type: "cut", url: arg });
       await shot(); clock += 0.4;
     } else if (op === "wait") {
       await sleep(Math.max(200, arg * 1000)); await shot(); clock += arg;
@@ -143,6 +157,22 @@ for (const line of SCRIPT.lines) {
     } else if (op === "hold") {
       const b = await box(arg); if (b) focus.push(b);
       await shot(); clock += 0.3;
+    } else if (op === "note") {
+      // a labelled highlight on one part of the screen, until the line ends
+      const b = await box(arg);
+      if (!b) throw new Error(`line ${line.id}: nothing matches ${arg}`);
+      await settle(200); await shot();
+      focus.push(b);
+      events.push({ t: clock, type: "note", box: b, text: arg2 || null, line: line.id });
+      clock += 0.9;
+    } else if (op === "scroll") {
+      await js(`(() => { const s = ${JSON.stringify(arg)}; const el = s.startsWith("text=") ? null : document.querySelector(s); if (el) el.scrollIntoView({ block: "start" }); else window.scrollBy(0, ${Number(arg) || 400}); })()`);
+      await settle(400);
+      events.push({ t: clock, type: "cut" });
+      await shot(); clock += 0.5;
+    } else if (op === "key") {
+      for (const type of ["keyDown", "keyUp"]) await cdp("Input.dispatchKeyEvent", { type, key: arg, code: arg, windowsVirtualKeyCode: arg === "Enter" ? 13 : arg === "Escape" ? 27 : 0 });
+      await settle(400); guard(); await shot(); clock += 0.3;
     } else if (op === "mail") {
       events.push({ t: clock, type: "mail" }); clock += 3.6;   // Tutorial.jsx draws the inbox here
     }

@@ -1,0 +1,51 @@
+{
+  "_": "Tutorial 04 — the chat on the owner's own website (WebsiteWidget.js, lib/widget.js, public/widget.js; 2026-09-30). The studio's widget already exists, so the create step is shown as a drawn flow and told in words.",
+  "id": "04-website-chat",
+  "title": { "bn": "নিজের ওয়েবসাইটে চ্যাট বসানো", "en": "Chat on your own website" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "world", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "ওয়েবসাইটে চ্যাট", "en": "Chat on your website" },
+      "sub": { "bn": "এক লাইনের কোড · একই বট · একই ইনবক্স", "en": "One line of code · the same bot · the same inbox" },
+      "bn": "আপনার নিজের ওয়েবসাইট থাকলে, সেখানেও টেলমোর এআই-এর চ্যাট বসানো যায়। ভিজিটররা সাইটেই প্রশ্ন করবে, আর একই বট উত্তর দেবে।",
+      "en": "If you have your own website, TellMore AI's chat can live there too. Visitors ask right on your site, and the same bot answers." },
+    { "id": "02", "scene": "flow", "hub": 1, "step": { "bn": "যেভাবে হয়", "en": "How it goes" },
+      "title": { "bn": "তিন ধাপেই শেষ", "en": "Three steps, done" },
+      "nodes": [
+        { "icon": "world", "bn": "ওয়েবসাইটের ঠিকানা দিন", "en": "Enter your website" },
+        { "icon": "tellmore", "bn": "এক লাইনের কোড পান", "en": "Get one line of code" },
+        { "icon": "check", "bn": "সাইটে বসিয়ে দিন", "en": "Paste it on your site" }
+      ],
+      "bn": "Channels ট্যাবের Website অংশে প্রথমবার আপনার ওয়েবসাইটের ঠিকানা দিয়ে Create widget চাপুন। তখন এক লাইনের একটা কোড পাবেন।",
+      "en": "In the Website section of the Channels tab, enter your website address the first time and tap Create widget. You get one line of code." },
+    { "id": "03", "step": { "bn": "কোডটা", "en": "The code" },
+      "bn": "এই হলো সেই কোড। Copy code চেপে কপি করুন।",
+      "en": "Here's the code. Tap Copy code to copy it.",
+      "do": [["open", "/shots?tab=website-widget"], ["wait", 0.6], ["note", "has=widget.js", { "bn": "এই এক লাইন", "en": "This one line" }], ["wait", 0.6], ["move", "text=Copy code"], ["click"], ["wait", 0.8]] },
+    { "id": "04", "scene": "points", "step": { "bn": "কোথায় বসাবেন", "en": "Where it goes" },
+      "title": { "bn": "কোডটা কোথায় বসাবেন", "en": "Where to paste it" },
+      "points": [
+        { "icon": "list", "bn": "সাইটের এইচটিএমএলে, </body>-এর ঠিক আগে", "en": "In your site's HTML, just before </body>" },
+        { "icon": "world", "bn": "একবার বসালেই সব পাতায় চ্যাট", "en": "Paste once; it shows on every page" },
+        { "icon": "help-circle", "bn": "নিজে না পারলে ওয়েব ডেভেলপারকে দিন", "en": "Not sure? Hand it to your web developer" }
+      ],
+      "bn": "কোডটা আপনার সাইটের এইচটিএমএলে, বডি ট্যাগ শেষ হওয়ার ঠিক আগে একবার বসিয়ে দিন। তাহলেই সাইটের সব পাতায় চ্যাট বাটন চলে আসবে। নিজে না পারলে, আপনার ওয়েব ডেভেলপারকে কোডটা দিলেই হবে।",
+      "en": "Paste the code once into your site's HTML, just before the closing body tag. The chat button then shows on every page. Not comfortable doing it? Just send the code to your web developer." },
+    { "id": "05", "step": { "bn": "কোন সাইটে চলবে", "en": "Which sites may use it" },
+      "bn": "চ্যাটটা শুধু এখানে লেখা ওয়েবসাইটগুলোতেই চলে, যাতে অন্য কেউ আপনার কোড নিজের সাইটে বসাতে না পারে। আরেকটা সাইট যোগ করতে ঠিকানা লিখে Add চাপুন, দশটা পর্যন্ত।",
+      "en": "The chat only runs on the websites listed here, so nobody else can use your code on their site. To add another, type its address and tap Add, up to ten.",
+      "do": [["note", "has=Websites allowed", { "bn": "অনুমতি পাওয়া সাইট", "en": "Allowed websites" }], ["wait", 0.8], ["move", "input[placeholder='shop.yourbrand.com']"], ["click"], ["type", "blog.nokshithreads.com"], ["move", "text=Add"], ["wait", 0.8]] },
+    { "id": "06", "scene": "points", "step": { "bn": "ভালো কথা", "en": "Good to know" },
+      "title": { "bn": "জেনে রাখুন", "en": "Good to know" },
+      "points": [
+        { "icon": "messages", "bn": "সাইটের চ্যাটও একই Inbox-এ আসে", "en": "Website chats land in the same Inbox" },
+        { "icon": "language", "bn": "বাংলা, ইংরেজি, বাংলিশ — সব বোঝে", "en": "Bangla, English, Banglish — it understands all" },
+        { "icon": "lock", "bn": "New key দিলে পুরোনো কোড বন্ধ হয়ে যায়", "en": "New key turns the old code off" }
+      ],
+      "bn": "ওয়েবসাইটের চ্যাটও একই Inbox-এ আসে, তাই সব কাস্টমার এক জায়গায়। আর New key চাপলে পুরোনো কোড বন্ধ হয়ে যায়, তখন নতুন কোডটা সাইটে বসাতে হবে।",
+      "en": "Website chats arrive in the same Inbox, so every customer is in one place. And New key switches the old code off, so you'd paste the new one on your site." },
+    { "id": "07", "step": { "bn": "হয়ে গেছে!", "en": "Done!" }, "zoom": 1,
+      "bn": "ব্যাস! এবার আপনার বট ফেসবুক, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর ওয়েবসাইট, সব জায়গায় কাজ করছে। পরের ভিডিওতে ড্যাশবোর্ডটা ঘুরিয়ে দেখাব।",
+      "en": "That's it! Your bot now works on Facebook, Instagram, WhatsApp and your website. Next, a tour of the dashboard.",
+      "do": [["wait", 2.5]] }
+  ]
+}

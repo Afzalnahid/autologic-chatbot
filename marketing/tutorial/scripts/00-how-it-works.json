@@ -1,0 +1,84 @@
+{
+  "_": "Tutorial 00 — how the whole system works, for anyone deciding or just starting. Mostly motion graphics; a few real screens. Facts from lib/bot.js (the reply path), lib/plans.js (every package has every feature, unlimited channels), lib/message-usage.js (only bot replies count) and Meta's 24-hour rule (2026-09-30).",
+  "id": "00-how-it-works",
+  "title": { "bn": "টেলমোর এআই কীভাবে কাজ করে", "en": "How TellMore AI works" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "tellmore", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "আপনার ব্যবসার ২৪ ঘণ্টার সেলস অ্যাসিস্ট্যান্ট", "en": "Your business's 24-hour sales assistant" },
+      "sub": { "bn": "টেলমোর এআই কীভাবে কাজ করে, এক নজরে", "en": "How TellMore AI works, at a glance" },
+      "bn": "টেলমোর এআই আপনার ব্যবসার হয়ে কাস্টমারের মেসেজের উত্তর দেয়, দিনরাত চব্বিশ ঘণ্টা। চলুন দেখি পুরো ব্যাপারটা কীভাবে কাজ করে।",
+      "en": "TellMore AI answers your customers' messages for your business, day and night. Let's see how the whole thing works." },
+    { "id": "02", "scene": "flow", "hub": 2, "step": { "bn": "মেসেজ আসে", "en": "Messages come in" },
+      "title": { "bn": "সব চ্যানেল, এক বট", "en": "Every channel, one bot" },
+      "nodes": [
+        { "icon": "message-circle-2", "bn": "কাস্টমার মেসেজ দেয়", "en": "A customer writes" },
+        { "icon": "world", "bn": "ফেসবুক, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ, ওয়েবসাইট", "en": "Facebook, Instagram, WhatsApp, website" },
+        { "icon": "tellmore", "bn": "টেলমোর এআই", "en": "TellMore AI" },
+        { "icon": "check", "bn": "কয়েক সেকেন্ডে উত্তর", "en": "An answer in seconds" }
+      ],
+      "bn": "কাস্টমার আপনার ফেসবুক পেজ, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ বা ওয়েবসাইটে মেসেজ দিলে, সেটা সরাসরি টেলমোর এআই-এর কাছে আসে। বট পড়ে, বোঝে, আর কয়েক সেকেন্ডের মধ্যে উত্তর দেয়।",
+      "en": "When a customer messages your Facebook Page, Instagram, WhatsApp or website, it comes straight to TellMore AI. The bot reads it, understands it, and answers within seconds." },
+    { "id": "03", "scene": "points", "step": { "bn": "যা বোঝে", "en": "What it understands" },
+      "title": { "bn": "কাস্টমার যেভাবেই লিখুক", "en": "However the customer writes" },
+      "points": [
+        { "icon": "language", "bn": "বাংলা, ইংরেজি, বাংলিশ", "en": "Bangla, English, Banglish" },
+        { "icon": "player-play-filled", "bn": "ভয়েস মেসেজ", "en": "Voice messages" },
+        { "icon": "photo", "bn": "প্রোডাক্টের ছবি দেখে চেনা", "en": "Recognises products from photos" },
+        { "icon": "clock", "bn": "রাত দুটোতেও, সাথে সাথে", "en": "At 2 a.m., instantly" }
+      ],
+      "bn": "কাস্টমার বাংলা, ইংরেজি বা বাংলিশে লিখুক, ভয়েস মেসেজ দিক, এমনকি প্রোডাক্টের ছবি পাঠাক, বট বুঝে নেয়। আর উত্তর দেয় কাস্টমার যে ভাষায় লিখেছে, সেই ভাষাতেই।",
+      "en": "Whether customers write in Bangla, English or Banglish, send a voice message or even a product photo, the bot understands. And it answers in the customer's own language." },
+    { "id": "04", "scene": "flow", "hub": 3, "step": { "bn": "যা জানে", "en": "What it knows" },
+      "title": { "bn": "বট জানে শুধু আপনার দেওয়া তথ্য", "en": "It knows only what you give it" },
+      "nodes": [
+        { "icon": "package", "bn": "আপনার প্রোডাক্ট ও দাম", "en": "Your products & prices" },
+        { "icon": "books", "bn": "আপনার ডকুমেন্ট", "en": "Your documents" },
+        { "icon": "wand", "bn": "আপনার শেখানো নিয়ম ও অফার", "en": "Your rules & offers" },
+        { "icon": "tellmore", "bn": "সঠিক উত্তর", "en": "The right answer" }
+      ],
+      "bn": "বট উত্তর দেয় শুধু আপনার দেওয়া তথ্য থেকে: আপনার প্রোডাক্ট আর দাম, আপনার ডকুমেন্ট, আর Bot Training-এ শেখানো নিয়ম ও অফার। অনুমান করে কখনো দাম বলে না। না জানলে বলে, টিমের সাথে কথা বলে জানাবে।",
+      "en": "The bot answers only from what you give it: your products and prices, your documents, and the rules and offers you teach it in Bot Training. It never guesses a price. If it doesn't know, it says it will check with your team." },
+    { "id": "05", "scene": "points", "step": { "bn": "যা করে", "en": "What it does" },
+      "title": { "bn": "শুধু উত্তর না, কাজও করে", "en": "Not just answers — work done" },
+      "points": [
+        { "icon": "shopping-cart", "bn": "অর্ডার নেয়, Orders-এ তুলে রাখে", "en": "Takes orders and records them" },
+        { "icon": "calendar-check", "bn": "মিটিং বুক করে, Google Meet লিংকসহ", "en": "Books meetings with a Google Meet link" },
+        { "icon": "message-2", "bn": "পোস্টের কমেন্টের উত্তর দেয়", "en": "Replies to comments on your posts" },
+        { "icon": "bell", "bn": "দরকার হলে আপনাকে ডাকে", "en": "Calls you in when it's needed" }
+      ],
+      "bn": "বট শুধু উত্তর দেয় না, কাজও করে। দোকানের জন্য অর্ডার নিয়ে সেটা Orders-এ তুলে রাখে, সার্ভিসের জন্য গুগল মিট লিংকসহ মিটিং বুক করে, পোস্টের কমেন্টের উত্তর দেয়। আর কেউ মানুষের সাথে কথা বলতে চাইলে বা রাগ করলে, সাথে সাথে আপনাকে জানায়।",
+      "en": "The bot doesn't just answer; it gets work done. For a shop it takes orders and records them in Orders; for a service it books meetings with a Google Meet link; it replies to comments on your posts. And if someone asks for a person or is upset, it tells you right away." },
+    { "id": "06", "step": { "bn": "আপনার Inbox", "en": "Your Inbox" },
+      "bn": "সব চ্যানেলের সব চ্যাট আসে ড্যাশবোর্ডের Inbox-এ। এখানে দেখবেন বট কী উত্তর দিচ্ছে, আর চাইলে যেকোনো সময় নিজেই উত্তর দিতে পারবেন।",
+      "en": "Every chat from every channel lands in the dashboard's Inbox. See what the bot is saying, and step in and reply yourself whenever you want.",
+      "do": [["open", "/shots?tab=shell-conversations"], ["wait", 1.0], ["note", "has=Conversations today", { "bn": "সব চ্যাট এক জায়গায়", "en": "Every chat in one place" }], ["wait", 1.6]] },
+    { "id": "07", "step": { "bn": "অর্ডার", "en": "Orders" },
+      "bn": "বটের নেওয়া অর্ডারগুলো জমা হয় Orders-এ, কাস্টমারের নাম, ফোন আর ঠিকানাসহ। আপনি শুধু কনফার্ম করে পাঠিয়ে দেবেন।",
+      "en": "Orders the bot takes are collected in Orders, with the customer's name, phone and address. You just confirm and ship.",
+      "do": [["open", "/shots?tab=shell-orders"], ["wait", 1.0], ["note", "has=A-1042", { "bn": "বটের নেওয়া অর্ডার", "en": "An order the bot took" }], ["wait", 1.6]] },
+    { "id": "08", "scene": "points", "step": { "bn": "নিয়ন্ত্রণ আপনার", "en": "You're in control" },
+      "title": { "bn": "নিয়ন্ত্রণ সবসময় আপনার হাতে", "en": "You're always in control" },
+      "points": [
+        { "icon": "user", "bn": "যেকোনো চ্যাট নিজে নিয়ে নিন", "en": "Take over any chat yourself" },
+        { "icon": "bell", "bn": "ফোনে নোটিফিকেশন", "en": "Notifications on your phone" },
+        { "icon": "chart-bar", "bn": "কত মেসেজ, কত অর্ডার — সব হিসাব", "en": "Every message and order, counted" },
+        { "icon": "speakerphone", "bn": "অফার সবাইকে একসাথে পাঠান", "en": "Send an offer to everyone at once" }
+      ],
+      "bn": "নিয়ন্ত্রণ সবসময় আপনার হাতে। যেকোনো চ্যাট নিজে নিয়ে নিতে পারেন, নতুন অর্ডার বা জরুরি চ্যাটে ফোনে নোটিফিকেশন পাবেন, Analytics-এ সব হিসাব দেখবেন, আর Broadcast দিয়ে অফার সবাইকে একসাথে পাঠাতে পারবেন।",
+      "en": "You're always in control. Take over any chat yourself, get phone notifications for new orders and urgent chats, see every number in Analytics, and send an offer to everyone at once with Broadcast." },
+    { "id": "09", "scene": "points", "step": { "bn": "জেনে রাখুন", "en": "Good to know" },
+      "title": { "bn": "দুটো নিয়ম জেনে রাখুন", "en": "Two rules worth knowing" },
+      "points": [
+        { "icon": "check", "bn": "শুধু বটের উত্তর গোনা হয়, আপনার নিজের উত্তর না", "en": "Only the bot's replies count, never your own" },
+        { "icon": "clock", "bn": "Meta-র নিয়ম: শেষ মেসেজের ২৪ ঘণ্টার মধ্যে", "en": "Meta's rule: within 24 hours of their last message" },
+        { "icon": "plug", "bn": "সব প্যাকেজে সব ফিচার, চ্যানেল যত খুশি", "en": "Every package has every feature, unlimited channels" }
+      ],
+      "bn": "দুটো নিয়ম জেনে রাখুন। প্যাকেজে শুধু বটের উত্তর গোনা হয়, আপনার নিজের উত্তর বা কাস্টমারের মেসেজ না। আর Meta-র নিয়মে, কাস্টমারের শেষ মেসেজের চব্বিশ ঘণ্টার মধ্যেই তাকে মেসেজ পাঠানো যায়। সব প্যাকেজেই সব ফিচার আছে, আর চ্যানেল যত খুশি।",
+      "en": "Two rules worth knowing. A package counts only the bot's replies, never your own replies or your customers' messages. And under Meta's rules, you can message a customer only within 24 hours of their last message. Every package includes every feature, with unlimited channels." },
+    { "id": "10", "scene": "title", "icon": "rocket", "step": { "bn": "শুরু করুন", "en": "Get started" },
+      "title": { "bn": "৩ দিন ফ্রি, কোনো কার্ড লাগবে না", "en": "3 days free, no card needed" },
+      "sub": { "bn": "tellmoreai.com", "en": "tellmoreai.com" },
+      "bn": "তিন দিন সব ফিচার একদম ফ্রি, কোনো কার্ড লাগবে না। tellmoreai.com-এ গিয়ে আজই শুরু করুন। পরের ভিডিওগুলোতে প্রতিটা ধাপ দেখাব।",
+      "en": "Three days of every feature, completely free, no card needed. Start today at tellmoreai.com. The next videos show every step." }
+  ]
+}

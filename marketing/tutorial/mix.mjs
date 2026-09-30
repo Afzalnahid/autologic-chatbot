@@ -7,11 +7,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { loadScript } from "./script.mjs";
 import { tutorialTimeline, videoTime } from "./timeline.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const [device = "desktop", lang = "bn"] = process.argv.slice(2);
-const script = JSON.parse(fs.readFileSync(path.join(here, "script.json"), "utf8"));
+const script = loadScript();   // TUT=<id> picks the tutorial (script.mjs)
 const pub = path.resolve(here, "../../video/public/tutorial", script.id);
 const capture = JSON.parse(fs.readFileSync(path.join(pub, device, "capture.json"), "utf8"));
 const durations = JSON.parse(fs.readFileSync(path.join(pub, `vo-${lang}`, "durations.json"), "utf8"));

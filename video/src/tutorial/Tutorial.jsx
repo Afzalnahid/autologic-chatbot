@@ -13,6 +13,8 @@ import {
 } from "remotion";
 import { Mark } from "../trailer/Trailer.jsx";
 import { BrandBug, BrandCard } from "../brand/Autolinium.jsx";
+import { TI } from "./icons.js";
+import { TECH_LOGOS } from "../../../src/lib/tech-logos.js";
 import { tutorialTimeline, captureTime, videoTime, FPS, INTRO, OUTRO } from "../../../marketing/tutorial/timeline.mjs";
 
 export { FPS };
@@ -22,7 +24,7 @@ const UI_EN = "'Segoe UI', 'Anek Bangla', sans-serif";
 const DISPLAY = "'Baloo Da 2', 'Hind Siliguri', sans-serif";
 
 // ---- fonts (shipped in public/, never fetched at render time) ----------------
-const FACES = [["Baloo Da 2", "promo/fonts/BalooDa2.ttf", "400 800"], ["Anek Bangla", "promo/fonts/AnekBangla.ttf", "100 800"]];
+const FACES = [["Baloo Da 2", "promo/fonts/BalooDa2.ttf", "400 800"], ["Anek Bangla", "promo/fonts/AnekBangla.ttf", "100 800"], ["tabler-icons", "fonts/tabler-subset.woff2", "400"]];
 let fontsLoading = null;
 const loadFonts = () => (fontsLoading ||= Promise.all(FACES.map(([fam, file, weight]) =>
   new FontFace(fam, `url(${staticFile(file)})`, { weight }).load().then((f) => document.fonts.add(f)))));
@@ -52,11 +54,12 @@ function useStage(capture) {
   return { V, W, H, screen: { x: (W - sw) / 2, y: 84 + bar, w: sw, h: sh }, bar, sub: { top: 884, font: 33 } };
 }
 
-// camera for one line: zoom towards what it works on
-function cameraFor(seg, vp, V) {
-  if (!seg?.focus) return { cx: vp.width / 2, cy: vp.height / 2, z: 1 };
+// camera for one line: zoom towards what it works on (a line may cap it: "zoom")
+function cameraFor(seg, vp, V, line) {
+  if (!seg?.focus || line?.zoom === 1) return { cx: vp.width / 2, cy: vp.height / 2, z: 1 };
   const f = seg.focus, pad = V ? 60 : 240;
-  const z = Math.min(V ? 1.22 : 1.65, Math.max(1, Math.min(vp.width / (f.w + pad), vp.height / (f.h + pad * 0.7))));
+  const cap = Math.min(V ? 1.22 : 1.65, line?.zoom || 9);
+  const z = Math.min(cap, Math.max(1, Math.min(vp.width / (f.w + pad), vp.height / (f.h + pad * 0.7))));
   const half = { w: vp.width / (2 * z), h: vp.height / (2 * z) };
   const cx = Math.min(vp.width - half.w, Math.max(half.w, f.x + f.w / 2));
   const cy = Math.min(vp.height - half.h, Math.max(half.h, f.y + f.h / 2));
@@ -91,7 +94,7 @@ export function Tutorial(props) {
   const before = cut ? frames.filter((f) => f.t < cut.t).pop() : null;
 
   // camera: ease from the previous line's framing into this line's
-  const cam0 = cameraFor(tl.segs[si - 1], vp, st.V), cam1 = cameraFor(seg, vp, st.V);
+  const cam0 = cameraFor(tl.segs[si - 1], vp, st.V, script.lines[si - 1]), cam1 = cameraFor(seg, vp, st.V, line);
   const k = ramp(v, seg.at, seg.at + 0.9);
   const cam = { cx: cam0.cx + (cam1.cx - cam0.cx) * k, cy: cam0.cy + (cam1.cy - cam0.cy) * k, z: cam0.z + (cam1.z - cam0.z) * k };
   const b = st.screen.w / vp.width;
@@ -116,11 +119,21 @@ export function Tutorial(props) {
   const mt = (v - mailV) / mailK;                  // seconds into the inbox, at capture pace
   const mailOn = mail && mt >= 0 && mt < 3.6;
 
-  const u = st.V ? 1 : 1;
+  // a motion-graphics line takes the device's place; cross-fade in and out of it
+  const isScene = (i) => !!script.lines[i]?.scene;
+  const sceneNow = inBody && isScene(si);
+  const devO = sceneNow ? 1 - ramp(v, seg.at, seg.at + 0.4) : (inBody && isScene(si - 1) ? ramp(v, seg.at, seg.at + 0.4) : 1);
+
+  // labelled highlights of this line, from when they were placed
+  const notes = ev.filter((e) => e.type === "note" && e.line === line.id && e.t <= t + 1e-6);
+
   return (
     <AbsoluteFill style={{ background: "#0B0B0E" }}>
       <AbsoluteFill style={{ background: `radial-gradient(ellipse 70% 55% at 50% ${st.V ? 45 : 55}%, ${MAROON}55 0%, transparent 70%)` }} />
 
+      {sceneNow && <SceneView line={line} seg={seg} v={v} lang={lang} st={st} fps={fps} />}
+
+      <AbsoluteFill style={{ opacity: devO }}>
       {/* the device */}
       {st.V ? (
         <div style={{ position: "absolute", left: st.screen.x - st.bezel, top: st.screen.y - st.bezel, width: st.screen.w + st.bezel * 2, height: st.screen.h + st.bezel * 2,
@@ -133,7 +146,7 @@ export function Tutorial(props) {
             <div style={{ marginLeft: 18, flex: 1, maxWidth: 520, height: 24, borderRadius: 12, background: "#1a1a20", color: "#b8b8c4", fontFamily: UI_EN, fontSize: 14,
               display: "flex", alignItems: "center", padding: "0 14px", gap: 8 }}>
               <svg width="12" height="12" viewBox="0 0 24 24"><path d="M6 10V8a6 6 0 1 1 12 0v2h1v11H5V10zm2 0h8V8a4 4 0 1 0-8 0z" fill="#8a8a96" /></svg>
-              {si === 0 ? "tellmoreai.com" : "tellmoreai.com/dashboard"}
+              {[...capture.events].reverse().find((e) => e.type === "cut" && e.url && e.t <= t + 1e-6)?.url === "/" ? "tellmoreai.com" : "tellmoreai.com/dashboard"}
             </div>
           </div>
         </div>
@@ -145,11 +158,13 @@ export function Tutorial(props) {
           {before && fade < 1 && <Img src={staticFile(dir + before.img)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />}
           <Img src={staticFile(dir + frames[fi].img)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: before ? fade : 1 }} />
         </div>
+        {notes.map((n, i) => <Note key={i} n={n} toScreen={toScreen} age={v - videoTime(tl, n.t)} lang={lang} st={st} fps={fps} />)}
         {mailOn && <Inbox mt={mt} lang={lang} st={st} fps={fps} />}
         {showPtr && !mailOn && (st.V
           ? <Touch x={pos.x} y={pos.y} age={clickAge} />
           : <Arrow x={pos.x} y={pos.y} age={clickAge} />)}
       </div>
+      </AbsoluteFill>
 
       {/* the step */}
       {inBody && line.step && (
@@ -173,6 +188,127 @@ export function Tutorial(props) {
       <Sequence from={Math.round(tl.body * fps)}><BrandCard brand={brand} lang={lang} /></Sequence>
       <BrandBug brand={brand} until={tl.body} />
     </AbsoluteFill>
+  );
+}
+
+// ---- icons: Tabler (the site's subset), brand logos (Simple Icons, src/lib/tech-logos.js) or TellMore's own mark
+export function Ico({ name, size, color = "#fff" }) {
+  if (name === "tellmore") return <Mark size={size} />;
+  if (name?.startsWith("logo:")) {
+    const logo = TECH_LOGOS.find((x) => x.name === name.slice(5));
+    return <svg width={size} height={size} viewBox="0 0 24 24"><path d={logo?.d || ""} fill={color} /></svg>;
+  }
+  const cp = TI[name];
+  return <span style={{ fontFamily: "tabler-icons", fontSize: size, lineHeight: 1, color, display: "inline-block", width: size, height: size, textAlign: "center" }}>{cp ? String.fromCodePoint(cp) : "•"}</span>;
+}
+
+// A labelled highlight: a rounded outline that draws itself around one part of
+// the screen, and a label pill beside it.
+function Note({ n, toScreen, age, lang, st, fps }) {
+  const a = toScreen({ x: n.box.x - 6, y: n.box.y - 6 }), b = toScreen({ x: n.box.x + n.box.w + 6, y: n.box.y + n.box.h + 6 });
+  const w = b.x - a.x, h = b.y - a.y;
+  const draw = ramp(age, 0, 0.45);
+  const s = pop(age, 0.2, fps, { damping: 13, stiffness: 190 });
+  const text = n.text?.[lang];
+  const below = a.y < st.screen.h * 0.5;
+  const fs = st.V ? 30 : 21;
+  return (
+    <>
+      <svg style={{ position: "absolute", left: a.x - 4, top: a.y - 4, overflow: "visible" }} width={w + 8} height={h + 8}>
+        <rect x="4" y="4" width={Math.max(0, w)} height={Math.max(0, h)} rx="12" fill={`${ROSE}14`} stroke={ROSE} strokeWidth="4"
+          pathLength="1" strokeDasharray="1" strokeDashoffset={1 - draw} />
+      </svg>
+      {text && (
+        <div style={{ position: "absolute", left: Math.min(Math.max(12, a.x), st.screen.w - 12 - 460), top: below ? b.y + 12 : undefined, bottom: below ? undefined : st.screen.h - a.y + 12,
+          maxWidth: 460, padding: st.V ? "12px 20px" : "8px 16px", borderRadius: 14, background: "#1a1a20", color: "#fff", fontFamily: lang === "bn" ? UI_BN : UI_EN,
+          fontWeight: 600, fontSize: fs, lineHeight: 1.35, boxShadow: "0 12px 30px rgba(0,0,0,.35)", border: `2px solid ${ROSE}`,
+          transform: `scale(${s})`, transformOrigin: below ? "top left" : "bottom left", opacity: Math.min(1, s * 2) }}>{text}</div>
+      )}
+    </>
+  );
+}
+
+// ---- motion-graphics lines ------------------------------------------------------------
+// line.scene: "title" { title, sub, icon } · "points" { title, points: [{ icon, bn, en }] }
+// · "flow" { title, nodes: [{ icon, bn, en }], hub?: index }. Items appear in step
+// with the voice (spread across the line).
+function SceneView({ line, seg, v, lang, st, fps }) {
+  const UI = lang === "bn" ? UI_BN : UI_EN, HEAD = lang === "bn" ? DISPLAY : UI_EN;
+  const V = st.V;
+  const o = ramp(v, seg.at, seg.at + 0.4) * (1 - ramp(v, seg.at + seg.len - 0.35, seg.at + seg.len));
+  const area = V ? { x: 60, y: 270, w: 960, h: 1180 } : { x: 90, y: 90, w: 1740, h: 760 };
+  const title = line.title?.[lang];
+  const items = line.points || line.nodes || [];
+  const when = (i) => seg.voiceAt + (seg.voice * 0.85) * (items.length > 1 ? i / items.length : 0);
+  const Head = title ? (
+    <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: V ? 64 : 58, color: "#fff", textAlign: "center", lineHeight: 1.2, textWrap: "balance",
+      opacity: ramp(v, seg.at + 0.1, seg.at + 0.5), transform: `translateY(${ramp(v, seg.at + 0.1, seg.at + 0.55, 20, 0)}px)` }}>{title}</div>
+  ) : null;
+
+  if (line.scene === "title") {
+    const s = pop(v, seg.at + 0.1, fps, { damping: 12, stiffness: 150 });
+    return (
+      <AbsoluteFill style={{ opacity: o, alignItems: "center", justifyContent: "center" }}>
+        {line.icon && <div style={{ width: V ? 200 : 170, height: V ? 200 : 170, borderRadius: "50%", background: `linear-gradient(145deg, ${ROSE}, ${MAROON})`, display: "grid", placeItems: "center",
+          transform: `scale(${s})`, boxShadow: `0 0 80px ${ROSE}66`, marginBottom: 34 }}><Ico name={line.icon} size={V ? 110 : 92} /></div>}
+        <div style={{ padding: "0 80px" }}>{Head}</div>
+        {line.sub && <div style={{ fontFamily: UI, fontSize: V ? 38 : 32, color: "#d9c3cc", marginTop: 18, textAlign: "center", padding: "0 80px", opacity: ramp(v, seg.at + 0.45, seg.at + 0.8) }}>{line.sub[lang]}</div>}
+      </AbsoluteFill>
+    );
+  }
+
+  if (line.scene === "points") {
+    return (
+      <div style={{ position: "absolute", left: area.x, top: area.y, width: area.w, height: area.h, opacity: o, display: "flex", flexDirection: "column", justifyContent: "center", gap: V ? 34 : 30 }}>
+        {Head}
+        <div style={{ display: "grid", gridTemplateColumns: V || items.length < 4 ? "1fr" : "1fr 1fr", gap: V ? 22 : 20, marginTop: 14, padding: V ? 0 : "0 80px" }}>
+          {items.map((p, i) => {
+            const s = pop(v, when(i), fps, { damping: 14, stiffness: 180 });
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 24, padding: V ? "22px 26px" : "22px 28px", borderRadius: 18, background: "#16161B", border: "2px solid rgba(255,255,255,.08)",
+                opacity: Math.min(1, s * 2), transform: `translateX(${(1 - s) * -40}px)` }}>
+                <div style={{ width: V ? 76 : 78, height: V ? 76 : 78, borderRadius: 16, background: `${ROSE}22`, border: `2px solid ${ROSE}66`, display: "grid", placeItems: "center", flex: "none" }}>
+                  <Ico name={p.icon} size={V ? 42 : 44} color="#F5B8CD" /></div>
+                <div style={{ fontFamily: UI, fontWeight: 600, fontSize: V ? 38 : 36, color: "#fff", lineHeight: 1.35 }}>{p[lang]}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // flow: nodes in a row (a column on a phone), joined by arrows that run in turn
+  const n = items.length, node = V ? 190 : 170;
+  return (
+    <div style={{ position: "absolute", left: area.x, top: area.y, width: area.w, height: area.h, opacity: o, display: "flex", flexDirection: "column", justifyContent: "center", gap: V ? 50 : 60 }}>
+      {Head}
+      <div style={{ display: "flex", flexDirection: V ? "column" : "row", alignItems: "center", justifyContent: "center", gap: 0 }}>
+        {items.map((p, i) => {
+          const s = pop(v, when(i), fps, { damping: 13, stiffness: 170 });
+          const hub = line.hub === i;
+          const arrow = i < n - 1 ? ramp(v, when(i) + 0.3, when(i + 1), 0, 1) : 0;
+          return (
+            <React.Fragment key={i}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: V ? 560 : Math.min(300, (area.w - 60) / n - 70), opacity: Math.min(1, s * 2), transform: `scale(${0.7 + 0.3 * s})` }}>
+                <div style={{ width: hub ? node * 1.15 : node, height: hub ? node * 1.15 : node, borderRadius: "50%", display: "grid", placeItems: "center",
+                  background: hub ? `linear-gradient(145deg, ${ROSE}, ${MAROON})` : "#16161B", border: hub ? "none" : `3px solid ${ROSE}66`,
+                  boxShadow: hub ? `0 0 90px ${ROSE}77` : "0 20px 50px rgba(0,0,0,.45)" }}>
+                  <Ico name={p.icon} size={(hub ? node * 1.15 : node) * 0.5} color={hub ? "#fff" : "#F5B8CD"} /></div>
+                <div style={{ fontFamily: UI, fontWeight: 700, fontSize: V ? 34 : 26, color: "#fff", textAlign: "center", lineHeight: 1.3 }}>{p[lang]}</div>
+              </div>
+              {i < n - 1 && (
+                <svg width={V ? 40 : 70} height={V ? 70 : 40} viewBox={V ? "0 0 40 70" : "0 0 70 40"} style={{ flex: "none", margin: V ? "6px 0" : "0 0 60px 0" }}>
+                  {V
+                    ? <><line x1="20" y1="4" x2="20" y2={4 + 52 * arrow} stroke={ROSE} strokeWidth="5" strokeLinecap="round" />{arrow > 0.95 && <path d="M8 50 L20 64 L32 50" fill="none" stroke={ROSE} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />}</>
+                    : <><line x1="4" y1="20" x2={4 + 52 * arrow} y2="20" stroke={ROSE} strokeWidth="5" strokeLinecap="round" />{arrow > 0.95 && <path d="M50 8 L64 20 L50 32" fill="none" stroke={ROSE} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />}</>}
+                </svg>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

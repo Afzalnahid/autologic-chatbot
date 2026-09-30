@@ -7,6 +7,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { loadScript } from "./script.mjs";
 import { tutorialTimeline, FPS } from "./timeline.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -16,7 +17,7 @@ const { bundle } = require("@remotion/bundler");
 const { selectComposition, renderMedia, renderStill } = require("@remotion/renderer");
 
 const [device = "desktop", lang = "bn", ...flags] = process.argv.slice(2);
-const script = JSON.parse(fs.readFileSync(path.join(here, "script.json"), "utf8"));
+const script = loadScript();   // TUT=<id> picks the tutorial (script.mjs)
 const pub = path.join(VIDEO, "public", "tutorial", script.id);
 const inputProps = {
   script, lang, device, id: script.id,
@@ -44,10 +45,16 @@ if (flags.includes("--stills")) {
     `xstack=inputs=${files.length}:fill=black:layout=` + files.map((_, i) => `${(i % cols) * w}_${Math.floor(i / cols) * h}`).join("|") + "[o]";
   execFileSync("ffmpeg", [...args, "-filter_complex", fc, "-map", "[o]", path.join(dir, "sheet.png")]);
   console.log("stills", dir);
+  process.exit(0);        // the renderer's browser otherwise keeps node alive
 } else {
   const outputLocation = path.join(OUT, `tutorial-${script.id}-${device}-${lang}-picture.mp4`);
-  let last = -1;
+  let last = -1, alive = Date.now();
+  // this machine's renderer has hung for half an hour with no error (2026-09-30):
+  // give up after 3 minutes without progress, and let build.mjs run it again
+  const watchdog = setInterval(() => { if (Date.now() - alive > 180000) { console.error("render stalled for 3 minutes — giving up"); process.exit(3); } }, 10000);
   await retry("render", () => renderMedia({ serveUrl, composition, inputProps, codec: "h264", crf: 18, muted: true, outputLocation, concurrency: 4,
-    onProgress: ({ progress }) => { const p = Math.floor(progress * 10); if (p !== last) { last = p; console.log(device, lang, `${p * 10}%`); } } }));
+    onProgress: ({ progress }) => { alive = Date.now(); const p = Math.floor(progress * 10); if (p !== last) { last = p; console.log(device, lang, `${p * 10}%`); } } }));
+  clearInterval(watchdog);
   console.log("wrote", outputLocation);
+  process.exit(0);
 }
