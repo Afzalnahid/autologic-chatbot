@@ -1,0 +1,38 @@
+{
+  "_": "Tutorial 07 — comment auto-reply: where it's switched on (Channels → a Page → Comment automation), the Comments log, and what 'needs attention' means. Studio: channels, comments. Facts: Comments.js, Channels.js (2026-09-30). Private replies can fail for reasons Meta sets: Page accounts, privacy settings, a reply already sent, or a comment older than 7 days.",
+  "id": "07-comments",
+  "title": { "bn": "কমেন্টের অটো-রিপ্লাই", "en": "Automatic replies to comments" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "message-2", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "কমেন্টের অটো-রিপ্লাই", "en": "Automatic comment replies" },
+      "sub": { "bn": "পোস্টে কমেন্ট → পাবলিক উত্তর → ইনবক্সে মেসেজ", "en": "A comment → a public reply → a private message" },
+      "bn": "কেউ আপনার পোস্টে দাম জানতে চেয়ে কমেন্ট করলে, বট সেখানেই উত্তর দিতে পারে, আর তাকে ইনবক্সেও মেসেজ পাঠাতে পারে। এতে একটা কমেন্ট থেকেই বিক্রির কথা শুরু হয়।",
+      "en": "When someone comments on your post asking the price, the bot can answer right there, and send them a private message too. One comment can start a sale." },
+    { "id": "02", "scene": "flow", "hub": 1, "step": { "bn": "কীভাবে কাজ করে", "en": "How it works" },
+      "title": { "bn": "একটা কমেন্টের পথ", "en": "The path of a comment" },
+      "nodes": [
+        { "icon": "message-2", "bn": "\"দাম কত?\" কমেন্ট", "en": "\"How much?\" comment" },
+        { "icon": "tellmore", "bn": "বট পড়ে", "en": "The bot reads it" },
+        { "icon": "check", "bn": "পোস্টেই উত্তর", "en": "Replies on the post" },
+        { "icon": "brand-messenger", "bn": "ইনবক্সে মেসেজ", "en": "Messages them privately" }
+      ],
+      "bn": "কমেন্ট এলে বট পড়ে, পোস্টেই ছোট একটা উত্তর দেয়। আর চালু থাকলে কমেন্টকারীকে ইনবক্সে মেসেজ পাঠিয়ে কথা শুরু করে।",
+      "en": "When a comment arrives, the bot reads it and posts a short reply on the post. If you've turned it on, it also messages the commenter privately to start a conversation." },
+    { "id": "03", "step": { "bn": "কোথায় চালু করবেন", "en": "Where to switch it on" },
+      "bn": "চালু করতে Channels ট্যাবে গিয়ে পেজের নামে চাপুন। Comment automation-এ দুটো সুইচ: পোস্টে উত্তর দেওয়া, আর ইনবক্সে মেসেজ পাঠানো।",
+      "en": "To switch it on, open the Channels tab and tap your Page's name. Comment automation has two switches: reply on the post, and message them privately.",
+      "do": [["open", "/shots?tab=channels"], ["wait", 2.0], ["move", "text=Nokshi Threads"], ["click"], ["wait", 1.0], ["note", "has=Auto-reply to comments", { "bn": "পোস্টে উত্তর", "en": "Reply on the post" }], ["wait", 0.8], ["note", "has=Also message the commenter", { "bn": "ইনবক্সে মেসেজ", "en": "A private message" }], ["wait", 1.0]] },
+    { "id": "04", "step": { "bn": "Comments ট্যাব", "en": "The Comments tab" },
+      "bn": "বট কোন কমেন্টে কী করল, সব দেখা যায় Comments ট্যাবে: কাস্টমারের কমেন্ট, বটের উত্তর, আর পোস্টের লিংক।",
+      "en": "Everything the bot did with comments is in the Comments tab: the customer's comment, the bot's reply, and a link to the post.",
+      "do": [["open", "/shots?tab=comments"], ["wait", 0.8], ["note", "has=Their comment", { "bn": "কাস্টমারের কমেন্ট", "en": "The customer's comment" }], ["wait", 0.8], ["note", "has=Bot reply", { "bn": "বটের উত্তর", "en": "The bot's reply" }], ["wait", 1.0]] },
+    { "id": "05", "step": { "bn": "যখন মেসেজ যায় না", "en": "When a message can't go" },
+      "bn": "Needs attention-এ থাকে যেখানে ইনবক্সের মেসেজ যায়নি। এটা Meta-র নিয়মে হয়: কমেন্ট সাত দিনের বেশি পুরোনো হলে, আগেই একবার মেসেজ গিয়ে থাকলে, বা কারো প্রাইভেসি সেটিং আটকালে।",
+      "en": "Needs attention shows where the private message didn't go through. That's Meta's rules: the comment is over seven days old, a message already went, or the person's privacy settings block it.",
+      "do": [["move", "button.seg-item[data-seg='Needs attention']"], ["click"], ["wait", 0.8], ["note", "has=could not be delivered", { "bn": "Meta-র নিয়মে আটকেছে", "en": "Blocked by Meta's rules" }], ["wait", 1.2]] },
+    { "id": "06", "step": { "bn": "পরের ধাপ", "en": "Next" }, "zoom": 1,
+      "bn": "কমেন্ট আর মেসেজ থেকে বট যে অর্ডারগুলো নেয়, সেগুলো কোথায় যায় আর কীভাবে সামলাবেন, পরের ভিডিওতে দেখাব।",
+      "en": "Where do the orders the bot takes from chats end up, and how do you handle them? That's the next video.",
+      "do": [["wait", 2.5]] }
+  ]
+}

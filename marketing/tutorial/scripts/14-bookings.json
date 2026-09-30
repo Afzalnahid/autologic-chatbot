@@ -1,0 +1,38 @@
+{
+  "_": "Tutorial 14 — Bookings & Google Calendar, for service businesses: how the bot books a meeting (six details → free/busy check → Google Meet event → confirmed + notification), the Bookings tab, and connecting Google Calendar (shown via Disconnect; 'Connect now' opens Google's real login and is never pressed). Facts: Bookings.js, bot.js booking path (2026-09-30).",
+  "id": "14-bookings",
+  "title": { "bn": "মিটিং বুকিং ও গুগল ক্যালেন্ডার", "en": "Bookings & Google Calendar" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "calendar-check", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "মিটিং বুকিং", "en": "Meeting bookings" },
+      "sub": { "bn": "বট মিটিং ঠিক করে · গুগল মিট লিংক নিজেই পাঠায়", "en": "The bot books it · sends the Google Meet link itself" },
+      "bn": "সার্ভিস ব্যবসায় বট কাস্টমারের সাথে মিটিং ঠিক করে দেয়, আর গুগল মিটের লিংকও নিজেই পাঠিয়ে দেয়।",
+      "en": "For a service business, the bot arranges meetings with customers, and sends the Google Meet link itself." },
+    { "id": "02", "scene": "flow", "hub": 2, "step": { "bn": "বট যেভাবে বুক করে", "en": "How the bot books" },
+      "title": { "bn": "বট যেভাবে মিটিং বুক করে", "en": "How the bot books a meeting" },
+      "nodes": [
+        { "icon": "user", "bn": "নাম, ইমেইল, ফোন, সার্ভিস, দিন, সময়", "en": "Name, email, phone, service, date, time" },
+        { "icon": "calendar-check", "bn": "আপনার ক্যালেন্ডারে ফাঁকা কিনা", "en": "Is your calendar free?" },
+        { "icon": "tellmore", "bn": "গুগল মিট লিংকসহ বুকিং", "en": "Booked, with a Meet link" },
+        { "icon": "bell", "bn": "আপনার ফোনে নোটিফিকেশন", "en": "A notification for you" }
+      ],
+      "bn": "বট কাস্টমারের নাম, ইমেইল, ফোন, কোন সার্ভিস, আর কোন দিন কখন, সব জেনে নেয়। তারপর আপনার গুগল ক্যালেন্ডারে সময়টা ফাঁকা কিনা দেখে। ফাঁকা থাকলে মিট লিংকসহ বুক করে, না থাকলে অন্য দুটো সময় প্রস্তাব করে।",
+      "en": "The bot collects the customer's name, email, phone, the service, and the day and time. Then it checks your Google Calendar. If the slot is free it books it with a Meet link; if not, it offers two other times." },
+    { "id": "03", "step": { "bn": "Bookings ট্যাব", "en": "The Bookings tab" },
+      "bn": "সব মিটিং দেখা যায় Bookings-এ: আজকের, সামনের, আর শেষ হয়ে যাওয়া। ক্যালেন্ডারে কোন দিন কতগুলো মিটিং, তাও দেখায়।",
+      "en": "Every meeting is in Bookings: today's, upcoming and finished. The calendar shows how many fall on each day.",
+      "do": [["open", "/shots?tab=bookings"], ["wait", 1.2], ["note", "has=Upcoming", { "bn": "সামনের মিটিং", "en": "Coming up" }], ["wait", 1.4]] },
+    { "id": "04", "step": { "bn": "একটা মিটিং", "en": "One meeting" },
+      "bn": "প্রতিটা মিটিংয়ে Join meeting চাপলেই গুগল মিট খুলবে। শেষ হলে Mark done, আর বাতিল হলে Cancel। বাতিল করলে ক্যালেন্ডার থেকেও মুছে যায়, আর কাস্টমারও জানতে পারে।",
+      "en": "On each meeting, Join meeting opens Google Meet. Mark done when it's over, or Cancel to call it off; cancelling also removes it from your calendar and lets the customer know.",
+      "do": [["note", "has=Join meeting", { "bn": "এক চাপে মিটিং", "en": "One tap to join" }], ["wait", 1.6]] },
+    { "id": "05", "step": { "bn": "ক্যালেন্ডার কানেক্ট", "en": "Connecting the calendar" },
+      "bn": "গুগল ক্যালেন্ডার কানেক্ট না থাকলে এই সতর্কবার্তা আসে। বুকিং তখনো সেভ হয়, কিন্তু মিট লিংক তৈরি হয় না। Connect now চেপে গুগলে লগইন করে অনুমতি দিলেই হয়ে যায়, এক মিনিটের কাজ।",
+      "en": "Without Google Calendar connected, you see this warning. Bookings are still saved, but no Meet links are made. Tap Connect now, sign in to Google and allow access. It takes a minute.",
+      "do": [["move", "text=Disconnect"], ["click"], ["wait", 1.0], ["note", "has=Google Calendar not connected", { "bn": "কানেক্ট করুন", "en": "Connect it" }], ["wait", 1.4]] },
+    { "id": "06", "step": { "bn": "পরের ধাপ", "en": "Next" }, "zoom": 1,
+      "bn": "পরের ভিডিওতে Broadcast: কীভাবে সাম্প্রতিক সব কাস্টমারকে একসাথে মেসেজ পাঠাবেন।",
+      "en": "Next: Broadcast, and how to message all your recent customers at once.",
+      "do": [["wait", 2.5]] }
+  ]
+}

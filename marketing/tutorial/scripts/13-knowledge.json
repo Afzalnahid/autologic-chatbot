@@ -1,0 +1,52 @@
+{
+  "_": "Tutorial 13 — the Knowledge Base, for service businesses: uploading documents and how the bot answers from them (text read → cut into pieces → the closest pieces handed to the bot; never invented). Studio: /shots?tab=knowledge; the upload is a sample text file (media/pixel-studio-services.txt) handed to the file input. Facts: KnowledgeBase.js, lib/knowledge.js, plans.js (2026-09-30).",
+  "id": "13-knowledge",
+  "title": { "bn": "নলেজ বেস: ডকুমেন্ট থেকে উত্তর", "en": "Knowledge Base: answers from your documents" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "books", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "নলেজ বেস", "en": "Knowledge Base" },
+      "sub": { "bn": "সার্ভিস ব্যবসার জন্য · PDF, Word, টেক্সট", "en": "For service businesses · PDF, Word, text" },
+      "bn": "সার্ভিস ব্যবসায় বট উত্তর দেয় আপনার নিজের ডকুমেন্ট থেকে: সার্ভিসের তালিকা, দাম, কাজের নিয়ম, সাধারণ প্রশ্ন। ডকুমেন্টগুলো রাখা হয় নলেজ বেসে।",
+      "en": "For a service business, the bot answers from your own documents: your services, prices, how you work, common questions. They live in the Knowledge Base." },
+    { "id": "02", "step": { "bn": "আপনার ডকুমেন্ট", "en": "Your documents" },
+      "bn": "এখানে সব ডকুমেন্টের তালিকা। প্রতিটার পাশে লেখা থাকে কতগুলো অংশে ভাগ করে বটকে শেখানো হয়েছে।",
+      "en": "Here's every document, each showing how many pieces it was split into for the bot.",
+      "do": [["open", "/shots?tab=knowledge"], ["wait", 1.0], ["note", "has=Service list and pricing 2026.pdf", { "bn": "একটা ডকুমেন্ট", "en": "One document" }], ["wait", 1.4]] },
+    { "id": "03", "step": { "bn": "নতুন ডকুমেন্ট", "en": "Add a document" },
+      "bn": "নতুন ডকুমেন্ট যোগ করতে এখানে চেপে ফাইল বেছে নিন, বা ফাইলটা টেনে এনে ছেড়ে দিন। PDF, Word, টেক্সট, সব চলে।",
+      "en": "To add a document, tap here and pick the file, or drag it in. PDF, Word and text files all work.",
+      "do": [["move", "has=Tap to add a document"], ["tap"], ["file", "input[type=file]", "media/pixel-studio-services.txt"], ["wait", 1.2]] },
+    { "id": "04", "scene": "flow", "hub": 2, "step": { "bn": "বট যেভাবে পড়ে", "en": "How the bot reads it" },
+      "title": { "bn": "ডকুমেন্ট থেকে উত্তর", "en": "From document to answer" },
+      "nodes": [
+        { "icon": "books", "bn": "আপনার ডকুমেন্ট", "en": "Your document" },
+        { "icon": "list", "bn": "ছোট ছোট অংশে ভাগ", "en": "Split into small pieces" },
+        { "icon": "search", "bn": "প্রশ্নের সাথে মেলানো অংশ", "en": "The pieces that match the question" },
+        { "icon": "tellmore", "bn": "সঠিক উত্তর", "en": "The right answer" }
+      ],
+      "bn": "আপলোড হলে ডকুমেন্টটা ছোট ছোট অংশে ভাগ হয়ে যায়। কাস্টমার প্রশ্ন করলে বট সবচেয়ে মিলে যাওয়া অংশগুলো খুঁজে সেখান থেকে উত্তর দেয়। ডকুমেন্টে না থাকলে কিছু বানিয়ে বলে না, বলে টিম জানাবে।",
+      "en": "Once uploaded, the document is split into small pieces. When a customer asks, the bot finds the pieces that match best and answers from them. If it isn't in your documents, it never makes something up; it says the team will get back to them." },
+    { "id": "05", "scene": "points", "step": { "bn": "ভালো ডকুমেন্ট", "en": "Good documents" },
+      "title": { "bn": "কী ধরনের ডকুমেন্ট দেবেন", "en": "What to upload" },
+      "points": [
+        { "icon": "list", "bn": "সার্ভিসের তালিকা ও দাম", "en": "Your services and prices" },
+        { "icon": "help-circle", "bn": "সাধারণ প্রশ্ন ও উত্তর", "en": "Common questions and answers" },
+        { "icon": "check", "bn": "কাজের নিয়ম, পেমেন্ট, রিফান্ড", "en": "How you work, payment, refunds" },
+        { "icon": "lock", "bn": "স্ক্যান করা ছবির PDF না, লেখা থাকা ফাইল", "en": "Text files, not scanned-image PDFs" }
+      ],
+      "bn": "সার্ভিসের তালিকা, দাম, সাধারণ প্রশ্ন, কাজের নিয়ম আর রিফান্ডের নীতি দিলেই বট বেশিরভাগ প্রশ্নের উত্তর দিতে পারবে। শুধু খেয়াল রাখবেন, স্ক্যান করা ছবির PDF বট পড়তে পারে না, লেখা থাকতে হবে।",
+      "en": "Give it your services, prices, common questions, how you work and your refund policy, and the bot can answer most questions. Just note: the bot can't read scanned-image PDFs; the text has to be real text." },
+    { "id": "06", "scene": "points", "step": { "bn": "প্যাকেজ", "en": "Packages" },
+      "title": { "bn": "কতগুলো ডকুমেন্ট রাখা যায়", "en": "How many documents" },
+      "points": [
+        { "icon": "rocket", "bn": "ফ্রি ট্রায়াল: ২টা", "en": "Free trial: 2" },
+        { "icon": "books", "bn": "Service Basic: ২০ · Pro: ৬০ · Enterprise: ১৫০", "en": "Service Basic: 20 · Pro: 60 · Enterprise: 150" }
+      ],
+      "bn": "ফ্রি ট্রায়ালে দুটো ডকুমেন্ট রাখা যায়, আর Service Basic-এ বিশটা, Pro-তে ষাটটা, Enterprise-এ একশো পঞ্চাশটা।",
+      "en": "The free trial holds two documents; Service Basic holds twenty, Pro sixty and Enterprise a hundred and fifty." },
+    { "id": "07", "step": { "bn": "পরের ধাপ", "en": "Next" }, "zoom": 1,
+      "bn": "সার্ভিস ব্যবসায় বট মিটিংও বুক করে। পরের ভিডিওতে বুকিং আর গুগল ক্যালেন্ডার দেখাব।",
+      "en": "For a service business, the bot books meetings too. Next: bookings and Google Calendar.",
+      "do": [["wait", 2.5]] }
+  ]
+}

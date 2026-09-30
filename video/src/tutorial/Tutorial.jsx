@@ -178,7 +178,7 @@ export function Tutorial(props) {
         <div style={{ position: "absolute", left: st.V ? 60 : 200, right: st.V ? 60 : 200, top: st.sub.top, display: "flex", justifyContent: "center",
           opacity: ramp(v, seg.voiceAt - 0.2, seg.voiceAt + 0.1) * (1 - ramp(v, seg.at + seg.len - 0.25, seg.at + seg.len)) }}>
           <div style={{ fontFamily: UI, fontWeight: lang === "bn" ? 600 : 600, fontSize: st.sub.font, lineHeight: 1.4, color: "#fff", textAlign: "center",
-            textShadow: "0 2px 12px rgba(0,0,0,.8)", textWrap: "balance" }}>{line[lang]}</div>
+            textShadow: "0 2px 12px rgba(0,0,0,.8)", textWrap: "balance" }}>{subtitleAt(line[lang], v - seg.voiceAt, seg.voice)}</div>
         </div>
       )}
 
@@ -189,6 +189,24 @@ export function Tutorial(props) {
       <BrandBug brand={brand} until={tl.body} />
     </AbsoluteFill>
   );
+}
+
+// The sentence being spoken, not the whole line: a long line in full ran to
+// three rows and sat on Autolinium's bottom line. Sentences share the voice's
+// time by their length; very short ones ride with their neighbour.
+function subtitleAt(text, t, dur) {
+  // a full stop ends a sentence only before a space (not in "tellmoreai.com")
+  const parts = text.split(/(?<=[।?!])\s+|(?<=\.)\s+/).map((s) => s.trim()).filter(Boolean);
+  const chunks = [];
+  for (const p of parts) {
+    const last = chunks[chunks.length - 1];
+    if (last && (last.length < 28 || p.length < 18) && last.length + p.length < 95) chunks[chunks.length - 1] = `${last} ${p}`;
+    else chunks.push(p);
+  }
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  let acc = 0;
+  for (const c of chunks) { acc += c.length; if (t < (acc / total) * dur) return c; }
+  return chunks[chunks.length - 1];
 }
 
 // ---- icons: Tabler (the site's subset), brand logos (Simple Icons, src/lib/tech-logos.js) or TellMore's own mark

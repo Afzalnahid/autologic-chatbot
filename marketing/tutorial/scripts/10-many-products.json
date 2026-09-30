@@ -1,0 +1,41 @@
+{
+  "_": "Tutorial 10 — adding many products at once: from photos (each photo becomes a product; name all, price all, add), from a spreadsheet (CSV: choose, match columns, import), and from a link / WooCommerce / Shopify (told). Studio: shell-inventory; the photos and the CSV are samples in media/, handed to the file inputs. Facts: PhotoBatch.js, the import sheets in Inventory.js (2026-09-30).",
+  "id": "10-many-products",
+  "title": { "bn": "একসাথে অনেক প্রোডাক্ট যোগ", "en": "Adding many products at once" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "box", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "একসাথে অনেক প্রোডাক্ট", "en": "Many products at once" },
+      "sub": { "bn": "ছবি থেকে · এক্সেল থেকে · অন্য সাইট থেকে", "en": "From photos · a spreadsheet · another site" },
+      "bn": "প্রোডাক্ট অনেক হলে একটা একটা করে যোগ করার দরকার নেই। ছবি থেকে, এক্সেল শিট থেকে, বা অন্য ওয়েবসাইট থেকে একসাথে আনা যায়।",
+      "en": "Got lots of products? No need to add them one by one. Bring them in all at once, from photos, a spreadsheet or another website." },
+    { "id": "02", "step": { "bn": "ছবি থেকে", "en": "From photos" },
+      "bn": "Add products চেপে Add many products from photos বেছে নিন। একসাথে নব্বইটা পর্যন্ত ছবি দেওয়া যায়, প্রতিটা ছবি একটা করে প্রোডাক্ট হবে।",
+      "en": "Tap Add products and choose Add many products from photos. You can add up to ninety photos at once; each becomes a product.",
+      "do": [["open", "/shots?tab=shell-inventory"], ["wait", 1.0], ["move", "text=Add products"], ["click"], ["wait", 0.6], ["move", "has=Add many products from photos"], ["click"], ["wait", 1.0], ["file", "[aria-label='Add many products from photos'] input[type=file]", "media/orange-jacket.jpg"], ["wait", 1.0]] },
+    { "id": "03", "step": { "bn": "এআই ছবি পড়ে", "en": "The AI reads them" },
+      "bn": "এআই প্রতিটা ছবি দেখে, একই প্রোডাক্টের কয়েকটা ছবি থাকলে এক জায়গায় রাখে। তারপর নাম আর দাম একসাথে সবগুলোতে বসিয়ে দিতে পারেন, আর Add চাপলেই সব যোগ।",
+      "en": "The AI looks at each photo and groups pictures of the same product. Then set the name and price for all of them at once, and tap Add to bring them all in.",
+      "do": [["note", "has=Fill them all at once", { "bn": "সবগুলোতে একসাথে", "en": "All at once" }], ["wait", 1.6]] },
+    { "id": "04", "step": { "bn": "এক্সেল থেকে", "en": "From a spreadsheet" },
+      "bn": "প্রোডাক্টের তালিকা এক্সেল বা গুগল শিটে থাকলে CSV হিসেবে সেভ করে From a spreadsheet দিয়ে আনুন।",
+      "en": "If your products are in Excel or Google Sheets, save them as CSV and bring them in with From a spreadsheet.",
+      "do": [["key", "Escape"], ["open", "/shots?tab=shell-inventory"], ["wait", 1.0], ["move", "text=Add products"], ["click"], ["wait", 0.6], ["move", "has=From a spreadsheet"], ["click"], ["wait", 1.0], ["file", "input[type=file][accept*='csv']", "media/products.csv"], ["wait", 1.2]] },
+    { "id": "05", "step": { "bn": "কলাম মেলান", "en": "Match the columns" },
+      "bn": "শিটের কোন কলামে নাম, কোনটায় দাম, কোনটায় ক্যাটাগরি, সেটা মিলিয়ে দিন। বেশিরভাগ সময় নিজে থেকেই মিলে যায়। তারপর Import চাপুন।",
+      "en": "Match your sheet's columns to name, price and category. Most of the time they match on their own. Then tap Import.",
+      "do": [["note", "has=Import", { "bn": "মিলিয়ে ইমপোর্ট", "en": "Match, then import" }], ["wait", 1.6]] },
+    { "id": "06", "scene": "points", "step": { "bn": "অন্য সাইট থেকে", "en": "From another site" },
+      "title": { "bn": "অন্য জায়গা থেকে আনুন", "en": "Bring them from elsewhere" },
+      "points": [
+        { "icon": "external-link", "bn": "প্রোডাক্ট লিংক দিলে তথ্য নিয়ে আসে", "en": "Paste a product link and it fetches it" },
+        { "icon": "shopping-bag", "bn": "WooCommerce দোকান পুরোটা", "en": "Your whole WooCommerce shop" },
+        { "icon": "shopping-cart", "bn": "Shopify দোকান পুরোটা", "en": "Your whole Shopify shop" }
+      ],
+      "bn": "অন্য ওয়েবসাইটে প্রোডাক্ট থাকলে তার লিংক দিলেই তথ্য নিয়ে আসে। আর WooCommerce বা Shopify দোকান থাকলে পুরো দোকানের প্রোডাক্ট একবারে আনা যায়।",
+      "en": "If a product is on another website, paste its link and the details come over. And with a WooCommerce or Shopify shop, you can bring the whole catalogue across at once." },
+    { "id": "07", "step": { "bn": "পরের ধাপ", "en": "Next" }, "zoom": 1,
+      "bn": "আরও সহজ উপায় চান? পরের ভিডিওতে AI Assistant, যেখানে শুধু লিখে বললেই কাজ হয়ে যায়।",
+      "en": "Want it even simpler? Next: the AI Assistant, where you just say what you want.",
+      "do": [["open", "/shots?tab=shell-inventory"], ["wait", 2.0]] }
+  ]
+}

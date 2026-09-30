@@ -32,7 +32,7 @@ fs.mkdirSync(OUT, { recursive: true });
 // ---- Chrome over the DevTools protocol (no library: Chrome is already here) ----
 const CHROME = ["C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"].find((p) => fs.existsSync(p));
-const PORT = 9333;
+const PORT = Number(process.env.CDP_PORT) || 9333;   // another port lets a test run beside a build
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "tut-"));
 const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, "--hide-scrollbars",
   "--no-first-run", "--no-default-browser-check", "--force-color-profile=srgb", "--lang=en-US", "about:blank"], { stdio: "ignore" });
@@ -141,7 +141,12 @@ for (const line of SCRIPT.lines) {
     } else if (op === "click" || op === "tap") {
       events.push({ t: clock, type: "click", ...pointer });
       if (op === "click") {
-        for (const type of ["mousePressed", "mouseReleased"]) await cdp("Input.dispatchMouseEvent", { type, x: pointer.x, y: pointer.y, button: "left", clickCount: 1 });
+        // a phone gets a real tap (a mouse click on an emulated touch screen did
+        // not open a Channels row), a desktop a real click
+        if (DEV.mobile) {
+          await cdp("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: pointer.x, y: pointer.y }] });
+          await cdp("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        } else for (const type of ["mousePressed", "mouseReleased"]) await cdp("Input.dispatchMouseEvent", { type, x: pointer.x, y: pointer.y, button: "left", clickCount: 1 });
         await settle(300); guard();
       }
       await shot(); clock += 0.35;
@@ -170,6 +175,14 @@ for (const line of SCRIPT.lines) {
       await settle(400);
       events.push({ t: clock, type: "cut" });
       await shot(); clock += 0.5;
+    } else if (op === "file") {
+      // hand a picture to a file input the way the phone's picker would
+      // (never a real click: that opens the OS dialog). arg2 is under marketing/tutorial.
+      const { root } = await cdp("DOM.getDocument", { depth: -1 });
+      const { nodeId } = await cdp("DOM.querySelector", { nodeId: root.nodeId, selector: arg });
+      if (!nodeId) throw new Error(`line ${line.id}: no file input ${arg}`);
+      await cdp("DOM.setFileInputFiles", { nodeId, files: [path.resolve(here, arg2)] });
+      await settle(1500); guard(); await shot(); clock += 1.0;
     } else if (op === "key") {
       for (const type of ["keyDown", "keyUp"]) await cdp("Input.dispatchKeyEvent", { type, key: arg, code: arg, windowsVirtualKeyCode: arg === "Enter" ? 13 : arg === "Escape" ? 27 : 0 });
       await settle(400); guard(); await shot(); clock += 0.3;

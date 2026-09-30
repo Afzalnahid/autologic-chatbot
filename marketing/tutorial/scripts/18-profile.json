@@ -1,0 +1,32 @@
+{
+  "_": "Tutorial 18 — Profile: phone notifications, business details (edit), logo, account, your package. Studio: shell-profile; Logout is never pressed. Facts: Profile.js, PushToggle.js (2026-09-30).",
+  "id": "18-profile",
+  "title": { "bn": "Profile ও নোটিফিকেশন", "en": "Profile & notifications" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "user", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "Profile", "en": "Profile" },
+      "sub": { "bn": "ব্যবসার তথ্য · লোগো · নোটিফিকেশন · প্যাকেজ", "en": "Business details · logo · notifications · package" },
+      "bn": "Profile-এ আপনার ব্যবসার তথ্য, লোগো, ফোনের নোটিফিকেশন আর প্যাকেজের খবর, সব এক জায়গায়।",
+      "en": "Profile keeps your business details, logo, phone notifications and package in one place." },
+    { "id": "02", "step": { "bn": "নোটিফিকেশন", "en": "Notifications" },
+      "bn": "Notifications চালু করলে নতুন অর্ডার, কেউ আপনাকে চাইলে, বা কোনো সমস্যা হলে সাথে সাথে এই ফোনে বা কম্পিউটারে নোটিফিকেশন আসবে। প্রতিটা ডিভাইসে একবার চালু করতে হয়।",
+      "en": "Turn Notifications on and you're alerted instantly on this phone or computer: new orders, someone asking for you, or a problem. Switch it on once on each device.",
+      "do": [["open", "/shots?tab=shell-profile"], ["wait", 1.0], ["note", "has=Notifications", { "bn": "প্রতিটা ডিভাইসে একবার", "en": "Once per device" }], ["wait", 1.4]] },
+    { "id": "03", "step": { "bn": "ব্যবসার তথ্য", "en": "Business details" },
+      "bn": "ব্যবসার নাম, ফোন, ঠিকানা বা ওয়েবসাইট বদলাতে পেন্সিল আইকনে চাপুন, বদলে Save changes দিন। বট এই তথ্যই কাস্টমারকে বলে।",
+      "en": "To change your business name, phone, address or website, tap the pencil, edit, and tap Save changes. The bot tells customers exactly this.",
+      "do": [["move", "i.ti-pencil"], ["click"], ["wait", 0.8], ["note", "text=Save changes", { "bn": "বদলে সেভ", "en": "Edit, then save" }], ["wait", 1.2], ["move", "text=Cancel"], ["click"], ["wait", 0.4]] },
+    { "id": "04", "step": { "bn": "লোগো", "en": "Logo" },
+      "bn": "চাইলে ব্যবসার লোগোও দিতে পারেন, Upload চেপে।",
+      "en": "You can add your business logo too, with Upload.",
+      "do": [["note", "has=Business logo", { "bn": "আপনার লোগো", "en": "Your logo" }], ["wait", 1.2]] },
+    { "id": "05", "step": { "bn": "প্যাকেজ", "en": "Your package" },
+      "bn": "নিচে আপনার প্যাকেজ: কোনটা চলছে, কতদিন বাকি, আর কতটুকু ব্যবহার হলো। প্যাকেজ বদলাতে Manage চাপলে Billing খুলবে।",
+      "en": "Below is your package: which one, how long it has left, and how much you've used. Tap Manage to change it in Billing.",
+      "do": [["scroll", "has=Your package"], ["note", "has=Your package", { "bn": "চলতি প্যাকেজ", "en": "Your current package" }], ["wait", 1.6]] },
+    { "id": "06", "step": { "bn": "পরের ধাপ", "en": "Next" }, "zoom": 1,
+      "bn": "শেষ ভিডিওতে AI Engine: চাইলে কীভাবে নিজের এআই কী দিয়ে বট চালাবেন।",
+      "en": "Last video: the AI Engine, and how to run your bot on your own AI key if you want to.",
+      "do": [["wait", 2.5]] }
+  ]
+}

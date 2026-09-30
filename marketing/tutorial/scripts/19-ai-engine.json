@@ -1,0 +1,43 @@
+{
+  "_": "Tutorial 19 — AI Engine: TellMore's own AI by default; optionally the owner's own Google AI Studio or OpenAI key (lower own-key price), verified before saving; if the key fails the bot pauses and never falls back. Studio: shell-ai; no key is typed on screen. Facts: AIEngine.js, lib/ai-providers.js, plans.js own-key prices, CLAUDE.md invariants (2026-09-30).",
+  "id": "19-ai-engine",
+  "title": { "bn": "AI Engine: নিজের এআই কী", "en": "AI Engine: using your own AI key" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "cpu", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "AI Engine", "en": "AI Engine" },
+      "sub": { "bn": "বটের মস্তিষ্ক কোন এআই", "en": "Which AI is your bot's brain" },
+      "bn": "AI Engine বলে আপনার বটের উত্তর কোন এআই লিখছে। সাধারণত টেলমোর এআই নিজের এআই দিয়েই সব চালায়, আপনাকে কিছুই করতে হয় না।",
+      "en": "AI Engine shows which AI writes your bot's answers. Normally TellMore AI runs it all on its own AI, and you don't need to do anything." },
+    { "id": "02", "scene": "points", "step": { "bn": "নিজের কী কেন", "en": "Why your own key" },
+      "title": { "bn": "নিজের এআই কী দিলে", "en": "With your own AI key" },
+      "points": [
+        { "icon": "credit-card", "bn": "প্যাকেজের দাম কম পড়ে", "en": "Your package costs less" },
+        { "icon": "cpu", "bn": "Google AI Studio বা OpenAI", "en": "Google AI Studio or OpenAI" },
+        { "icon": "lock", "bn": "কী সুরক্ষিতভাবে রাখা হয়, কেউ পুরোটা দেখে না", "en": "The key is stored safely; nobody sees it in full" }
+      ],
+      "bn": "চাইলে নিজের গুগল এআই স্টুডিও বা ওপেনএআই কী দিয়ে বট চালাতে পারেন। তখন এআই-এর খরচ আপনার, আর প্যাকেজের দাম কম পড়ে। এটা চালু করতে সাপোর্টকে জানালেই আমরা খুলে দেব।",
+      "en": "If you like, run the bot on your own Google AI Studio or OpenAI key. You then pay the AI costs yourself, and the package costs less. Just ask support and we'll switch it on for you." },
+    { "id": "03", "step": { "bn": "কী যোগ করা", "en": "Adding a key" },
+      "bn": "চালু হলে এখানে এআই কোম্পানি বেছে কী পেস্ট করুন, Check key চাপলে আমরা আগে যাচাই করি কী কাজ করে কিনা, তারপর ভালো মডেল বেছে দিই।",
+      "en": "Once it's on, choose the AI company here and paste your key. Check key tests that it works first, then picks good models for you.",
+      "do": [["open", "/shots?tab=shell-ai"], ["wait", 1.0], ["note", "has=Your own Gemini API key", { "bn": "আপনার কী", "en": "Your key" }], ["wait", 1.4]] },
+    { "id": "04", "step": { "bn": "মডেল", "en": "Models" },
+      "bn": "মূল মডেল সব উত্তর লেখে, আর ব্যাকআপ মডেল কাজে আসে মূলটা ব্যস্ত থাকলে। দুটোই আপনার নিজের কী দিয়েই চলে।",
+      "en": "The main model writes every answer; the fallback steps in when the main one is busy. Both run on your own key.",
+      "do": [["note", "has=Main model", { "bn": "মূল ও ব্যাকআপ", "en": "Main & fallback" }], ["wait", 1.6]] },
+    { "id": "05", "scene": "points", "step": { "bn": "জরুরি কথা", "en": "Important" },
+      "title": { "bn": "কী কাজ না করলে", "en": "If the key stops working" },
+      "points": [
+        { "icon": "clock", "bn": "বট সাময়িক থেমে যায়", "en": "The bot pauses" },
+        { "icon": "lock", "bn": "আমাদের এআই-তে চলে না, খরচ আলাদা থাকে", "en": "It never switches to our AI; costs stay separate" },
+        { "icon": "bell", "bn": "নতুন কী দিলেই আবার চালু", "en": "A new key brings it straight back" }
+      ],
+      "bn": "আপনার কী-এর লিমিট শেষ হলে বা কী বাতিল হলে বট সাময়িক থেমে যায়। আমাদের এআই দিয়ে চালানো হয় না, যাতে খরচ আলাদা থাকে। নতুন কী দিলেই আবার চালু।",
+      "en": "If your key runs out or is rejected, the bot pauses for a while. It isn't switched to our AI, so the costs stay separate. Add a working key and it's back." },
+    { "id": "06", "scene": "title", "icon": "rocket", "step": { "bn": "শেষ", "en": "The end" },
+      "title": { "bn": "আপনি এখন সব জানেন!", "en": "You know it all now!" },
+      "sub": { "bn": "প্রশ্ন থাকলে: tellmoreai.com", "en": "Questions? tellmoreai.com" },
+      "bn": "ব্যাস, টেলমোর এআই-এর সব কিছু দেখা হয়ে গেল। কোনো প্রশ্ন থাকলে আমাদের পেজে মেসেজ দিন, আমাদের বটই সাথে সাথে উত্তর দেবে।",
+      "en": "That's everything in TellMore AI. Any questions? Message our Page, and our own bot will answer right away." }
+  ]
+}

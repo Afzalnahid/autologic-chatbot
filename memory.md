@@ -88,6 +88,18 @@ actions finish before long voice lines (align action to voice end next). Owner t
 real account: told him I cannot create accounts or type passwords (even with his permission) - he signs up/confirms/
 signs in himself (screen-recording that part with Win+Alt+R), then I work his logged-in Chrome (profile, train bot,
 products, knowledge, test chat) and capture it. Waiting for him to sign in.
+**Tutorial SERIES (2026-09-30, later):** owner saw the samples: fix a scene not matching its voice and a place with
+"double voice" (cause: bn line 06's length was lost to an ffprobe flake and defaulted to 3 s, so lines 06/07 overlapped —
+lengths are now re-read and never guessed; overlapping voices stop the build), keep studio videos (live only if unsuitable), file
+by language then screen, and make the WHOLE series professional: every tab, every feature, the full system. Plan in
+marketing/tutorial/SERIES.md (00 how it works ... 19 AI Engine, 20 videos x 4 = 80 files). Pipeline: scripts/<id>.json, TUT=<id>,
+`node build.mjs <ids|all>` (capture desktop+phone → tts → check_voice.mjs transcribes every take with Gemini and redoes
+mismatches → render → mix → copy to Claude outputs/Tutorials/<Bangla|English>/<Desktop|Mobile>/NN - title.mp4). New:
+note/scroll/key/file/tap ops, has=/up=N: selectors, do_phone, scene lines (title/points/flow, Tabler subset + Simple Icons),
+sentence-by-sentence subtitles, touch taps on phone, render watchdog (3 min), CDP_PORT for side-by-side tests. Studio
+gained live packages, shell-<any tab>, SAMPLE_POST (broadcast preview/send, AI Assistant chat/apply), Bot Training sample
+in Settings.js's real shape. Batch 1 (00-04) building; scripts 05-19 written, 05-09 test-captured OK. TODO: re-render 00
+bn desktop+phone (built before the subtitle fix); test-capture 10-19; run build for 05-19; then commit + tell owner.
 **Meta developer app audit (2026-09-29, read-only):** "Tellmore AI" app ID 914246304594380, Live, Business type, business
 portfolio TellMore AI (1214039840198586). WhatsApp → Become Tech Provider page says "Congratulations! You are now a Tech
 Provider" (2 of 2 steps). WhatsApp Step 3 Business verification: Approved. Products: FB Login for Business, Webhooks,

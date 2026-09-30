@@ -1,0 +1,50 @@
+{
+  "_": "Tutorial 11 — the AI Assistant: running the dashboard by talking to it. Proposals are shown for review and nothing changes until Apply. Studio: shell-assistant, answering from SAMPLE_POST (/api/inventory-chat, /api/inventory-apply) the way the real model answers. Facts: InventoryAssistant.js, plans.js assistant limits (2026-09-30).",
+  "id": "11-ai-assistant",
+  "title": { "bn": "AI Assistant: কথা বলেই ড্যাশবোর্ড চালান", "en": "AI Assistant: run your dashboard by talking" },
+  "lines": [
+    { "id": "01", "scene": "title", "icon": "sparkles", "step": { "bn": "শুরু", "en": "Start" },
+      "title": { "bn": "AI Assistant", "en": "AI Assistant" },
+      "sub": { "bn": "লিখে বলুন কী চান, বাকিটা ও করবে", "en": "Say what you want; it does the rest" },
+      "bn": "ড্যাশবোর্ডের অনেক কাজ আর খুঁজে খুঁজে করতে হয় না। AI Assistant-কে শুধু লিখে বলুন কী চান: প্রোডাক্ট যোগ, দাম বদল, অফার, বা বটকে নতুন কিছু শেখানো।",
+      "en": "No more hunting through the dashboard. Just tell the AI Assistant what you want: add a product, change a price, set up an offer, or teach the bot something new." },
+    { "id": "02", "step": { "bn": "Assistant খুলুন", "en": "Open the Assistant" },
+      "bn": "মেনু থেকে AI Assistant খুলুন। শুরু করার জন্য কয়েকটা উদাহরণও দেওয়া থাকে, চাপলেই হয়।",
+      "en": "Open AI Assistant from the menu. A few examples are there to get you going; just tap one.",
+      "do": [["open", "/shots?tab=shell-assistant"], ["wait", 1.0], ["note", "has=Make an Eid offer", { "bn": "উদাহরণ থেকে শুরু", "en": "Start from an example" }], ["wait", 1.4]] },
+    { "id": "03", "step": { "bn": "একটা অফার", "en": "An offer" },
+      "bn": "ধরুন লিখলেন, ঈদের অফার বানাও, সবকিছুতে বিশ পার্সেন্ট ছাড়। Send চাপুন।",
+      "en": "Say you write: make an Eid offer, twenty percent off everything. Tap Send.",
+      "do": [["move", "input[aria-label='Message the assistant']"], ["click"], ["type", "Make an Eid offer — 20% off everything"], ["move", "button[aria-label='Send']"], ["click"], ["wait", 1.4]] },
+    { "id": "04", "step": { "bn": "দেখে নিন, তারপর Apply", "en": "Check, then Apply" },
+      "bn": "Assistant কোনো কিছু সরাসরি বদলায় না। আগে দেখায় কী বদলাবে, আপনি মিলিয়ে দেখে Apply চাপলে তবেই কাজ হয়। ভুল মনে হলে Discard।",
+      "en": "The Assistant never changes anything straight away. It shows you what will change first; only when you check it and tap Apply does it happen. Looks wrong? Discard.",
+      "do": [["note", "has=Proposed — nothing has changed yet", { "bn": "এখনো কিছু বদলায়নি", "en": "Nothing has changed yet" }], ["wait", 1.2], ["move", "has=Apply 1 change"], ["click"], ["wait", 1.2]] },
+    { "id": "05", "step": { "bn": "প্রশ্নও করা যায়", "en": "Ask it questions" },
+      "bn": "প্রশ্নও করতে পারেন, যেমন, কোন প্রোডাক্টের দাম নেই? Assistant আপনার ইনভেন্টরি দেখে সাথে সাথে উত্তর দেবে।",
+      "en": "You can ask questions too, like: which products have no price? It checks your inventory and answers straight away.",
+      "do": [["move", "input[aria-label='Message the assistant']"], ["click"], ["type", "Which products have no price?"], ["move", "button[aria-label='Send']"], ["click"], ["wait", 1.8]] },
+    { "id": "06", "scene": "points", "step": { "bn": "আর যা পারে", "en": "What else it can do" },
+      "title": { "bn": "আর যা যা বলতে পারেন", "en": "More you can ask for" },
+      "points": [
+        { "icon": "photo", "bn": "📎 দিয়ে ছবি দিন: নতুন প্রোডাক্ট", "en": "Attach a photo with 📎: a new product" },
+        { "icon": "pencil", "bn": "\"নেভি পাঞ্জাবির দাম ১৩৫০ করো\"", "en": "\"Make the navy panjabi 1,350\"" },
+        { "icon": "wand", "bn": "\"বটকে বলো শুক্রবার দোকান বন্ধ\"", "en": "\"Tell the bot we're closed on Fridays\"" },
+        { "icon": "list", "bn": "\"এক্সেল থেকে প্রোডাক্ট আনো\"", "en": "\"Import products from a spreadsheet\"" }
+      ],
+      "bn": "ক্লিপ চিহ্নে চেপে ছবি দিলে নতুন প্রোডাক্ট বানিয়ে দেয়, একটা একটা প্রশ্ন করে বাকি তথ্য নেয়। দাম বদলানো, বটকে নতুন কিছু শেখানো, এক্সেল থেকে প্রোডাক্ট আনা, সবই কথায় বলে করানো যায়।",
+      "en": "Attach a photo with the clip button and it builds a new product, asking you for the rest one question at a time. Changing prices, teaching the bot, importing from a spreadsheet: all of it by just asking." },
+    { "id": "07", "scene": "points", "step": { "bn": "প্যাকেজ", "en": "Packages" },
+      "title": { "bn": "কতবার ব্যবহার করা যায়", "en": "How much you can use it" },
+      "points": [
+        { "icon": "rocket", "bn": "ফ্রি ট্রায়াল: ৩০টা প্রশ্ন", "en": "Free trial: 30 questions" },
+        { "icon": "package", "bn": "Basic: মাসে ১০০ · Pro: ৪০০ · Enterprise: ৮০০", "en": "Basic: 100 a month · Pro: 400 · Enterprise: 800" }
+      ],
+      "bn": "Assistant-এর প্রশ্ন প্যাকেজ অনুযায়ী: ফ্রি ট্রায়ালে ত্রিশটা, আর Basic-এ মাসে একশো, Pro-তে চারশো, Enterprise-এ আটশো।",
+      "en": "Assistant questions follow your package: thirty on the free trial, then a hundred a month on Basic, four hundred on Pro and eight hundred on Enterprise." },
+    { "id": "08", "step": { "bn": "পরের ধাপ", "en": "Next" }, "zoom": 1,
+      "bn": "পরের ভিডিওতে Bot Training, যেখানে বটের কথাবার্তা, অফার আর দরদামের নিয়ম ঠিক করা যায়।",
+      "en": "Next: Bot Training, where you set how the bot talks, its offers and how it bargains.",
+      "do": [["wait", 2.5]] }
+  ]
+}
