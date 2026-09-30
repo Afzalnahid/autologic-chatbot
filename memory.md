@@ -122,8 +122,10 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
   - NO button-like graphics anywhere: plain text only. Free trial may be SAID/written.
 - Promo trio rebuilt: out/tellmore-promo-S-V-trio.mp4 (54.2 s, -14.4 LUFS), owner confirmed. Upload copy
   marketing/upload/tellmore-promo-trio-autolinium-v3.mp4 (7.5 MB).
-- NOT YET SCHEDULED: typing the caption in Business Suite was blocked by the permission classifier (external write).
-  The Oct 2 v2 reels (IG 1 PM, FB 9 PM) are still scheduled. Waiting on the owner (see chat).
+- SCHEDULED (owner asked in chat): v3 reels Fri Oct 2, FB 9 PM (cover set to the 'kintu reply dibe ke?' frame via
+  Edit reel → Choose frame, slider 134/1000) and IG 1 PM (IG's edit has no cover option, so its cover is Meta's
+  pick). Same caption as before. The v2 reels were moved to Drafts. The Scheduled list still shows them as "Failed to
+  publish", which is Meta's display of a pulled post. The owner deletes the drafts himself (I never delete).
 - Tutorials:
   - step label is plain text now;
   - notes on the right half hang from the box's right edge (the phone overlap fix);
