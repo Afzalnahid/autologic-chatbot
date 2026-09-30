@@ -1,7 +1,8 @@
 // The three-voice cut (owner, 2026-09-29: "one video where you use 3 voices
 // together"): three friends talking. Fenrir, the loud one, raises the problem and
 // asks; Sadachbia, the lively one, jumps in; Puck, the upbeat one, has the answer.
-// "টেলমোর এআই" (line 10) is said by all three at once.
+// "টেলমোর এআই" (line 10) is said by all three at once. Lines 20 and 21 are one sentence,
+// so one voice says both (owner, 2026-10-01).
 // Takes the polished lines from vo-puck/, vo-fenrir/, vo-sadachbia/ (polish_promo.py --voice).
 //   node make_trio.mjs   → video/public/promo/vo-trio/NN.wav + durations.json, then node timeline.mjs trio
 import fs from "node:fs";
@@ -16,7 +17,7 @@ const WHO = {
   "01": "fenrir", "02": "fenrir", "03": "sadachbia", "04": "sadachbia", "05": "fenrir", "06": "sadachbia",
   "07": "fenrir", "08": "fenrir", "09": "puck", "10": "all", "11": "puck", "12": "sadachbia",
   "13": "sadachbia", "14": "puck", "15": "sadachbia", "16": "puck", "23": "fenrir", "24": "sadachbia",
-  "17": "fenrir", "18": "puck", "19": "puck", "25": "fenrir", "20": "sadachbia", "21": "puck", "22": "puck",
+  "17": "fenrir", "18": "puck", "19": "puck", "25": "fenrir", "20": "puck", "21": "puck", "22": "puck",
 };
 const VOICES = ["puck", "fenrir", "sadachbia"];
 const run = (bin, args) => { for (let a = 0; ; a++) { try { return execFileSync(bin, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }); } catch (e) { if (a >= 3) throw e; } } };

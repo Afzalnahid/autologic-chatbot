@@ -139,7 +139,9 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
   Do this BEFORE Oct 2 1 PM.
 - 2026-10-01 update:
   - v4 was built (line 20 "আর বিশ্বাস না হইলে?") and sent. Owner: it is NOT a question. Line 20 is now
-    "আর বিশ্বাস না হইলে,", and line 21 is "আজই ফ্রি চালায় দেখেন। এক টাকাও লাগবে না।".
+    "আর বিশ্বাস না হইলে,", and line 21 is "আজই ফ্রি চালায় দেখেন। এক টাকাও লাগবে না।". Both lines are in PUCK's voice,
+    because they are one sentence. All three voices (Fenrir, Puck, Sadachbia) are MALE: never call one of them a
+    woman's voice.
   - Owner also: the voice was quieter there (line 20 measured -22 LUFS). make_trio.mjs now levels every line to
     -16 LUFS.
   - The TTS quota was out again, so a background job at 05:45 voices 20 + 21, levels them and rebuilds →
