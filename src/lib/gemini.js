@@ -40,13 +40,23 @@ const PRIMARY_MODEL = MODEL_CHAIN[0];
 const isModelUnavailable = (e) =>
   /\b404\b|\b429\b|\b503\b|not found|no longer available|quota|overload|unavailable/i.test(String(e?.message || ""));
 
-async function onChain(run) {
+// opts.onUnavailable(model, error, { last, what }) hears about every model that
+// was skipped — src/lib/ai.js passes one for the PLATFORM key only, so the
+// owner is warned when a model reaches its daily limit (src/lib/ai-alerts.js).
+// `last` means no model was left: the call itself failed.
+function unavailable(opts, id, e, last, what) {
+  try { opts?.onUnavailable?.(id, e, { last, what }); } catch { /* a warning never breaks a reply */ }
+}
+
+async function onChain(run, opts, what) {
   let last;
-  for (const id of MODEL_CHAIN) {
+  for (let i = 0; i < MODEL_CHAIN.length; i++) {
+    const id = MODEL_CHAIN[i];
     try { return await run(id); }
     catch (e) {
       last = e;
       if (!isModelUnavailable(e)) throw e;
+      unavailable(opts, id, e, i === MODEL_CHAIN.length - 1, what);
       console.warn(`[gemini] model ${id} unavailable, trying next:`, String(e.message || "").slice(0, 160));
     }
   }
@@ -107,9 +117,9 @@ export async function chatWithGemini(systemPrompt, messages, model, opts = {}) {
   const picks = (Array.isArray(model) ? model : String(model || "").split(","))
     .map(s => String(s).trim()).filter(Boolean);
   for (const id of picks) {
-    try { return await run(id); } catch (e) { if (!isModelUnavailable(e)) throw e; }
+    try { return await run(id); } catch (e) { if (!isModelUnavailable(e)) throw e; unavailable(opts, id, e, false, "a reply"); }
   }
-  return onChain(run);
+  return onChain(run, opts, "a reply");
 }
 
 // The chat-capable Gemini models THIS key can actually use, read live from
@@ -172,7 +182,7 @@ export async function analyzeImageBase64(base64, mimeType, prompt, opts = {}) {
     ]));
     report(opts, "vision", id, result.response);
     return result.response.text();
-  });
+  }, opts, "reading a photo");
 }
 
 // Product photo matching. This ran on the retired lite model, so every customer
@@ -205,10 +215,18 @@ export async function generateEmbedding(text, opts = {}) {
   // now comes from the admin panel when one is saved there, and from the
   // environment variable otherwise.
   const model = getGenAI(opts.apiKey || await platformKey()).getGenerativeModel({ model: "gemini-embedding-001" });
-  const result = await withRetry(() => model.embedContent({
-    content: { parts: [{ text }] },
-    outputDimensionality: 768,
-  }));
+  let result;
+  try {
+    result = await withRetry(() => model.embedContent({
+      content: { parts: [{ text }] },
+      outputDimensionality: 768,
+    }));
+  } catch (e) {
+    // One embedding model, no second to try: out of quota here means product
+    // and document search stop until it resets, so the owner hears of it.
+    if (isModelUnavailable(e)) unavailable(opts, "gemini-embedding-001", e, true, "product and document search");
+    throw e;
+  }
   // The embed endpoint returns no usageMetadata, so the token count is estimated
   // from the text at the usual ~4 characters per token. Embeddings always run on
   // the PLATFORM key (CLAUDE.md invariant), so this is always our cost — which is
@@ -246,7 +264,7 @@ Return ONLY the JSON array, no markdown or explanation.`;
     // characters of HTML in the prompt), so it is metered like any other.
     report(opts, "scrape", id, result.response);
     return result.response.text().replace(/```json|```/g, "").trim();
-  });
+  }, opts, "a product import");
   return JSON.parse(text);
 }
 
@@ -288,7 +306,7 @@ async function transcribeParts(base64, mimeType, opts = {}) {
     ]));
     report(opts, "voice", id, result.response);
     return (result.response.text() || "").replace(/^["'`\s]+|["'`\s]+$/g, "").trim();
-  });
+  }, opts, "a voice note");
 }
 
 export async function transcribeAudioBase64(base64, mimeType = "audio/webm", opts = {}) {

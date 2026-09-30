@@ -35,6 +35,16 @@ fails if a kind has no call site anywhere in `src/`, so this cannot drift again
 | `admin_signup` | warn | yes | **yes** | `api/admin` — somebody asked for admin access |
 | `provider_switched` | warn | yes | no | `api/admin/ai` — Gemini ↔ OpenAI |
 | `client_deleted` | warn | no | no | `api/admin` — a business was deleted |
+| `ai_quota` | warn | yes | no | `lib/ai-alerts.js` (from `lib/gemini.js`) — a model on the **platform** key reached its daily limit; the chain moved on, the bot still answers |
+| `ai_down` | urgent | yes | **yes** | `lib/ai-alerts.js` — every model failed: customers get no answers (or search stopped, for the embedding model) |
+| `ai_busy` | info | yes | no | `api/cron/ai-usage` — today's calls on one model passed `AI_DAILY_WARN_CALLS` |
+
+The three `ai_*` kinds (2026-09-30, owner: "if the api has a limit … the api
+stop working in the product") watch the platform's OWN key only; a client on
+their own key already has `key_failing`. `ai_busy` is checked every half hour
+by the follow-ups workflow (`.github/workflows/followups.yml`), counting
+`usage_daily`. Set `AI_DAILY_WARN_CALLS` to about 80% of the lowest daily limit
+shown in Google AI Studio → Rate limits (default 5000 is only a first guess).
 
 Two of them are deliberately **not** pushed. `trial_started` is good news that
 can be read later, and `client_deleted` is something an admin just did on
@@ -54,7 +64,8 @@ and somebody asking for the keys. Severity decides the colour, nothing else.
 
 `shouldLog(kind, lastAt, now)` refuses a repeat inside a quiet period:
 `server_error` ten minutes, `bot_blocked` / `key_failing` / `channel_expired`
-one hour. A route that starts failing fails a lot, and a bell that rings a
+/ `ai_down` one hour, `ai_quota` six hours (a limit lasts until Google's day
+ends), `ai_busy` twenty hours (once a day). A route that starts failing fails a lot, and a bell that rings a
 thousand times is a bell you switch off. Sign-ups and payments are **never**
 suppressed — each one matters on its own.
 

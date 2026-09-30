@@ -51,6 +51,13 @@ export const EVENTS = {
   server_error:     { severity: "urgent", push: true,  email: false, icon: "🔥", label: "A server error" },
   admin_signup:     { severity: "warn",   push: true,  email: true,  icon: "🛡️", label: "Someone asked for admin access" },
   provider_switched:{ severity: "warn",   push: true,  email: false, icon: "🔀", label: "The platform's AI provider changed" },
+  // The platform's own AI key and its daily limits (src/lib/ai-alerts.js).
+  // One model out is survivable (the chain moves on) — a warning; every model
+  // out means customers get no answers — urgent, and by email as well; a busy
+  // day is only worth knowing.
+  ai_quota:         { severity: "warn",   push: true,  email: false, icon: "⚡", label: "An AI model reached its daily limit" },
+  ai_down:          { severity: "urgent", push: true,  email: true,  icon: "🚨", label: "The bot's AI stopped answering" },
+  ai_busy:          { severity: "info",   push: true,  email: false, icon: "📈", label: "AI use is high today" },
   client_deleted:   { severity: "warn",   push: false, email: false, icon: "🗑️", label: "A business was deleted" },
 };
 
@@ -88,7 +95,9 @@ export function unreadCount(rows, readIds) {
 // Repeats of the same thing inside this window collapse into one row. A route
 // that starts failing fails a lot, and the point of the bell is that it stays
 // worth looking at.
-const QUIET_MS = { server_error: 10 * 60 * 1000, bot_blocked: 60 * 60 * 1000, key_failing: 60 * 60 * 1000, channel_expired: 60 * 60 * 1000 };
+const QUIET_MS = { server_error: 10 * 60 * 1000, bot_blocked: 60 * 60 * 1000, key_failing: 60 * 60 * 1000, channel_expired: 60 * 60 * 1000,
+  // a limit lasts until Google's day ends: once every few hours is plenty
+  ai_quota: 6 * 60 * 60 * 1000, ai_down: 60 * 60 * 1000, ai_busy: 20 * 60 * 60 * 1000 };
 
 /** Should this be written, given when the same thing was last written? */
 export function shouldLog(kind, lastAt, now = Date.now()) {

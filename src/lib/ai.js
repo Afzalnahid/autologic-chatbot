@@ -32,6 +32,7 @@ import { notify } from "@/lib/push.js";
 import { recordUsage, geminiTokens } from "@/lib/usage.js";
 import { limitsFor } from "@/lib/plan-limits.js";
 import { getPlatformAI } from "@/lib/platform-ai.js";
+import { reportPlatformAIFailure } from "@/lib/ai-alerts.js";
 import {
   chatWithGemini, analyzeImage, analyzeImageBase64,
   transcribeAudio, transcribeAudioBase64, generateEmbedding,
@@ -179,7 +180,10 @@ function build(clientId, cfg, platformChain, platformApiKey, feature, pageId = "
   const pId = normaliseProvider(platformProviderId) || DEFAULT_PROVIDER;
   const pMod = moduleFor(pId);
   // Platform calls carry the admin-set key (when there is one) alongside the meter.
-  const pm = { ...meter(pId, false, pMod.tokens), ...(platformApiKey ? { apiKey: platformApiKey } : {}) };
+  // …and a listener for models that were skipped, so the owner is warned when
+  // the PLATFORM key reaches a daily limit (src/lib/ai-alerts.js). Only here:
+  // a client's own key has its own alerts (markFailing below).
+  const pm = { ...meter(pId, false, pMod.tokens), ...(platformApiKey ? { apiKey: platformApiKey } : {}), onUnavailable: reportPlatformAIFailure };
 
   const platform = {
     provider: "platform",
@@ -268,6 +272,7 @@ export async function platformChat(clientId, feature) {
   const mod = moduleFor(id);
   const opts = {
     ...(pai.apiKey ? { apiKey: pai.apiKey } : {}),
+    onUnavailable: reportPlatformAIFailure,
     onUsage: (kind, model, response) => {
       const t = mod.tokens(response);
       recordUsage({ clientId, kind, feature, provider: id, model, ownKey: false,

@@ -45,3 +45,14 @@ jobs:
             exit 1
           fi
           test "$code" = "200"
+      # The same half-hourly tick counts today's calls on the platform's AI key
+      # and warns the owner when a model is busy (src/app/api/cron/ai-usage).
+      # Its own step, so a problem there never stops the follow-ups above.
+      - name: Check today's AI use
+        if: always()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          code=$(curl -sS -o usage.json -w "%{http_code}" -H "Authorization: Bearer $CRON_SECRET" --max-time 60 https://www.tellmoreai.com/api/cron/ai-usage)
+          cat usage.json; echo
+          test "$code" = "200"
