@@ -4,7 +4,7 @@
 //   node build.mjs 02-first-setup            → one tutorial, all four versions
 //   node build.mjs 02-first-setup 03-channels
 //   node build.mjs all                       → every script in scripts/
-//   flags: --no-capture  --no-voice  --only=desktop-bn,phone-en
+//   flags: --no-capture  --no-voice  --capture-only  --only=desktop-bn,phone-en
 //
 // Steps per tutorial: capture (desktop, phone) → voice (bn, en) → listen to every
 // take and redo the ones that do not match the script (twice at most) →
@@ -49,6 +49,7 @@ function buildOne(id) {
   const env = { TUT: id };
   console.log(`\n=== ${id} — ${s.title.en}`);
   if (!flag("--no-capture")) for (const d of ["desktop", "phone"]) console.log(" ", run("capture.mjs", [d], env).trim().split("\n").pop());
+  if (flag("--capture-only")) return;   // e.g. while the voice quota is used up
   if (!flag("--no-voice")) {
     for (const l of ["bn", "en"]) {
       run("tts.mjs", [l], env);
