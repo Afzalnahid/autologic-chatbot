@@ -4,6 +4,14 @@ Update the top two sections after every session.
 
 ---
 
+## 2026-10-01 — t-notify made line-ending independent
+
+`tests/t-notify.mjs` failed on CRLF checkouts (core.autocrlf=true): its `"\n}\n"` cut
+missed and the body spilled into the rest of bot.js. `read()` now normalises `\r\n`.
+Every other `tests/*.mjs` was checked — none depends on a literal `"\n"` marker in a
+source file. `npm test`: 82/82 (a fresh worktree has no node_modules, so t-dupkeys
+needs the main checkout's; linked with a temporary junction, removed after).
+
 ## 2026-09-28 — Promo ad in the style of the owner's reference (rendered, awaiting owner feedback)
 
 Owner sent a Bangla sales-ad reference (big kinetic words, cut-out people, chat proof,

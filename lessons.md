@@ -1192,6 +1192,13 @@ once as a grep that found nothing where the edit was supposed to be.
   grep for the new text afterwards — do not trust the exit code.
 - Single-line replaces are fine, and single-line is worth preferring for that reason.
 
+**Same trap in a test (2026-10-01):** `t-notify` cut `notifyIncomingMessage` out of
+`bot.js` with `indexOf("\n}\n")`. On a CRLF checkout that marker never matched, so the
+"function body" became the rest of the file and a check failed for text that was not in
+the function at all. A source-reading test must normalise first:
+`readFileSync(...).replace(/\r\n/g, "\n")`. (`$` and `^` with the `m` flag already
+treat `\r` as a line end in JavaScript; literal `"\n"` markers do not.)
+
 ## Bash heredocs here mangle backslashes (2026-09-06)
 
 Writing a patch script with `python - <<'PYEOF'` (quoted, so nothing should expand),
