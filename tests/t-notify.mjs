@@ -14,7 +14,9 @@ import { readFileSync } from "node:fs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-const read = (...p) => readFileSync(join(root, ...p), "utf8");
+// Line endings normalised: with core.autocrlf the checkout is CRLF, and the
+// "\n}\n" that ends notifyIncomingMessage below would never match.
+const read = (...p) => readFileSync(join(root, ...p), "utf8").replace(/\r\n/g, "\n");
 const bot = read("src", "lib", "bot.js");
 const widget = read("src", "app", "api", "widget", "chat", "route.js");
 
