@@ -1758,3 +1758,17 @@ Rule: a watchdog must live OUTSIDE the thing it watches — build.mjs now kills
 any step after 30 minutes. Check a long background job's log before saying it
 is running. Measure every voice line's loudness (make_trio.mjs levels them to
 -16 LUFS) instead of trusting the final -14 LUFS of the whole mix.
+
+## 2026-10-02 — the manual promised what the code did not do
+Three behaviours were written into the customer manual and never true:
+- a paused channel's messages "wait for you" (they were dropped, because every
+  lookup asked for status "connected");
+- a switched-off widget "disappears" (the script never checked);
+- revenue counts "Delivered only" (Analytics added every order, and Overview
+  used a third rule).
+
+Nobody noticed, because nothing tied the sentence to the code.
+Rule: when the manual states a behaviour, pin it with a test, or check the
+code before writing the sentence. One rule lives in ONE place, the way
+`RECEIVING` in lib/channels.js and `countsAsSale` in lib/order-status.js now
+are, never as a literal copied into each screen.
