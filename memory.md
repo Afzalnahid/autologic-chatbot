@@ -155,6 +155,21 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
     dibe ke?' set via Edit reel) and IG Oct 2 1 PM (cover set in the composer, which now has Choose frame; slider
     128/1000). v3 FB (video_id 3879895638825801) + v3 IG were moved to Drafts. Drafts now hold v2 + v3 (4 reels) for
     the owner to delete.
+**2026-10-02 fixes (owner asked: fix the 4 issues found while planning the team-inbox feature):**
+- dbfbd2e: a paused channel keeps receiving. `RECEIVING` lives in lib/channels.js, and botAllowed treats paused as
+  silent; this covers the webhook, the widget, send-message/media and hand back.
+- 757d4fe: the owner can answer a website visitor by hand. `GET /api/widget/chat` polls; widget.js polls every 5 s
+  open and 30 s closed, only after the visitor has written. The mic is hidden in website chats.
+- e990223: revenue = every order except Cancelled/Returned (`countsAsSale`, lib/order-status.js), owner's choice,
+  on Overview and Analytics alike; the manual is fixed in en and bn.
+- fb56a63: docs/database.md orders + contacts sections now match the live schema.
+- All READY on Vercel; tests 85/85.
+- NOTE: worktree stoic-hypatia holds the owner-started session's OWN paused fix (afa0e60, unmerged,
+  `channel-status.js`). It is superseded by dbfbd2e; do not merge it.
+- Not verified end to end (needs the owner's login): a live paused Page message, and a website hand reply.
+- Found: `contacts.broadcast_opt_out` has no setter, so a customer cannot opt out of broadcasts.
+- PENDING: team-inbox / sales-team feature plan sent to the owner; waiting on his 5 decisions (login per moderator,
+  visibility, assignment, time metric, pricing/seats).
   - Tutorials now in the new design: 00, 01, 02, 05 (all 4 versions). A render froze 21:49→06:30 (now killed after
     30 min by build.mjs). The 07:10 batch of the other 16 failed: TTS quota (gemini-3.8-flash-tts, 100/day,
     resets ~06:00 BD) was already used up. Nothing on this PC made voices then. Asked the owner whether the key is

@@ -55,9 +55,13 @@ channels (batching, typing, Graph send); `/api/widget/chat` calls it directly an
 returns the items to the browser. Every channel therefore shares one engine.
 
 **Pause / hand-off.** A conversation's bot can be switched off (`contacts.bot_enabled`,
-the chat's "Live" toggle) or a whole channel (`channels.bot_enabled`). While off, an
-incoming message is still saved (`status: "Pending"`) and the owner is still notified,
-but no reply is generated. A human reply — from the dashboard box (`/api/send-message`)
+the chat's "Live" toggle), every channel at once (`channels.bot_enabled`, the Inbox's
+Bot ON/OFF), or one channel from the Channels tab (`channels.status = "paused"`). While
+off, an incoming message is still saved (`status: "Pending"`) and the owner is still
+notified, but no reply is generated. A paused channel still RECEIVES: every lookup
+that takes a message in or sends the owner's reply uses `RECEIVING` (connected +
+paused, `src/lib/channels.js`), and `botAllowed()` keeps the bot silent there; the
+same holds for a paused website widget. A human reply — from the dashboard box (`/api/send-message`)
 or typed in the Messenger app / Business Suite / Page Inbox (an `is_echo` webhook) —
 marks that contact's Pending customer rows `Replied`, so the backlog cannot pile up.
 An echo is dropped only when its `app_id` is one of OUR Meta app ids (our own send,
