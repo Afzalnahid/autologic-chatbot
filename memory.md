@@ -142,6 +142,12 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
     "আর বিশ্বাস না হইলে,", and line 21 is "আজই ফ্রি চালায় দেখেন। এক টাকাও লাগবে না।". Both lines are in PUCK's voice,
     because they are one sentence. All three voices (Fenrir, Puck, Sadachbia) are MALE: never call one of them a
     woman's voice.
+  - 2026-10-01 06:26: v5 built and verified (words transcribed OK; per-line loudness in the video -13.7..-15.2), sent.
+    Waiting on the owner's OK to swap the Oct 2 reels.
+  - Tutorials now in the new design: 00, 01, 02, 05 (all 4 versions). A render froze 21:49→06:30 (now killed after
+    30 min by build.mjs). The 07:10 batch of the other 16 failed: TTS quota (gemini-3.8-flash-tts, 100/day,
+    resets ~06:00 BD) was already used up. Nothing on this PC made voices then. Asked the owner whether the key is
+    used elsewhere (check ai.dev/rate-limit). Background job: 2026-10-02 06:05 → out/build-rebrand-oct2.log.
   - Owner also: the voice was quieter there (line 20 measured -22 LUFS). make_trio.mjs now levels every line to
     -16 LUFS.
   - The TTS quota was out again, so a background job at 05:45 voices 20 + 21, levels them and rebuilds →
