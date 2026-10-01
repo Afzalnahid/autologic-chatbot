@@ -73,6 +73,9 @@
     "70%{box-shadow:0 6px 24px rgba(10,13,20,.35),0 0 0 14px rgba(91,140,255,0)}" +
     "100%{box-shadow:0 6px 24px rgba(10,13,20,.35),0 0 0 0 rgba(91,140,255,0)}}" +
     ".btn.hint{animation:ring 2.2s ease-out 1.2s 2}" +
+    // a reply from the business arrived while the chat was closed
+    ".btn.new::after{content:'';position:absolute;top:4px;right:4px;width:13px;height:13px;" +
+    "border-radius:50%;background:#fff;border:3px solid #7B1C3E}" +
     ".btn svg{width:26px;height:26px}" +
     ".panel{position:fixed;bottom:88px;" + SIDE + ":20px;width:360px;max-width:calc(100vw - 32px);" +
     "height:520px;max-height:calc(100vh - 120px);background:#0A0D14;border:1px solid #1F2839;" +
@@ -191,6 +194,7 @@
     // The icon turns into a close mark, and the attention ring stops for good.
     btn.classList.add("on");
     btn.classList.remove("hint");
+    btn.classList.remove("new");
     if (!greeted) {
       greeted = true;
       bubble(GREETING, "bot");
@@ -209,6 +213,11 @@
     var text = (input.value || "").trim();
     if (!text || busy) return;
     input.value = "";
+    // From now on this visitor has a conversation the owner may answer by hand.
+    if (!talked) {
+      talked = true;
+      try { window.localStorage.setItem(TALKED, "1"); } catch (e) {}
+    }
     bubble(text, "me");
     busy = true;
     send.disabled = true;
@@ -260,6 +269,62 @@
         input.focus();
       });
   }
+
+  // ---- the owner's replies ---------------------------------------------------
+  // A website visitor has no address to push to, so when the owner answers by
+  // hand from the inbox, the widget fetches it: every 5 s while the chat is
+  // open, every 30 s while it is closed (a dot on the button says something
+  // arrived). Only a visitor who has written ever asks, and never from a
+  // background tab, so a busy site does not poll for nothing.
+  var TALKED = "autologic_talked_" + KEY.slice(-8);
+  var SINCE = "autologic_since_" + KEY.slice(-8);
+  var since = "";
+  var talked = false;
+  var seen = {};
+  try {
+    talked = !!window.localStorage.getItem(TALKED);
+    since = window.localStorage.getItem(SINCE) || "";
+  } catch (e) {}
+
+  function poll() {
+    if (!talked || document.hidden) return;
+    var url = API + "?k=" + encodeURIComponent(KEY) + "&s=" + encodeURIComponent(sessionId) +
+      "&after=" + encodeURIComponent(since);
+    fetch(url)
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        var items = (j && j.items) || [];
+        var fresh = items.filter(function (it) {
+          var id = (it.at || "") + "|" + (it.text || it.url || "");
+          if (seen[id]) return false;
+          seen[id] = true;
+          return true;
+        });
+        if (fresh.length) {
+          if (!greeted) {
+            greeted = true;
+            bubble(GREETING, "bot");
+          }
+          fresh.forEach(function (it) {
+            if (it.type === "image_msg" && it.url) image(it.url);
+            else if (it.text) bubble(it.text, "bot");
+          });
+          if (!panel.classList.contains("open")) btn.classList.add("new");
+        }
+        if (j && j.now) {
+          since = j.now;
+          try { window.localStorage.setItem(SINCE, since); } catch (e) {}
+        }
+      })
+      .catch(function () {});
+  }
+  (function loop() {
+    poll();
+    setTimeout(loop, panel.classList.contains("open") ? 5000 : 30000);
+  })();
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) poll();
+  });
 
   btn.classList.add("hint");
 

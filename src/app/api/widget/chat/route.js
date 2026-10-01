@@ -7,7 +7,7 @@ import { composeReply, botAllowed, bufferInsert, botReplyRows, saveMemory, getCl
 import { RECEIVING } from "@/lib/channels.js";
 import { rateLimit } from "@/lib/rate-limit.js";
 import { withErrors } from "@/lib/route-errors.js";
-import { originAllowed } from "@/lib/widget.js";
+import { originAllowed, pollSince, agentItems, nextSince } from "@/lib/widget.js";
 import { featureGate } from "@/lib/plan-limits.js";
 
 const PLATFORM = "website";
@@ -49,6 +49,38 @@ export async function OPTIONS(request) {
     },
   });
 }
+
+// The owner's hand-typed replies for ONE visitor, newer than `after`. The widget
+// polls this while it is on the page (a website visitor has no address to push
+// to). The same key + origin check as POST; the session id, random per
+// browser, is what limits it to that visitor's own conversation, and the
+// lookup is scoped to the channel's client_id.
+//   GET /api/widget/chat?k=<key>&s=<session>&after=<iso from the last answer>
+export const GET = withErrors(async (request) => {
+  const origin = request.headers.get("origin") || request.headers.get("referer") || "";
+  const q = new URL(request.url).searchParams;
+  const channel = await channelForKey(q.get("k"));
+  if (!channel || !originAllowed(origin, channel.allowed_domains)) {
+    return NextResponse.json({ error: "not_authorised" }, { status: 403, headers: cors("") });
+  }
+  const head = cors(origin);
+  const sessionId = String(q.get("s") || "");
+  if (sessionId.length < 8 || sessionId.length > 64) {
+    return NextResponse.json({ error: "bad_session" }, { status: 400, headers: head });
+  }
+  // generous for one open chat polling every 5 s, tight for anything else
+  if (!rateLimit(`widget-poll:${channel.id}:${sessionId}`, 120, 5 * 60 * 1000).ok) {
+    return NextResponse.json({ items: [], now: pollSince(q.get("after")) }, { headers: head });
+  }
+
+  const since = pollSince(q.get("after"));
+  const { data: rows } = await supabase.from("message_buffer")
+    .select("message_content,attachments,created_at")
+    .eq("client_id", channel.client_id).eq("sender_id", `web_${sessionId}`)
+    .eq("role", "agent").gt("created_at", since)
+    .order("created_at", { ascending: true }).limit(20);
+  return NextResponse.json({ items: agentItems(rows), now: nextSince(rows, since) }, { headers: head });
+}, "widget-poll");
 
 export const POST = withErrors(async (request) => {
   const origin = request.headers.get("origin") || request.headers.get("referer") || "";

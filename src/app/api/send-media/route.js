@@ -25,10 +25,14 @@ export async function POST(request) {
     const pageId = mb?.[0]?.page_id || null;
     // Same page the conversation lives on; platform match for older rows.
     const { data: chans } = await supabase.from("channels").select("*").in("status", RECEIVING).eq("client_id", client.id);
+    // The platform the customer wrote on, never "any channel at all".
     const ch = (pageId && (chans || []).find(c => c.platform === platform && c.page_id === pageId))
-      || (chans || []).find(c => c.platform === platform)
-      || (chans || [])[0];
+      || (chans || []).find(c => c.platform === platform);
     if (!ch) return NextResponse.json({ error: "no channel" }, { status: 400 });
+    // The website chat shows photos; it has no player for a voice note.
+    if (platform === "website" && kind === "audio") {
+      return NextResponse.json({ error: "Voice messages can't be sent to a website visitor. Please type your reply or send a photo." }, { status: 400 });
+    }
 
     // One path for every platform: the file goes into storage and the message
     // carries its public URL. WhatsApp always worked this way; Facebook and
@@ -43,7 +47,10 @@ export async function POST(request) {
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
     const url = supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
 
-    if (platform === "whatsapp") {
+    if (platform === "website") {
+      // Nothing to send: the photo's row is saved below and the visitor's
+      // widget fetches it (GET /api/widget/chat).
+    } else if (platform === "whatsapp") {
       const body = kind === "audio"
         ? { messaging_product: "whatsapp", to: sender_id, type: "audio", audio: { link: url } }
         : { messaging_product: "whatsapp", to: sender_id, type: "image", image: { link: url } };

@@ -26,12 +26,18 @@ export async function POST(request) {
     // Older messages have no page_id — those fall back to the platform match,
     // which is exact whenever the client has one account per platform.
     const { data: chans } = await supabase.from("channels").select("*").in("status", RECEIVING).eq("client_id", client.id);
+    // Never "any channel at all": a reply must leave from the platform the
+    // customer wrote on, or it would come from a different Page or not arrive.
     const ch = (pageId && (chans || []).find(c => c.platform === platform && c.page_id === pageId))
-      || (chans || []).find(c => c.platform === platform)
-      || (chans || [])[0];
+      || (chans || []).find(c => c.platform === platform);
     if (!ch) return NextResponse.json({ error: "no connected channel" }, { status: 400 });
 
-    if (platform === "whatsapp") {
+    if (platform === "website") {
+      // A website visitor has no address to send to. The reply is saved below
+      // and the widget on their page fetches it within seconds (GET
+      // /api/widget/chat). It used to be sent to Facebook with the widget's
+      // empty token, which failed, so the owner could never answer a visitor.
+    } else if (platform === "whatsapp") {
       const wa = await fetch(`https://graph.facebook.com/v24.0/${ch.page_id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${ch.access_token}` },

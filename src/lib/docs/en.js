@@ -304,6 +304,7 @@ export const DOCS = {
         p: [
           "A small chat button that sits in the corner of your website. A visitor clicks it and talks to the **same bot** that answers your Messenger, Instagram and WhatsApp — it already knows your products, prices and policies, so there is nothing extra to teach it.",
           "Those chats appear in **Inbox** alongside everything else, and you can take over from the bot exactly the same way.",
+          "You can answer a visitor by hand from the Inbox too, with text or a photo. Your reply appears in the chat on their screen within a few seconds while they are still on your website, and a dot on the chat button tells them if the chat was closed. A voice note cannot be sent to a website visitor, so the microphone is hidden in these chats.",
         ] },
 
       { shot: "website-widget", cap: "The widget once it is created: your line of code, the websites allowed to use it, and the New key button." },
@@ -336,7 +337,7 @@ export const DOCS = {
         ] },
 
       { h: "Turning it off",
-        p: ["The widget row in the Channels tab has the same switch as every other channel. Off, the chat button disappears from your site and the code you pasted simply does nothing — you do not need to edit your website to hide it."] },
+        p: ["The widget row in the Channels tab has the same switch as every other channel. Off, it is **paused**: the bot stops answering on your website, but visitors can still write, and their messages wait in your Inbox for you to answer by hand — nothing is lost. To take the chat button off your site completely, remove the line of code from your website."] },
 
       { h: "If something goes wrong",
         faq: [
