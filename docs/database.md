@@ -136,40 +136,45 @@ Deleting a file must remove the registry row, all `knowledge_base` chunks **and*
 the object in Storage — see [error-handling.md](./error-handling.md#orphaned-knowledge-files).
 
 ### `orders` — e-commerce conversions
-`id`, `client_id`, `order_code`, `customer_name`, `phone_number`, `address`,
-`product_ids`, `product_names`, `quantity`, `total_price` (free text, e.g.
-`"Shirt (2 pc) = 900 TK + Delivery = 80 TK | Total = 980 TK"`), `status`,
-`image_urls`, `created_at`.
+Checked against the live database on 2026-10-02.
 
-`total_price` is text because the bot writes a human-readable breakdown. Analytics
-parses the `Total = N` portion.
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | PK, `gen_random_uuid()` |
+| `client_id` | uuid | Owner; every query filters on it |
+| `order_code` | text, not null | The bot's code for the order (e.g. `A-1042`) |
+| `sender_id` | text | The customer's id on their platform; null for an order with no chat behind it |
+| `platform` | text | `facebook` / `instagram` / `whatsapp` / `website` |
+| `customer_name`, `phone_number`, `address`, `delivery_area` | text | As the customer gave them; the owner can correct them (PUT `/api/orders`) |
+| `items` | jsonb | One entry per line: `code`, `name`, `variant`, `qty`, `unit_price`, `image_url`. Null on old orders |
+| `subtotal`, `delivery_charge`, `discount` | numeric | The money split. The owner may edit delivery and discount; the total is then recomputed as subtotal + delivery − discount |
+| `total_price` | text | The total. Newer orders hold a plain number; old ones hold the bot's breakdown (`"… \| Total = 980 TK"`), which `parsePrice` in `api/analytics` reads. Kept as text for those old rows |
+| `payment_method` | text | Cash on delivery / bKash / Nagad / card / … as the customer said |
+| `notes` | text | What the customer asked for (delivery time, gift wrap, …) |
+| `owner_note` | text | The owner's private note; never shown to the customer |
+| `product_ids`, `product_names`, `quantity`, `image_urls` | text | Comma lists kept for old screens and analytics' top products; `items` is the real record |
+| `status` | text, not null | `Pending` (default) → `Confirmed` → `Shipped` → `Delivered`, or `Cancelled` / `Returned` |
+| `created_at`, `updated_at` | timestamptz | |
 
-**One order, one row.** `maybeSaveOrder()` in `bot.js` refuses to insert when the
-same `client_id` + `order_code` + `sender_id` is already there. Both ways it
-tries to happen are ordinary: Meta redelivers a webhook when the handler was
-slow or failed after we had already saved, and the model repeats the whole order
-object when a customer says "ok" or "confirm" a second time. A duplicate order
-means the shop packs one parcel, sees two, calls the customer twice, and counts
-the money twice.
+**Who writes an order.** Only the bot (`maybeSaveOrder()` in `bot.js`). There is
+no POST on `/api/orders`, so an owner cannot add an order by hand today.
 
-The application check closes both. It cannot close the last one — two webhook
-deliveries arriving at the same instant can both read "not there" before either
-writes. Only the database can, and this index has NOT been applied yet:
+**Revenue** counts every order except `Cancelled` and `Returned`
+(`countsAsSale`, `src/lib/order-status.js`), on Overview and Analytics alike.
 
-```sql
-create unique index concurrently if not exists orders_one_per_code
-  on orders (client_id, order_code, sender_id)
-  where order_code is not null;
-```
+**One order, one row.** `maybeSaveOrder()` refuses to insert when the same
+`client_id` + `order_code` + `sender_id` is already there. Meta redelivering a
+slow webhook and the model repeating the order when a customer says "ok" twice
+are both ordinary, and a duplicate means two parcels and money counted twice.
+The database enforces it as well (all three indexes are live):
+- `orders_client_id_order_code_key`: unique (`client_id`, `order_code`);
+- `orders_one_per_code_sender`: unique (`client_id`, `order_code`, `sender_id`)
+  where both are set (`docs/sql/2026-09-03-orders-one-per-code.sql`);
+- `orders_one_per_code_widget`: unique (`client_id`, `order_code`) where
+  `sender_id` is null.
 
-Run it in the Supabase SQL editor. It is safe on existing data only if there are
-no duplicates already — check first with:
-
-```sql
-select client_id, order_code, sender_id, count(*)
-from orders where order_code is not null
-group by 1,2,3 having count(*) > 1;
-```
+The first already implies the other two. Other indexes: (`client_id`,
+`created_at desc`), (`client_id`, `sender_id`), (`client_id`, `status`).
 
 ### `bookings` — agency conversions
 `id`, `client_id`, `customer_name`, `email`, `phone`, `service_want`,
@@ -201,8 +206,22 @@ The dashboard shows them in their own Comments tab, including the failure reason
 when Facebook rejects a private reply.
 
 ### `contacts` — per-customer state
-`sender_id` + `client_id`, `name`, `bot_enabled` (per-contact pause for human
-handoff), `created_at`.
+Checked against the live database on 2026-10-02. Primary key (`client_id`,
+`sender_id`): one row per customer per business.
+
+| Column | Type | Notes |
+|---|---|---|
+| `client_id`, `sender_id` | uuid, text | PK. A website visitor is `web_<session>` |
+| `name` | text | From the platform profile, or "Website visitor · abcd" |
+| `bot_enabled` | boolean, default true | The per-chat "Take over / Hand back" switch in the Inbox. False keeps the bot quiet for this one customer |
+| `needs_human` | boolean, default false | The customer is waiting for a person: they asked for one, the bot handed off, or the bot could not answer. Cleared when the owner replies (`docs/sql/2026-09-11-needs-human.sql`) |
+| `needs_human_at` | timestamptz | When it was flagged. Indexed (`client_id`, `needs_human_at desc`) where `needs_human`, for the Needs you list |
+| `broadcast_opt_out` | boolean, default false | Broadcasts and follow-ups skip a customer with this set. Nothing in the app sets it yet; it can only be changed in the database |
+| `last_unavailable_at` | timestamptz | Left from the "polite holding message" of an early phase (`docs/phases.md`). Nothing reads or writes it now: the owner's rule is that a customer is never told the bot is unavailable |
+| `created_at` | timestamptz | |
+
+There are no phone, email, notes, lead status or custom fields on a contact; an
+order or a booking carries the customer's phone and address.
 
 ### `chat_memory` — conversation context
 `id`, `session_id`, `client_id`, `message` (jsonb), `created_at`. Trimmed to a
