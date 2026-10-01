@@ -7,6 +7,7 @@ import { featureGate } from "@/lib/plan-limits.js";
 import { supabase } from "@/lib/supabase.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { nowInDhaka } from "@/lib/time.js";
+import { countsAsSale } from "@/lib/order-status.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
 // A new conversation starts after this much silence from the same person.
@@ -222,13 +223,14 @@ export const GET = withErrors(async (request) => {
   for (const key of dayMap.keys()) convMap.set(key, { date: key, orders: 0, bookings: 0, revenue: 0 });
   for (const o of orders) {
     const b = convMap.get(dateKey(o.created_at));
-    if (b) { b.orders++; b.revenue += parsePrice(o.total_price); }
+    if (b) { b.orders++; if (countsAsSale(o)) b.revenue += parsePrice(o.total_price); }
   }
   for (const bk of bookings) { const b = convMap.get(dateKey(bk.created_at)); if (b) b.bookings++; }
 
   // ---------- Business-specific ----------
-  const revenue = orders.reduce((a, o) => a + parsePrice(o.total_price), 0);
-  const prevRevenue = prevOrders.reduce((a, o) => a + parsePrice(o.total_price), 0);
+  // money taken: cancelled and returned orders are not sales (lib/order-status.js)
+  const revenue = orders.filter(countsAsSale).reduce((a, o) => a + parsePrice(o.total_price), 0);
+  const prevRevenue = prevOrders.filter(countsAsSale).reduce((a, o) => a + parsePrice(o.total_price), 0);
 
   const productCount = new Map();
   for (const o of orders) {

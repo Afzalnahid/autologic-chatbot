@@ -4,6 +4,7 @@ import { T, Card, Badge, fmtMoney, useIsMobile } from "./ui.js";
 import { api } from "./session.js";
 import { useT } from "./i18n.js";
 import { useConvoRead } from "./convo-read.js";
+import { countsAsSale } from "@/lib/order-status.js";
 
 // The home tab, as the owner's final design deck draws it (2026-09-20):
 // four numbers for today, the week's messages as paired bars (the customers'
@@ -128,7 +129,7 @@ export default function Overview({ me, convos = [], orders = [], channels = [], 
   };
   // A conversation counts on every day its customer wrote.
   const convDays = series(convos.flatMap((c) => [...new Set((c.messages || []).filter((m) => m.role === "customer").map((m) => dayKey(m.time)))]), (k) => k);
-  const kept = orders.filter((o) => o.status !== "Cancelled" && o.status !== "Returned");
+  const kept = orders.filter(countsAsSale);
   const amount = (o) => Number(o.total ?? o.total_price) || 0;
   const orderDays = series(orders, (o) => dayKey(o.created_at));
   const revenueDays = series(kept, (o) => dayKey(o.created_at), amount);
