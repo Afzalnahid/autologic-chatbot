@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase.js";
 import { pageAll } from "@/lib/page.js";
 import { requireClient } from "@/lib/auth.js";
 import { botAllowed, processConversation } from "@/lib/bot.js";
+import { RECEIVING } from "@/lib/channels.js";
 
 // When the owner turns the bot back ON for one conversation, answer the last
 // customer message that came in while it was paused. Only a genuinely unanswered
@@ -24,11 +25,14 @@ async function replyToPending(client, senderId) {
     // The website widget has no channel to push a proactive reply to.
     if (top.platform === "website") return;
 
+    // The conversation's own channel, paused ones included (RECEIVING), so a
+    // paused Page is found and botAllowed keeps the bot quiet on it. Only the
+    // same platform may stand in for a missing page_id: falling back to "any
+    // connected channel" could answer this customer from a different Page.
     const { data: chans } = await supabase.from("channels").select("*")
-      .eq("client_id", client.id).eq("status", "connected");
+      .eq("client_id", client.id).in("status", RECEIVING);
     const ch = (top.page_id && (chans || []).find((c) => c.page_id === top.page_id))
-      || (chans || []).find((c) => c.platform === top.platform)
-      || (chans || [])[0];
+      || (chans || []).find((c) => c.platform === top.platform);
     if (!ch) return;
 
     // botAllowed re-checks the (now enabled) contact, the channel, quota and

@@ -208,7 +208,7 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
           </span>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:13.5,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(ch.allowed_domains||[]).join(", ")||"Website chat widget"}</div>
-            <div style={{fontSize:11.5,color:T.textMuted,marginTop:1}}>{on?"Live — the bot is answering":"Paused — the chat is hidden"}</div>
+            <div style={{fontSize:11.5,color:T.textMuted,marginTop:1}}>{on?"Live — the bot is answering":"Paused — messages wait for you"}</div>
           </div>
           <Toggle on={on} disabled={busyId===ch.id} onClick={()=>toggle(ch)}/>
           <button onClick={()=>disconnect(ch)} disabled={busyId===ch.id} title="Remove this widget" style={{background:"none",border:"none",cursor:"pointer",color:T.textDim,fontSize:16,padding:4,flexShrink:0}}><i className="ti ti-trash"/></button>

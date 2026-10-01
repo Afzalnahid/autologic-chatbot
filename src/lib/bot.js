@@ -21,20 +21,24 @@ import { recordUsage, geminiTokens } from "@/lib/usage.js";
 // quietly gets worse. There was a local copy of this prompt here for exactly
 // that reason: it looked harmless.
 import { visionPrompt } from "@/lib/products.js";
+import { RECEIVING } from "@/lib/channels.js";
 
 const DEFAULT_PROMPT = "You are a helpful sales assistant. Reply ONLY with a JSON array of objects like {\"type\":\"text_msg\",\"text\":\"...\"}.";
 
 const sb = () => supabase;
 
+// A paused channel is found too (RECEIVING, lib/channels.js). This used to look
+// up connected channels only, so a paused Page's messages were dropped before
+// they reached the inbox. botAllowed() keeps the bot silent on it.
 export async function getChannelByPage(pageId) {
   const { data } = await sb().from("channels").select("*")
-    .eq("status", "connected").eq("page_id", pageId).limit(1);
+    .in("status", RECEIVING).eq("page_id", pageId).limit(1);
   const match = (data && data[0]) || null;
   if (!match) {
     // Only on a miss do we list what is connected — this is a rare diagnostic,
     // so it never runs on the normal reply path.
     const { data: known } = await sb().from("channels").select("platform,page_id")
-      .eq("status", "connected").limit(200);
+      .in("status", RECEIVING).limit(200);
     console.error(
       `[channel-miss] no connected channel for pageId="${pageId}". Known page_ids:`,
       (known || []).map(c => `${c.platform}:${c.page_id}`).join(", ")
@@ -55,7 +59,7 @@ export async function getClient(clientId) {
 // `silent` marks a deliberate pause (human handling / admin suspension) where no
 // automatic message should be sent.
 export async function botAllowed(channel, senderId) {
-  if (channel.bot_enabled === false) return { allowed: false, reason: "channel_paused", silent: true };
+  if (channel.status === "paused" || channel.bot_enabled === false) return { allowed: false, reason: "channel_paused", silent: true };
 
   const { data: cts } = await sb().from("contacts").select("bot_enabled")
     .eq("client_id", channel.client_id).eq("sender_id", senderId).limit(1);

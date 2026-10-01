@@ -4,6 +4,7 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
 import { composeReply, botAllowed, bufferInsert, botReplyRows, saveMemory, getClient, notifyIncomingMessage, flagNeedsHuman } from "@/lib/bot.js";
+import { RECEIVING } from "@/lib/channels.js";
 import { rateLimit } from "@/lib/rate-limit.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { originAllowed } from "@/lib/widget.js";
@@ -26,7 +27,9 @@ async function channelForKey(key) {
   if (!key || String(key).length < 12) return null;
   const { data } = await supabase
     .from("channels").select("*")
-    .eq("platform", PLATFORM).eq("page_id", String(key)).eq("status", "connected")
+    // a paused widget still records the visitor for the inbox; botAllowed()
+    // keeps the bot quiet on it (it used to refuse the message outright)
+    .eq("platform", PLATFORM).eq("page_id", String(key)).in("status", RECEIVING)
     .maybeSingle();
   return data || null;
 }

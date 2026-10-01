@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase.js";
+import { RECEIVING } from "@/lib/channels.js";
 import { requireClient } from "@/lib/auth.js";
 import { sendAgentMessage } from "@/lib/messenger.js";
 import { inboxLocked, LOCKED } from "@/lib/inbox-lock.js";
@@ -23,7 +24,7 @@ export async function POST(request) {
     const platform = mb?.[0]?.platform || "facebook";
     const pageId = mb?.[0]?.page_id || null;
     // Same page the conversation lives on; platform match for older rows.
-    const { data: chans } = await supabase.from("channels").select("*").eq("status", "connected").eq("client_id", client.id);
+    const { data: chans } = await supabase.from("channels").select("*").in("status", RECEIVING).eq("client_id", client.id);
     const ch = (pageId && (chans || []).find(c => c.platform === platform && c.page_id === pageId))
       || (chans || []).find(c => c.platform === platform)
       || (chans || [])[0];

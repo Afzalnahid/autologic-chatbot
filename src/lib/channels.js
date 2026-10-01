@@ -1,5 +1,12 @@
 import { supabase } from "@/lib/supabase.js";
 
+// The channel statuses that still RECEIVE messages. "Paused" means the bot
+// stays quiet there and the messages wait for the owner (the customer manual
+// says so), and the owner can still answer them by hand. Every lookup that
+// takes in a message or sends the owner's reply uses this list; only
+// "connected" ever lets the bot answer (botAllowed in bot.js).
+export const RECEIVING = ["connected", "paused"];
+
 // One Page / IG account / WhatsApp number powers exactly one TellMore AI
 // account. The channels_platform_page_uniq index enforces it in the
 // database; this check runs first so the owner gets a plain sentence
