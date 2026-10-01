@@ -143,7 +143,10 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
     because they are one sentence. All three voices (Fenrir, Puck, Sadachbia) are MALE: never call one of them a
     woman's voice.
   - 2026-10-01 06:26: v5 built and verified (words transcribed OK; per-line loudness in the video -13.7..-15.2), sent.
-    Waiting on the owner's OK to swap the Oct 2 reels.
+    Owner OK'd it the same day, 12:30. SCHEDULED v5: FB Oct 2 9 PM (video_id 1850547529316121, cover 'kintu reply
+    dibe ke?' set via Edit reel) and IG Oct 2 1 PM (cover set in the composer, which now has Choose frame; slider
+    128/1000). v3 FB (video_id 3879895638825801) + v3 IG were moved to Drafts. Drafts now hold v2 + v3 (4 reels) for
+    the owner to delete.
   - Tutorials now in the new design: 00, 01, 02, 05 (all 4 versions). A render froze 21:49→06:30 (now killed after
     30 min by build.mjs). The 07:10 batch of the other 16 failed: TTS quota (gemini-3.8-flash-tts, 100/day,
     resets ~06:00 BD) was already used up. Nothing on this PC made voices then. Asked the owner whether the key is
