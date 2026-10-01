@@ -27,9 +27,14 @@ const ROOT = path.resolve(HERE, "../..");
 const DELIVER = path.join(ROOT, "Claude outputs", "Tutorials");
 const LANG = { bn: "Bangla", en: "English" }, DEV = { desktop: "Desktop", phone: "Mobile" };
 
+// A step that hangs is killed after 30 minutes and tried again: on 2026-09-30 a
+// render froze so completely that its own 3-minute watchdog never ran, and the
+// overnight batch sat on it for nine hours (the longest render takes ~8 min).
+const STEP_LIMIT_MS = 30 * 60 * 1000;
 function run(file, argv, env, tries = 4) {
   for (let a = 1; a <= tries; a++) {
-    const r = spawnSync("node", [file, ...argv], { cwd: HERE, env: { ...process.env, ...env }, encoding: "utf8", maxBuffer: 64 << 20 });
+    const r = spawnSync("node", [file, ...argv], { cwd: HERE, env: { ...process.env, ...env }, encoding: "utf8", maxBuffer: 64 << 20, timeout: STEP_LIMIT_MS, killSignal: "SIGKILL" });
+    if (r.error?.code === "ETIMEDOUT") { console.error(`  ${file} ${argv.join(" ")} hung for 30 min, killed (try ${a})`); continue; }
     const out = (r.stdout || "") + (r.stderr || "");
     if (r.status === 0) return out;
     console.error(`  ${file} ${argv.join(" ")} failed (try ${a}): ${out.trim().split("\n").slice(-3).join(" | ")}`);
