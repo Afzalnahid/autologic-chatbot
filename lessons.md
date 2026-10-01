@@ -1740,3 +1740,14 @@ Rule: in a composer, click by element reference (find → ref), read the step an
 the date/time back before pressing the final button, and never trust coordinates
 after the window may have changed. Prefer "Move to Drafts" / "Expire" over delete —
 delete is the owner's own action.
+
+## 2026-09-30 — an overnight batch sat on one frozen render for nine hours
+The tutorial rebuild stopped at 21:49 on "02 phone bn" and was found at 06:30:
+the render process was alive but frozen, so its own 3-minute watchdog (a timer
+inside that same process) never fired, and the 6 AM batch queued behind it
+never started. Same night: the promo voice line was 6 dB quieter than the
+others because each TTS take comes out at its own level, and the owner heard it.
+Rule: a watchdog must live OUTSIDE the thing it watches — build.mjs now kills
+any step after 30 minutes. Check a long background job's log before saying it
+is running. Measure every voice line's loudness (make_trio.mjs levels them to
+-16 LUFS) instead of trusting the final -14 LUFS of the whole mix.
