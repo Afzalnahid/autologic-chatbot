@@ -169,7 +169,14 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
 - Not verified end to end (needs the owner's login): a live paused Page message, and a website hand reply.
 - Found: `contacts.broadcast_opt_out` has no setter, so a customer cannot opt out of broadcasts.
 - PENDING: team-inbox / sales-team feature plan sent to the owner; waiting on his 5 decisions (login per moderator,
-  visibility, assignment, time metric, pricing/seats).
+  visibility, assignment, time metric, pricing/seats). He asked for it as a 2-page PDF (sent 2026-10-02) to have
+  someone else confirm; do not build anything until that answer comes back.
+- DONE 2026-10-02: all 20 tutorials in the new design, 80 files in Claude outputs/Tutorials (16 built 06:05→10:20,
+  out/build-rebrand-oct2.log; one voice take per video per language, so the batch used ~40 TTS requests, well under
+  100/day). check_voice flagged 4 lines: 09 en 01/02 (a sentence cut into the wrong line) and 11 bn 05 (dropped
+  "ও") were re-voiced and re-rendered (out/rebuild-09-11.log); 06 bn 02 passed on re-check; 17 bn 08 says
+  "ফোনের নোটিফিকেশন" for "ফোনে" and was left as is (natural). Spot-checked: logo, "A product of", end card on 19
+  only. Next: the owner watches them; nothing uploaded yet.
   - Tutorials now in the new design: 00, 01, 02, 05 (all 4 versions). A render froze 21:49→06:30 (now killed after
     30 min by build.mjs). The 07:10 batch of the other 16 failed: TTS quota (gemini-3.8-flash-tts, 100/day,
     resets ~06:00 BD) was already used up. Nothing on this PC made voices then. Asked the owner whether the key is
