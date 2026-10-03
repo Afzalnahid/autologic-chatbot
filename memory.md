@@ -4,6 +4,20 @@ Update the top two sections after every session.
 
 ---
 
+## 2026-10-04 (late) — home page: new film, hero carousel with real photos, How it works redesign
+
+Commits 573c328, d9734ec, 08ced27 (+ docs). npm test 91/91, all checked live.
+- Film: tutorial 00 per language (public/how-it-works-{en,bn}.mp4, ~5 MB); the August film
+  (ended on autologic-chatbot.vercel.app) removed. Label "In two minutes / ২ মিনিটে".
+- Hero: hero-board.js carousel, owner's product photos in public/demo (bangles, watch,
+  smartwatch, scooter; the e-scooter photo was NOT used — it carries another shop's
+  "FITNESS MART" watermark). Menu z-index 40 fixes the notch riding over the menu.
+- How it works: how-it-works.js tabs + four-step card; one screen high on a phone.
+- Docs: docs/architecture.md "The home page (2026-10-04)".
+- Known content gap: tutorial videos 17 (Packages & payment) and 19 (AI Engine) show the
+  billing screen as it was on 2026-10-02 — before own numbers, half-price own key and
+  "My package". Re-record them when the owner reviews the tutorials.
+
 ## 2026-10-04 (night) — our own Page bot fixed; social links and a Messenger demo
 
 Commit 79a4d79. The internal account 19d3277d… answers TellMore's Facebook Page

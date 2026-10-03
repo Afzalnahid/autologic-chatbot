@@ -952,3 +952,44 @@ company-line.js), the contact page, a "ask our own bot on Messenger" link in
 the home hero (m.me — a live demo of the product), and `sameAs` in the
 Organization structured data. None of it shows on a partner's white-label
 address.
+
+## The home page (2026-10-04)
+
+`src/app/page.js` (server) with client islands; the public palette is `--lp-*`
+(src/lib/landing.js THEME_CSS). A partner's white-label address gets the same
+page under its own name, without TellMore's social links, Messenger demo or blog.
+
+- **Menu**: Features · How it works · Pricing · Contact (Demo removed). The
+  sticky menu is `z-index: 40` and the hero phone is `isolation: isolate`, so
+  nothing in the page can ride over the menu while scrolling (the phone's notch
+  did, at z-index 5 over a menu at 4).
+- **Hero phone** — `src/app/hero-board.js`, data `CONVOS` and styles `BOARD_CSS`
+  in landing.js. Four conversations (Messenger jewellery order, Instagram watches
+  by photo, WhatsApp scooter test ride, website setup) with the owner's product
+  photos in `public/demo/` (resized to ≤480px). A carousel on one clock
+  (`elapsed`): messages arrive in turn, the bot "types", the next slides in;
+  arrows, channel buttons, progress bars and swipe move it; it pauses on hover,
+  off screen, in a hidden tab, and for reduced motion. The first conversation is
+  drawn complete on first paint. Each conversation must fit the 560px screen —
+  four messages, two product cards side by side at most.
+- **How it works** — `src/app/how-it-works.js`, data `STAGES` and `HOW_CSS` in
+  landing.js. Four tabs (order, photo, booking, language) and one card taking a
+  message through writes → reads → replies → gets it done; English product
+  names on the English page (`nameEn` / `priceEn`). On ≤860px the tabs become a
+  row of chips; the grid column is `minmax(0, 1fr)` so the chip row cannot
+  widen the card past the screen.
+- **The film** — tutorial 00 "How TellMore AI works" per language,
+  `public/how-it-works-{en,bn}.mp4` (~5 MB each) with `.jpg` stills; plays only
+  when pressed. Re-encode from `Claude outputs/Tutorials/<Lang>/Desktop/00 - …`
+  with `ffmpeg -c:v libx264 -preset slow -crf 28 -c:a aac -b:a 96k -movflags +faststart`.
+  Give a replacement a NEW file name so no cached copy of the old one is served.
+- **Plans** — `src/app/public-plan-card.js`, shared with /pricing (see "Buying a
+  package").
+- **Footers** — the bottom line of every public footer is `company-line.js`:
+  Copyright (Autolinium links autolinium.com), FullAddress (the registered
+  address), SocialIcons.
+- **Icons**: the public pages load a subset font. Any new public component
+  that uses a `ti-…` icon must be added to `SCAN` in
+  `scripts/make-icon-font.mjs`, and the font rebuilt — otherwise the icon is
+  blank. Write icon classes literally (`"ti ti-chevron-up"`), never built from a
+  template, or the scan cannot see them.
