@@ -2,7 +2,8 @@ import Script from "next/script";
 import { headers } from "next/headers";
 import PublicFonts from "./public-fonts.js";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
-import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
+import { P, CH, COPY, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
+import HeroBoard from "./hero-board.js";
 import { BotMark } from "@/lib/brand.js";
 import { brandForHost, isWhiteLabel, rebrand } from "@/lib/white-label.js";
 import { TECH_LOGOS } from "@/lib/tech-logos.js";
@@ -94,53 +95,6 @@ function Label({ children }) {
   // Bangla label keeps the Latin font, the capitals and the tracking.
   return <div className="lbl eyebrow" style={{ ...mono, color: P.accent, marginBottom: 14, fontWeight: 500 }}>{children}</div>;
 }
-
-function Slide({ conv, c, k }) {
-  const ch = CH[conv.ch];
-  return (
-    <div className={`al-slide s${k}`}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "34px 16px 11px",
-        borderBottom: `1px solid ${P.line}`, background: P.paper2 }}>
-        <i className={`ti ${ch.icon}`} style={{ fontSize: 16, color: P.blue }} />
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{ch.name}</span>
-        <span className="lbl" style={{ marginLeft: "auto", ...mono, fontSize: 9, color: P.inkSoft }}>{c[conv.kind]}</span>
-      </div>
-      <div className="al-stack">
-        <div className="al-msg b0" style={{ display: "flex", justifyContent: "flex-end" }}>
-          {conv.photo ? (
-            <div style={{ background: P.blue, borderRadius: 12, borderBottomRightRadius: 4, padding: 5, width: 116 }}>
-              <img src={conv.photo} alt="" style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover", borderRadius: 8, display: "block" }} />
-              <div style={{ fontSize: 10.5, color: P.onAccent, padding: "5px 3px 1px", opacity: .9 }}>এই ড্রেসটা আপনাদের আছে?</div>
-            </div>
-          ) : <Bub me>{conv.lines[0][1]}</Bub>}
-        </div>
-        <div className="al-msgwrap">
-          <div className="al-typing t0"><b /><b /><b /></div>
-          <div className="al-msg b1" style={{ display: "flex" }}><Bub>{conv.lines[1][1]}</Bub></div>
-        </div>
-        <div className="al-msg b2" style={{ display: "flex", justifyContent: "flex-end" }}><Bub me>{conv.lines[2][1]}</Bub></div>
-        <div className="al-msgwrap">
-          <div className="al-typing t1"><b /><b /><b /></div>
-          <div className="al-msg b3" style={{ display: "flex" }}><Bub>{conv.lines[3][1]}</Bub></div>
-        </div>
-      </div>
-      <div className="lbl" style={{ padding: "9px 16px", borderTop: `1px solid ${P.line}`, ...mono, fontSize: 9,
-        color: P.inkSoft, display: "flex", alignItems: "center", gap: 7, background: P.paper2 }}>
-        <i className="ti ti-check" style={{ fontSize: 12, color: P.live }} />{c.notes[conv.note]}
-      </div>
-    </div>
-  );
-}
-
-function Bub({ me, children }) {
-  return (
-    <div style={{ maxWidth: "84%", fontSize: 12.5, lineHeight: 1.6, padding: "8px 11px", borderRadius: 12,
-      background: me ? P.fill : P.bubble, color: me ? P.onAccent : P.ink,
-      borderBottomRightRadius: me ? 4 : 12, borderBottomLeftRadius: me ? 12 : 4,
-      border: me ? "none" : `1px solid ${P.line}` }}>{children}</div>
-  );
-}
-
 
 // The illustration was decoration. This is the same space doing work: a message
 // arrives on one channel, the bot reads the right source, and something concrete
@@ -502,25 +456,6 @@ export default async function Home({ searchParams }) {
           .tech-item[aria-hidden="true"] { display: none }
         }
 
-        .al-phone { width: 100%; max-width: 300px; margin: 0 auto; border-radius: 38px; padding: 9px }
-        .al-screen { border-radius: 30px; overflow: hidden; position: relative; height: 460px; display: block }
-        .al-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 80px; height: 18px;
-          border-radius: 11px; background: #05070C; z-index: 5 }
-        .al-status { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px 4px;
-          font-size: 10.5px; position: relative; z-index: 4 }
-        .al-slide { position: absolute; inset: 0; opacity: 0; display: flex; flex-direction: column }
-        .al-stack { margin-top: auto; display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; padding: 10px 12px 12px; flex: 1 }
-        .al-msg { opacity: 0 } .al-msgwrap { position: relative }
-        .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 12px; background: ${P.bubble};
-          border: 1px solid ${P.line}; opacity: 0; position: absolute; top: 0; left: 0 }
-        .al-typing b { width: 5px; height: 5px; border-radius: 50%; background: ${P.inkSoft};
-          animation: bnc 1.3s ease-in-out infinite }
-        .al-typing b:nth-child(2) { animation-delay: .18s } .al-typing b:nth-child(3) { animation-delay: .36s }
-        @keyframes bnc { 0%,60%,100% { opacity:.35; transform: translateY(0) } 30% { opacity:1; transform: translateY(-3px) } }
-        .al-bars { display: flex; gap: 5px; margin-bottom: 12px }
-        .al-bars span { flex: 1; height: 2px; background: ${P.line}; position: relative; overflow: hidden }
-        .al-bars span::after { content: ""; position: absolute; inset: 0; background: ${P.accent}; transform: scaleX(0); transform-origin: left }
-        .al-mono { font-variant-numeric: tabular-nums }
 
         .flow-grid { display: grid; grid-template-columns: 1fr 150px 1.15fr; gap: 20px; align-items: start }
         .fwire { --run: 140px }
@@ -585,7 +520,7 @@ export default async function Home({ searchParams }) {
         }
         if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
       })();` }} />
-      <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 4,
+      <nav style={{ borderBottom: `1px solid ${P.line}`, position: "sticky", top: 0, zIndex: 40,
         background: "color-mix(in srgb, var(--lp-bg) 88%, transparent)", WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)" }}>
         <div className="navwrap" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
@@ -665,21 +600,9 @@ export default async function Home({ searchParams }) {
             </div>
           </div>
           <div className="r" style={{ animationDelay: ".1s" }}>
-            <div className="board-wrap" style={{ maxWidth: 330, margin: "0 auto", width: "100%" }}>
-              <div className="al-bars"><span /><span /><span /><span /></div>
-              <div className="al-phone" style={{ background: "linear-gradient(160deg, #2A2230, #121116)" }}>
-                <div className="al-screen" style={{ background: P.paper2 }}>
-                  <div className="al-notch" />
-                  <div className="al-status" style={{ color: P.inkSoft }}>
-                    <span className="al-mono">9:41</span>
-                    <span style={{ display: "inline-flex", gap: 5 }}>
-                      <i className="ti ti-wifi" style={{ fontSize: 12 }} /><i className="ti ti-battery-3" style={{ fontSize: 12 }} />
-                    </span>
-                  </div>
-                  {CONVOS.map((cv, k) => <Slide key={cv.ch} conv={cv} c={c} k={k} />)}
-                </div>
-              </div>
-            </div>
+            {/* Real conversations as a carousel the visitor can step through
+                (hero-board.js), with real product photos. */}
+            <HeroBoard c={c} bn={bn} />
           </div>
         </div>
 

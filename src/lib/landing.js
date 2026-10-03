@@ -127,7 +127,7 @@ export const COPY = {
     swipe: "Swipe to see every channel",
     featLabel: "What it does",
     featTitle: "Everything a customer conversation needs",
-    shop: "Online shop", service: "Service business",
+    shop: "Online shop", service: "Service business", showroom: "Showroom",
     features: [
       { icon: "ti-messages", title: "Multi-channel messaging", desc: "Messenger, Instagram, WhatsApp and your own website — one inbox, one assistant." },
       { icon: "ti-brain", title: "Smart AI replies", desc: "Answers come from your own products or uploaded documents — accurate, on-brand, around the clock." },
@@ -136,7 +136,7 @@ export const COPY = {
       { icon: "ti-books", title: "Knowledge base", desc: "Upload PDFs, Word files or text. Your documents become an instant, searchable source the bot answers from." },
       { icon: "ti-lock", title: "Isolated and private", desc: "Every business's data is separated at the database. Access tokens are stored securely and never shared." },
     ],
-    notes: { order: "Order saved to your dashboard", photo: "Matched the customer's photo to your inventory", docs: "Answered from your uploaded documents", code: "One line of code on your own website" },
+    notes: { order: "Order saved to your dashboard", photo: "Matched the customer's photo to your inventory", docs: "Answered from your uploaded documents", code: "One line of code on your own website", booking: "Test ride booked in your Google Calendar" },
   },
   bn: {
     eyebrow: "এখনই গ্রাহকদের উত্তর দিচ্ছে",
@@ -151,7 +151,7 @@ export const COPY = {
     swipe: "সব চ্যানেল দেখতে সোয়াইপ করুন",
     featLabel: "যা যা করে",
     featTitle: "একটি কথোপকথনে যা যা লাগে, সব",
-    shop: "অনলাইন শপ", service: "সার্ভিস ব্যবসা",
+    shop: "অনলাইন শপ", service: "সার্ভিস ব্যবসা", showroom: "শোরুম",
     features: [
       { icon: "ti-messages", title: "সব চ্যানেল এক জায়গায়", desc: "মেসেঞ্জার, ইনস্টাগ্রাম, হোয়াটসঅ্যাপ আর আপনার ওয়েবসাইট — এক ইনবক্স, এক সহকারী।" },
       { icon: "ti-brain", title: "বুদ্ধিমান উত্তর", desc: "উত্তর আসে আপনার নিজের পণ্য বা আপলোড করা ডকুমেন্ট থেকে — সঠিক, আপনার ভাষায়, দিনরাত।" },
@@ -160,50 +160,95 @@ export const COPY = {
       { icon: "ti-books", title: "নলেজ বেস", desc: "পিডিএফ, ওয়ার্ড বা টেক্সট ফাইল আপলোড করুন। আপনার ডকুমেন্টই হয়ে যায় বটের উত্তরের উৎস।" },
       { icon: "ti-lock", title: "আলাদা ও নিরাপদ", desc: "প্রতিটি ব্যবসার তথ্য ডাটাবেসেই আলাদা। অ্যাক্সেস টোকেন নিরাপদে থাকে, কখনো শেয়ার হয় না।" },
     ],
-    notes: { order: "অর্ডার আপনার ড্যাশবোর্ডে সেভ হলো", photo: "গ্রাহকের ছবি আপনার স্টকের সাথে মিলিয়েছে", docs: "আপনার আপলোড করা ডকুমেন্ট থেকে উত্তর", code: "আপনার ওয়েবসাইটে এক লাইন কোড" },
+    notes: { order: "অর্ডার আপনার ড্যাশবোর্ডে সেভ হলো", photo: "গ্রাহকের ছবি আপনার স্টকের সাথে মিলিয়েছে", docs: "আপনার আপলোড করা ডকুমেন্ট থেকে উত্তর", code: "আপনার ওয়েবসাইটে এক লাইন কোড", booking: "টেস্ট রাইড গুগল ক্যালেন্ডারে বুক হলো" },
   },
 };
 
+// The hero's phone: four conversations on four channels, shown as a carousel
+// the visitor can move through (src/app/hero-board.js). Real product photos
+// (public/demo, owner-supplied, 2026-10-04), so the photo matching and the
+// product cards look like what a customer actually sees.
+//   { me: true, text, photo }                        a customer message, optionally with a photo
+//   { text, product: {…} } or { text, products: [{ img, name, price, meta }, …] }
+//                                                     a bot reply with one card, or two side by side
 export const CONVOS = [
-  { ch: "messenger", kind: "shop", note: "order",
-    lines: [["me","এই শাড়িটার দাম কত? স্টকে আছে?"],["bot","জি আছে। জামদানি শাড়ি — ৩,২০০৳, ফ্রি ডেলিভারি। কোন রঙটা নেবেন?"],["me","লাল। নাম রাহেলা, কুমিল্লা।"],["bot","অর্ডার কনফার্ম হলো — কোড #AL2481। ক্যাশ অন ডেলিভারি, ২ দিনে পৌঁছাবে।"]] },
-  { ch: "instagram", kind: "shop", note: "photo", photo: "/demo/dress.svg",
-    lines: [["me","📷 এই ড্রেসটা আপনাদের আছে?"],["bot","ছবির সাথে মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। M ও L আছে।"],["me","Do you deliver outside Dhaka?"],["bot","Yes — nationwide, 2–3 days outside Dhaka."]] },
-  { ch: "whatsapp", kind: "service", note: "docs",
-    lines: [["me","একটা ওয়েবসাইট বানাতে কত খরচ হবে?"],["bot","বিজনেস ওয়েবসাইট ১৫,০০০৳ থেকে, ই-কমার্স সাইট ৪০,০০০৳ থেকে। সময় লাগে ২–৩ সপ্তাহ।"],["me","বৃহস্পতিবার একটা মিটিং করা যাবে?"],["bot","বৃহস্পতিবার বিকেল ৪টা খালি আছে। মিটিং বুক করে দিলাম — লিংক পাঠিয়ে দিয়েছি। ✅"]] },
-  { ch: "website", kind: "service", note: "code",
-    lines: [["me","Hi, I run a small clothing store. Can this handle my Facebook page?"],["bot","Yes — Messenger, Instagram, WhatsApp and this website widget, all from one dashboard."],["me","How do I add it to my site?"],["bot","One line of code, copied from your dashboard. It takes about a minute."]] },
+  { ch: "messenger", kind: "shop", note: "order", msgs: [
+    { me: true, photo: "/demo/bangle-gold.jpg", text: "এই বালাটা আছে? দাম কত?" },
+    { text: "ছবির সাথে মিলে গেছে! জোড়া ডিজাইনও আছে:", products: [
+      { img: "/demo/bangle-gold.jpg", name: "কারুকাজ বালা", price: "১,৮৫০৳" },
+      { img: "/demo/bangles-pair.jpg", name: "জালি জোড়া চুড়ি", price: "২,৪৫০৳", meta: "এক জোড়া" } ] },
+    { me: true, text: "জোড়াটা নেব। সুমাইয়া, মিরপুর ১০।" },
+    { text: "অর্ডার কনফার্ম ✅ কোড #TM2481 · ক্যাশ অন ডেলিভারি, ঢাকার ভেতর ১ দিনে।" },
+  ] },
+  { ch: "instagram", kind: "shop", note: "photo", msgs: [
+    { me: true, photo: "/demo/watch-steel.jpg", text: "Eta ki available? Smartwatch o ache?" },
+    { text: "জি, দুটোই স্টকে আছে 👇", products: [
+      { img: "/demo/watch-steel.jpg", name: "স্টিল চেইন ঘড়ি", price: "৭,৯৫০৳", meta: "১ বছরের ওয়ারেন্টি" },
+      { img: "/demo/smartwatch.jpg", name: "স্মার্টওয়াচ", price: "১৮,৫০০৳", meta: "হার্ট রেট · ঘুম" } ] },
+    { me: true, text: "Chittagong e delivery koto din?" },
+    { text: "চট্টগ্রামে ২–৩ দিন, চার্জ ১২০৳। কোনটা অর্ডার করবেন?" },
+  ] },
+  { ch: "whatsapp", kind: "showroom", note: "booking", msgs: [
+    { me: true, text: "১২৫ সিসির স্কুটার আছে? EMI-তে নেওয়া যাবে?" },
+    { text: "জি আছে, ১২ মাসের EMI-তেও নেওয়া যায়।", product: { img: "/demo/scooter.jpg", name: "১২৫ সিসি স্কুটার", price: "২,৮৯,০০০৳", meta: "১২ মাসের EMI · ৩টি রঙ" } },
+    { me: true, text: "শনিবার টেস্ট রাইড দেওয়া যাবে?" },
+    { text: "শনিবার বিকেল ৪টায় শোরুমে টেস্ট রাইড বুক করলাম ✅ ঠিকানা আর রিমাইন্ডার পাঠিয়ে দিয়েছি।" },
+  ] },
+  { ch: "website", kind: "service", note: "code", msgs: [
+    { me: true, text: "Hi, I run a small clothing store. Can this handle my Facebook page?" },
+    { text: "Yes — Messenger, Instagram, WhatsApp and this website widget, all from one dashboard." },
+    { me: true, text: "How do I add it to my site?" },
+    { text: "One line of code, copied from your dashboard. It takes about a minute." },
+  ] },
 ];
 
+// The carousel's own look. Movement is driven by hero-board.js; these are
+// only the shapes, the slide-in and the typing dots.
+export const BOARD_CSS = `
+  .al-phone { width: 100%; max-width: 300px; margin: 0 auto; border-radius: 38px; padding: 9px; isolation: isolate }
+  .al-screen { border-radius: 30px; overflow: hidden; position: relative; height: 560px; display: flex; flex-direction: column }
+  .al-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 80px; height: 18px;
+    border-radius: 11px; background: #05070C; z-index: 3 }
+  .al-status { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px 4px;
+    font-size: 10.5px; position: relative; z-index: 2 }
+  .al-slide { flex: 1; min-height: 0; display: flex; flex-direction: column }
+  .al-slide.in-next { animation: al-in-next .45s cubic-bezier(.22,.61,.36,1) both }
+  .al-slide.in-prev { animation: al-in-prev .45s cubic-bezier(.22,.61,.36,1) both }
+  @keyframes al-in-next { from { opacity: 0; transform: translateX(28px) } to { opacity: 1; transform: none } }
+  @keyframes al-in-prev { from { opacity: 0; transform: translateX(-28px) } to { opacity: 1; transform: none } }
+  .al-stack { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; padding: 8px 11px 10px }
+  .al-msg { display: flex; flex-shrink: 0; animation: al-pop .32s cubic-bezier(.22,.61,.36,1) both }
+  .al-msg.me { justify-content: flex-end }
+  @keyframes al-pop { from { opacity: 0; transform: translateY(7px) } to { opacity: 1; transform: none } }
+  .al-cards { display: flex; gap: 6px; margin-top: 6px } .al-cards .al-card { width: auto; flex: 1; min-width: 0; margin-top: 0 }
+  .al-card { width: 150px; border-radius: 12px; overflow: hidden; border: 1px solid var(--lp-line); background: var(--lp-bubble); margin-top: 6px }
+  .al-card img { width: 100%; height: 64px; object-fit: contain; background: #fff; display: block }
+  .al-photo { width: 92px; border-radius: 9px; overflow: hidden; background: #fff; margin-bottom: 5px }
+  .al-photo img { width: 100%; height: 72px; object-fit: contain; display: block }
+  .al-typing { display: inline-flex; gap: 4px; padding: 8px 12px; border-radius: 12px; background: var(--lp-bubble); border: 1px solid var(--lp-line) }
+  .al-typing b { width: 5px; height: 5px; border-radius: 50%; background: var(--lp-soft); animation: bnc 1.3s ease-in-out infinite }
+  .al-typing b:nth-child(2) { animation-delay: .18s } .al-typing b:nth-child(3) { animation-delay: .36s }
+  @keyframes bnc { 0%,60%,100% { opacity:.35; transform: translateY(0) } 30% { opacity:1; transform: translateY(-3px) } }
+  .al-bars { display: flex; gap: 5px; margin-bottom: 10px }
+  .al-bars button { flex: 1; padding: 7px 0; border: 0; background: none; cursor: pointer }
+  .al-bars button span { display: block; height: 3px; background: var(--lp-line); position: relative; overflow: hidden; border-radius: 3px }
+  .al-bars button span i { position: absolute; inset: 0; background: var(--lp-acc); transform-origin: left; transform: scaleX(0) }
+  .al-bars button.done span i { transform: scaleX(1) }
+  .al-bars button.on span i { animation: al-fill var(--al-dur, 8s) linear forwards }
+  .al-bars.paused button.on span i { animation-play-state: paused }
+  @keyframes al-fill { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+  .al-ctrl { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px }
+  .al-ctrl button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--lp-line); background: var(--lp-card);
+    color: var(--lp-ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 17px;
+    padding: 0; font-family: inherit; transition: border-color .15s ease-out, background .15s ease-out }
+  .al-ctrl button:hover { border-color: color-mix(in srgb, var(--lp-acc) 50%, transparent) }
+  .al-ctrl button:focus-visible, .al-bars button:focus-visible { outline: 2px solid var(--lp-acc); outline-offset: 2px }
+  .al-ctrl .al-ch { width: 34px; height: 34px; font-size: 15px; color: var(--lp-soft) }
+  .al-ctrl .al-ch.on { color: #fff; background: var(--lp-fill); border-color: transparent }
+  .al-mono { font-variant-numeric: tabular-nums }
+  @media (prefers-reduced-motion: reduce) { .al-slide.in-next, .al-slide.in-prev, .al-msg { animation: none } .al-bars button.on span i { animation: none; transform: scaleX(1) } }
+`;
 
-const SLIDES = 4, PER = 7, CYCLE = SLIDES * PER;
-function boardCss() {
-  let out = "";
-  for (let k = 0; k < SLIDES; k++) {
-    const at = (sec) => (((k * PER + sec) / CYCLE) * 100).toFixed(2) + "%";
-    const hold = PER - 0.4;          // visible until the handover
-    out += `
-      .al-slide.s${k} { animation: al-s${k} ${CYCLE}s linear infinite }
-      @keyframes al-s${k} { 0%,${at(0)} { opacity:0 } ${at(0.25)},${at(hold)} { opacity:1 } ${at(PER)},100% { opacity:0 } }
-      .s${k} .al-msg.b0 { animation: al-b${k}0 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
-      .s${k} .al-msg.b1 { animation: al-b${k}1 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
-      .s${k} .al-msg.b2 { animation: al-b${k}2 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
-      .s${k} .al-msg.b3 { animation: al-b${k}3 ${CYCLE}s cubic-bezier(.22,.61,.36,1) infinite }
-      @keyframes al-b${k}0 { 0%,${at(0.3)} { opacity:0; transform:translateY(7px) } ${at(0.7)},${at(hold)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
-      @keyframes al-b${k}1 { 0%,${at(1.7)} { opacity:0; transform:translateY(7px) } ${at(2.1)},${at(hold)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
-      @keyframes al-b${k}2 { 0%,${at(3.0)} { opacity:0; transform:translateY(7px) } ${at(3.4)},${at(hold)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
-      @keyframes al-b${k}3 { 0%,${at(4.6)} { opacity:0; transform:translateY(7px) } ${at(5.0)},${at(hold)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
-      .s${k} .al-typing.t0 { animation: al-tp${k}0 ${CYCLE}s linear infinite }
-      .s${k} .al-typing.t1 { animation: al-tp${k}1 ${CYCLE}s linear infinite }
-      @keyframes al-tp${k}0 { 0%,${at(0.8)} { opacity:0 } ${at(1.0)},${at(1.6)} { opacity:1 } ${at(1.7)},100% { opacity:0 } }
-      @keyframes al-tp${k}1 { 0%,${at(3.6)} { opacity:0 } ${at(3.8)},${at(4.5)} { opacity:1 } ${at(4.6)},100% { opacity:0 } }
-      .al-bars span:nth-child(${k + 1})::after { animation: al-bar${k} ${CYCLE}s linear infinite }
-      @keyframes al-bar${k} { 0%,${at(0)} { transform:scaleX(0) } ${at(PER - 0.3)},${at(PER - 0.1)} { transform:scaleX(1) } ${at(PER)},100% { transform:scaleX(0) } }`;
-  }
-  return out;
-}
-
-export const BOARD_CSS = boardCss();
 
 export const STAGES = [
   { ch: "messenger", icon: "ti-shopping-bag",
