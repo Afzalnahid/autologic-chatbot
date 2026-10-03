@@ -425,9 +425,23 @@ What still says TellMore on a partner address: the manual (`/docs`), pricing,
 solutions, legal pages, the favicon, the e-mails we send (their links point at
 tellmoreai.com), the payment return page, and Meta's and Google's own consent
 screens — those show the name of OUR Meta and Google apps, which only a
-separate app per partner could change. Supabase must list the partner address
-under Authentication → URL Configuration → Redirect URLs, or the sign-up and
-password-reset links fall back to tellmoreai.com.
+separate app per partner could change.
+
+Outside the code, each partner address has to be allowed in three places
+(all done for tellme.ufirstltd.com on 2026-10-03):
+
+- Supabase → Authentication → URL Configuration → Redirect URLs:
+  `https://<partner>/**` — otherwise sign-up and password-reset links fall
+  back to tellmoreai.com.
+- Meta app 914246304594380 → Facebook Login for Business → Settings → Valid
+  OAuth Redirect URIs: `https://<partner>/api/fb/callback` and
+  `https://<partner>/api/wa/callback`. (The site does not use Meta's
+  JavaScript SDK, so "Allowed Domains for the JavaScript SDK" is not needed.)
+- Same app → Instagram → API setup with Instagram login → Business login
+  settings → OAuth redirect URIs: `https://<partner>/api/ig/callback`.
+
+Google Calendar would also need `https://<partner>/api/gcal/callback` on the
+Google OAuth client; not added, as the demo does not book meetings.
 
 ### Scheduled work
 

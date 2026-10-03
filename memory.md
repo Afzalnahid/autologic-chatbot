@@ -175,9 +175,11 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
   for one e-commerce client abroad; NOT a separate SaaS). tellme.ufirstltd.com (Namecheap DNS, A → 216.198.79.1 =
   Vercel) added to the Vercel project; lib/white-label.js maps host → name ("Tell Me", no logo). Commits 2322654
   (screens) + 89ce7db (clients.signup_brand, migration clients_signup_brand; admin "via Tell Me" badge). Both
-  READY; live home shows Tell Me 12x / TellMore 0x, noindex; sign-in shows "Tell Me". OWNER TODO: Supabase Auth →
-  URL Configuration → Redirect URLs add https://tellme.ufirstltd.com/** (else confirm/reset links go to
-  tellmoreai.com); Meta app redirect URIs only if FB/IG/WA connect is needed there. Still TellMore there: /docs,
+  READY; live home shows Tell Me 12x / TellMore 0x, noindex; sign-in shows "Tell Me". Done via Chrome on the
+  owner's instruction: Supabase Redirect URLs += https://tellme.ufirstltd.com/**; Meta FB Login for Business
+  redirect URIs += /api/fb/callback and /api/wa/callback; Instagram business login redirect += /api/ig/callback
+  (all verified saved). Not done: Google Calendar redirect (not needed for the demo). Not tested end to end: a
+  real signup / channel connect on the partner address (needs the partner's own login). Still TellMore there: /docs,
   pricing, legal, favicon, e-mails, payment return, Meta/Google consent screens, the demo film. Partner opens the
   demo account and adds products themselves.
 - DONE 2026-10-02: all 20 tutorials in the new design, 80 files in Claude outputs/Tutorials (16 built 06:05→10:20,
