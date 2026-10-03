@@ -1521,7 +1521,7 @@ function ClientPanel({ c, rate, post, busy, d }) {
 // be SAID, and this component has no message line of its own.
 function PlanEditor({ d, post, busy, isSuper, rate, setMsg }) {
   const [editing, setEditing] = useState(null);
-  const blank = { id: "", name: "", tagline: "", monthly: 0, yearly: 0, channels: 1, features: {}, feature_list: [], active: true, public: true, sort: (d.plans?.length || 0) + 1 };
+  const blank = { id: "", name: "", tagline: "", monthly: 0, yearly: 0, channels: null, features: {}, feature_list: [], active: true, public: true, sort: (d.plans?.length || 0) + 1 };
 
   return <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>

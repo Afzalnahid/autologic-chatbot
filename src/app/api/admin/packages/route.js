@@ -390,7 +390,10 @@ export async function POST(request) {
       messages_per_day: int(p.messages_per_day),
       messages_per_month: int(p.messages_per_month),
       messages_per_channel: int(p.messages_per_channel),
-      channels: int(p.channels) ?? 1,
+      // Blank means no cap, like every other limit here. This used to be `?? 1`,
+      // so saving any package with the Channels box empty (all of them are, since
+      // every package includes every channel) quietly capped it at one channel.
+      channels: int(p.channels),
       max_products: int(p.max_products),
       max_kb_files: int(p.max_kb_files),
       max_scrapes_per_month: int(p.max_scrapes_per_month),
