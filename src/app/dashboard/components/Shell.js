@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { T, ThemeToggle, Theme, Motion } from "./ui.js";
 import { BotMark } from "@/lib/brand.js";
+import { currentBrand } from "@/lib/white-label.js";
 import NotificationsBell from "./NotificationsBell.js";
 import GlobalSearch from "./GlobalSearch.js";
 import { LangToggle, useLang } from "./i18n.js";
@@ -88,6 +89,8 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
   page, setPage, HOME, navLabel, t, isAgency, activeCount, pendingOrders, onLogout, load, loading, mode, toggleTheme,
   convos, feed, goTo, orders = [], products = [], channels = [], onFind, children }) {
   const lang = useLang();
+  // Our name, or a partner's on their own address (lib/white-label.js).
+  const brand = currentBrand();
   // Tablet or desktop: the same tabs, as an icon rail or a full sidebar.
   const [w, setW] = useState(1400);
   useEffect(() => {
@@ -169,11 +172,12 @@ export default function Shell({ isMobile, sidebarOpen, setSidebarOpen, fullBleed
           alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
           {me?.client?.logo_url
             ? <img src={me.client.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <BotMark size={rail ? 28 : 24} />}
+            : brand.logo ? <BotMark size={rail ? 28 : 24} />
+            : <i className="ti ti-message-chatbot" aria-hidden style={{ fontSize: rail ? 24 : 20, color: T.gold }} />}
         </span>
         {!rail && <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: T.text, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || "TellMore AI"}</span>
-          <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>TellMore AI · {isAgency ? t("shell.service") : t("shell.business")}</span>
+          <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: T.text, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || brand.name}</span>
+          <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{brand.name} · {isAgency ? t("shell.service") : t("shell.business")}</span>
         </span>}
         {isMobile && <button onClick={() => setSidebarOpen(false)} className="ui-btn" aria-label="Close menu"
           style={{ width: 32, height: 32, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center",

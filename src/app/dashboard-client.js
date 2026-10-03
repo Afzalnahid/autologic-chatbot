@@ -6,6 +6,12 @@ import { api, getSb, setAuthToken } from "./dashboard/components/session.js";
 import { initNativeApp } from "./dashboard/components/native-back.js";
 import { rebindNativePush, unbindNativePush, isNativeApp } from "./dashboard/components/native-push.js";
 import { BotMark } from "@/lib/brand.js";
+import { currentBrand, isWhiteLabel } from "@/lib/white-label.js";
+// On a partner's address (lib/white-label.js) the screens carry the partner's
+// name and no mark. This file only ever runs in the browser (dashboard/page.js
+// loads it with ssr:false), so the address is known before the first render.
+const BRAND = currentBrand();
+if (typeof document !== "undefined" && isWhiteLabel(BRAND)) document.title = `${BRAND.name} Dashboard`;
 // The trial's shape is written in one place, not typed into the welcome screen:
 // it used to read "3-day free trial · 30 messages a day" as literals, so the
 // admin panel could change either and this screen would keep promising the old
@@ -207,7 +213,7 @@ export function AuthGate({onReady,demo=false}) {
       {/* The form half. */}
       <div className="auth-form">
         <div className="auth-brand">
-          <span className="auth-mark"><BotMark size={24}/></span> TellMore AI
+          {BRAND.logo&&<span className="auth-mark"><BotMark size={24}/></span>} {BRAND.name}
         </div>
         <h1 className="auth-title">{signup?"Create account":"Welcome back"}</h1>
         <p className="auth-sub">{signup?"Sign up and begin your experience":"Sign in to your dashboard"}</p>
@@ -412,7 +418,7 @@ export function Onboarding({me,onTrial}) {
 
   if(step==="profile") return <OnboardFrame icon="ti-building-store" title="Set up your business profile"
     sub="This helps your AI assistant represent your business" step={1} of={3}>
-    <Inp emb label="Business name *" value={form.business_name} onChange={e=>setForm({...form,business_name:e.target.value})} placeholder="e.g. TellMore AI Agency"/>
+    <Inp emb label="Business name *" value={form.business_name} onChange={e=>setForm({...form,business_name:e.target.value})} placeholder={`e.g. ${BRAND.name} Agency`}/>
     <div style={{marginBottom:16}}>
       <Label>Business type *</Label>
       <Select wide value={form.business_type} options={BIZ} onChange={v=>setForm({...form,business_type:v})}
@@ -642,7 +648,7 @@ function ConnectCalendar({clientId,onDone}) {
 // while the session is checked; the loading line only appears if that takes
 // long enough to need explaining. Everything is CSS — no library, nothing to
 // download — and a phone set to "reduce motion" gets the finished picture.
-const LAUNCH_NAME = "TellMore AI";
+const LAUNCH_NAME = BRAND.name;
 const LAUNCH_CSS = `
 @keyframes lz-pop{0%{opacity:0;transform:scale(.55) rotate(-10deg)}60%{opacity:1;transform:scale(1.07) rotate(1.5deg)}100%{opacity:1;transform:none}}
 @keyframes lz-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
@@ -701,7 +707,9 @@ export function LaunchScreen({ overlay = false, leaving = false } = {}) {
         <div className="lz-float" style={{position:"relative",width:96,height:96,borderRadius:28,background:T.accGrad,overflow:"hidden",
           boxShadow:`0 18px 40px color-mix(in srgb, ${T.gold} 34%, transparent), 0 4px 10px color-mix(in srgb, ${T.gold} 22%, transparent)`,
           display:"flex",alignItems:"center",justifyContent:"center",color:T.onGold}}>
-          <BotMark size={68} color="currentColor" ink="currentColor" className="lz-mark"/>
+          {BRAND.logo
+            ? <BotMark size={68} color="currentColor" ink="currentColor" className="lz-mark"/>
+            : <i className="ti ti-message-chatbot lz-mark" aria-hidden style={{fontSize:56}}/>}
           <span className="lz-shine" aria-hidden style={{position:"absolute",top:0,bottom:0,left:0,width:"45%",
             background:"linear-gradient(90deg, transparent, rgba(255,255,255,.38), transparent)"}}/>
         </div>

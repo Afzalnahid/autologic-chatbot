@@ -6,6 +6,7 @@ import { useBackClose } from "./back.js";
 import { useConvoRead, markConvoSeen } from "./convo-read.js";
 import { useT } from "./i18n.js";
 import { groupThread } from "@/lib/thread-groups.js";
+import { currentBrand } from "@/lib/white-label.js";
 
 // The Inbox. Laid out the way the owner's design deck draws it (2026-09-20):
 // four numbers across the top, the list with an avatar and a channel dot per
@@ -742,7 +743,7 @@ export default function Conversations({convos:allConvos,refresh,onChatOpen,chann
             </div>}
             {(!atts.length||text)&&<div style={{padding:"9px 14px",borderRadius:18,fontSize:13.5,lineHeight:1.45,whiteSpace:"pre-wrap",color:mine?T.onGold:T.text,background:mine?T.accGrad:T.bgAlt,borderBottomRightRadius:mine?6:18,borderBottomLeftRadius:mine?18:6}}>{text}</div>}
             {mine&&m.role==="agent"&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>You</div>}
-            {m.role==="bot"&&secs!=null&&secs>=0&&secs<=600&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>TellMore AI · {t("inbox.answeredIn",{s:secs})}</div>}
+            {m.role==="bot"&&secs!=null&&secs>=0&&secs<=600&&<div style={{fontSize:10,color:T.textDim,marginTop:2,textAlign:"right"}}>{currentBrand().name} · {t("inbox.answeredIn",{s:secs})}</div>}
           </div>
           </div>
         </div>;})}

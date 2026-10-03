@@ -1,8 +1,10 @@
 import Script from "next/script";
+import { headers } from "next/headers";
 import PublicFonts from "./public-fonts.js";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
 import { P, CH, COPY, CONVOS, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
 import { BotMark } from "@/lib/brand.js";
+import { brandForHost, isWhiteLabel, rebrand } from "@/lib/white-label.js";
 import { TECH_LOGOS } from "@/lib/tech-logos.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
@@ -69,6 +71,14 @@ export function generateMetadata({ searchParams }) {
   // the root's query correctly, and a sitemap is one of Google's own three
   // accepted places for hreflang. The proper fix is a real /bn route for the
   // Bangla home page; see docs/search-console-2026-09-24.md.
+  const brand = brandForHost(headers().get("host"));
+  // A partner's address (lib/white-label.js) is the same page under their
+  // name. It is kept out of search engines: a second copy of this page on
+  // another domain would compete with tellmoreai.com for the same searches.
+  if (isWhiteLabel(brand)) {
+    return { title: rebrand(META[lang].title, brand), description: rebrand(META[lang].description, brand),
+      robots: { index: false, follow: false }, appleWebApp: { capable: true, title: brand.name, statusBarStyle: "default" } };
+  }
   return pageMeta({ ...META[lang], path: "/", lang });
 }
 
@@ -227,6 +237,8 @@ export default async function Home({ searchParams }) {
   const bn = lang === "bn";
   const other = lang === "bn" ? "/" : "/?lang=bn";
   const [plans, trial] = await Promise.all([paidPlans(), trialPlan()]);
+  const brand = brandForHost(headers().get("host"));
+  const wl = isWhiteLabel(brand);
 
   return (
     // The "bn" class is what every Bangla rule below hangs off. Without it the
@@ -242,8 +254,9 @@ export default async function Home({ searchParams }) {
           dangerouslySetInnerHTML: React escapes the text child of a script or
           style tag on the server, and the browser does not decode entities back
           inside one (lessons.md #21). */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{
-        __html: JSON.stringify(siteJsonLd(lang)).replace(/</g, "\\u003c") }} />
+      {/* Not on a partner's address: it names TellMore AI and tellmoreai.com. */}
+      {!wl && <script type="application/ld+json" dangerouslySetInnerHTML={{
+        __html: JSON.stringify(siteJsonLd(lang)).replace(/</g, "\\u003c") }} />}
       {/* Theme boot lives in the root layout (a script here never executes). */}
       <PublicFonts />
       <style dangerouslySetInnerHTML={{__html:`
@@ -557,11 +570,11 @@ export default async function Home({ searchParams }) {
         <div className="navwrap" style={{ ...wrap, display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "11px clamp(16px, 4vw, 26px)", gap: 12 }}>
           <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: P.ink, flexShrink: 0, minWidth: 0 }}>
-            <div className="navmark" style={{ width: 30, height: 30, background: "#fff", borderRadius: 9, flexShrink: 0,
+            {brand.logo && <div className="navmark" style={{ width: 30, height: 30, background: "#fff", borderRadius: 9, flexShrink: 0,
               boxShadow: "0 1px 4px rgba(18,17,22,.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <BotMark size={25} />
-            </div>
-            <span className="fr navword" style={{ fontSize: 18 }}>TellMore AI</span>
+            </div>}
+            <span className="fr navword" style={{ fontSize: 18 }}>{brand.name}</span>
           </a>
 
           {/* The section links, as in the owner's Figma layout. Desktop only: on
@@ -824,7 +837,7 @@ export default async function Home({ searchParams }) {
           <div data-reveal="0" style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 30px" }}>
             <Label>{bn ? "যাঁরা ব্যবহার করছেন" : "In production"}</Label>
             <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: 0 }}>
-              {bn ? "যেসব ব্যবসা TellMore AI-এ চলছে" : "Businesses running on TellMore AI"}
+              {bn ? `যেসব ব্যবসা ${brand.name}-এ চলছে` : `Businesses running on ${brand.name}`}
             </h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 290px), 1fr))",
@@ -873,10 +886,10 @@ export default async function Home({ searchParams }) {
           <div className="foot-grid">
             <div>
               <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 9, textDecoration: "none", color: "#F2EEF1" }}>
-                <div style={{ width: 30, height: 30, background: "#fff", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {brand.logo && <div style={{ width: 30, height: 30, background: "#fff", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <BotMark size={25} />
-                </div>
-                <span className="fr" style={{ fontSize: 18 }}>TellMore AI</span>
+                </div>}
+                <span className="fr" style={{ fontSize: 18 }}>{brand.name}</span>
               </a>
               <p style={{ fontSize: 13.5, lineHeight: 1.65, color: "#B5ADB4", margin: "14px 0 0", maxWidth: 300 }}>{c.lead}</p>
             </div>
@@ -906,7 +919,7 @@ export default async function Home({ searchParams }) {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontSize: 12.5,
             color: "#857D86", borderTop: "1px solid rgba(255,255,255,.1)", paddingTop: 18, marginTop: 34 }}>
-            <span>{COPYRIGHT}</span>
+            <span>{rebrand(COPYRIGHT, brand)}</span>
             <span>{ADDRESS_SHORT}</span>
           </div>
         </div>

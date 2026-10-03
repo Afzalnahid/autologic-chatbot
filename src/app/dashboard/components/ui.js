@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { BotMark } from "@/lib/brand.js";
+import { currentBrand } from "@/lib/white-label.js";
 import { resolveTheme, toggleTheme as pickTheme, THEME_KEY, THEME_SYS_KEY } from "@/lib/theme-pref.js";
 
 // Shared presentational building blocks. Each tab imports from here, so the
@@ -94,12 +95,13 @@ export function Steps({step,of}){
   </div>;
 }
 export function OnboardFrame({icon,title,sub,step,of,width=460,scroll,children}){
+  const brand=currentBrand(); // ours, or a partner's on their address (lib/white-label.js)
   return <div style={{minHeight:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:T.bg}}>
     <div className="ui-page" style={{width:"100%",maxWidth:width,background:T.card,borderRadius:14,border:`1px solid ${T.border}`,
       boxShadow:T.nmOut,padding:"clamp(22px, 4vw, 34px) clamp(18px, 4vw, 32px)",...(scroll?{maxHeight:"94dvh",overflowY:"auto"}:{})}}>
       <div style={{display:"inline-flex",alignItems:"center",gap:8,fontSize:13,fontWeight:700,color:T.text,marginBottom:18}}>
-        <span style={{width:26,height:26,borderRadius:8,background:"#fff",boxShadow:"0 1px 4px rgba(22,24,31,.16)",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><BotMark size={22}/></span>
-        TellMore AI
+        {brand.logo&&<span style={{width:26,height:26,borderRadius:8,background:"#fff",boxShadow:"0 1px 4px rgba(22,24,31,.16)",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><BotMark size={22}/></span>}
+        {brand.name}
       </div>
       <div style={{textAlign:"center",marginBottom:22}}>
         <div style={{width:56,height:56,borderRadius:18,background:T.card,boxShadow:T.nmSm,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}>

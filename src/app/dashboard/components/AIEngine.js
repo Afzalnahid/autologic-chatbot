@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { T, Card, Btn, Select, Badge, useIsMobile } from "./ui.js";
 import { api, apiJson } from "./session.js";
+import { currentBrand } from "@/lib/white-label.js";
 
 // The AI Engine tab — the client's own API key (BYOK) lives here, on its own
 // page instead of buried in Bot Training. The super admin grants permission
@@ -88,7 +89,7 @@ function PlatformCard() {
         <span style={{ width: 44, height: 44, borderRadius: 13, background: T.goldBg, color: T.gold, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
           <i className="ti ti-sparkles" /></span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>Running on TellMore AI's AI</div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Running on {currentBrand().name}'s AI</div>
           <div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 2, lineHeight: 1.5 }}>Your bot uses the platform's AI — nothing to set up, and it is included in your plan.</div>
         </div>
       </div>

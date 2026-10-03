@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { T, Card, Btn, Switch } from "./ui.js";
 import { api } from "./session.js";
 import WebsiteWidget from "./WebsiteWidget.js";
+import { currentBrand, rebrand } from "@/lib/white-label.js";
 
 // The Channels tab. One client can connect MANY Pages, Instagram accounts and
 // WhatsApp numbers, so the tab is organised per platform: a section header with
@@ -154,7 +155,7 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
       </div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:14,fontWeight:700,letterSpacing:"-.01em"}}>{jc.label}{justConnected.name?<span style={{fontWeight:500,color:T.textMuted}}> · {justConnected.name}</span>:null}</div>
-        <div style={{fontSize:12.5,color:T.textMuted,marginTop:2,lineHeight:1.5}}>{jc.what}</div>
+        <div style={{fontSize:12.5,color:T.textMuted,marginTop:2,lineHeight:1.5}}>{rebrand(jc.what, currentBrand())}</div>
       </div>
       <button onClick={onDismissConnected} aria-label="Dismiss" className="ui-btn" style={{background:"none",border:"none",color:T.textDim,cursor:"pointer",fontSize:17,padding:6,flexShrink:0}}><i className="ti ti-x"/></button>
     </Card>}
@@ -169,7 +170,7 @@ export default function Channels({onConnect,justConnected,onDismissConnected}) {
             : "Connect your first channel"}
         </div>
         <div style={{fontSize:12,color:T.textMuted,marginTop:2,lineHeight:1.5}}>
-          Connect as many Pages, accounts and numbers as you need — each one can belong to only one TellMore AI account.
+          Connect as many Pages, accounts and numbers as you need — each one can belong to only one {currentBrand().name} account.
         </div>
       </div>
       <Btn gold onClick={onConnect} style={{flexShrink:0}}><i className="ti ti-plus" style={{marginRight:6}}/>Connect new channel</Btn>

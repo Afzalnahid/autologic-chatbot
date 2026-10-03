@@ -402,6 +402,33 @@ production. There is no staging environment; changes are validated locally with
 
 Environment variables are listed in [security.md §2](./security.md).
 
+### White-label addresses (2026-10-03)
+
+A partner can sell the platform under their own name from their own address.
+It is the **same** deployment, database and accounts — only the printed name
+changes. The list lives in `src/lib/white-label.js` (pure, tested by
+`tests/t-white-label.mjs`):
+
+| Address | Name shown | Our logo |
+|---|---|---|
+| `tellme.ufirstltd.com` (partner ufirstltd, 60/40 share) | Tell Me | no |
+| everything else | TellMore AI | yes |
+
+Adding a partner: they point an A record at Vercel (`216.198.79.1`, the same
+address `tellmoreai.com` uses), the domain is added to the Vercel project, and
+one line goes into `WHITE_LABELS`. Server pages read the `host` header
+(`brandForHost`); the dashboard is browser-only and reads `window.location`
+(`currentBrand`). The home page on a partner address is `noindex` and drops our
+structured data, so it never competes with tellmoreai.com in search.
+
+What still says TellMore on a partner address: the manual (`/docs`), pricing,
+solutions, legal pages, the favicon, the e-mails we send (their links point at
+tellmoreai.com), the payment return page, and Meta's and Google's own consent
+screens — those show the name of OUR Meta and Google apps, which only a
+separate app per partner could change. Supabase must list the partner address
+under Authentication → URL Configuration → Redirect URLs, or the sign-up and
+password-reset links fall back to tellmoreai.com.
+
 ### Scheduled work
 
 Three scheduled jobs. Two are Vercel crons in `vercel.json`; the third runs
