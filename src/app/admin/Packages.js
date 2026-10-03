@@ -1576,7 +1576,50 @@ function PlanEditor({ d, post, busy, isSuper, rate, setMsg }) {
         {rows.map((p) => <PlanCard key={p.id} p={p} d={d} rate={rate} onEdit={() => setEditing(p)} />)}
       </div>;
     })}
+
+    <AddonEditor addons={d.addons || []} post={post} busy={busy} />
   </div>;
+}
+
+// What a customer can buy on top of a package (plan_addons, lib/pricing.js):
+// more replies and AI Assistant questions for everyone, products for shops,
+// documents for services. Each has a Standard and an own-key monthly price;
+// yearly is always ten months. What an add-on GIVES is fixed by its id, so only
+// the prices and the on/off switch are edited here (owner, 2026-10-03).
+const ADDON_FOR = { both: "Everyone", ecommerce: "Shops", agency: "Services" };
+function AddonEditor({ addons, post, busy }) {
+  const [vals, setVals] = useState({});
+  const v = (a, k) => (vals[a.id]?.[k] ?? a[k] ?? "");
+  const set = (a, k, x) => setVals({ ...vals, [a.id]: { ...(vals[a.id] || {}), [k]: x } });
+  if (!addons.length) return null;
+  const cell = { padding: "8px 6px", borderTop: `1px solid ${T.border}`, verticalAlign: "middle" };
+  const box = { width: 84, padding: "6px 8px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.card, color: T.text, fontSize: 13 };
+  return <Card style={{ marginTop: 10 }}>
+    <div style={{ fontSize: 13, fontWeight: 700 }}>Add-ons</div>
+    <div style={{ fontSize: 12, color: T.textMuted, margin: "4px 0 10px", lineHeight: 1.6 }}>
+      Bought with a package or in the middle of one (charged for the days left). Prices are per month in taka; yearly is ten months. Leave the own-key price empty to charge the Standard price.
+    </div>
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 12.5 }}>
+        <thead><tr style={{ color: T.textMuted, fontSize: 11, textAlign: "left" }}>
+          <th style={{ padding: "0 6px 6px" }}>Add-on</th><th style={{ padding: "0 6px 6px" }}>For</th>
+          <th style={{ padding: "0 6px 6px" }}>Standard ৳/mo</th><th style={{ padding: "0 6px 6px" }}>Own key ৳/mo</th>
+          <th style={{ padding: "0 6px 6px" }}>On sale</th><th />
+        </tr></thead>
+        <tbody>{addons.map((a) => <tr key={a.id}>
+          <td style={cell}><b>{a.name}</b><div style={{ fontSize: 11, color: T.textDim }}>{a.id}</div></td>
+          <td style={cell}>{ADDON_FOR[a.biz] || a.biz}</td>
+          <td style={cell}><input id={`addon-${a.id}-monthly`} type="number" min="0" value={v(a, "monthly")} onChange={(e) => set(a, "monthly", e.target.value)} style={box} /></td>
+          <td style={cell}><input id={`addon-${a.id}-byok`} type="number" min="0" value={v(a, "byok_monthly")} onChange={(e) => set(a, "byok_monthly", e.target.value)} style={box} /></td>
+          <td style={cell}><input id={`addon-${a.id}-active`} type="checkbox" checked={v(a, "active") !== false} onChange={(e) => set(a, "active", e.target.checked)} /></td>
+          <td style={cell}><Btn small disabled={busy || !vals[a.id]} onClick={async () => {
+            const r = await post({ action: "save_addon", addon: { id: a.id, monthly: v(a, "monthly"), byok_monthly: v(a, "byok_monthly"), active: v(a, "active") !== false } });
+            if (!r?.error) setVals((s) => { const n = { ...s }; delete n[a.id]; return n; });
+          }}>Save</Btn></td>
+        </tr>)}</tbody>
+      </table>
+    </div>
+  </Card>;
 }
 
 // What this package costs to run, and what is left of its price.

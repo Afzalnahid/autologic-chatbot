@@ -46,5 +46,17 @@ ok("the screen sends an add-on basket", /\{kind:"addon",addons:picks\}/.test(ui)
 ok("every package card shows the own-key price", /with your own AI key<\/div>/.test(ui));
 ok("an own-key package without a key says the bot is waiting", /d\.byok_plan&&!d\.own_key&&d\.active/.test(ui));
 
+// The admin side: add-on prices are edited in the panel (owner-only), and the
+// payment queue shows what each payment buys.
+const pkgRoute = read("src", "app", "api", "admin", "packages", "route.js");
+ok("saving an add-on is a full-access (pricing) action", /const needsOwner = \[[^\]]*"save_addon"/.test(pkgRoute));
+ok("an add-on edit changes only prices and the switch", /const patch = \{ monthly, byok_monthly: int\(a\.byok_monthly\), active: a\.active !== false/.test(pkgRoute) && !/kind: a\.kind|amount: a\.amount/.test(pkgRoute));
+ok("the panel loads the add-ons", /addons: addonsQ\?\.data \|\| \[\]/.test(pkgRoute));
+const pkgUi = read("src", "app", "admin", "Packages.js");
+ok("the package editor shows the add-on editor", /<AddonEditor addons=\{d\.addons \|\| \[\]\}/.test(pkgUi));
+const adminUi = read("src", "app", "admin", "admin-client.js");
+ok("the payment queue marks own-key payments", /\{p\.byok && <Badge color=\{T\.textMuted\}>Own AI key<\/Badge>\}/.test(adminUi));
+ok("the payment queue lists the add-ons bought", /p\.addons && Object\.keys\(p\.addons\)\.length > 0/.test(adminUi));
+
 console.log(`t-billing-basket: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

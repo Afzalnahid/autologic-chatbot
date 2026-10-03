@@ -85,7 +85,7 @@ export async function GET(request) {
   const days = Math.min(365, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 30));
   const since = daysAgo(days);
 
-  const [plansQ, pricesMap, costsQ, usageQ, clientsQ, channelsQ, settings, paymentsQ, ownKeyQ] = await Promise.all([
+  const [plansQ, pricesMap, costsQ, usageQ, clientsQ, channelsQ, settings, paymentsQ, ownKeyQ, addonsQ] = await Promise.all([
     supabase.from("plans").select("*").order("sort"),
     loadPrices(),
     supabase.from("platform_costs").select("*").order("id"),
@@ -104,6 +104,8 @@ export async function GET(request) {
     // own-key price, and the old figure billed them the standard one.
     // Same rule as clientHasOwnKey(): permission alone is not a key.
     supabase.from("client_ai").select("client_id,api_key_enc,provider"),
+    // What can be bought on top of a package (plan_addons), for the editor.
+    supabase.from("plan_addons").select("*").order("sort"),
   ]);
   // What one dollar is worth, and whether that is the market's answer or the
   // owner's. The panel prints both so a margin can never be read off a number
@@ -244,6 +246,7 @@ export async function GET(request) {
   return NextResponse.json({
     role, days,
     plans,
+    addons: addonsQ?.data || [],
     // What the AI model boxes fall back to when neither the client nor their
     // package sets one. The panel shows it so an empty box is still readable.
     platform_model_chain: (await getPlatformAI().catch(() => ({}))).modelChain || null,
@@ -327,7 +330,7 @@ export async function POST(request) {
   const { action } = body;
 
   // Pricing and packaging are money decisions — narrower than general editing.
-  const needsOwner = ["save_plan", "delete_plan", "save_price", "save_platform_cost", "save_settings"];
+  const needsOwner = ["save_plan", "delete_plan", "save_addon", "save_price", "save_platform_cost", "save_settings"];
   if (needsOwner.includes(action) && !CAN_DELETE.includes(role)) {
     return NextResponse.json({ error: "Only a full-access admin can change packages or pricing." }, { status: 403 });
   }
@@ -412,6 +415,22 @@ export async function POST(request) {
     return NextResponse.json({ ok: true });
   }
 
+  // An add-on's prices and switch (plan_addons). What it adds — kind, amount,
+  // business type — is fixed by its id, so an edit can never turn "+100
+  // replies" into something a customer already paid for differently.
+  if (action === "save_addon") {
+    const a = body.addon || {};
+    if (!a.id) return NextResponse.json({ error: "Which add-on?" }, { status: 400 });
+    const monthly = int(a.monthly);
+    if (monthly === null) return NextResponse.json({ error: "An add-on needs a monthly price." }, { status: 400 });
+    const patch = { monthly, byok_monthly: int(a.byok_monthly), active: a.active !== false, updated_at: new Date().toISOString() };
+    if (a.name) patch.name = String(a.name).slice(0, 60);
+    const { data, error } = await supabase.from("plan_addons").update(patch).eq("id", String(a.id)).select("id");
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data?.length) return NextResponse.json({ error: "That add-on does not exist." }, { status: 404 });
+    invalidatePlans();
+    return NextResponse.json({ ok: true });
+  }
   if (action === "delete_plan") {
     const id = String(body.id || "");
     if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
