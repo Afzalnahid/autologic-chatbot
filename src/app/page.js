@@ -8,7 +8,7 @@ import { brandForHost, isWhiteLabel, rebrand } from "@/lib/white-label.js";
 import { TECH_LOGOS } from "@/lib/tech-logos.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
-import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
+import { Copyright, FullAddress } from "./company-line.js";
 import { PLANS, PLAN_ORDER, formatMoney, planPrices } from "@/lib/plans.js";
 import { loadPlans, loadUnits } from "@/lib/plan-limits.js";
 import PublicPlanCard from "./public-plan-card.js";
@@ -602,7 +602,7 @@ export default async function Home({ searchParams }) {
             <a href="#features" className="navlink">{bn ? "ফিচার" : "Features"}</a>
             <a href="#how" className="navlink">{bn ? "কীভাবে কাজ করে" : "How it works"}</a>
             <a href="#plans" className="navlink">{bn ? "দাম" : "Pricing"}</a>
-            <a href="#film" className="navlink">{bn ? "ভিডিও" : "Demo"}</a>
+            <a href="/contact" className="navlink">{bn ? "যোগাযোগ" : "Contact"}</a>
           </div>
 
           <div className="navbtns" style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
@@ -929,7 +929,6 @@ export default async function Home({ searchParams }) {
               <div className="foot-h">{bn ? "পণ্য" : "Product"}</div>
               <a href="#features" className="foot-a">{bn ? "ফিচার" : "Features"}</a>
               <a href="/pricing" className="foot-a">{bn ? "দাম" : "Pricing"}</a>
-              <a href="#film" className="foot-a">{bn ? "ভিডিও" : "Demo"}</a>
               <a href="/google-calendar" className="foot-a">Google Calendar</a>
             </div>
             {/* The solution pages, linked from every page: a reader finds the one
@@ -951,8 +950,8 @@ export default async function Home({ searchParams }) {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontSize: 12.5,
             color: "#857D86", borderTop: "1px solid rgba(255,255,255,.1)", paddingTop: 18, marginTop: 34 }}>
-            <span>{rebrand(COPYRIGHT, brand)}</span>
-            <span>{ADDRESS_SHORT}</span>
+            <Copyright brand={brand} />
+            <FullAddress />
           </div>
         </div>
       </footer>

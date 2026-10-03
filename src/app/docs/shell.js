@@ -4,7 +4,7 @@ import { BotMark } from "@/lib/brand.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { PAGES, GROUPS } from "@/lib/docs/index.js";
 import { docHref } from "./copy.js";
-import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
+import { Copyright, FullAddress } from "../company-line.js";
 import DocsSearch from "./search.js";
 import DocsAuthButton from "./auth-button.js";
 
@@ -278,8 +278,8 @@ export default function DocsShell({ lang, slug, ui, written, children }) {
           </div>
           <div className="lbl" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
             fontSize: 9.5, color: P.inkSoft, borderTop: `1px solid ${P.line}`, paddingTop: 18 }}>
-            <span>{COPYRIGHT}</span>
-            <span>{ADDRESS_SHORT}</span>
+            <Copyright />
+            <FullAddress />
           </div>
         </div>
       </footer>

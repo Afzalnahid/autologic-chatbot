@@ -2,7 +2,8 @@ import { P, THEME_CSS } from "@/lib/landing.js";
 import PublicFonts from "./public-fonts.js";
 import { BotMark } from "@/lib/brand.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
-import { COMPANY, COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
+import { COMPANY } from "@/lib/company.js";
+import { Copyright, FullAddress } from "./company-line.js";
 
 // The frame the plain content pages sit in — contact, privacy, terms and the
 // Google Calendar disclosure.
@@ -206,8 +207,8 @@ export default function SiteShell({ eyebrow, title, lead, updated, children }) {
           </div>
           <div className="lbl" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap",
             gap: 12, fontSize: 9.5, color: P.inkSoft, borderTop: `1px solid ${P.line}`, paddingTop: 18 }}>
-            <span>{COPYRIGHT}</span>
-            <span>{ADDRESS_SHORT}</span>
+            <Copyright />
+            <FullAddress />
           </div>
         </div>
       </footer>

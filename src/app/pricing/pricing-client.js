@@ -5,7 +5,7 @@ import { PLANS, PLAN_ORDER, formatMoney, yearlySavingMonths } from "@/lib/plans.
 import { resolveTheme } from "@/lib/theme-pref.js";
 import { THEME_CSS } from "@/lib/landing.js";
 import PublicPlanCard from "../public-plan-card.js";
-import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
+import { Copyright, FullAddress } from "../company-line.js";
 
 // Reads the shared site palette, so pricing follows the same crimson-on-white
 // theme (and the same light/dark switch) as the landing page and dashboard.
@@ -345,7 +345,7 @@ export default function PricingClient() {
 
       <footer style={{ borderTop: `1px solid ${T.border}` }}>
         <div style={{ ...wrap, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, padding: "24px 20px", fontSize: 13, color: T.muted }}>
-          <div>{COPYRIGHT} · {ADDRESS_SHORT}</div>
+          <div><Copyright /> · <FullAddress /></div>
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
             {FOOTER_LINKS.en.map(([slug, label]) => (
               <a key={slug} href={solutionHref(slug, "en")} style={{ color: T.muted, textDecoration: "none" }}>{label}</a>
