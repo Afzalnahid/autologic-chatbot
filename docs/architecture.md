@@ -592,6 +592,12 @@ screen ships.
     `BYOK_NO_KEY_MESSAGE`. This guards the assistant, imports and photo drafts.
 - **Limits.** `limitsFor()` adds a paid client's add-ons to `messages_per_month`,
   `max_products` and `max_kb_files`. Unlimited stays unlimited.
+- **Where a visitor sees it.** The home page plans section has two CSS-only
+  switches (no script): shop / service, and "With our AI" / "With your own AI
+  key (BYOK)". The own-key side is a full set of cards at `planPrices(p).byok`,
+  each buying with `&byok=1`; the trial card stays on the our-AI side. Every
+  our-AI card also carries a small own-key price line that flips the switch.
+  `/pricing` and the dashboard Billing tab show the same choice.
 
 ### The own-key (BYOK) price list (the older rule)
 

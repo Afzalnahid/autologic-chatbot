@@ -9,7 +9,7 @@ import { TECH_LOGOS } from "@/lib/tech-logos.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
-import { PLANS, PLAN_ORDER, formatMoney } from "@/lib/plans.js";
+import { PLANS, PLAN_ORDER, formatMoney, planPrices } from "@/lib/plans.js";
 import { loadPlans } from "@/lib/plan-limits.js";
 
 // Four facts for the strip under the features — each one true of the product
@@ -441,8 +441,22 @@ export default async function Home({ searchParams }) {
         #al-biz-svc:checked ~ .ptab-row label[for="al-biz-svc"] { background: var(--lp-grad); color: #fff }
         #al-biz-shop:focus-visible ~ .ptab-row label[for="al-biz-shop"],
         #al-biz-svc:focus-visible ~ .ptab-row label[for="al-biz-svc"] { outline: 2px solid ${P.accent}; outline-offset: 2px }
+        /* The second switch: our AI, or the customer's own AI key (BYOK). */
+        .ktab-row { margin-top: -14px }
+        .ktab-row label { padding: 7px 16px; font-size: 12.5px }
+        #al-key-std:checked ~ .ktab-row label[for="al-key-std"],
+        #al-key-own:checked ~ .ktab-row label[for="al-key-own"] { background: ${P.ink}; color: ${P.paper} }
+        #al-key-std:focus-visible ~ .ktab-row label[for="al-key-std"],
+        #al-key-own:focus-visible ~ .ktab-row label[for="al-key-own"] { outline: 2px solid ${P.accent}; outline-offset: 2px }
+        .kexp { display: none; max-width: 620px; margin: -12px auto 24px; text-align: center; font-size: 13.5px; line-height: 1.6; color: ${P.inkSoft} }
+        #al-key-own:checked ~ .kexp { display: block }
         .pgrid { display: none; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 16px; align-items: stretch }
-        #al-biz-shop:checked ~ .p-shop, #al-biz-svc:checked ~ .p-svc { display: grid }
+        #al-biz-shop:checked ~ #al-key-std:checked ~ .p-shop.k-std,
+        #al-biz-shop:checked ~ #al-key-own:checked ~ .p-shop.k-own,
+        #al-biz-svc:checked ~ #al-key-std:checked ~ .p-svc.k-std,
+        #al-biz-svc:checked ~ #al-key-own:checked ~ .p-svc.k-own { display: grid }
+        .pkey { display: block; font-size: 12.5px; opacity: .85; margin: 0 0 6px; cursor: pointer }
+        .pwas { font-size: 12.5px; opacity: .75; margin: 0 0 6px }
         .pcard { position: relative; display: flex; flex-direction: column; background: ${P.paper}; color: ${P.ink};
           border: 1px solid ${P.line}; border-radius: 20px; padding: 24px; box-shadow: var(--lp-nm-sm) }
         .pcard.trial { border-style: dashed; border-color: ${P.accent}; box-shadow: none }
@@ -775,12 +789,23 @@ export default async function Home({ searchParams }) {
           <div className="ptabs">
             <input type="radio" name="al-biz" id="al-biz-shop" defaultChecked />
             <input type="radio" name="al-biz" id="al-biz-svc" />
+            <input type="radio" name="al-key" id="al-key-std" defaultChecked />
+            <input type="radio" name="al-key" id="al-key-own" />
             <div className="ptab-row">
               <label htmlFor="al-biz-shop">{bn ? "দোকানের জন্য" : "For shops"}</label>
               <label htmlFor="al-biz-svc">{bn ? "সেবার জন্য" : "For services"}</label>
             </div>
+            <div className="ptab-row ktab-row">
+              <label htmlFor="al-key-std">{bn ? "আমাদের AI দিয়ে" : "With our AI"}</label>
+              <label htmlFor="al-key-own"><i className="ti ti-key" style={{ marginRight: 5 }} />{bn ? "নিজের AI কী দিয়ে (BYOK)" : "With your own AI key (BYOK)"}</label>
+            </div>
+            <p className="kexp">
+              {bn ? "নিজের Google Gemini বা OpenAI কী থাকলে কম দামে একই প্যাকেজ নিন। AI-এর খরচ সরাসরি আপনার কী থেকে যায়; কেনার পর ড্যাশবোর্ডে কী বসালেই বট চালু।"
+                  : "Have your own Google Gemini or OpenAI key? Take the same package for less. The AI cost goes straight to your key; paste it in your dashboard after buying and the bot starts."}
+            </p>
+            {/* Our-AI cards. */}
             {[["ecommerce", "p-shop"], ["agency", "p-svc"]].map(([biz, cls]) => (
-              <div key={biz} className={`pgrid ${cls}`}>
+              <div key={biz} className={`pgrid ${cls} k-std`}>
                 {/* The free trial is a package too: its own card, its own button.
                     The paid cards are for buying, so they say so. */}
                 {trial && (
@@ -809,13 +834,13 @@ export default async function Home({ searchParams }) {
                       <span className="fr" style={{ fontSize: 36 }}>{formatMoney(p.monthly)}</span>
                       <span style={{ fontSize: 13, opacity: .75 }}>{bn ? "/মাস" : "/mo"}</span>
                     </div>
-                    {/* The own-key price, on every card (owner, 2026-10-03). */}
-                    {Number(p.byok_monthly) > 0 && (
-                      <a href={`/dashboard?upgrade=${encodeURIComponent(p.id)}&cycle=monthly&byok=1`}
-                        style={{ display: "block", fontSize: 12.5, opacity: .85, margin: "0 0 6px", color: "inherit", textDecoration: "none" }}>
+                    {/* The own-key price, on every card (owner, 2026-10-03).
+                        A label: pressing it turns the switch to the own-key cards. */}
+                    {planPrices(p).byok && (
+                      <label htmlFor="al-key-own" className="pkey">
                         <i className="ti ti-key" style={{ marginRight: 4 }} />
-                        {bn ? `নিজের AI কী দিয়ে ${formatMoney(p.byok_monthly)}/মাস` : `${formatMoney(p.byok_monthly)}/mo with your own AI key`}
-                      </a>
+                        {bn ? `নিজের AI কী দিয়ে ${formatMoney(planPrices(p).byok)}/মাস` : `${formatMoney(planPrices(p).byok)}/mo with your own AI key`}
+                      </label>
                     )}
                     <div style={{ fontSize: 13, opacity: .8, minHeight: 38, lineHeight: 1.5 }}>{p.tagline}</div>
                     <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 22px", display: "grid", gap: 9 }}>
@@ -832,9 +857,52 @@ export default async function Home({ searchParams }) {
                 ))}
               </div>
             ))}
+            {/* Own-AI-key (BYOK) cards: the same packages at the own-key price,
+                bought as own-key (owner, 2026-10-04: "show the byok packages
+                also"). No trial card — the trial runs on our AI. */}
+            {[["ecommerce", "p-shop"], ["agency", "p-svc"]].map(([biz, cls]) => (
+              <div key={biz} className={`pgrid ${cls} k-own`}>
+                {plans.filter((p) => p.biz === biz && planPrices(p).byok).map((p) => {
+                  const { std, byok } = planPrices(p);
+                  return (
+                    <div key={p.id} className={`pcard${p.highlight ? " hl" : ""}`}>
+                      {p.highlight && <span className="pbadge">{bn ? "সবচেয়ে জনপ্রিয়" : "Most popular"}</span>}
+                      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", opacity: .8 }}>
+                        {p.name} · {bn ? "নিজের কী" : "Own key"}
+                      </div>
+                      <div style={{ margin: "10px 0 4px", display: "flex", alignItems: "baseline", gap: 4 }}>
+                        <span className="fr" style={{ fontSize: 36 }}>{formatMoney(byok)}</span>
+                        <span style={{ fontSize: 13, opacity: .75 }}>{bn ? "/মাস" : "/mo"}</span>
+                      </div>
+                      {std > byok && (
+                        <div className="pwas">
+                          {bn ? `আমাদের AI দিয়ে ${formatMoney(std)} — ${formatMoney(std - byok)} কম`
+                              : `${formatMoney(std)} with our AI — ${formatMoney(std - byok)} less`}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 13, opacity: .8, minHeight: 38, lineHeight: 1.5 }}>{p.tagline}</div>
+                      <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 22px", display: "grid", gap: 9 }}>
+                        <li style={{ display: "flex", gap: 8, fontSize: 13.5, lineHeight: 1.45, fontWeight: 600 }}>
+                          <i className="ti ti-key" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />
+                          {bn ? "আপনার নিজের Gemini বা OpenAI কী-তে চলে" : "Runs on your own Gemini or OpenAI key"}
+                        </li>
+                        {(p.feature_list || []).map((f) => (
+                          <li key={f} style={{ display: "flex", gap: 8, fontSize: 13.5, lineHeight: 1.45 }}>
+                            <i className="ti ti-check" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />{f}
+                          </li>
+                        ))}
+                      </ul>
+                      <a href={`/dashboard?upgrade=${encodeURIComponent(p.id)}&cycle=monthly&byok=1`} className="btn pbtn">
+                        {bn ? `${p.name} (নিজের কী) কিনুন` : `Buy ${p.name} (own key)`}
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
           <p style={{ textAlign: "center", fontSize: 13, color: P.inkSoft, margin: "22px 0 0" }}>
-            {bn ? "লঞ্চ দাম, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত। নিজের AI কী, বছরের দাম আর পুরো তুলনা — " : "Launch prices, valid until 31 December 2026. Own-AI-key prices, yearly billing and the full comparison — "}
+            {bn ? "লঞ্চ দাম, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত। বছরের দাম, বাড়তি অংশ (add-on) আর পুরো তুলনা — " : "Launch prices, valid until 31 December 2026. Yearly billing, add-ons and the full comparison — "}
             <a href="/pricing" style={{ color: P.accent, fontWeight: 600 }}>{bn ? "দামের পাতায়" : "on the pricing page"}</a>
           </p>
         </div>
