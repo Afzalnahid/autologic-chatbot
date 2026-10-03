@@ -93,7 +93,7 @@ export async function GET(request) {
     // the screen is a sum of these rows, and a capped read is a cost report
     // that is quietly too low.
     pageAll((from, to) => supabase.from("usage_daily").select("*").gte("day", since).order("day", { ascending: true }).range(from, to)),
-    supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type,internal"),
+    supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type,internal,addons,byok_plan,billing_cycle"),
     supabase.from("channels").select("id,client_id,platform,page_id,name,status,msg_limit_monthly"),
     billingSettings().then(freshRate),
     // Money that actually arrived. Revenue used to be inferred from the `plan`
@@ -515,7 +515,7 @@ export async function POST(request) {
     // DIFFERS from the package — an override should mean an exception, nothing
     // else. This is decided here rather than in the browser because it is the
     // rule that protects the data, not a display choice.
-    const { data: cl } = await supabase.from("clients").select("plan, limit_overrides").eq("id", client_id).maybeSingle();
+    const { data: cl } = await supabase.from("clients").select("plan, limit_overrides, addons").eq("id", client_id).maybeSingle();
     const plan = (await loadPlans())[cl?.plan] || {};
     const clean = {};
     for (const k of ["messages_per_day", "messages_per_month", "messages_per_channel", "channels",

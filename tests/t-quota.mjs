@@ -17,7 +17,9 @@ const src = readFileSync(__R("src/lib/plan-limits.js"), "utf8")
   // features.js is pure (no imports), so the real file is copied beside the test.
   .replace(/from "@\/lib\/features\.js";$/m, 'from "./tmp-features3.mjs";')
   // allowance.js is pure (no imports), so the real file is imported where it lives.
-  .replace(/from "@\/lib\/allowance\.js";$/m, 'from "../src/lib/allowance.js";');
+  .replace(/from "@\/lib\/allowance\.js";$/m, 'from "../src/lib/allowance.js";')
+  // pricing.js is pure (no imports), so the real file is imported where it lives.
+  .replace(/from "@\/lib\/pricing\.js";$/m, 'from "../src/lib/pricing.js";');
 if (/@\/lib\//.test(src)) throw new Error("an import was left unrewritten — the shim needs updating");
 writeFileSync(new URL("tmp-plans3.mjs", import.meta.url), readFileSync(__R("src/lib/plans.js"), "utf8"));
 writeFileSync(new URL("tmp-features3.mjs", import.meta.url), readFileSync(__R("src/lib/features.js"), "utf8"));

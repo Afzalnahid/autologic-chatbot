@@ -25,6 +25,9 @@ Every tenant-owned table carries `client_id uuid` referencing `clients.id`.
 | `gcal_access_token`, `gcal_refresh_token` | text | Google Calendar OAuth |
 | `gcal_token_expiry` | timestamptz | Refresh trigger |
 | `gcal_email`, `gcal_connected` | text / boolean | Connection state |
+| `byok_plan` | boolean, not null, default false | The current package was bought as own-key (BYOK): it is priced from the own-key list, its AI Engine is open, and the bot waits rather than using our AI when no key is saved. Backfilled true on 2026-10-03 for the one client already running on their own key. |
+| `addons` | jsonb, not null, default `{}` | Add-ons the client pays for, `{ addon_id: quantity }` (see `plan_addons`). They renew with the package. |
+| `billing_cycle` | text | `monthly` / `yearly` of the current package; mid-period add-ons are prorated over it. Null until the first purchase under the new flow (treated as monthly). |
 | `signup_brand` | text, not null, default `tellmore` | Which address the account signed up on: `tellmore`, or a white-label partner id from `src/lib/white-label.js` (`tellme` = tellme.ufirstltd.com). Set once by `POST /api/me` (`register`) from the request's host; the admin list shows "via Tell Me". The partner's revenue share is counted on it. Added 2026-10-03; every earlier row is `tellmore`. |
 
 #### Expiry reminders
@@ -256,14 +259,48 @@ single place that decides what may change:
 Gateway columns: `source` (`manual` / `sslcommerz`), `gateway_status`, `val_id`,
 `bank_tran_id`, `card_type`, `currency`, `paid_at`.
 
-`status` is `pending` / `approved` / `rejected` for manual payments and
-`initiated` / `approved` / `failed` / `cancelled` for gateway payments. There is no
-CHECK constraint on the column.
+`status` (no CHECK constraint, checked against the code 2026-10-03):
+- `pending` — the default. A manual payment waits here for an admin; an online
+  checkout waits here for the gateway.
+- `approved` / `rejected` — decided.
+- `expired` — an online checkout that was cancelled, failed, or never finished
+  within 60 minutes (`src/lib/billing-rules.js`). A late gateway confirmation can
+  still activate it.
+
+The older note that gateway rows use `initiated` / `failed` / `cancelled` was
+wrong: the code never wrote those.
+
+What a payment buys (added 2026-10-03, migration `package_addons_and_byok_plans`):
+- `kind` — `plan` (a package purchase or renewal) or `addon` (add-ons bought in the
+  middle of a running package).
+- `byok` — the package was bought as own-key (BYOK).
+- `addons` — `{ addon_id: quantity }`.
+The amount is always priced on the server by `src/lib/pricing.js`.
 
 Idempotency: unique index on `val_id` (where not null) and on `txn_id` (where
 `source <> 'manual'`), so one transaction can never extend a plan twice.
 
-Only one `pending` row per client is allowed — enforced in the billing API.
+Only one row per client may block a new payment (a manual `pending` one, or an
+online one under an hour old) — enforced in the billing API.
+
+### `plan_addons` — what can be bought on top of a package
+`id` (e.g. `replies_100`), `name`, `kind` (`replies` / `products` / `docs`),
+`amount` (how much the limit grows), `biz` (`both` / `ecommerce` / `agency`),
+`monthly`, `byok_monthly` (null = same as `monthly`), `active`, `sort`,
+`updated_at`. Yearly is always ten months. Seeded 2026-10-03:
+
+| id | adds | for | Standard / BYOK per month |
+|---|---|---|---|
+| `replies_100` | 100 bot replies a month | both | ৳149 / ৳89 |
+| `replies_200` | 200 bot replies a month | both | ৳279 / ৳169 |
+| `products_50` | 50 products | shops | ৳99 / ৳59 |
+| `products_100` | 100 products | shops | ৳179 / ৳109 |
+| `docs_5` | 5 documents | services | ৳99 / ৳59 |
+| `docs_10` | 10 documents | services | ৳179 / ৳109 |
+
+`limitsFor()` adds a paid client's add-ons (`clients.addons`) on top of the
+package or the override. `src/lib/pricing.js` `ADDON_DEFAULTS` is the fallback
+when the table cannot be read. RLS is on with no policies (service key only).
 
 ### `admin_users` — platform staff
 `id`, `email` (unique), `role` (`super` / `full` / `editor` / `viewer` / `pending`),
