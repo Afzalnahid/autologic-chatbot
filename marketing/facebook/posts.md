@@ -3,7 +3,7 @@
 Everything the Page needs, in the order to post it. Every fact here was checked
 against the live site (tellmoreai.com, /pricing, /contact) on 2026-09-27:
 3-day free trial with no card; Shop plans from ৳2,699/month, Service plans from
-৳2,299/month; own-AI-key price from ৳1,999 (Shop) / ৳1,699 (Service); launch
+৳2,299/month; own-AI-key price from ৳1,599 (Shop) / ৳1,399 (Service); launch
 prices valid until 31 December 2026; Messenger, Instagram, WhatsApp and a
 website widget; Bangla, English and Banglish; an Autolinium product.
 Do not add numbers that are not on that list.
@@ -109,7 +109,7 @@ TellMore AI আপনার ডকুমেন্ট আর সার্ভি�
 💰 দাম (লঞ্চ অফার, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত):
 🛍️ দোকানের প্যাকেজ — মাসে ৳২,৬৯৯ থেকে
 🧑‍💼 সেবার প্যাকেজ — মাসে ৳২,২৯৯ থেকে
-🔑 নিজের AI key থাকলে আরও কম — ৳১,৯৯৯ / ৳১,৬৯৯ থেকে
+🔑 নিজের AI key থাকলে আরও কম — ৳১,৫৯৯ / ৳১,৩৯৯ থেকে
 📆 বছরে একসাথে নিলে ২ মাস ফ্রি
 
 প্রতিটা প্যাকেজে সব ফিচার আছে — পার্থক্য প্যাকেজের আকারে, যেমন মাসে কত রিপ্লাই আর কত পণ্য।

@@ -1306,7 +1306,7 @@ export const DOCS = {
 
       { biz: "ecommerce", table: { head: ["For shops", "Shop Basic", "Shop Pro", "Shop Enterprise"], rows: [
         ["Price / month (launch price to 31 Dec 2026)", "৳2,699", "৳5,999", "৳11,999"],
-        ["On your own AI key / month", "৳1,999", "৳4,499", "৳8,999"],
+        ["On your own AI key / month", "৳1,599", "৳3,599", "৳7,099"],
         ["Products you can add (total, never resets)", "500", "1,000", "2,500"],
         ["Products from a website link / month", "10", "40", "100"],
         ["Photo product matching", "Yes", "Yes", "Yes"],
@@ -1315,7 +1315,7 @@ export const DOCS = {
 
       { biz: "agency", table: { head: ["For services", "Service Basic", "Service Pro", "Service Enterprise"], rows: [
         ["Price / month (launch price to 31 Dec 2026)", "৳2,299", "৳4,999", "৳9,999"],
-        ["On your own AI key / month", "৳1,699", "৳3,499", "৳7,499"],
+        ["On your own AI key / month", "৳1,399", "৳2,999", "৳5,999"],
         ["Knowledge documents you can add (total, never resets)", "20", "60", "150"],
         ["Google Calendar booking", "Yes", "Yes", "Yes"],
         ["Comment automation", "Yes", "Yes", "Yes"],
