@@ -17,12 +17,12 @@ export const PLANS_TABLE = {
   trialDays: 3,
   trialPerDay: 30,
   rows: [
-    { id: "shop_basic",      name: "Shop Basic",         biz: "shop", monthly: 2699,  yearly: 26990,  byok: 1599, perMonth: 2000 },
-    { id: "shop_pro",        name: "Shop Pro",           biz: "shop", monthly: 5999,  yearly: 59990,  byok: 3599, perMonth: 5500 },
-    { id: "shop_enterprise", name: "Shop Enterprise",    biz: "shop", monthly: 11999, yearly: 119990, byok: 7099, perMonth: 12000 },
-    { id: "svc_basic",       name: "Service Basic",      biz: "svc",  monthly: 2299,  yearly: 22990,  byok: 1399, perMonth: 2000 },
-    { id: "svc_pro",         name: "Service Pro",        biz: "svc",  monthly: 4999,  yearly: 49990,  byok: 2999, perMonth: 5500 },
-    { id: "svc_enterprise",  name: "Service Enterprise", biz: "svc",  monthly: 9999,  yearly: 99990,  byok: 5999, perMonth: 12000 },
+    { id: "shop_basic",      name: "Shop Basic",         biz: "shop", monthly: 2699,  yearly: 26990,  byok: 1349, perMonth: 2000 },
+    { id: "shop_pro",        name: "Shop Pro",           biz: "shop", monthly: 5999,  yearly: 59990,  byok: 2999, perMonth: 5500 },
+    { id: "shop_enterprise", name: "Shop Enterprise",    biz: "shop", monthly: 11999, yearly: 119990, byok: 5999, perMonth: 12000 },
+    { id: "svc_basic",       name: "Service Basic",      biz: "svc",  monthly: 2299,  yearly: 22990,  byok: 1149, perMonth: 2000 },
+    { id: "svc_pro",         name: "Service Pro",        biz: "svc",  monthly: 4999,  yearly: 49990,  byok: 2499, perMonth: 5500 },
+    { id: "svc_enterprise",  name: "Service Enterprise", biz: "svc",  monthly: 9999,  yearly: 99990,  byok: 4999, perMonth: 12000 },
   ],
   en: {
     h: "Packages",

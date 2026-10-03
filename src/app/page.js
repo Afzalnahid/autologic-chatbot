@@ -800,8 +800,8 @@ export default async function Home({ searchParams }) {
               <label htmlFor="al-key-own"><i className="ti ti-key" style={{ marginRight: 5 }} />{bn ? "নিজের AI কী দিয়ে (BYOK)" : "With your own AI key (BYOK)"}</label>
             </div>
             <p className="kexp">
-              {bn ? "নিজের Google Gemini বা OpenAI কী থাকলে কম দামে একই প্যাকেজ নিন। AI-এর খরচ সরাসরি আপনার কী থেকে যায়; কেনার পর ড্যাশবোর্ডে কী বসালেই বট চালু।"
-                  : "Have your own Google Gemini or OpenAI key? Take the same package for less. The AI cost goes straight to your key; paste it in your dashboard after buying and the bot starts."}
+              {bn ? "নিজের Google Gemini বা OpenAI কী থাকলে অর্ধেক দামে একই প্যাকেজ নিন। AI-এর খরচ সরাসরি আপনার কী থেকে যায়; কেনার পর ড্যাশবোর্ডে কী বসালেই বট চালু।"
+                  : "Have your own Google Gemini or OpenAI key? Take the same package at half price. The AI cost goes straight to your key; paste it in your dashboard after buying and the bot starts."}
             </p>
             {/* Our-AI cards. */}
             {[["ecommerce", "p-shop"], ["agency", "p-svc"]].map(([biz, cls]) => (
@@ -902,7 +902,7 @@ export default async function Home({ searchParams }) {
             ))}
           </div>
           <p style={{ textAlign: "center", fontSize: 13, color: P.inkSoft, margin: "22px 0 0" }}>
-            {bn ? "লঞ্চ দাম, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত। বছরের দাম, বাড়তি অংশ (add-on) আর পুরো তুলনা — " : "Launch prices, valid until 31 December 2026. Yearly billing, add-ons and the full comparison — "}
+            {bn ? "লঞ্চ দাম, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত। বছরের দাম, নিজের মতো সংখ্যা বাড়ানো-কমানো আর পুরো তুলনা — " : "Launch prices, valid until 31 December 2026. Yearly billing, setting your own numbers and the full comparison — "}
             <a href="/pricing" style={{ color: P.accent, fontWeight: 600 }}>{bn ? "দামের পাতায়" : "on the pricing page"}</a>
           </p>
         </div>

@@ -1144,7 +1144,7 @@ export const DOCS = {
       { h: "You probably do not need this tab",
         p: [
           "Out of the box your bot runs on **TellMore AI's AI**. Nothing to set up, nothing extra to pay, it is part of your plan. Most owners never open this tab, and that is fine.",
-          "It exists for businesses that want the AI usage billed to their own account instead of ours — and every package costs much less that way (see **Packages**).",
+          "It exists for businesses that want the AI usage billed to their own account instead of ours — and every package is half price that way (see **Packages**).",
         ] },
 
       { shot: "ai-engine", cap: "An account running on its own key: the key shown masked, the main model and the fallback." },
@@ -1190,7 +1190,7 @@ export const DOCS = {
 
       { h: "Everything runs on your key",
         p: [
-          "On your own key, **all** of the AI runs on it: replies, reading photos, voice notes, and the search that matches your products and documents. That is why the package costs so much less.",
+          "On your own key, **all** of the AI runs on it: replies, reading photos, voice notes, and the search that matches your products and documents. That is why the package is half price.",
           "Searching your products and documents needs every item turned into numbers by the same provider. When you switch provider, we redo that for your items in the background; for a little while some may not be found until it finishes.",
         ] },
 
@@ -1212,35 +1212,48 @@ export const DOCS = {
 
   "billing": {
     title: "Billing",
-    lead: "Your plan, how much of it you have used, and how to buy or renew one — on our AI or your own key, with add-ons if you need more.",
+    lead: "Your package, how much of it you have used, and how to renew it, change it or set your own numbers — on our AI or your own key at half price.",
     time: 4,
     blocks: [
-      { h: "Your current plan",
+      { h: "My package",
         p: [
-          "The card at the top shows which plan you are on and two counters: **Bot replies today** and **Bot replies this month**. On an unlimited plan it says so instead of counting.",
+          "Billing opens on **your own package** and nothing else: its name, whether it runs on our AI or your own key, what it costs you, the date it ends and how many days are left, and what you have used — bot replies this month, products or documents added, AI Assistant questions.",
           "A “message” here is **one bot reply to one customer message** — one, even when the answer comes as two or three bubbles. Replies you send yourself, from anywhere, are never counted, and nothing is counted while the bot is off.",
+          "Under it is everything your package includes. Every package has every feature; what changes is how much.",
         ] },
 
       { note: "These are the same limits the bot itself enforces. When you run out, the bot stops replying — so it is worth glancing at this card before a big campaign or a festival rush, not after.",
         kind: "warn" },
 
-      { shot: "billing", cap: "The current plan with what is left this month, the plans you can move to, and your payment history." },
+      { shot: "billing", cap: "Your package with what is left this month, and the three ways on: Renew, Update package and Add more." },
 
-      { h: "Buying, renewing or changing plan",
-        steps: [
-          "Press **Choose a plan** or **Renew or change**.",
-          "Pick a plan. The one most businesses choose is marked **Popular**, and the one you are on is marked **Current**.",
-          "Choose **Standard (our AI)** or **Own AI key**. On your own key every AI reply runs on your own Google Gemini or OpenAI key, so the plan costs much less — after payment the **AI Engine** tab opens for you to add the key.",
-          "Choose **Monthly** or **Yearly**. Yearly gives you **two months free**.",
-          "Optionally add more: extra **bot replies**, **AI Assistant questions**, **products** (shops) or **documents** (services). Press **+** as many times as you need; the total underneath updates as you go.",
+      { h: "Three buttons",
+        p: [
+          "**Renew** — the same package with the same numbers, straight to payment.",
+          "**Update package** — the packages for your business appear, and you can move to another one or change your own numbers.",
+          "**Add more** — raise your numbers in the middle of the month (below).",
+          "On the free trial, or with no package yet, there is one button: **Choose a package**.",
         ] },
 
-      { p: ["Renewing your current plan starts with what you have now — own key or not, and the same add-ons ticked — so a renewal is one press. Add-ons renew with the plan until you untick them."] },
+      { h: "Choosing or updating a package",
+        steps: [
+          "Press **Update package** (or **Choose a package**).",
+          "Pick a package. The one you are on is marked **Current**.",
+          "Choose **Standard (our AI)** or **Own AI key · half price**. On your own key every AI reply runs on your own Google Gemini or OpenAI key, so the package is half the price — after approval the **AI Engine** tab opens for you to add the key.",
+          "Choose **Monthly** or **Yearly**. Yearly gives you **two months free**.",
+          "**Set your numbers.** Bot replies a month, products (shops) or knowledge files (services), and AI Assistant questions each have a slider, like a mobile pack. Each starts at the package's own number; move it up or down — or press **−** / **+** — and the price changes as you go. **Reset** puts them back.",
+        ] },
 
-      { h: "Add-ons in the middle of the month",
+      { p: [
+        "Each number moves in steps: **50** replies, **50** products, **5** files, **50** questions. It goes as low as the package below yours and as high as the package above. Each step up adds its price; each step down takes off half of it.",
+        "If your numbers cost as much as the next package, the screen says so and offers **Switch** — the bigger package is then the better deal.",
+        "Your numbers renew with your package until you change them.",
+      ] },
+
+      { h: "Add more in the middle of the month",
         p: [
-          "Running low before the month is over? Press **Buy add-ons** on the current-plan card, pick what you need, and pay. You pay only for the **days left** on your plan — half a month left, half the price.",
-          "They are added as soon as the payment is confirmed, and from your next renewal they renew with your plan at the full price.",
+          "Running low before the month is over? Press **Add more**, raise the numbers you need, and pay. You pay only for the **days left** on your package — half a month left, half the price.",
+          "The higher numbers apply as soon as the payment is approved, and from your next renewal they are part of your package. A number can only go **down** when you renew, with **Update package**.",
         ] },
 
       { h: "Paying",
@@ -1248,17 +1261,19 @@ export const DOCS = {
         steps: [
           "The page shows the exact amount and the numbers you can send to. The copy icon beside a number puts it on your clipboard.",
           "Open bKash or Nagad and **Send Money** for exactly that amount.",
-          "Come back and enter the **Transaction ID** from your payment receipt. Your own number is optional but helps us match it faster.",
+          "Come back and enter the **Transaction ID** from your payment receipt, and the number you paid from — it helps us match it faster.",
           "Press **Submit payment**.",
         ] },
 
-      { note: "Send the amount **exactly**. A payment that is short, or sent as a merchant payment instead of Send Money, takes much longer to match up and may need to be sent again.",
+      { note: "Send the amount **exactly**. A payment that is short, or sent as a merchant payment instead of Send Money, takes much longer to match up and may need to be sent again. One transaction ID pays for one purchase — the same ID cannot be used twice.",
         kind: "warn" },
 
       { h: "After you submit",
         p: [
-          "A card appears saying **Payment under review**. A person checks the transaction against the number you sent to, then your plan changes.",
-          "Nothing is automatic here, so allow a little time. If it has not moved within a working day, write to us with the transaction ID.",
+          "We check the transaction, then switch your purchase on — usually within a few hours. You are told **on your phone and by email** the moment it is approved, and the page updates by itself; there is no need to reload or sign in again.",
+          "**Buying your first package:** until it is approved your account shows only the **Payment under review** screen. If you have not used your free trial, that screen offers **Use the free trial while you wait** — set your bot up now, and when the payment is approved your package takes the trial's place.",
+          "**Renewing or updating:** your dashboard keeps working, and Billing shows a **Payment under review** card until it is approved.",
+          "If a payment is **not approved**, you are told why on your phone, by email and at the top of Billing, with a **Try again** button.",
         ] },
 
       { p: ["**Payment history** at the bottom lists everything you have submitted, with its transaction ID, so you always have a record."] },
@@ -1267,18 +1282,22 @@ export const DOCS = {
         faq: [
           { q: "The page says payment numbers are not configured.",
             a: "That is on our side, not yours — no numbers have been set up for the account yet. Write to us and we will complete the payment for you directly." },
-          { q: "I paid but my plan has not changed.",
-            a: "A person has to match the transaction first. If a working day has passed, write to us with the transaction ID and the number you sent from." },
+          { q: "I paid but my package has not changed.",
+            a: "We have to match the transaction first. If a working day has passed, write to us with the transaction ID and the number you sent from." },
           { q: "I entered the transaction ID wrongly.",
-            a: "Submit it again with the correct one. A duplicate submission is not charged twice — matching is done against the actual transaction, not against what you typed." },
+            a: "If it is turned down, Billing shows the reason and a **Try again** button — submit it with the correct ID." },
+          { q: "It says the transaction ID has already been used.",
+            a: "Each transaction pays for one purchase. Check the ID in your bKash or Nagad app — if you really sent a new payment, its ID is different." },
           { q: "What happens when I hit my message limit?",
-            a: "The bot stops replying until the period resets, you buy more replies as an add-on, or you upgrade. Your conversations, orders and training are untouched — nothing is lost, it simply pauses." },
-          { q: "I bought an own-key plan but the bot is not replying.",
+            a: "The bot stops replying until the period resets, you raise your replies with **Add more**, or you move up a package. Your conversations, orders and training are untouched — nothing is lost, it simply pauses." },
+          { q: "Can I start the free trial again?",
+            a: "No — the free trial is once per account." },
+          { q: "I bought an own-key package but the bot is not replying.",
             a: "It is waiting for your key. Open **AI Engine**, paste your Google Gemini or OpenAI key and choose a model — the bot starts with the next message." },
-          { q: "What happens to my key if I switch to a Standard plan?",
-            a: "The AI Engine tab closes and the saved key is removed; the bot runs on our AI, included in the plan." },
+          { q: "What happens to my key if I switch to a Standard package?",
+            a: "The AI Engine tab closes and the saved key is removed; the bot runs on our AI, included in the package." },
           { q: "Is yearly really cheaper?",
-            a: "Yes — a yearly plan is twelve months for the price of ten. If you are past your trial and intend to keep using it, yearly is straightforwardly better value." },
+            a: "Yes — a yearly package is twelve months for the price of ten, and that includes your own numbers." },
           { q: "Can I pay with a card?",
             a: "When **Pay online** is shown on the payment step, yes — by card or mobile banking. Otherwise bKash and Nagad Send Money are the supported methods." },
         ] },
@@ -1287,7 +1306,7 @@ export const DOCS = {
 
   "packages": {
     title: "Packages",
-    lead: "A free trial, then three sizes for shops and three for services, each with a lower price on your own AI key. Every package carries every feature; what changes is how much. Which is yours, and what happens when you reach a limit.",
+    lead: "A free trial, then three sizes for shops and three for services, each at half price on your own AI key, with numbers you can set yourself. Every package carries every feature; what changes is how much. Which is yours, and what happens when you reach a limit.",
     time: 5,
     blocks: [
       { h: "Two ladders, not one",
@@ -1312,7 +1331,7 @@ export const DOCS = {
       { h: "The three sizes",
         p: [
           "Two sets of three: one for shops, one for services. They grow the same way — replies, channels, AI Assistant questions — but a shop is sized by the products it adds and a service by the knowledge documents it adds. Services cost less, because there is no catalogue for the AI to read. Each set has a lower price for a business on its own AI key.",
-          "**Every tier has every feature.** Moving up does not unlock anything — photo matching, comment automation, calendar booking and the AI Assistant are in all three, and in the free trial. Every paid package can also be bought **on your own AI key**, for much less. What you are buying is **size**: how many replies the bot may send, how many channels it answers on, how big a catalogue or how many documents it can hold.",
+          "**Every tier has every feature.** Moving up does not unlock anything — photo matching, comment automation, calendar booking and the AI Assistant are in all three, and in the free trial. Every paid package can also be bought **on your own AI key**, at half the price. What you are buying is **size**: how many replies the bot may send, how many channels it answers on, how big a catalogue or how many documents it can hold.",
         ] },
 
       { table: { head: ["", "Basic", "Pro", "Enterprise"], rows: [
@@ -1326,7 +1345,7 @@ export const DOCS = {
 
       { biz: "ecommerce", table: { head: ["For shops", "Shop Basic", "Shop Pro", "Shop Enterprise"], rows: [
         ["Price / month (launch price to 31 Dec 2026)", "৳2,699", "৳5,999", "৳11,999"],
-        ["On your own AI key / month", "৳1,599", "৳3,599", "৳7,099"],
+        ["On your own AI key / month", "৳1,349", "৳2,999", "৳5,999"],
         ["Products you can add (total, never resets)", "500", "1,000", "2,500"],
         ["Products from a website link / month", "10", "40", "100"],
         ["Photo product matching", "Yes", "Yes", "Yes"],
@@ -1335,37 +1354,33 @@ export const DOCS = {
 
       { biz: "agency", table: { head: ["For services", "Service Basic", "Service Pro", "Service Enterprise"], rows: [
         ["Price / month (launch price to 31 Dec 2026)", "৳2,299", "৳4,999", "৳9,999"],
-        ["On your own AI key / month", "৳1,399", "৳2,999", "৳5,999"],
+        ["On your own AI key / month", "৳1,149", "৳2,499", "৳4,999"],
         ["Knowledge documents you can add (total, never resets)", "20", "60", "150"],
         ["Google Calendar booking", "Yes", "Yes", "Yes"],
         ["Comment automation", "Yes", "Yes", "Yes"],
       ] } },
 
-      { h: "Add-ons",
-        p: ["Need a little more than your package without moving up? Add it. Add-ons can be bought with the package or in the middle of the month (you pay only for the days left), and they renew with your plan. Prices per month; on a yearly plan, ten months. **Billing** always shows the current prices."] },
+      { h: "Set your own numbers",
+        p: ["Need a little more, or a little less, than a package? When you buy, move its numbers with a slider in **Billing** — from the package below to the package above — and the price follows. Each step up adds the price below; each step down takes off half of it. In the middle of the month, **Add more** raises them for only the days left. On your own AI key every step is half price; on a yearly package, ten months. **Billing** always shows the current prices."] },
 
-      { table: { head: ["Add-on", "Standard / month", "On your own AI key / month"], rows: [
-        ["+100 bot replies", "৳149", "৳89"],
-        ["+200 bot replies", "৳279", "৳169"],
-        ["+100 AI Assistant questions", "৳99", "৳59"],
-        ["+200 AI Assistant questions", "৳179", "৳109"],
+      { table: { head: ["Each step", "Standard / month", "On your own AI key / month"], rows: [
+        ["+50 bot replies", "৳40", "৳20"],
+        ["+50 AI Assistant questions", "৳50", "৳25"],
       ] } },
 
       { biz: "ecommerce", table: { head: ["For shops", "Standard / month", "On your own AI key / month"], rows: [
-        ["+50 products", "৳99", "৳59"],
-        ["+100 products", "৳179", "৳109"],
+        ["+50 products", "৳50", "৳25"],
       ] } },
 
       { biz: "agency", table: { head: ["For services", "Standard / month", "On your own AI key / month"], rows: [
-        ["+5 documents", "৳99", "৳59"],
-        ["+10 documents", "৳179", "৳109"],
+        ["+5 knowledge files", "৳50", "৳25"],
       ] } },
       { h: "When you reach a limit",
         p: [
           "You cannot run out of features — you already have all of them. What you can run out of is room: replies for the month, products or documents added, AI Assistant questions, website imports, broadcasts.",
-          "Products and documents are counted as you **add** them, as a **total for as long as you use the package** — the number does not start again each month. Each one added uses one, and deleting it does not give it back: every add is read and indexed by the AI, so it has already been paid for. Need more room? Buy an **add-on** (below), or move up a package — the new, bigger total counts what you have already added.",
+          "Products and documents are counted as you **add** them, as a **total for as long as you use the package** — the number does not start again each month. Each one added uses one, and deleting it does not give it back: every add is read and indexed by the AI, so it has already been paid for. Need more room? Raise it with **Add more** in Billing, or move up a package — the new, bigger total counts what you have already added.",
           "**Billing** shows every meter under your package — how much is used and how much is left — and so does **Profile**.",
-          "When that happens the dashboard says which limit and what it is, and nothing is deleted. Out of replies, the bot stops answering new customers until the month turns, you buy more replies as an add-on, or you move up; your inbox keeps working and you can answer by hand. Out of product slots, the ones you have keep selling and the next one is refused.",
+          "When that happens the dashboard says which limit and what it is, and nothing is deleted. Out of replies, the bot stops answering new customers until the month turns, you raise your replies with **Add more**, or you move up; your inbox keeps working and you can answer by hand. Out of product slots, the ones you have keep selling and the next one is refused.",
           "The tables above are the real numbers — the same ones the bot and the dashboard enforce, read from your package as the admin panel has it, not from a page written once.",
         ] },
 
@@ -1394,7 +1409,7 @@ export const DOCS = {
         ["Comment automation", "Replies to comments on your posts, and can carry the conversation into the inbox."],
         ["Broadcasts & follow-ups", "Sending one message to many people, and nudging somebody who went quiet. Both only ever reach people who wrote to you in the last 24 hours — that is Meta's rule, not ours."],
         ["Website chat widget", "The same bot, on your own website, in one line of code."],
-        ["Your own AI key", "Buy any paid package on your own Google Gemini or OpenAI key: every AI call runs on it, you pay the AI provider directly, and the package costs much less. The bot waits until the key is added in AI Engine."],
+        ["Your own AI key", "Buy any paid package on your own Google Gemini or OpenAI key: every AI call runs on it, you pay the AI provider directly, and the package is half price. The bot waits until the key is added in AI Engine."],
       ] } },
 
       { biz: "ecommerce", table: { head: ["For shops", "What it does"], rows: [

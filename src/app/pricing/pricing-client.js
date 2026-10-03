@@ -112,9 +112,10 @@ export default function PricingClient() {
   // the trial, and any row written before the biz column — belongs to both
   // sides and appears whichever is chosen.
   const [biz, setBiz] = useState("ecommerce");
-  // What can be bought on top of a package (plan_addons), live from /api/plans.
-  const [addons, setAddons] = useState([]);
-  const shownAddons = addons.filter((a) => a.biz === "both" || a.biz === biz).sort((a, b) => (a.sort || 0) - (b.sort || 0));
+  // What one step of a package's own numbers costs (plan_units), live from
+  // /api/plans — the same prices the Billing sliders charge.
+  const [units, setUnits] = useState([]);
+  const shownUnits = units.filter((u) => u.biz === "both" || u.biz === biz).sort((a, b) => (a.sort || 0) - (b.sort || 0));
   const shown = plans.filter((p) => !p.biz || p.biz === "both" || p.biz === biz);
   const wrap = { maxWidth: 1120, margin: "0 auto", padding: "0 20px" };
   const yearly = cycle === "yearly";
@@ -132,7 +133,7 @@ export default function PricingClient() {
     // here without a deploy. Falls back to the code catalogue on any error.
     fetch("/api/plans").then((r) => r.json()).then((d) => {
       if (Array.isArray(d?.plans) && d.plans.length) setPlans(d.plans);
-      if (Array.isArray(d?.addons)) setAddons(d.addons);
+      if (Array.isArray(d?.units)) setUnits(d.units);
     }).catch(() => {});
   }, []);
 
@@ -253,34 +254,34 @@ export default function PricingClient() {
         </div>
       </section>
 
-      {/* Own AI key, and add-ons (owner, 2026-10-03). */}
+      {/* Own AI key, and setting your own numbers (owner, 2026-10-04). */}
       <section style={{ ...wrap, padding: "0 20px 48px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
           <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "22px 22px" }}>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>🔑 On your own AI key</div>
             <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.7, margin: 0 }}>
-              Every paid plan can run on your own Google Gemini or OpenAI key. Every AI reply runs on your key and you pay the AI provider directly, so the plan costs much less: the 🔑 price on each card.
+              Every paid plan can run on your own Google Gemini or OpenAI key, at half the price: the 🔑 price on each card. Every AI reply runs on your key and you pay the AI provider directly.
               After payment, AI Engine opens in your dashboard: paste your key and choose a model. The bot starts as soon as the key is saved. The free trial runs on our AI.
             </p>
           </div>
-          {shownAddons.length > 0 && <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "22px 22px" }}>
-            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Need a little more?</div>
+          {shownUnits.length > 0 && <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "22px 22px" }}>
+            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Set your own numbers</div>
             <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
-              Add these to any paid plan when you buy it, or in the middle of the month: you pay only for the days left. Prices per month{yearly ? "; on a yearly plan, ten months" : ""}.
+              When you buy, move any of these up or down with a slider — from the plan below yours to the plan above — and the price follows. Need more in the middle of the month? Raise them and pay only for the days left. Each step down takes off half the step price. Prices per month{yearly ? "; on a yearly plan, ten months" : ""}.
             </p>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead><tr style={{ color: T.muted, fontSize: 11.5, textAlign: "left" }}>
-                  <th style={{ padding: "0 0 8px", fontWeight: 500 }}>Add-on</th>
+                  <th style={{ padding: "0 0 8px", fontWeight: 500 }}>Each step</th>
                   <th style={{ padding: "0 0 8px", fontWeight: 500, textAlign: "right" }}>Standard</th>
                   <th style={{ padding: "0 0 8px", fontWeight: 500, textAlign: "right" }}>🔑 Own key</th>
                 </tr></thead>
-                <tbody>{shownAddons.map((a) => {
+                <tbody>{shownUnits.map((u) => {
                   const k = yearly ? 10 : 1;
-                  return <tr key={a.id} style={{ borderTop: `1px solid ${T.border}` }}>
-                    <td style={{ padding: "8px 0" }}>{a.name}</td>
-                    <td style={{ padding: "8px 0", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(a.monthly * k)}</td>
-                    <td style={{ padding: "8px 0", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney((a.byok_monthly ?? a.monthly) * k)}</td>
+                  return <tr key={u.kind} style={{ borderTop: `1px solid ${T.border}` }}>
+                    <td style={{ padding: "8px 0" }}>+{u.step} {({ replies: "bot replies", products: "products", docs: "knowledge files", assistant: "AI Assistant questions" })[u.kind] || u.name}</td>
+                    <td style={{ padding: "8px 0", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(u.price * k)}</td>
+                    <td style={{ padding: "8px 0", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(Math.round(u.price / 2) * k)}</td>
                   </tr>;
                 })}</tbody>
               </table>

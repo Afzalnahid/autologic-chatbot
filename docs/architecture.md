@@ -557,47 +557,97 @@ repeating it. `trialTextMismatch()` also checks the owner's own prose — the
 tagline and the pricing bullets — for a "N day" that no longer matches, because
 changing the box does not change what a customer reads on the pricing page.
 
-### Buying a package: Standard or own-key (BYOK), plus add-ons (2026-10-03)
+### Buying a package: Standard or own key, and the customer's own numbers (2026-10-04)
 
-This replaces the "price by whether a key is saved" rule described in the next
-section. That rule still drives today's billing screen until the new purchase
-screen ships.
+Replaces the fixed add-ons of 2026-10-03 and the "price by whether a key is
+saved" rule in the next section.
 
 - **What a customer buys.** A purchase is a *basket*, priced on the server by
   `src/lib/pricing.js` (pure, `tests/t-pricing.mjs`):
-  - a package, as Standard (our AI) or BYOK (their own key; every AI call runs on
-    it, so the package costs ~41% less);
+  - a package, as Standard (our AI) or own key (BYOK). Own key is **half** the
+    Standard price, rounded down (`byokFromStandard`); a blank own-key price in
+    the admin editor means exactly that;
   - monthly or yearly (ten months);
-  - add-ons from `plan_addons` (more replies, more products for shops, more
-    documents for services), each with a quantity.
+  - the package's countable numbers, each moved by a slider (`slidersFor`):
+    bot replies a month, products (shops) or knowledge files (services), AI
+    Assistant questions. Steps and step prices are in `plan_units`. A slider
+    runs from the package below to the package above (the cheapest goes down to
+    half, the biggest up to double). A raise pays the step price, a cut takes
+    off half of it, own key pays half of everything. Basic pushed to Pro's
+    numbers costs a little more than Pro, and the quote says so (`better`).
+  The browser sends `{ kind, plan, cycle, byok, custom }`, never an amount.
+  `lib/billing-basket.js` prices it for both the manual and the online route.
+- **Mid-period top-up** (`kind: "topup"`): numbers can only go up; the
+  difference is prorated over the days left (`quoteTopUp`). Lowering happens at
+  renewal.
+- **Limits.** `limitsFor()` applies `clients.custom_limits` to a paid package
+  (`changesByLimit` → `withChange`). Unlimited stays unlimited; never below 0.
+- **The Billing tab** opens on the customer's own package only, with Renew,
+  Update package and Add more. Packages appear only behind Update / Choose.
 
-  Add-ons can also be bought mid-period; they are prorated by the days left
-  (`quoteTopUp`). The payment row stores `kind` / `byok` / `addons`.
+### From payment to approval (2026-10-04)
+
+```
+ visitor ── "Buy" (/dashboard?upgrade=…&byok=1) ──► buy-intent.js (localStorage, 7 days)
+    │                                                   survives signup + email confirmation
+    ▼
+ sign up ─► profile ─► "Continue to payment" (or "try it free first")
+    ▼
+ Billing: package · our AI / own key · cycle · sliders ─► quote (pricing.js)
+    ▼
+ POST /api/billing {kind, plan, cycle, byok, custom, method, txn_id, sender_number}
+    │  priceBasket() prices it · txn ID unused? (API + unique index) · one pending per client
+    ▼
+ payment_requests (pending) ──► admin: push + email + console bell (logEvent "payment_request")
+    │
+    │  client with no running package ─► ONLY the "Payment under review" screen
+    │      (PendingPayment.js; "use the free trial while you wait" if never used)
+    │  client with a running package  ─► dashboard as usual + "under review" card
+    │  both poll every 20 s (dashboard-client.js / Billing.js)
+    ▼
+ admin Payments queue: amount, package, own key, the numbers, txn, sender,
+    reused-ID warning, one-tap reject reasons
+    ├── Approve ─► activatePaymentRow (atomic claim) ─► clients patch
+    │               ─► AI Engine opens (own key) / closes (back to Standard)
+    │               ─► push + email to the owner ─► the waiting screen opens itself
+    └── Reject  ─► status rejected + reason ─► push + email ─► Billing shows the
+                    reason and "Try again" (an account with no package lands back
+                    in Billing)
+ Online (SSLCommerz): the gateway confirms through the same activatePaymentRow;
+ an admin can never approve an online row by hand.
+```
+
+- The free trial is **one per account** (`trial_start` set → `start_trial`
+  refuses). Approval replaces a running trial with the package.
+- `/api/me` carries `pending_payment`, `last_payment_rejected` and `trial_used`
+  so the dashboard can pick the screen (`stageFor`).
+
+### Confirmation, and the own-key AI Engine
+
 - **Confirmation.** When a payment is confirmed, `activatePaymentRow`
   (`src/lib/billing-activate.js`) is the single place that applies it. Both the
   gateway and the admin's "Approve" call it, and it claims the row atomically.
   The pure part (`clientPatchFor`) lives in `billing-rules.js`.
   - A package payment sets `plan`, `plan_expires_at`, `billing_cycle`,
-    `byok_plan` and `addons` (add-ons renew with the package).
+    `byok_plan` and `custom_limits` (the numbers renew with the package).
   - BYOK opens the AI Engine: a `client_ai` row with `status: "no_key"`, created
     only if none exists, plus a push notification telling the owner to add a key.
   - A Standard package after a BYOK one deletes the `client_ai` row, which closes
     the AI Engine and removes the key. A permission the super admin granted by
     hand (`byok_plan` false) is left alone.
-  - An add-on payment merges into `clients.addons` and changes nothing else.
+  - A top-up replaces `clients.custom_limits` with the new set and changes
+    nothing else.
 - **BYOK with no key: the bot waits.** It never falls back to our AI.
   - `botAllowed` returns `byok_no_key`. The customer is told nothing, and the
     owner gets the once-a-day email and push, which link AI Engine.
   - `getClientAI` returns a "waiting" AI whose every call refuses with
     `BYOK_NO_KEY_MESSAGE`. This guards the assistant, imports and photo drafts.
-- **Limits.** `limitsFor()` adds a paid client's add-ons to `messages_per_month`,
-  `max_products` and `max_kb_files`. Unlimited stays unlimited.
 - **Where a visitor sees it.** The home page plans section has two CSS-only
   switches (no script): shop / service, and "With our AI" / "With your own AI
   key (BYOK)". The own-key side is a full set of cards at `planPrices(p).byok`,
   each buying with `&byok=1`; the trial card stays on the our-AI side. Every
   our-AI card also carries a small own-key price line that flips the switch.
-  `/pricing` and the dashboard Billing tab show the same choice.
+  `/pricing` shows the step prices ("Set your own numbers").
 
 ### The own-key (BYOK) price list (the older rule)
 
