@@ -250,77 +250,111 @@ export const BOARD_CSS = `
 `;
 
 
+// "How it works" on the home page (src/app/how-it-works.js): four things the
+// bot does, each shown as one message going through the same four beats —
+// the customer writes, the bot reads your own information, it replies, and it
+// does the work. The examples match the hero's conversations (owner's product
+// photos in public/demo, 2026-10-04).
 export const STAGES = [
   { ch: "messenger", icon: "ti-shopping-bag",
-    inn: "এই শাড়িটার দাম কত? স্টকে আছে?", inEn: "How much is this saree? In stock?",
-    src: "Product catalogue", srcBn: "পণ্যের তালিকা",
-    say: "জামদানি শাড়ি — ৩,২০০৳, ফ্রি ডেলিভারি।", sayEn: "Jamdani saree — 3,200৳, free delivery.",
-    did: "Order #AL2481 saved", didBn: "অর্ডার #AL2481 সেভ",
-    cap: "Reads your own catalogue. No scripts, no keyword lists — it recognises the product and quotes your real price.",
-    capBn: "আপনার নিজের পণ্যের তালিকা থেকে পড়ে। কোনো স্ক্রিপ্ট নেই — পণ্য চিনে আপনার আসল দামটাই বলে।" },
+    title: "Takes the order", titleBn: "অর্ডার নেয়",
+    cap: "It recognises the product, quotes your real price and records the order in your dashboard — name, phone and address included.",
+    capBn: "পণ্য চিনে আপনার আসল দাম বলে, আর অর্ডারটা নাম, ফোন ও ঠিকানাসহ আপনার ড্যাশবোর্ডে তুলে রাখে।",
+    inn: "এই বালাটা আছে? দাম কত?", inEn: "Do you have this bangle? How much?", photo: "/demo/bangle-gold.jpg",
+    src: "Your product catalogue", srcBn: "আপনার পণ্যের তালিকা", srcIcon: "ti-package",
+    say: "জি আছে — কারুকাজ বালা, ১,৮৫০৳। অর্ডার করে দিই?", sayEn: "Yes — carved bangle, 1,850৳. Shall I place the order?",
+    product: { img: "/demo/bangle-gold.jpg", name: "কারুকাজ বালা", price: "১,৮৫০৳", nameEn: "Carved bangle", priceEn: "1,850৳" },
+    did: "Order #TM2481 saved", didBn: "অর্ডার #TM2481 সেভ হলো" },
   { ch: "instagram", icon: "ti-photo",
-    inn: "📷 এই ড্রেসটা আপনাদের আছে?", inEn: "📷 Do you have this dress?",
-    src: "Photo → stock match", srcBn: "ছবি → স্টক মেলানো",
-    say: "মিলে গেছে — কটন কুর্তি, ১,৪৫০৳। M ও L আছে।", sayEn: "Matched — cotton kurti, 1,450৳. M and L in stock.",
-    did: "Product found, size M", didBn: "পণ্য পাওয়া গেল, সাইজ M",
-    cap: "Customers send pictures, not product codes. The bot matches the photo against your inventory and answers with the item.",
-    capBn: "গ্রাহক ছবি পাঠান, পণ্যের কোড নয়। বট ছবিটা আপনার স্টকের সাথে মিলিয়ে পণ্যটা বের করে দেয়।" },
+    title: "Recognises photos", titleBn: "ছবি দেখে চেনে",
+    cap: "Customers send pictures, not product codes. The bot matches the photo against your stock and answers with the right item.",
+    capBn: "গ্রাহক ছবি পাঠান, পণ্যের কোড নয়। বট ছবিটা আপনার স্টকের সাথে মিলিয়ে সঠিক পণ্যটা বের করে দেয়।",
+    inn: "Eta ki available?", inEn: "Is this available?", photo: "/demo/watch-steel.jpg",
+    src: "Photo → your stock", srcBn: "ছবি → আপনার স্টক", srcIcon: "ti-scan",
+    say: "জি, স্টকে আছে — স্টিল চেইন ঘড়ি, ৭,৯৫০৳।", sayEn: "Yes, in stock — steel chain watch, 7,950৳.",
+    product: { img: "/demo/watch-steel.jpg", name: "স্টিল চেইন ঘড়ি", price: "৭,৯৫০৳", nameEn: "Steel chain watch", priceEn: "7,950৳" },
+    did: "Matched to your stock", didBn: "স্টকের সাথে মিলেছে" },
   { ch: "whatsapp", icon: "ti-calendar-check",
-    inn: "বৃহস্পতিবার একটা মিটিং হবে?", inEn: "Can we meet on Thursday?",
-    src: "Google Calendar", srcBn: "গুগল ক্যালেন্ডার",
-    say: "বিকেল ৪টা খালি আছে — বুক করে দিলাম, লিংক পাঠিয়েছি।", sayEn: "4 PM is free — booked, link sent.",
-    did: "Meeting booked, 4 PM", didBn: "মিটিং বুক, বিকেল ৪টা",
-    cap: "Checks your real availability, creates the meeting, generates the Meet link and sends it — while you are asleep.",
-    capBn: "আপনার আসল খালি সময় দেখে মিটিং তৈরি করে, মিট লিংক বানিয়ে পাঠিয়ে দেয় — আপনি ঘুমিয়ে থাকলেও।" },
+    title: "Books appointments", titleBn: "সময় বুক করে",
+    cap: "It checks your real Google Calendar, books the slot and sends the reminder — while you are busy or asleep.",
+    capBn: "আপনার আসল গুগল ক্যালেন্ডার দেখে খালি সময় বুক করে, রিমাইন্ডারও পাঠায় — আপনি ব্যস্ত বা ঘুমিয়ে থাকলেও।",
+    inn: "শনিবার টেস্ট রাইড দেওয়া যাবে?", inEn: "Can I take a test ride on Saturday?",
+    src: "Your Google Calendar", srcBn: "আপনার গুগল ক্যালেন্ডার", srcIcon: "ti-calendar",
+    say: "শনিবার বিকেল ৪টা খালি — বুক করলাম, রিমাইন্ডার পাঠাচ্ছি।", sayEn: "Saturday 4 PM is free — booked, reminder on its way.",
+    did: "Test ride booked · Sat 4 PM", didBn: "টেস্ট রাইড বুক · শনিবার ৪টা" },
   { ch: "website", icon: "ti-language",
+    title: "Answers in their language", titleBn: "গ্রাহকের ভাষায় উত্তর",
+    cap: "Written in English, answered in English; written in Bangla or Banglish, answered in Bangla. On your website too.",
+    capBn: "ইংরেজিতে লিখলে ইংরেজিতে, বাংলা বা বাংলিশে লিখলে বাংলায় উত্তর — আপনার ওয়েবসাইটেও।",
     inn: "How do I add this to my site?", inEn: "How do I add this to my site?",
-    src: "Your documents", srcBn: "আপনার ডকুমেন্ট",
-    say: "One line of code from your dashboard. Takes a minute.", sayEn: "One line of code from your dashboard. Takes a minute.",
-    did: "Answered in English", didBn: "ইংরেজিতে উত্তর",
-    cap: "Written in English, answered in English. Ask in Bangla and the reply comes back in Bangla — you choose, or let the customer decide.",
-    capBn: "ইংরেজিতে প্রশ্ন, ইংরেজিতে উত্তর। বাংলায় লিখলে বাংলায়। আপনি ঠিক করবেন, নাকি গ্রাহক — দুটোই সম্ভব।" },
+    src: "Your documents", srcBn: "আপনার ডকুমেন্ট", srcIcon: "ti-file-text",
+    say: "One line of code from your dashboard — it takes a minute.", sayEn: "One line of code from your dashboard — it takes a minute.",
+    did: "Answered in English", didBn: "ইংরেজিতে উত্তর দিল" },
 ];
 
-export function flowCss() {
-  const N = STAGES.length, PER = 4.2, CY = (N * PER).toFixed(2);
-  let out = `
-    @keyframes fpulse { 0%,100% { transform: scale(1); opacity:.3 } 50% { transform: scale(1.55); opacity:0 } }
-    .core-ring { position:absolute; inset:0; border-radius:50%; border:1px solid ${P.blue}; animation: fpulse 2.4s ease-out infinite }
-    .core-ring:nth-child(2) { animation-delay: 1.2s }
-    @keyframes spin { to { transform: rotate(360deg) } }
-    .core-arc { position:absolute; inset:-6px; border-radius:50%;
-      border:1.5px dashed color-mix(in srgb, ${P.blue} 33%, transparent);
-      border-top-color: ${P.accent}; animation: spin 6s linear infinite }
-    .fprog { height: 2px; background: ${P.line}; position: relative; overflow: hidden }
-    .fprog i { position:absolute; inset:0; background: ${P.accent}; transform-origin: left; transform: scaleX(0);
-      animation: fpr ${CY}s linear infinite }
-    @keyframes fpr { from { transform: scaleX(0) } to { transform: scaleX(1) } }`;
-  for (let k = 0; k < N; k++) {
-    const at = (sec) => (((k * PER + sec) / (N * PER)) * 100).toFixed(2) + "%";
-    out += `
-      /* Rows sit side by side, so a dim inactive state reads as "later". Stacked
-         items share one cell, so anything but 0 is two texts on top of each other. */
-      .fch${k}, .fout${k} { opacity: .28 }
-      .fsrc${k}, .fcap${k}, .fsay${k}, .fnum${k} { opacity: 0 }
-      .fch${k} { animation: fa${k} ${CY}s linear infinite }
-      .fsrc${k} { animation: fb${k} ${CY}s linear infinite }
-      .fsay${k} { animation: fs${k} ${CY}s linear infinite }
-      .fout${k} { animation: fc${k} ${CY}s linear infinite }
-      .fcap${k}, .fnum${k} { animation: fd${k} ${CY}s linear infinite }
-      .fdot${k} { animation: fe${k} ${CY}s ease-in-out infinite; opacity: 0 }
-      @keyframes fa${k} { 0%,${at(0)} { opacity:.28 } ${at(.3)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:.28 } }
-      @keyframes fb${k} { 0%,${at(1.1)} { opacity:0 } ${at(1.4)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:0 } }
-      @keyframes fs${k} { 0%,${at(1.9)} { opacity:0; transform: translateY(5px) } ${at(2.2)},${at(PER - .35)} { opacity:1; transform:none } ${at(PER)},100% { opacity:0 } }
-      @keyframes fc${k} { 0%,${at(2.7)} { opacity:.28 } ${at(3.0)},${at(PER - .35)} { opacity:1 } ${at(PER)},100% { opacity:.28 } }
-      @keyframes fd${k} { 0%,${at(.05)} { opacity:0 } ${at(.4)},${at(PER - .3)} { opacity:1 } ${at(PER)},100% { opacity:0 } }
-      @keyframes fe${k} { 0%,${at(.5)} { opacity:0; transform: translateX(0) } ${at(.7)} { opacity:1 }
-        ${at(1.7)} { opacity:1; transform: translateX(var(--run)) } ${at(1.9)},100% { opacity:0; transform: translateX(var(--run)) } }`;
+// Its look. The section sits on the dark band in both themes, so the colours
+// are the band's own, not the page palette.
+export const HOW_CSS = `
+  .hw { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); gap: clamp(18px, 3vw, 36px); align-items: center }
+  .hw-tabs { display: flex; flex-direction: column; gap: 8px }
+  .hw-tab { text-align: left; display: grid; grid-template-columns: 36px 1fr; gap: 4px 12px; align-items: center; width: 100%;
+    padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.025);
+    color: #F2EEF1; cursor: pointer; font-family: inherit; position: relative; overflow: hidden;
+    transition: background .2s ease-out, border-color .2s ease-out }
+  .hw-tab:hover { border-color: rgba(255,255,255,.16) }
+  .hw-tab.on { background: rgba(255,255,255,.06); border-color: rgba(224,139,166,.35) }
+  .hw-tab:focus-visible { outline: 2px solid #E08BA6; outline-offset: 2px }
+  .hw-ic { width: 36px; height: 36px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.06); color: #B5ADB4; font-size: 18px; transition: background .2s, color .2s }
+  .hw-tab.on .hw-ic { background: #7B1C3E; color: #fff }
+  .hw-t { font-size: 15px; font-weight: 700; display: flex; align-items: baseline; gap: 8px }
+  .hw-t small { font-size: 11px; font-weight: 600; color: #857D86; letter-spacing: .06em }
+  .hw-cap { grid-column: 2; font-size: 13.5px; line-height: 1.6; color: #B5ADB4; display: none }
+  .hw-tab.on .hw-cap { display: block; animation: hw-fade .35s ease-out both }
+  .hw-bar { position: absolute; left: 0; bottom: 0; height: 2px; background: #E08BA6; transform-origin: left }
+  .hw-card { border-radius: 20px; border: 1px solid rgba(255,255,255,.09); background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    padding: 20px 20px 18px; position: relative; box-shadow: 0 24px 60px rgba(0,0,0,.35) }
+  .hw-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #B5ADB4; margin-bottom: 16px }
+  .hw-head b { color: #F2EEF1; font-weight: 600 }
+  .hw-steps { position: relative; display: flex; flex-direction: column; gap: 14px }
+  .hw-steps::before { content: ""; position: absolute; left: 15px; top: 16px; bottom: 16px; width: 2px;
+    background: linear-gradient(180deg, rgba(224,139,166,.55), rgba(224,139,166,.08)) }
+  .hw-row { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; position: relative;
+    animation: hw-in .45s cubic-bezier(.22,.61,.36,1) both }
+  .hw-row:nth-child(2) { animation-delay: .45s } .hw-row:nth-child(3) { animation-delay: .9s } .hw-row:nth-child(4) { animation-delay: 1.35s }
+  .hw-dot { width: 32px; height: 32px; border-radius: 50%; background: #1B1820; border: 1px solid rgba(255,255,255,.12);
+    display: flex; align-items: center; justify-content: center; font-size: 15px; color: #E08BA6; position: relative; z-index: 1 }
+  .hw-lbl { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #857D86; margin: 2px 0 6px }
+  .hw-me { display: inline-flex; align-items: center; gap: 9px; max-width: 100%; padding: 7px 12px 7px 7px; border-radius: 14px 14px 4px 14px;
+    background: #7B1C3E; color: #fff; font-size: 13.5px; line-height: 1.45 }
+  .hw-me.noimg { padding-left: 12px }
+  .hw-me img, .hw-prod img { width: 42px; height: 42px; border-radius: 9px; object-fit: contain; background: #fff; flex-shrink: 0 }
+  .hw-src { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    color: #F2EEF1; background: rgba(224,139,166,.12); border: 1px solid rgba(224,139,166,.28) }
+  .hw-bot { padding: 9px 12px; border-radius: 14px 14px 14px 4px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.08);
+    color: #F2EEF1; font-size: 13.5px; line-height: 1.5 }
+  .hw-prod { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 6px; border-radius: 11px; background: rgba(0,0,0,.25) }
+  .hw-prod b { display: block; font-size: 12.5px; color: #F2EEF1 } .hw-prod span { font-size: 13px; font-weight: 800; color: #E08BA6 }
+  .hw-did { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 11px; font-size: 13px; font-weight: 600;
+    color: #D5F7EC; background: rgba(46,211,167,.1); border: 1px solid rgba(46,211,167,.3) }
+  .hw-did i { color: #2ED3A7; font-size: 16px }
+  @keyframes hw-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+  @keyframes hw-fade { from { opacity: 0 } to { opacity: 1 } }
+  @media (max-width: 860px) {
+    .hw { grid-template-columns: minmax(0, 1fr) }
+    .hw > div { min-width: 0 }
+    .hw-tabs { flex-direction: row; overflow-x: auto; gap: 8px; padding-bottom: 4px; scrollbar-width: none; margin: 0 -2px }
+    .hw-tabs::-webkit-scrollbar { display: none }
+    .hw-tab { width: auto; flex: 0 0 auto; grid-template-columns: 28px auto; padding: 9px 13px 9px 9px; border-radius: 12px }
+    .hw-ic { width: 28px; height: 28px; border-radius: 9px; font-size: 15px }
+    .hw-t { font-size: 13.5px; white-space: nowrap } .hw-t small { display: none }
+    .hw-tab.on .hw-cap { display: none }
+    .hw-mcap { display: block !important }
   }
-  return out;
-}
+  .hw-mcap { display: none; font-size: 14px; line-height: 1.6; color: #B5ADB4; margin: 14px 2px 0 }
+  @media (prefers-reduced-motion: reduce) { .hw-row, .hw-tab.on .hw-cap { animation: none } }
+`;
 
-
-export const FLOW_CSS = flowCss();
 
 export const REVEAL_JS = `(function(){
   function start(){

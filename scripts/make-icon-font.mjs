@@ -32,7 +32,7 @@ const SCAN = [
   "src/app/page.js", "src/app/site-shell.js", "src/app/docs", "src/app/pricing",
   "src/app/contact", "src/app/privacy", "src/app/terms", "src/app/google-calendar",
   "src/app/solutions", "src/lib/landing.js", "src/lib/docs", "src/lib/solutions",
-  "src/lib/connect-page.js", "src/app/public-plan-card.js", "src/app/company-line.js", "src/app/hero-board.js",
+  "src/lib/connect-page.js", "src/app/public-plan-card.js", "src/app/company-line.js", "src/app/hero-board.js", "src/app/how-it-works.js",
 ];
 
 function walk(p, out = []) {

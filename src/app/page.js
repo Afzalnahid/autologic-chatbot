@@ -2,7 +2,8 @@ import Script from "next/script";
 import { headers } from "next/headers";
 import PublicFonts from "./public-fonts.js";
 import { CASE_STUDIES, TYPE_LABEL, isPlaceholder, publishedCaseStudies } from "@/lib/case-studies.js";
-import { P, CH, COPY, STAGES, BOARD_CSS, FLOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
+import { P, CH, COPY, BOARD_CSS, HOW_CSS, REVEAL_JS, THEME_CSS } from "@/lib/landing.js";
+import HowItWorks from "./how-it-works.js";
 import HeroBoard from "./hero-board.js";
 import { BotMark } from "@/lib/brand.js";
 import { brandForHost, isWhiteLabel, rebrand } from "@/lib/white-label.js";
@@ -94,95 +95,6 @@ function Label({ children }) {
   // owner's Figma layout. "lbl" is the hook the .bn rule needs; without it a
   // Bangla label keeps the Latin font, the capitals and the tracking.
   return <div className="lbl eyebrow" style={{ ...mono, color: P.accent, marginBottom: 14, fontWeight: 500 }}>{children}</div>;
-}
-
-// The illustration was decoration. This is the same space doing work: a message
-// arrives on one channel, the bot reads the right source, and something concrete
-// comes out the other side. Four stages on one 13-second clock.
-function Flow({ lang }) {
-  const bn = lang === "bn";
-  return (
-    <div className="flow-wrap" style={{ border: `1px solid ${P.line}`, background: P.paper2,
-      borderRadius: 20, overflow: "hidden", boxShadow: "var(--lp-nm-sm)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "14px 18px 12px", borderBottom: `1px solid ${P.line}` }}>
-        <span className="lbl" style={{ ...mono, fontSize: 9.5, color: P.inkSoft }}>⌗ {bn ? "যেভাবে কাজ করে" : "How it works"}</span>
-        <span className="stk" style={{ ...mono, fontSize: 9.5, color: P.ink, justifyItems: "end" }}>
-          {STAGES.map((s2, k) => (
-            <span key={k} className={`fnum${k}`}>{String(k + 1).padStart(2, "0")}/0{STAGES.length}</span>
-          ))}
-        </span>
-      </div>
-      <div className="fprog"><i /></div>
-
-      <div style={{ padding: "20px 18px" }}>
-        <div className="flow-grid">
-          <div>
-            <div className="lbl" style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "গ্রাহক লেখেন" : "Customer writes"}</div>
-            {STAGES.map((s2, k) => (
-              <div key={k} className={`fch${k}`} style={{ display: "flex", gap: 9, padding: "10px 11px",
-                background: P.paper2, border: `1px solid ${P.line}`, marginBottom: 6 }}>
-                <i className={`ti ${CH[s2.ch].icon}`} style={{ fontSize: 15, color: P.blue, flexShrink: 0, marginTop: 1 }} />
-                <span style={{ fontSize: 11.5, lineHeight: 1.4, color: P.ink }}>{bn ? s2.inn : s2.inEn}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flow-mid" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, paddingTop: 22 }}>
-            <div className="fwire" style={{ position: "relative", width: "100%", height: 2, background: P.line }}>
-              {STAGES.map((s2, k) => (
-                <span key={k} className={`fdot${k}`} style={{ position: "absolute", top: -2.5, left: 0, width: 6, height: 6,
-                  borderRadius: "50%", background: P.accent }} />
-              ))}
-            </div>
-            <div style={{ position: "relative", width: 62, height: 62 }}>
-              <div className="core-arc" /><div className="core-ring" /><div className="core-ring" />
-              <div style={{ position: "absolute", inset: 7, borderRadius: "50%", background: P.blue,
-                display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <BotMark size={30} color="#fff" ink="#fff" />
-              </div>
-            </div>
-            <div style={{ textAlign: "center", width: "100%" }}>
-              <div className="lbl" style={{ ...mono, fontSize: 8, color: P.inkSoft, marginBottom: 5 }}>{bn ? "যা দেখে" : "Reads"}</div>
-              <div className="stk">
-                {STAGES.map((s2, k) => (
-                  <div key={k} className={`fsrc${k} lbl`} style={{ ...mono, fontSize: 8.5, color: P.blue, lineHeight: 1.4 }}>
-                    {bn ? s2.srcBn : s2.src}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div className="lbl" style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "বট যা বলে" : "The bot replies"}</div>
-            <div className="stk" style={{ marginBottom: 10 }}>
-              {STAGES.map((s2, k) => (
-                <div key={k} className={`fsay${k}`} style={{ padding: "10px 12px", background: P.fill, color: P.onAccent,
-                  fontSize: 11.5, lineHeight: 1.5, borderRadius: 3, alignSelf: "start" }}>{bn ? s2.say : s2.sayEn}</div>
-              ))}
-            </div>
-            <div className="lbl" style={{ ...mono, fontSize: 8.5, color: P.inkSoft, marginBottom: 9 }}>{bn ? "আর যা করে" : "And does"}</div>
-            {STAGES.map((s2, k) => (
-              <div key={k} className={`fout${k}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 11px",
-                background: P.paper2, border: `1px solid ${P.line}`, borderLeft: `2px solid ${P.accent}`, marginBottom: 6 }}>
-                <i className={`ti ${s2.icon}`} style={{ fontSize: 14, color: P.accent, flexShrink: 0 }} />
-                <span style={{ fontSize: 11, lineHeight: 1.35, color: P.ink }}>{bn ? s2.didBn : s2.did}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* The caption names the feature the stage just demonstrated. */}
-        <div className="stk" style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${P.line}` }}>
-          {STAGES.map((s2, k) => (
-            <p key={k} className={`fcap${k}`} style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: P.inkSoft,
-              maxWidth: 640, alignSelf: "start" }}>{bn ? s2.capBn : s2.cap}</p>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default async function Home({ searchParams }) {
@@ -457,19 +369,7 @@ export default async function Home({ searchParams }) {
         }
 
 
-        .flow-grid { display: grid; grid-template-columns: 1fr 150px 1.15fr; gap: 20px; align-items: start }
-        .fwire { --run: 140px }
-        @media (max-width: 880px) {
-          .flow-grid { grid-template-columns: 1fr; gap: 22px }
-          .fwire { display: none }
-          .flow-mid { flex-direction: row !important; justify-content: center; padding-top: 0 !important; gap: 16px !important }
-        }
-        @media (max-width: 560px) { .flow-grid { grid-template-columns: 1fr; gap: 18px }
-          .flow-grid > div:nth-child(3) > div:first-child { text-align: left } }
-        @media (prefers-reduced-motion: reduce) {
-          [class^="fch"], [class^="fsrc"], [class^="fout"], .core-ring, .wire { animation: none !important; opacity: 1 !important }
-        }
-      ` + BOARD_CSS + FLOW_CSS}}/>
+      ` + BOARD_CSS + HOW_CSS}}/>
       {/* next/script, not a bare <script>: inline scripts rendered by a server
           component through dangerouslySetInnerHTML are inserted by React and
           never executed by the browser (innerHTML rule), so scroll-reveal, the
@@ -658,22 +558,11 @@ export default async function Home({ searchParams }) {
       <section id="how" className="band">
         <div style={{ ...wrap, padding: "clamp(44px,7vw,84px) clamp(16px,4vw,26px)" }}>
           <div data-reveal="0" style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 34px" }}>
-            <Label>{c.convLabel}</Label>
-            <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: "0 0 12px", color: "#F2EEF1" }}>{c.convTitle}</h2>
-            <p style={{ fontSize: 15.5, lineHeight: 1.65, color: "#B5ADB4", margin: 0 }}>{c.lead}</p>
+            <Label>{bn ? "যেভাবে কাজ করে" : "How it works"}</Label>
+            <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: "0 0 12px", color: "#F2EEF1" }}>{bn ? "মেসেজ আসা থেকে কাজ শেষ পর্যন্ত" : "From a message to a finished job"}</h2>
+            <p style={{ fontSize: 15.5, lineHeight: 1.65, color: "#B5ADB4", margin: 0 }}>{bn ? "প্রতিটা মেসেজ একই চার ধাপে যায়: গ্রাহক লেখেন, বট আপনার নিজের তথ্য দেখে, উত্তর দেয়, আর কাজটা করে ফেলে।" : "Every message goes through the same four steps: the customer writes, the bot reads your own information, it replies, and it gets the job done."}</p>
           </div>
-          <div data-reveal="60"><Flow lang={lang} /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 250px), 1fr))", gap: 14, marginTop: 26 }}>
-            {STAGES.map((s2, k) => (
-              <div key={k} className="step" data-reveal={(k % 4) * 60}>
-                <span className="step-n">{String(k + 1).padStart(2, "0")}</span>
-                <div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: "#F2EEF1", marginBottom: 5 }}>{CH[s2.ch].short} — {bn ? s2.didBn : s2.did}</div>
-                  <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "#B5ADB4" }}>{bn ? s2.capBn : s2.cap}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div data-reveal="60"><HowItWorks bn={bn} /></div>
         </div>
       </section>
 
