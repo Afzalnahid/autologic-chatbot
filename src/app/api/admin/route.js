@@ -17,6 +17,7 @@ import { loadPlans } from "@/lib/plan-limits.js";
 import { startOfDayDhaka } from "@/lib/time.js";
 import { adminMayApprove } from "@/lib/billing-rules.js";
 import { activatePaymentRow } from "@/lib/billing-activate.js";
+import { notify } from "@/lib/push.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -371,6 +372,13 @@ export async function PUT(request) {
       .update({ status: "rejected", admin_note: note || null, reviewed_at: new Date().toISOString(), reviewed_by: email })
       .eq("id", request_id);
     if (cl?.owner_email) notifyPaymentRejected(cl.owner_email, note || "").catch(() => {});
+    // …and on their phone, where they are waiting for the answer. Billing shows
+    // the reason and a "Try again" button.
+    notify(pr.client_id, {
+      title: "Payment not approved",
+      body: note ? String(note).slice(0, 140) : "Please check the transaction ID and try again.",
+      url: "/dashboard#billing", tag: "payment-rejected",
+    }).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 

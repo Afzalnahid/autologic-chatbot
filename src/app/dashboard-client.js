@@ -22,6 +22,8 @@ import Broadcast from "./dashboard/components/Broadcast.js";
 import { useConvoRead } from "./dashboard/components/convo-read.js";
 import WebsiteWidget from "./dashboard/components/WebsiteWidget.js";
 import Billing from "./dashboard/components/Billing.js";
+import PendingPayment from "./dashboard/components/PendingPayment.js";
+import { saveBuyIntent, readBuyIntent, clearBuyIntent } from "./dashboard/components/buy-intent.js";
 import Analytics from "./dashboard/components/Analytics.js";
 import Overview from "./dashboard/components/Overview.js";
 import Orders from "./dashboard/components/Orders.js";
@@ -82,11 +84,25 @@ export function AuthGate({onReady,demo=false}) {
   // a deliberate tap on "Create account". Only an explicit ?auth=signup from the
   // landing page's "Start free" button opens straight in signup.
   const [mode,setMode]=useState("signin");
+  // The package a visitor chose with "Buy" (buy-intent.js): named above the
+  // form so they know what they are signing in for. Someone who has never
+  // signed in on this device is most likely new, so they start on signup.
+  const [buying,setBuying]=useState(null);
   useEffect(()=>{
     try {
       const param = new URLSearchParams(window.location.search).get("auth");
       if (param === "signup") setMode("signup");
     } catch {}
+    const it=readBuyIntent();
+    if(!it||demo) return;
+    let seen=false; try{ seen=localStorage.getItem("gv_app_signed_in")==="1"; }catch{}
+    if(!seen) setMode("signup");
+    fetch("/api/plans").then(r=>r.json()).then(x=>{
+      const p=(x?.plans||[]).find(q=>q.id===it.plan);
+      if(!p) return;
+      const price=it.byok?(Number(p.byok_monthly)||0):Number(p.monthly)||0;
+      setBuying({name:p.name,byok:it.byok,price:it.cycle==="yearly"?price*10:price,cycle:it.cycle});
+    }).catch(()=>{});
   },[]);
   const [email,setEmail]=useState("");
   const [pw,setPw]=useState("");
@@ -215,6 +231,10 @@ export function AuthGate({onReady,demo=false}) {
         <div className="auth-brand">
           {BRAND.logo&&<span className="auth-mark"><BotMark size={24}/></span>} {BRAND.name}
         </div>
+        {buying&&<div style={{display:"flex",gap:8,alignItems:"center",fontSize:12.5,lineHeight:1.5,padding:"9px 12px",borderRadius:10,background:T.goldBg,color:T.text,margin:"0 0 12px"}}>
+          <i className="ti ti-shopping-cart" style={{color:T.gold,fontSize:16,flexShrink:0}}/>
+          <span>You are buying <strong>{buying.name}{buying.byok?" (own AI key)":""}</strong> · ৳{buying.price.toLocaleString("en-IN")}/{buying.cycle==="yearly"?"year":"month"}. {signup?"Create your account to continue.":"Sign in to continue."}</span>
+        </div>}
         <h1 className="auth-title">{signup?"Create account":"Welcome back"}</h1>
         <p className="auth-sub">{signup?"Sign up and begin your experience":"Sign in to your dashboard"}</p>
 
@@ -348,8 +368,10 @@ export function AuthGate({onReady,demo=false}) {
   </div>;
 }
 
-export function Onboarding({me,onTrial}) {
-  // New signups complete their business profile first, teach the bot, then start the trial.
+export function Onboarding({me,onTrial,intent,onBuy}) {
+  // New signups complete their business profile first, teach the bot, then
+  // start the trial — or, when they came from a "Buy" button (`intent`,
+  // buy-intent.js), go straight on to pay for that package (owner, 2026-10-04).
   const c=me?.client||{};
   const needProfile=!c.phone&&!c.address;
   const [step,setStep]=useState(needProfile?"profile":"ready");
@@ -403,7 +425,8 @@ export function Onboarding({me,onTrial}) {
     try{
       const res=await api("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});
       if(!res.ok) throw new Error("Save failed");
-      setStep("train");
+      // A buyer can teach the bot later from Settings; payment comes first.
+      setStep(intent&&onBuy?"ready":"train");
     }catch(e){setErr(e.message||"Failed");}
     setBusy(false);
   };
@@ -509,8 +532,20 @@ export function Onboarding({me,onTrial}) {
         <span style={{width:20,height:20,borderRadius:7,background:T.accGrad,color:T.onGold,display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12}}><i className="ti ti-check"/></span>{p}
       </div>)}
     </div>
-    <Btn gold onClick={startTrial} disabled={busy} style={CTA}>{busy?"Starting...":"Start free trial"}<i className="ti ti-arrow-right" style={{marginLeft:8,fontSize:15,verticalAlign:-2}}/></Btn>
-    <div style={{textAlign:"center",fontSize:11.5,color:T.textDim,marginTop:12}}>Next: connect Facebook, Instagram or WhatsApp with one click.</div>
+    {intent&&onBuy
+      ? <>
+        <Btn gold onClick={onBuy} disabled={busy} style={CTA}>Continue to payment · {PLANS[intent.plan]?.name||"your package"}{intent.byok?" (own AI key)":""}<i className="ti ti-arrow-right" style={{marginLeft:8,fontSize:15,verticalAlign:-2}}/></Btn>
+        <div style={{textAlign:"center",marginTop:12}}>
+          <button type="button" onClick={startTrial} disabled={busy} style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:12.5}}>{busy?"Starting...":"Or try it free first"}</button>
+        </div>
+      </>
+      : <>
+        <Btn gold onClick={startTrial} disabled={busy} style={CTA}>{busy?"Starting...":"Start free trial"}<i className="ti ti-arrow-right" style={{marginLeft:8,fontSize:15,verticalAlign:-2}}/></Btn>
+        <div style={{textAlign:"center",fontSize:11.5,color:T.textDim,marginTop:12}}>Next: connect Facebook, Instagram or WhatsApp with one click.</div>
+        {onBuy&&<div style={{textAlign:"center",marginTop:10}}>
+          <button type="button" onClick={onBuy} style={{background:"none",border:"none",cursor:"pointer",color:T.gold,fontSize:12.5,fontWeight:600}}>Or buy a package now</button>
+        </div>}
+      </>}
   </OnboardFrame>;
 }
 
@@ -915,7 +950,11 @@ function DashboardApp({ onLaunchReady }) {
     const up=params.get("upgrade");
     if(up&&/^[a-z0-9_-]{2,40}$/i.test(up)){
       // byok=1: they chose the own-AI-key price on the pricing page.
-      setUpgradeIntent({plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly",byok:params.get("byok")==="1"});
+      const intent={plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly",byok:params.get("byok")==="1"};
+      setUpgradeIntent(intent);
+      // Kept on the device too (buy-intent.js), so it survives signing up and
+      // the round trip through the confirmation email.
+      saveBuyIntent(intent);
       setPageRaw("billing");
       window.history.replaceState({page:"billing",level:1},"","#billing");
       return;
@@ -988,12 +1027,22 @@ function DashboardApp({ onLaunchReady }) {
       if(!d2||!d2.client){setStage("auth");return;}
       setMe(d2);
       rebindNativePush(d2.client.id);   // tie this phone's notifications to THIS account
-      setStage(d2.client.plan==="none"?"onboarding":"app");
+      setStage(stageFor(d2));
       return;
     }
     rebindNativePush(d.client.id);       // tie this phone's notifications to THIS account
-    if(d.client.plan==="none") setStage("onboarding");
-    else setStage("app");
+    setStage(stageFor(d));
+  };
+  // Where an account belongs (owner, 2026-10-04). A payment under review with
+  // no running package shows ONLY the "payment under review" screen until it is
+  // approved; an account with no package and nothing paid is still setting up.
+  const stageFor=(d)=>{
+    const noPackage=d.client.plan==="none"||d.active===false;
+    if(noPackage&&d.pending_payment) return "pending";
+    // A first payment turned down: back to buying, where the reason is shown.
+    if(d.client.plan==="none"&&d.last_payment_rejected) return "buy";
+    if(d.client.plan==="none") return "onboarding";
+    return "app";
   };
 
   useEffect(()=>{
@@ -1024,8 +1073,19 @@ function DashboardApp({ onLaunchReady }) {
   useEffect(()=>{
     const h=()=>loadMe();
     window.addEventListener("logo-updated",h);
-    return ()=>window.removeEventListener("logo-updated",h);
+    // A payment was just submitted in Billing: the account may now belong on
+    // the "payment under review" screen, and the chosen package is spent.
+    const b=()=>{ clearBuyIntent(); loadMe(); };
+    window.addEventListener("al-billing-changed",b);
+    return ()=>{ window.removeEventListener("logo-updated",h); window.removeEventListener("al-billing-changed",b); };
   },[]);
+  // Waiting for approval: look again every 20 seconds, so the dashboard opens
+  // the moment the payment is approved — no reload, no second sign-in.
+  useEffect(()=>{
+    if(stage!=="pending") return;
+    const t=setInterval(()=>loadMe(),20000);
+    return ()=>clearInterval(t);
+  },[stage]);
 
   // While signing up — the profile form, connecting the first channel — the
   // phone's back button means "I've changed my mind", so it returns to the
@@ -1110,7 +1170,24 @@ function DashboardApp({ onLaunchReady }) {
   if(stage==="auth") return <AuthGate onReady={async()=>{try{localStorage.setItem("gv_app_signed_in","1");}catch{} setAuthed(true);await loadMe();}}/>;
   // The first-run screens need the palette and motion sheet too — without them
   // every CSS variable is undefined and the pages render unstyled.
-  if(stage==="onboarding") return <><Theme/><Motion/><Onboarding me={me} onTrial={async()=>{await loadMe();connectFromApp.current=false;setStage("connect");}}/></>;
+  const signOutNow=async()=>{try{await unbindNativePush();}catch{} try{await getSb().auth.signOut({scope:"local"});}catch{} try{localStorage.removeItem("gv_app_signed_in");}catch{} setAuthToken(""); window.location.reload();};
+  if(stage==="pending") return <><Theme/><Motion/><PendingPayment me={me} planName={(id)=>PLANS[id]?.name||id}
+    onTrial={async()=>{await loadMe();connectFromApp.current=false;setStage("connect");}} onSignOut={signOutNow}/></>;
+  if(stage==="onboarding") return <><Theme/><Motion/><Onboarding me={me} intent={readBuyIntent()}
+    onBuy={()=>setStage("buy")}
+    onTrial={async()=>{clearBuyIntent();await loadMe();connectFromApp.current=false;setStage("connect");}}/></>;
+  // Buying straight away, before any trial: Billing on its own, opened on the
+  // package the visitor chose. Submitting a payment moves the account to the
+  // "payment under review" screen (al-billing-changed → loadMe).
+  if(stage==="buy"){ const it=readBuyIntent()||{}; return <><Theme/><Motion/>
+    <div style={{minHeight:"100dvh",background:T.bg,padding:"16px 16px 40px"}}>
+      <div style={{maxWidth:900,margin:"0 auto 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+        <button type="button" onClick={()=>setStage("onboarding")} style={{background:"none",border:"none",cursor:"pointer",color:T.textMuted,fontSize:13,display:"inline-flex",alignItems:"center",gap:6}}><i className="ti ti-arrow-left"/>Back</button>
+        <div style={{fontSize:15,fontWeight:700,color:T.text}}>Buy your package</div>
+        <span style={{width:50}}/>
+      </div>
+      <Billing initialPlan={it.plan||upgradeIntent.plan||"__choose"} initialCycle={it.cycle||upgradeIntent.cycle} initialByok={it.byok||upgradeIntent.byok}/>
+    </div></>; }
   if(stage==="connect") return <><Theme/><Motion/><ConnectChannel clientId={me?.client?.id} onDone={async()=>{
     const next=afterChannelConnect({fromApp:connectFromApp.current,businessType:me?.client?.business_type,calendarConnected:!!me?.client?.gcal_connected});
     connectFromApp.current=false;await loadMe();setStage(next);}}/></>;

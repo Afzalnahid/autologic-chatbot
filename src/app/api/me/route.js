@@ -10,6 +10,7 @@ import { trialDays, limitsFor } from "@/lib/plan-limits.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 import { inboxLocked, lockedSince } from "@/lib/inbox-lock.js";
 import { brandForHost, isWhiteLabel } from "@/lib/white-label.js";
+import { blocksNewPayment } from "@/lib/billing-rules.js";
 
 export const GET = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
@@ -45,6 +46,21 @@ export const GET = withErrors(async (request) => {
     inbox = { locked: true, since, waiting };
   }
 
+  // A payment waiting for us. With no running package the dashboard shows only
+  // "payment under review" until it is approved (owner, 2026-10-04); with one,
+  // Billing shows it. Polled by the dashboard while it waits, so approval opens
+  // everything without a reload. client_id filtered at the database.
+  // The latest decision rides along too: a first payment that was turned down
+  // sends the account back to Billing, where the reason is shown.
+  let pending_payment = null, last_payment_rejected = false;
+  {
+    const { data: rows } = await supabase.from("payment_requests")
+      .select("id,kind,plan,amount,byok,billing_cycle,method,txn_id,created_at,status,custom_limits")
+      .eq("client_id", client.id).order("created_at", { ascending: false }).limit(5);
+    pending_payment = (rows || []).find((r) => blocksNewPayment(r)) || null;
+    last_payment_rejected = rows?.[0]?.status === "rejected";
+  }
+
   // This deliberately does NOT say whether the person also runs the platform.
   // It did for a few hours on 2026-09-24, so the dashboard could draw a way into
   // the admin console — and that turned the owner's user app into the console.
@@ -54,6 +70,10 @@ export const GET = withErrors(async (request) => {
     client: { id: client.id, business_name: client.business_name, plan: client.plan, trial_end: client.trial_end, business_type: client.business_type || "ecommerce", item_label: client.item_label || "", logo_url: client.logo_url || "" },
     email,
     active: trialActive(client),
+    // The free trial is one per account; once used it is not offered again.
+    trial_used: !!client.trial_start,
+    pending_payment,
+    last_payment_rejected,
     inbox,
     // The daily ceiling comes from the package (and any per-client override),
     // the same merge the bot enforces. It was written here as a literal 30,
@@ -115,6 +135,11 @@ export const POST = withErrors(async (request) => {
     // Anything that is not the trial and not "no plan" is a live package.
     if (client.plan && client.plan !== "trial" && client.plan !== "none") {
       return NextResponse.json({ ok: true });
+    }
+    // One trial per account. Pressing the button again (or calling this by
+    // hand) after it ran out used to start a fresh three days every time.
+    if (client.trial_start) {
+      return NextResponse.json({ error: "The free trial has already been used on this account." }, { status: 409 });
     }
     const now = new Date();
     const days = await trialDays();
