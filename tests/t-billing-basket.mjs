@@ -71,6 +71,28 @@ ok("approval tells the owner on the phone", /notify\(pr\.client_id/.test(act));
 const adminRoute = read("src", "app", "api", "admin", "route.js");
 ok("a rejection tells the owner on the phone", /tag: "payment-rejected"/.test(adminRoute));
 
+// The public pages: one card for both, numbers raised before buying, carried
+// into the dashboard (owner, 2026-10-04).
+const BI = await import(pathToFileURL(join(root, "src", "app", "dashboard", "components", "buy-intent.js")).href);
+ok("the Buy link's numbers are read", JSON.stringify(BI.parseCustom("replies.500,products.100")) === JSON.stringify({ replies: 500, products: 100 }));
+ok("…and anything else is dropped (the server checks the rest)", JSON.stringify(BI.parseCustom("replies.-50,bogus.5,docs.x,assistant.50")) === JSON.stringify({ assistant: 50 }));
+const card = read("src", "app", "public-plan-card.js");
+ok("the public card prices with the server's pricing", /quotePlan\(\{ plan, cycle, byok, custom, units, plans \}\)/.test(card));
+ok("the public card's sliders start at the package and only go up", /min=\{s\.base\}/.test(card) && /Math\.max\(0, Math\.min\(s\.max, v\)\)/.test(card));
+ok("Buy carries the numbers", /&c=\$\{customParam\(q\.custom\)\}/.test(card));
+const home = read("src", "app", "page.js");
+const pricingPage = read("src", "app", "pricing", "pricing-client.js");
+ok("the home page uses the shared card, our AI and own key", (home.match(/<PublicPlanCard /g) || []).length === 2 && /plans=\{ladder\} units=\{units\} bn=\{bn\} byok/.test(home));
+ok("/pricing uses the same card, with the own-key switch", /<PublicPlanCard key=\{id\}/.test(pricingPage) && /byok=\{own\}/.test(pricingPage) && /With your own AI key \(BYOK\)/.test(pricingPage));
+ok("the dashboard reads the numbers from the link", /custom:parseCustom\(params\.get\("c"\)\)/.test(dash) && /initialCustom=\{upgradeIntent\.custom\}/.test(dash));
+
+// 90% warnings.
+const meters = read("src", "app", "dashboard", "components", "UsageMeters.js");
+ok("a meter warns from 90%", /m\.pct >= 90/.test(meters) && /Add more<\/button>/.test(meters));
+ok("Billing offers Add more from the warning", /onAddMore=\{paidAndActive && !pending/.test(ui));
+ok("/api/me lists what is 90% used", /near_limits = meters/.test(me) && /m\.pct >= 90/.test(me));
+ok("every tab shows the warning", /<NearLimitBanner me=\{me\}/.test(dash));
+
 // The admin side: step prices are edited in the panel (owner-only), and the
 // payment queue shows what each payment buys.
 const pkgRoute = read("src", "app", "api", "admin", "packages", "route.js");

@@ -295,10 +295,9 @@ online one under an hour old) — enforced in the billing API.
 `step` (fixed: 50 / 50 / 5 / 50), `price` (taka per step per month, Standard),
 `biz` (`both` / `ecommerce` / `agency`), `active`, `sort`, `updated_at`.
 Seeded 2026-10-04: replies ৳40, products ৳50, docs ৳50, assistant ৳50 per step.
-Rules in `src/lib/pricing.js`: a raise pays the step price, a cut takes off half
-(`DOWN_RATE`), own key pays half (`BYOK_SHARE`), yearly is ten months, and a
-slider runs from the package below to the package above (half / double at the
-ends). Only `price` and `active` are editable (admin Packages → "Customers' own
+Rules in `src/lib/pricing.js`: numbers only go up (never below the package), at
+most half the way to the next package (+50% on the biggest); a raise pays the
+step price, own key pays half (`BYOK_SHARE`), yearly is ten months. Only `price` and `active` are editable (admin Packages → "Customers' own
 numbers"); the step is fixed because saved numbers are whole steps.
 `UNIT_DEFAULTS` is the fallback when the table cannot be read. RLS on, no
 policies (service key only).

@@ -1582,11 +1582,11 @@ function PlanEditor({ d, post, busy, isSuper, rate, setMsg }) {
 }
 
 // What one step of a package's countable numbers costs (plan_units,
-// lib/pricing.js; owner, 2026-10-04). A customer moves bot replies, products
+// lib/pricing.js; owner, 2026-10-04). A customer raises bot replies, products
 // (shops), knowledge files (services) and AI Assistant questions with a slider
-// in Billing, from the package below to the package above. Raising a number
-// adds the step price; lowering takes off half of it; own key pays half of
-// everything; yearly is ten months. The step size is fixed — customers' saved
+// on the home page, /pricing and in Billing — never below the package, at most
+// half the way to the next one. Each step adds the step price; own key pays
+// half; yearly is ten months. The step size is fixed — customers' saved
 // numbers are whole steps — so only the price and the switch are edited here.
 const UNIT_FOR = { both: "Everyone", ecommerce: "Shops", agency: "Services" };
 function UnitEditor({ units, post, busy }) {
@@ -1599,7 +1599,7 @@ function UnitEditor({ units, post, busy }) {
   return <Card style={{ marginTop: 10 }}>
     <div style={{ fontSize: 13, fontWeight: 700 }}>Customers' own numbers</div>
     <div style={{ fontSize: 12, color: T.textMuted, margin: "4px 0 10px", lineHeight: 1.6 }}>
-      In Billing a customer moves each number with a slider, from the package below to the package above. Each step up adds this price a month; a step down takes off half of it. Own key pays half; yearly is ten months.
+      On the home page, /pricing and in Billing a customer raises each number with a slider — never below the package, at most half the way to the next one. Each step adds this price a month. Own key pays half; yearly is ten months.
     </div>
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 12.5 }}>

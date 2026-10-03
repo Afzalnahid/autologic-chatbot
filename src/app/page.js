@@ -10,7 +10,8 @@ import { pageMeta, siteJsonLd } from "@/lib/seo.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 import { PLANS, PLAN_ORDER, formatMoney, planPrices } from "@/lib/plans.js";
-import { loadPlans } from "@/lib/plan-limits.js";
+import { loadPlans, loadUnits } from "@/lib/plan-limits.js";
+import PublicPlanCard from "./public-plan-card.js";
 
 // Four facts for the strip under the features — each one true of the product
 // today. The owner's Figma draft had revenue and conversion percentages and a
@@ -236,7 +237,12 @@ export default async function Home({ searchParams }) {
   const c = COPY[lang];
   const bn = lang === "bn";
   const other = lang === "bn" ? "/" : "/?lang=bn";
-  const [plans, trial] = await Promise.all([paidPlans(), trialPlan()]);
+  const [plans, trial, units] = await Promise.all([paidPlans(), trialPlan(), loadUnits().catch(() => undefined)]);
+  // What the cards' sliders need from every package: prices and the countable
+  // numbers (a slider runs at most half the way to the next package).
+  const ladder = plans.map((p) => ({ id: p.id, name: p.name, biz: p.biz, active: p.active, monthly: Number(p.monthly) || 0, yearly: Number(p.yearly) || 0,
+    byok_monthly: p.byok_monthly ?? null, byok_yearly: p.byok_yearly ?? null, messages_per_month: p.messages_per_month ?? null,
+    max_products: p.max_products ?? null, max_kb_files: p.max_kb_files ?? null, max_assistant_per_month: p.max_assistant_per_month ?? null }));
   const brand = brandForHost(headers().get("host"));
   const wl = isWhiteLabel(brand);
 
@@ -456,12 +462,11 @@ export default async function Home({ searchParams }) {
         #al-biz-svc:checked ~ #al-key-std:checked ~ .p-svc.k-std,
         #al-biz-svc:checked ~ #al-key-own:checked ~ .p-svc.k-own { display: grid }
         .pkey { display: block; font-size: 12.5px; opacity: .85; margin: 0 0 6px; cursor: pointer }
-        .pwas { font-size: 12.5px; opacity: .75; margin: 0 0 6px }
         .pcard { position: relative; display: flex; flex-direction: column; background: ${P.paper}; color: ${P.ink};
           border: 1px solid ${P.line}; border-radius: 20px; padding: 24px; box-shadow: var(--lp-nm-sm) }
         .pcard.trial { border-style: dashed; border-color: ${P.accent}; box-shadow: none }
         .pcard.trial .pbtn { background: transparent; color: ${P.accent}; border: 1.5px solid ${P.accent} }
-        .pcard ul { flex: 1 }
+        .pcard ul { flex: 1; align-content: start }
         .pcard.hl { background: #7B1C3E; color: #fff; border-color: #7B1C3E; box-shadow: 0 18px 44px rgba(123,28,62,.30) }
         .pbadge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: #F4C95D; color: #3A2A06;
           font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap }
@@ -826,34 +831,16 @@ export default async function Home({ searchParams }) {
                     <a href="/dashboard?auth=signup" className="btn pbtn">{bn ? "ফ্রি ট্রায়াল শুরু করুন" : "Start free trial"}</a>
                   </div>
                 )}
+                {/* The paid packages: the shared card (public-plan-card.js) — the
+                    same one /pricing uses, with "Set your numbers" inside. */}
                 {plans.filter((p) => p.biz === biz).map((p) => (
-                  <div key={p.id} className={`pcard${p.highlight ? " hl" : ""}`}>
-                    {p.highlight && <span className="pbadge">{bn ? "সবচেয়ে জনপ্রিয়" : "Most popular"}</span>}
-                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", opacity: .8 }}>{p.name}</div>
-                    <div style={{ margin: "10px 0 4px", display: "flex", alignItems: "baseline", gap: 4 }}>
-                      <span className="fr" style={{ fontSize: 36 }}>{formatMoney(p.monthly)}</span>
-                      <span style={{ fontSize: 13, opacity: .75 }}>{bn ? "/মাস" : "/mo"}</span>
-                    </div>
-                    {/* The own-key price, on every card (owner, 2026-10-03).
-                        A label: pressing it turns the switch to the own-key cards. */}
-                    {planPrices(p).byok && (
-                      <label htmlFor="al-key-own" className="pkey">
-                        <i className="ti ti-key" style={{ marginRight: 4 }} />
-                        {bn ? `নিজের AI কী দিয়ে ${formatMoney(planPrices(p).byok)}/মাস` : `${formatMoney(planPrices(p).byok)}/mo with your own AI key`}
-                      </label>
-                    )}
-                    <div style={{ fontSize: 13, opacity: .8, minHeight: 38, lineHeight: 1.5 }}>{p.tagline}</div>
-                    <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 22px", display: "grid", gap: 9 }}>
-                      {(p.feature_list || []).map((f) => (
-                        <li key={f} style={{ display: "flex", gap: 8, fontSize: 13.5, lineHeight: 1.45 }}>
-                          <i className="ti ti-check" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />{f}
-                        </li>
-                      ))}
-                    </ul>
-                    {/* Same link as /pricing: signs in or up if needed, then opens
-                        Billing with this package already chosen. */}
-                    <a href={`/dashboard?upgrade=${encodeURIComponent(p.id)}&cycle=monthly`} className="btn pbtn">{bn ? `${p.name} কিনুন` : `Buy ${p.name}`}</a>
-                  </div>
+                  <PublicPlanCard key={p.id} plan={p} plans={ladder} units={units} bn={bn}
+                    className={`pcard${p.highlight ? " hl" : ""}`} btnClass="btn pbtn"
+                    badge={p.highlight ? <span className="pbadge">{bn ? "সবচেয়ে জনপ্রিয়" : "Most popular"}</span> : null}
+                    extra={planPrices(p).byok ? <label htmlFor="al-key-own" className="pkey">
+                      <i className="ti ti-key" style={{ marginRight: 4 }} />
+                      {bn ? `নিজের AI কী দিয়ে ${formatMoney(planPrices(p).byok)}/মাস — অর্ধেক দাম` : `${formatMoney(planPrices(p).byok)}/mo with your own AI key — half price`}
+                    </label> : null} />
                 ))}
               </div>
             ))}
@@ -862,47 +849,16 @@ export default async function Home({ searchParams }) {
                 also"). No trial card — the trial runs on our AI. */}
             {[["ecommerce", "p-shop"], ["agency", "p-svc"]].map(([biz, cls]) => (
               <div key={biz} className={`pgrid ${cls} k-own`}>
-                {plans.filter((p) => p.biz === biz && planPrices(p).byok).map((p) => {
-                  const { std, byok } = planPrices(p);
-                  return (
-                    <div key={p.id} className={`pcard${p.highlight ? " hl" : ""}`}>
-                      {p.highlight && <span className="pbadge">{bn ? "সবচেয়ে জনপ্রিয়" : "Most popular"}</span>}
-                      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", opacity: .8 }}>
-                        {p.name} · {bn ? "নিজের কী" : "Own key"}
-                      </div>
-                      <div style={{ margin: "10px 0 4px", display: "flex", alignItems: "baseline", gap: 4 }}>
-                        <span className="fr" style={{ fontSize: 36 }}>{formatMoney(byok)}</span>
-                        <span style={{ fontSize: 13, opacity: .75 }}>{bn ? "/মাস" : "/mo"}</span>
-                      </div>
-                      {std > byok && (
-                        <div className="pwas">
-                          {bn ? `আমাদের AI দিয়ে ${formatMoney(std)} — ${formatMoney(std - byok)} কম`
-                              : `${formatMoney(std)} with our AI — ${formatMoney(std - byok)} less`}
-                        </div>
-                      )}
-                      <div style={{ fontSize: 13, opacity: .8, minHeight: 38, lineHeight: 1.5 }}>{p.tagline}</div>
-                      <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 22px", display: "grid", gap: 9 }}>
-                        <li style={{ display: "flex", gap: 8, fontSize: 13.5, lineHeight: 1.45, fontWeight: 600 }}>
-                          <i className="ti ti-key" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />
-                          {bn ? "আপনার নিজের Gemini বা OpenAI কী-তে চলে" : "Runs on your own Gemini or OpenAI key"}
-                        </li>
-                        {(p.feature_list || []).map((f) => (
-                          <li key={f} style={{ display: "flex", gap: 8, fontSize: 13.5, lineHeight: 1.45 }}>
-                            <i className="ti ti-check" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} />{f}
-                          </li>
-                        ))}
-                      </ul>
-                      <a href={`/dashboard?upgrade=${encodeURIComponent(p.id)}&cycle=monthly&byok=1`} className="btn pbtn">
-                        {bn ? `${p.name} (নিজের কী) কিনুন` : `Buy ${p.name} (own key)`}
-                      </a>
-                    </div>
-                  );
-                })}
+                {plans.filter((p) => p.biz === biz && planPrices(p).byok).map((p) => (
+                  <PublicPlanCard key={p.id} plan={p} plans={ladder} units={units} bn={bn} byok
+                    className={`pcard${p.highlight ? " hl" : ""}`} btnClass="btn pbtn"
+                    badge={p.highlight ? <span className="pbadge">{bn ? "সবচেয়ে জনপ্রিয়" : "Most popular"}</span> : null} />
+                ))}
               </div>
             ))}
           </div>
           <p style={{ textAlign: "center", fontSize: 13, color: P.inkSoft, margin: "22px 0 0" }}>
-            {bn ? "লঞ্চ দাম, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত। বছরের দাম, নিজের মতো সংখ্যা বাড়ানো-কমানো আর পুরো তুলনা — " : "Launch prices, valid until 31 December 2026. Yearly billing, setting your own numbers and the full comparison — "}
+            {bn ? "লঞ্চ দাম, ৩১ ডিসেম্বর ২০২৬ পর্যন্ত। বছরের দাম আর পুরো তুলনা — " : "Launch prices, valid until 31 December 2026. Yearly prices and the full comparison — "}
             <a href="/pricing" style={{ color: P.accent, fontWeight: 600 }}>{bn ? "দামের পাতায়" : "on the pricing page"}</a>
           </p>
         </div>

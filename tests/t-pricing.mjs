@@ -1,7 +1,7 @@
 // What a purchase costs (lib/pricing.js): a package, Standard or own-key (BYOK,
-// half price), monthly or yearly, with the package's countable numbers moved up
-// or down by a slider, and numbers raised in the middle of a running package
-// (prorated). Owner, 2026-10-04.
+// half price), monthly or yearly, with the package's countable numbers RAISED by
+// a slider (never lowered, never close to the next package), and numbers raised
+// in the middle of a running package (prorated). Owner, 2026-10-04.
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -36,31 +36,31 @@ ok("own key is half, rounded down: 2,699 → 1,349", P.byokFromStandard(2699) ==
 ok("…5,999 → 2,999 and 9,999 → 4,999", P.byokFromStandard(5999) === 2999 && P.byokFromStandard(9999) === 4999);
 ok("…and no price gives no own-key price", P.byokFromStandard(0) === null && P.byokFromStandard(null) === null);
 
-// The ladder and the sliders.
+// The ladder and the sliders: only up, at most half the way to the next package.
 ok("a shop's ladder is its three packages, cheapest first", P.ladderFor(PLANS, "ecommerce").map((p) => p.id).join() === "shop_basic,shop_pro,shop_enterprise");
 ok("the trial is never on a ladder", !P.ladderFor(PLANS, "both").length);
 const sl = (plan) => Object.fromEntries(P.slidersFor(plan, opts).map((s) => [s.kind, s]));
 const b = sl(sB), p = sl(sP), e = sl(sE), vb = sl(vB);
 ok("a shop moves replies, products and assistant questions", Object.keys(b).join() === "replies,products,assistant");
 ok("a service moves replies, knowledge files and assistant questions", Object.keys(vb).join() === "replies,docs,assistant");
-ok("basic replies go up to Pro's 5,500", b.replies.max === 3500);
-ok("…and down to half its own 2,000", b.replies.min === -1000);
-ok("pro replies go from Basic's 2,000 to Enterprise's 12,000", p.replies.min === -3500 && p.replies.max === 6500);
-ok("enterprise replies go up to double", e.replies.max === 12000 && e.replies.min === -6500);
-ok("basic products 250…1,000 in steps of 50", b.products.min === -250 && b.products.max === 500 && b.products.step === 50);
-ok("service files move in steps of 5, 10…60", vb.docs.step === 5 && vb.docs.min === -10 && vb.docs.max === 40);
-ok("a range is always a whole number of steps", P.slidersFor(sP, opts).every((s) => s.min % s.step === 0 && s.max % s.step === 0));
+ok("no slider goes below the package's own number", P.slidersFor(sP, opts).every((s) => s.min === 0));
+ok("basic replies go up half the way to Pro: 2,000 → 3,750", b.replies.max === 1750);
+ok("pro replies go half the way to Enterprise: 5,500 → 8,750", p.replies.max === 3250);
+ok("enterprise goes up at most half again", e.replies.max === 6000 && e.products.max === 1250);
+ok("basic products 500 → 750 in steps of 50", b.products.max === 250 && b.products.step === 50);
+ok("service files 20 → 40 in steps of 5", vb.docs.step === 5 && vb.docs.max === 20);
+ok("a range is always a whole number of steps", P.slidersFor(sP, opts).every((s) => s.max % s.step === 0));
 ok("the trial has no sliders", !P.slidersFor(trial, opts).length);
 ok("an unlimited allowance has no slider", !P.slidersFor({ ...sB, messages_per_month: null }, opts).some((s) => s.kind === "replies"));
 ok("an inactive step price has no slider", !P.slidersFor(sB, { units: U.map((u) => u.kind === "products" ? { ...u, active: false } : u), plans: PLANS }).some((s) => s.kind === "products"));
 
 // Checking what the browser sent.
 const S = P.slidersFor(sB, opts);
-ok("a valid change passes", P.cleanCustom({ replies: 500, products: -50 }, S).ok);
+ok("a valid raise passes", P.cleanCustom({ replies: 500, products: 50 }, S).ok);
 ok("zero changes are dropped", JSON.stringify(P.cleanCustom({ replies: 0 }, S).custom) === "{}");
+ok("lowering is refused", !P.cleanCustom({ replies: -50 }, S).ok);
 ok("off-step is refused", !P.cleanCustom({ replies: 30 }, S).ok);
-ok("beyond the next package is refused", !P.cleanCustom({ replies: 3550 }, S).ok);
-ok("below the floor is refused", !P.cleanCustom({ replies: -1050 }, S).ok);
+ok("past half the way to the next package is refused", !P.cleanCustom({ replies: 1800 }, S).ok);
 ok("a shop cannot move knowledge files", !P.cleanCustom({ docs: 5 }, S).ok);
 ok("a fraction is refused", !P.cleanCustom({ products: 50.5 }, S).ok);
 
@@ -71,18 +71,19 @@ ok("…and the limits are the package's", q0.limits.messages_per_month === 2000 
 const up = P.quotePlan({ plan: sB, custom: { replies: 500, products: 100 }, ...opts });
 ok("+500 replies (10 × ৳40) and +100 products (2 × ৳50) = 2,699 + 400 + 100", up.ok && up.total === 3199);
 ok("…and the limits move with it", up.limits.messages_per_month === 2500 && up.limits.max_products === 600);
-const down = P.quotePlan({ plan: sB, custom: { replies: -500 }, ...opts });
-ok("lowering takes off half a step's price: −500 replies = −৳200", down.ok && down.total === 2499);
 const own = P.quotePlan({ plan: sB, byok: true, custom: { replies: 500, products: 100 }, ...opts });
-ok("own key: half the package and half the change: 1,349 + 250", own.ok && own.total === 1599);
+ok("own key: half the package and half the raise: 1,349 + 250", own.ok && own.total === 1599);
 const yr = P.quotePlan({ plan: sB, cycle: "yearly", custom: { replies: 500 }, ...opts });
-ok("yearly: ten months of the package and of the change", yr.ok && yr.total === 26990 + 4000);
-const maxed = P.quotePlan({ plan: sB, custom: { replies: 3500, products: 500, assistant: 300 }, ...opts });
-ok("Basic pushed to Pro's numbers costs a little more than Pro (6,299 > 5,999)", maxed.ok && maxed.total === 6299);
-ok("…and says Pro is the better deal", maxed.better?.id === "shop_pro" && maxed.better.price === 5999);
-ok("a small change suggests nothing", !up.better);
-const floor = P.quotePlan({ plan: sP, custom: { replies: -3500, products: -500, assistant: -300 }, ...opts });
-ok("Pro cut to Basic's numbers still costs more than Basic", floor.ok && floor.total > 2699);
+ok("yearly: ten months of the package and of the raise", yr.ok && yr.total === 26990 + 4000);
+const maxed = P.quotePlan({ plan: sB, custom: { replies: 1750, products: 250, assistant: 150 }, ...opts });
+ok("Basic at its top is ৳4,499 — well short of Pro's ৳5,999", maxed.ok && maxed.total === 4499);
+ok("…and points at Pro, ৳1,500 more", maxed.better?.id === "shop_pro" && maxed.better.more === 1500);
+ok("a small raise suggests nothing", !up.better);
+for (const [plan, next] of [[sB, sP], [sP, sE], [vB, vP], [vP, vE]]) {
+  const top = Object.fromEntries(P.slidersFor(plan, opts).map((s) => [s.kind, s.max]));
+  const q = P.quotePlan({ plan, custom: top, ...opts });
+  ok(`${plan.id} at its top stays under ${next.id}'s price`, q.ok && q.total < Number(next.monthly));
+}
 const svcUp = P.quotePlan({ plan: vB, custom: { docs: 10 }, ...opts });
 ok("service: +10 files = 2 × ৳50", svcUp.ok && svcUp.total === 2399);
 ok("a refused change refuses the quote", !P.quotePlan({ plan: sB, custom: { replies: 7 }, ...opts }).ok);
@@ -106,8 +107,6 @@ ok("no raise is refused", !P.quoteTopUp({ client, plan: sB, custom: { replies: 5
 const tOwn = P.quoteTopUp({ client: { ...client, byok_plan: true }, plan: sB, custom: { replies: 1000 }, ...opts, now });
 ok("own key: half the raise", tOwn.ok && tOwn.total === 100);
 ok("an ended package cannot be topped up", !P.quoteTopUp({ client: { ...client, plan_expires_at: new Date(now - 1).toISOString() }, plan: sB, custom: { replies: 1000 }, ...opts, now }).ok);
-const fromCut = P.quoteTopUp({ client: { ...client, custom_limits: { replies: -500 } }, plan: sB, custom: { replies: 0 }, ...opts, now });
-ok("raising back from a cut pays back the half price that was saved", fromCut.ok && fromCut.total === 100);
 
 // Limits.
 ok("a change applies to a limit", P.withChange(2000, 500) === 2500 && P.withChange(500, -50) === 450);

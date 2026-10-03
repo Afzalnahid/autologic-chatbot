@@ -23,7 +23,8 @@ import { useConvoRead } from "./dashboard/components/convo-read.js";
 import WebsiteWidget from "./dashboard/components/WebsiteWidget.js";
 import Billing from "./dashboard/components/Billing.js";
 import PendingPayment from "./dashboard/components/PendingPayment.js";
-import { saveBuyIntent, readBuyIntent, clearBuyIntent } from "./dashboard/components/buy-intent.js";
+import { saveBuyIntent, readBuyIntent, clearBuyIntent, parseCustom } from "./dashboard/components/buy-intent.js";
+import { quotePlan } from "@/lib/pricing.js";
 import Analytics from "./dashboard/components/Analytics.js";
 import Overview from "./dashboard/components/Overview.js";
 import Orders from "./dashboard/components/Orders.js";
@@ -100,8 +101,10 @@ export function AuthGate({onReady,demo=false}) {
     fetch("/api/plans").then(r=>r.json()).then(x=>{
       const p=(x?.plans||[]).find(q=>q.id===it.plan);
       if(!p) return;
-      const price=it.byok?(Number(p.byok_monthly)||0):Number(p.monthly)||0;
-      setBuying({name:p.name,byok:it.byok,price:it.cycle==="yearly"?price*10:price,cycle:it.cycle});
+      // Priced with the same code as Billing and the server, raised numbers included.
+      const q=quotePlan({plan:p,cycle:it.cycle,byok:it.byok,custom:it.custom||{},units:x.units?.length?x.units:undefined,plans:x.plans});
+      const price=q.ok?q.total:(it.byok?(Number(p.byok_monthly)||0):Number(p.monthly)||0)*(it.cycle==="yearly"?10:1);
+      setBuying({name:p.name,byok:it.byok,price,cycle:it.cycle,raised:q.ok&&Object.keys(q.custom).length>0});
     }).catch(()=>{});
   },[]);
   const [email,setEmail]=useState("");
@@ -233,7 +236,7 @@ export function AuthGate({onReady,demo=false}) {
         </div>
         {buying&&<div style={{display:"flex",gap:8,alignItems:"center",fontSize:12.5,lineHeight:1.5,padding:"9px 12px",borderRadius:10,background:T.goldBg,color:T.text,margin:"0 0 12px"}}>
           <i className="ti ti-shopping-cart" style={{color:T.gold,fontSize:16,flexShrink:0}}/>
-          <span>You are buying <strong>{buying.name}{buying.byok?" (own AI key)":""}</strong> · ৳{buying.price.toLocaleString("en-IN")}/{buying.cycle==="yearly"?"year":"month"}. {signup?"Create your account to continue.":"Sign in to continue."}</span>
+          <span>You are buying <strong>{buying.name}{buying.byok?" (own AI key)":""}{buying.raised?" with your numbers":""}</strong> · ৳{buying.price.toLocaleString("en-IN")}/{buying.cycle==="yearly"?"year":"month"}. {signup?"Create your account to continue.":"Sign in to continue."}</span>
         </div>}
         <h1 className="auth-title">{signup?"Create account":"Welcome back"}</h1>
         <p className="auth-sub">{signup?"Sign up and begin your experience":"Sign in to your dashboard"}</p>
@@ -818,6 +821,28 @@ function BotOffBanner({me,onFix}) {
   </div>;
 }
 
+// 90% or more of something used (owner, 2026-10-04): said on every tab, with
+// the way to raise it. Neutral warn colour; red only once something is used up.
+function NearLimitBanner({me,onFix}) {
+  const list=(me?.near_limits||[]);
+  if(!list.length||me?.active===false) return null;
+  const full=list.some(m=>m.pct>=100);
+  const paid=!["trial","none",""].includes(String(me?.client?.plan||"").toLowerCase());
+  const c=full?T.danger:T.warn;
+  return <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",
+    background:`color-mix(in srgb, ${c} 8%, transparent)`,border:`1px solid color-mix(in srgb, ${c} 35%, transparent)`,borderRadius:12,
+    padding:"11px 14px",marginBottom:14}}>
+    <i className="ti ti-gauge" style={{fontSize:20,color:c,flexShrink:0}}/>
+    <div style={{flex:1,minWidth:180,fontSize:12.5,color:T.textMuted}}>
+      <div style={{fontSize:13.5,fontWeight:700,color:T.text}}>{full?"You have used up part of your package":"You are close to your package's limit"}</div>
+      {list.map(m=>`${m.label}: ${m.pct>=100?"used up":m.pct+"% used"}`).join(" · ")}
+    </div>
+    <Btn gold onClick={onFix} style={{flexShrink:0}}>
+      <i className="ti ti-plus" style={{marginRight:6}}/>{paid?"Add more":"Choose a package"}
+    </Btn>
+  </div>;
+}
+
 // A navigation target is "tab" or "tab:id" — the id opens ONE thing inside the
 // tab (a conversation by sender, an order by id/code). Push notifications, the
 // bell and the service worker all speak this form, so tapping "New order from
@@ -950,7 +975,8 @@ function DashboardApp({ onLaunchReady }) {
     const up=params.get("upgrade");
     if(up&&/^[a-z0-9_-]{2,40}$/i.test(up)){
       // byok=1: they chose the own-AI-key price on the pricing page.
-      const intent={plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly",byok:params.get("byok")==="1"};
+      // c=replies.500,products.100 — the numbers raised on the public card.
+      const intent={plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly",byok:params.get("byok")==="1",custom:parseCustom(params.get("c"))};
       setUpgradeIntent(intent);
       // Kept on the device too (buy-intent.js), so it survives signing up and
       // the round trip through the confirmation email.
@@ -1086,6 +1112,13 @@ function DashboardApp({ onLaunchReady }) {
     const t=setInterval(()=>loadMe(),20000);
     return ()=>clearInterval(t);
   },[stage]);
+  // In the app, read the account again every five minutes, so a limit passing
+  // 90% (or a payment approved) shows without a reload.
+  useEffect(()=>{
+    if(stage!=="app") return;
+    const t=setInterval(()=>loadMe(),300000);
+    return ()=>clearInterval(t);
+  },[stage]);
 
   // While signing up — the profile form, connecting the first channel — the
   // phone's back button means "I've changed my mind", so it returns to the
@@ -1186,7 +1219,7 @@ function DashboardApp({ onLaunchReady }) {
         <div style={{fontSize:15,fontWeight:700,color:T.text}}>Buy your package</div>
         <span style={{width:50}}/>
       </div>
-      <Billing initialPlan={it.plan||upgradeIntent.plan||"__choose"} initialCycle={it.cycle||upgradeIntent.cycle} initialByok={it.byok||upgradeIntent.byok}/>
+      <Billing initialPlan={it.plan||upgradeIntent.plan||"__choose"} initialCycle={it.cycle||upgradeIntent.cycle} initialByok={it.byok||upgradeIntent.byok} initialCustom={it.custom||upgradeIntent.custom}/>
     </div></>; }
   if(stage==="connect") return <><Theme/><Motion/><ConnectChannel clientId={me?.client?.id} onDone={async()=>{
     const next=afterChannelConnect({fromApp:connectFromApp.current,businessType:me?.client?.business_type,calendarConnected:!!me?.client?.gcal_connected});
@@ -1227,6 +1260,7 @@ function DashboardApp({ onLaunchReady }) {
                 A full-bleed screen drops this and the "Read docs" line so the
                 chat/assistant can own the whole height. */}
             {!fullBleed&&page!=="billing"&&<BotOffBanner me={me} onFix={()=>setPage("billing")}/>}
+            {!fullBleed&&page!=="billing"&&<NearLimitBanner me={me} onFix={()=>setPage("billing")}/>}
             {/* The guide for this tab. Quiet inline text rather than a filled
                 bar or a button in the header — the same way Meta's own console
                 offers "Read docs" at the end of a description. Same place and
@@ -1252,7 +1286,7 @@ function DashboardApp({ onLaunchReady }) {
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent} onIntentDone={()=>setInvIntent(null)}/>)}
             {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load} focus={focus?.tab==="orders"?focus:null} onGo={goTo}/>)}
             {page==="channels"&&<Channels onConnect={()=>{connectFromApp.current=true;setStage("connect");}} justConnected={justConnected} onDismissConnected={()=>setJustConnected(null)}/>}
-            {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle} initialByok={upgradeIntent.byok}/>}
+            {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle} initialByok={upgradeIntent.byok} initialCustom={upgradeIntent.custom}/>}
             {page==="profile"&&<Profile/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}
             {page==="ai"&&<AIEngine/>}

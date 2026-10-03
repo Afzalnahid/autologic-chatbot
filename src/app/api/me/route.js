@@ -11,6 +11,7 @@ import { countBillableMessages } from "@/lib/message-usage.js";
 import { inboxLocked, lockedSince } from "@/lib/inbox-lock.js";
 import { brandForHost, isWhiteLabel } from "@/lib/white-label.js";
 import { blocksNewPayment } from "@/lib/billing-rules.js";
+import { usageMeters } from "@/lib/entitlements.js";
 
 export const GET = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
@@ -61,6 +62,19 @@ export const GET = withErrors(async (request) => {
     last_payment_rejected = rows?.[0]?.status === "rejected";
   }
 
+  // What is 90% or more used — bot replies, products or documents, AI Assistant
+  // questions — so every tab can warn and offer Add more (owner, 2026-10-04).
+  // Only for an account that is running; fails soft to "nothing to say".
+  let near_limits = [];
+  if (trialActive(client)) {
+    try {
+      const { meters } = await usageMeters(client, await limitsFor(client));
+      near_limits = meters
+        .filter((m) => ["messages", "products", "documents", "assistant"].includes(m.key) && !m.unlimited && m.pct !== null && m.pct >= 90)
+        .map((m) => ({ key: m.key, label: m.label, pct: m.pct, remaining: m.remaining, total: !!m.total }));
+    } catch { near_limits = []; }
+  }
+
   // This deliberately does NOT say whether the person also runs the platform.
   // It did for a few hours on 2026-09-24, so the dashboard could draw a way into
   // the admin console — and that turned the owner's user app into the console.
@@ -74,6 +88,7 @@ export const GET = withErrors(async (request) => {
     trial_used: !!client.trial_start,
     pending_payment,
     last_payment_rejected,
+    near_limits,
     inbox,
     // The daily ceiling comes from the package (and any per-client override),
     // the same merge the bot enforces. It was written here as a literal 30,

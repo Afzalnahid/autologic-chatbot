@@ -12,16 +12,28 @@
 const KEY = "al_buy_intent";
 const MAX_AGE = 7 * 86400000;
 
-export function saveBuyIntent({ plan, cycle, byok }) {
+// "replies.500,products.100" (the public card's Buy link) → { replies: 500, products: 100 }.
+// Only the shape is checked here; the server prices and checks every number.
+export function parseCustom(param) {
+  const out = {};
+  for (const part of String(param || "").split(",")) {
+    const [k, v] = part.split(".");
+    const n = Number(v);
+    if (/^(replies|products|docs|assistant)$/.test(k) && Number.isInteger(n) && n > 0 && n < 1e6) out[k] = n;
+  }
+  return out;
+}
+
+export function saveBuyIntent({ plan, cycle, byok, custom }) {
   if (!plan || !/^[a-z0-9_-]{2,40}$/i.test(plan)) return;
-  try { localStorage.setItem(KEY, JSON.stringify({ plan, cycle: cycle === "yearly" ? "yearly" : "monthly", byok: !!byok, at: Date.now() })); } catch {}
+  try { localStorage.setItem(KEY, JSON.stringify({ plan, cycle: cycle === "yearly" ? "yearly" : "monthly", byok: !!byok, custom: custom || {}, at: Date.now() })); } catch {}
 }
 
 export function readBuyIntent() {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!v || !v.plan || !(Date.now() - Number(v.at) < MAX_AGE)) return null;
-    return { plan: String(v.plan), cycle: v.cycle === "yearly" ? "yearly" : "monthly", byok: !!v.byok };
+    return { plan: String(v.plan), cycle: v.cycle === "yearly" ? "yearly" : "monthly", byok: !!v.byok, custom: parseCustom(Object.entries(v.custom || {}).map(([k, n]) => `${k}.${n}`).join(",")) };
   } catch { return null; }
 }
 

@@ -31,27 +31,37 @@ export function PlanMeter({ m }) {
   </div>;
 }
 
-export default function UsageMeters({ meters, period }) {
+// Which meters the customer can raise themselves with Add more (lib/pricing.js).
+export const RAISABLE = { messages: "replies", products: "products", documents: "docs", assistant: "assistant" };
+
+// 90% or more used, and not unlimited: time to warn (owner, 2026-10-04).
+export const nearLimit = (m) => !m.unlimited && m.pct !== null && m.pct !== undefined && m.pct >= 90;
+
+export default function UsageMeters({ meters, period, onAddMore, skip = [] }) {
   if (!Array.isArray(meters) || !meters.length) return null;
-  const isFull = (m) => !m.unlimited && (m.pct || 0) >= 100;
-  // Monthly meters reset; total ones (products, documents, channels) never do,
-  // so they get their own sentence instead of a false "it resets on the 1st".
-  const full = meters.filter((m) => isFull(m) && !m.total);
-  const fullTotal = meters.filter((m) => isFull(m) && m.total);
+  const shown = meters.filter((m) => !skip.includes(m.key));
+  // Everything at 90% or more, the ones that can be raised first. Monthly ones
+  // reset; total ones (products, documents) never do, so the sentence differs.
+  const near = shown.filter(nearLimit);
   return <div>
     <div style={{ fontSize: 12.5, fontWeight: 600, margin: "0 0 10px" }}>
       Usage
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(220px,100%),1fr))", gap: "14px 22px" }}>
-      {meters.map((m) => <PlanMeter key={m.key} m={m} />)}
+      {shown.map((m) => <PlanMeter key={m.key} m={m} />)}
     </div>
-    {full.length > 0 && <div style={{ fontSize: 11.5, color: T.warn, marginTop: 12 }}>
-      <i className="ti ti-alert-triangle" style={{ marginRight: 5 }} />
-      Used up: {full.map((m) => m.label).join(", ")}. It resets {period === "day" ? "tomorrow" : "on the 1st"}, or upgrade for more.
-    </div>}
-    {fullTotal.length > 0 && <div style={{ fontSize: 11.5, color: T.warn, marginTop: 8 }}>
-      <i className="ti ti-alert-triangle" style={{ marginRight: 5 }} />
-      Used up: {fullTotal.map((m) => m.label).join(", ")}. This is your package's total and does not reset. Upgrade for more.
-    </div>}
+    {near.map((m) => {
+      const full = (m.pct || 0) >= 100;
+      const canRaise = !!RAISABLE[m.key] && !!onAddMore;
+      return <div key={m.key} role="alert" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 12, color: full ? T.danger : T.warn, marginTop: 10,
+        padding: "8px 11px", borderRadius: 9, background: `color-mix(in srgb, ${full ? T.danger : T.warn} 8%, transparent)` }}>
+        <i className="ti ti-alert-triangle" />
+        <span style={{ flex: 1, minWidth: 180 }}>
+          <b>{m.label}</b>: {full ? "used up" : `${m.pct}% used`} — {n(m.remaining || 0)} left.
+          {" "}{m.total ? "This is your package's total and does not reset." : `It resets ${period === "day" ? "tomorrow" : "on the 1st"}.`}
+        </span>
+        {canRaise && <button type="button" onClick={() => onAddMore(RAISABLE[m.key])} style={{ border: "none", cursor: "pointer", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 700, background: T.gold, color: T.onGold }}>Add more</button>}
+      </div>;
+    })}
   </div>;
 }

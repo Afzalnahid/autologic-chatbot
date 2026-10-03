@@ -568,13 +568,14 @@ saved" rule in the next section.
     Standard price, rounded down (`byokFromStandard`); a blank own-key price in
     the admin editor means exactly that;
   - monthly or yearly (ten months);
-  - the package's countable numbers, each moved by a slider (`slidersFor`):
+  - the package's countable numbers, each RAISED by a slider (`slidersFor`):
     bot replies a month, products (shops) or knowledge files (services), AI
-    Assistant questions. Steps and step prices are in `plan_units`. A slider
-    runs from the package below to the package above (the cheapest goes down to
-    half, the biggest up to double). A raise pays the step price, a cut takes
-    off half of it, own key pays half of everything. Basic pushed to Pro's
-    numbers costs a little more than Pro, and the quote says so (`better`).
+    Assistant questions. Steps and step prices are in `plan_units`. Never below
+    the package (owner: "no option to reduce anywhere"); at most half the way
+    to the next package (`MAX_GAP_SHARE`), the biggest +50% (`TOP_RAISE`).
+    A fully raised package costs ~75–82% of the next one; from 70% the quote
+    names the next package and how much more it is (`better`). Own key pays
+    half of everything.
   The browser sends `{ kind, plan, cycle, byok, custom }`, never an amount.
   `lib/billing-basket.js` prices it for both the manual and the online route.
 - **Mid-period top-up** (`kind: "topup"`): numbers can only go up; the
@@ -584,6 +585,13 @@ saved" rule in the next section.
   (`changesByLimit` → `withChange`). Unlimited stays unlimited; never below 0.
 - **The Billing tab** opens on the customer's own package only, with Renew,
   Update package and Add more. Packages appear only behind Update / Choose.
+- **The public pages** (home and /pricing) render every paid package with one
+  shared card, `src/app/public-plan-card.js`: "Need more? Set your numbers"
+  opens the sliders, the card's price follows, and Buy carries the numbers as
+  `&c=replies.500,products.100` → buy-intent.js → Billing's `initialCustom`.
+  Both pages have the our-AI / own-key switch.
+- **90% warnings.** Every meter (UsageMeters.js) warns from 90% with Add more;
+  `/api/me` lists `near_limits` and every dashboard tab shows NearLimitBanner.
 
 ### From payment to approval (2026-10-04)
 

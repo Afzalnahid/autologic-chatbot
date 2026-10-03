@@ -1220,6 +1220,7 @@ export const DOCS = {
           "Billing opens on **your own package** and nothing else: its name, whether it runs on our AI or your own key, what it costs you, the date it ends and how many days are left, and what you have used — bot replies this month, products or documents added, AI Assistant questions.",
           "A “message” here is **one bot reply to one customer message** — one, even when the answer comes as two or three bubbles. Replies you send yourself, from anywhere, are never counted, and nothing is counted while the bot is off.",
           "Under it is everything your package includes. Every package has every feature; what changes is how much.",
+          "When anything reaches **90%** — bot replies, products or documents, AI Assistant questions — its meter warns you, every page of the dashboard shows a bar, and an **Add more** button takes you straight to raising it.",
         ] },
 
       { note: "These are the same limits the bot itself enforces. When you run out, the bot stops replying — so it is worth glancing at this card before a big campaign or a festival rush, not after.",
@@ -1241,19 +1242,19 @@ export const DOCS = {
           "Pick a package. The one you are on is marked **Current**.",
           "Choose **Standard (our AI)** or **Own AI key · half price**. On your own key every AI reply runs on your own Google Gemini or OpenAI key, so the package is half the price — after approval the **AI Engine** tab opens for you to add the key.",
           "Choose **Monthly** or **Yearly**. Yearly gives you **two months free**.",
-          "**Set your numbers.** Bot replies a month, products (shops) or knowledge files (services), and AI Assistant questions each have a slider, like a mobile pack. Each starts at the package's own number; move it up or down — or press **−** / **+** — and the price changes as you go. **Reset** puts them back.",
+          "**Need more? Set your numbers.** Bot replies a month, products (shops) or knowledge files (services), and AI Assistant questions each have a slider, like a mobile pack. Each starts at the package's own number and only goes **up** — drag it or press **+** — and the price changes as you go. **Reset** puts them back to the package.",
         ] },
 
       { p: [
-        "Each number moves in steps: **50** replies, **50** products, **5** files, **50** questions. It goes as low as the package below yours and as high as the package above. Each step up adds its price; each step down takes off half of it.",
-        "If your numbers cost as much as the next package, the screen says so and offers **Switch** — the bigger package is then the better deal.",
+        "Each number moves in steps: **50** replies, **50** products, **5** files, **50** questions. A number never goes below the package's own, and goes up at most **half the way to the next package** — beyond that, the next package is the better deal. Each step adds its price.",
+        "When your numbers come close to the next package's price, the screen says how little more it costs and offers **Switch**.",
         "Your numbers renew with your package until you change them.",
       ] },
 
       { h: "Add more in the middle of the month",
         p: [
           "Running low before the month is over? Press **Add more**, raise the numbers you need, and pay. You pay only for the **days left** on your package — half a month left, half the price.",
-          "The higher numbers apply as soon as the payment is approved, and from your next renewal they are part of your package. A number can only go **down** when you renew, with **Update package**.",
+          "The higher numbers apply as soon as the payment is approved, and from your next renewal they are part of your package.",
         ] },
 
       { h: "Paying",
@@ -1361,7 +1362,7 @@ export const DOCS = {
       ] } },
 
       { h: "Set your own numbers",
-        p: ["Need a little more, or a little less, than a package? When you buy, move its numbers with a slider in **Billing** — from the package below to the package above — and the price follows. Each step up adds the price below; each step down takes off half of it. In the middle of the month, **Add more** raises them for only the days left. On your own AI key every step is half price; on a yearly package, ten months. **Billing** always shows the current prices."] },
+        p: ["Need a little more than a package? Press **Need more? Set your numbers** on any package — here, on the home page or in **Billing** — and raise its numbers with a slider, up to half the way to the next package. The price follows, and you buy the package with your numbers. Each step adds the price below; numbers never go below the package's own. In the middle of the month, **Add more** raises them for only the days left. On your own AI key every step is half price; on a yearly package, ten months. **Billing** always shows the current prices."] },
 
       { table: { head: ["Each step", "Standard / month", "On your own AI key / month"], rows: [
         ["+50 bot replies", "৳40", "৳20"],

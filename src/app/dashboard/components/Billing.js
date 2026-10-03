@@ -27,8 +27,9 @@ const fmt = (n) => Number(n || 0).toLocaleString("en-IN");
 const UNIT_WORD = { replies: "replies", products: "products", docs: "files", assistant: "questions" };
 
 // One countable allowance: the number, − / + buttons (a phone finger cannot
-// land on one of 200 notches) and the slider itself. `value` is the CHANGE from
-// the package; `floor` stops a top-up from going below what is already bought.
+// land on one of 70 notches) and the slider itself. `value` is the RAISE over
+// the package (never below it); `floor` stops a top-up from going below what
+// is already bought.
 function NumberSlider({ s, value, onChange, floor, cost }) {
   const lo = floor ?? s.min, to = s.base + value;
   const b = { width: 30, height: 30, borderRadius: 8, border: `1px solid ${T.border}`, background: T.card, color: T.text, cursor: "pointer", fontSize: 16, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0, flexShrink: 0 };
@@ -48,7 +49,7 @@ function NumberSlider({ s, value, onChange, floor, cost }) {
       <button type="button" aria-label={`More ${UNIT_WORD[s.kind] || ""}`} disabled={value >= s.max} onClick={() => set(value + s.step)} style={{ ...b, opacity: value >= s.max ? .4 : 1 }}>+</button>
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.textDim, marginTop: 4, padding: "0 40px", fontVariantNumeric: "tabular-nums" }}>
-      <span>{fmt(s.base + lo)}</span><span>package {fmt(s.base)}</span><span>{fmt(s.base + s.max)}</span>
+      <span>{lo > 0 ? `now ${fmt(s.base + lo)}` : `package ${fmt(s.base)}`}</span><span>up to {fmt(s.base + s.max)}</span>
     </div>
   </div>;
 }
@@ -77,7 +78,7 @@ function Included({ biz }) {
   </div>;
 }
 
-export default function Billing({ initialPlan, initialCycle, initialByok }) {
+export default function Billing({ initialPlan, initialCycle, initialByok, initialCustom }) {
   const [d, setD] = useState(null);
   const [loading, setLoading] = useState(true);
   // "home" (my package), "change" (choose / renew / update), "topup" (add more)
@@ -127,9 +128,12 @@ export default function Billing({ initialPlan, initialCycle, initialByok }) {
   useEffect(() => {
     if (!d || seeded) return;
     setByok(initialByok ? true : !!d.byok_plan);
-    if (initialPlan && initialPlan === d.plan) setCustom({ ...(d.custom_limits || {}) });
+    // The numbers raised on the public card come along; otherwise a renewal of
+    // the same package starts from what the customer has now.
+    if (initialCustom && Object.keys(initialCustom).length) setCustom({ ...initialCustom });
+    else if (initialPlan && initialPlan === d.plan) setCustom({ ...(d.custom_limits || {}) });
     setSeeded(true);
-  }, [d, seeded, initialByok, initialPlan]);
+  }, [d, seeded, initialByok, initialPlan, initialCustom]);
 
   const copy = async (t, id) => {
     try { await navigator.clipboard.writeText(t); setCopied(id); setTimeout(() => setCopied(""), 1500); } catch {}
@@ -140,9 +144,6 @@ export default function Billing({ initialPlan, initialCycle, initialByok }) {
 
   const biz = d.business_type || "ecommerce";
   const units = d.units?.length ? d.units : UNIT_DEFAULTS;
-  const u = d.usage;
-  const limit = u.daily_limit || u.monthly_limit;
-  const usedNow = u.daily_limit ? u.today : u.month;
   const expiry = d.plan === "trial" ? d.trial_end : d.plan_expires_at;
   const daysLeft = expiry ? Math.ceil((new Date(expiry) - new Date()) / 86400000) : null;
   // Only the packages this business may buy; a package with no type (old rows)
@@ -339,25 +340,16 @@ export default function Billing({ initialPlan, initialCycle, initialByok }) {
         </div>
       </div>
 
-      {limit && <div style={{ marginTop: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 6 }}>
-          <span style={{ color: T.textMuted }}>{u.daily_limit ? "Bot replies today" : "Bot replies this month"}</span>
-          {/* null means the count could not be read. Showing 0 there would tell
-              somebody at their limit that they have used nothing. */}
-          <span><strong>{usedNow === null || usedNow === undefined ? "—" : usedNow}</strong> <span style={{ color: T.textDim }}>/ {limit.toLocaleString("en-IN")}</span></span>
-        </div>
-        <div style={{ height: 6, background: T.bgAlt, borderRadius: 3, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: u.pct === null || u.pct === undefined ? "0%" : `${Math.min(100, u.pct)}%`, background: (u.pct || 0) > 90 ? T.danger : (u.pct || 0) > 70 ? T.warn : T.success, borderRadius: 3 }} />
-        </div>
-        {(u.pct || 0) >= 90 && <div style={{ fontSize: 11.5, color: T.warn, marginTop: 8 }}>
-          <i className="ti ti-alert-triangle" style={{ marginRight: 5 }} />You are close to your limit. {paidAndActive ? "Use Add more for extra replies, or update your package, to keep the bot replying." : "Choose a package to keep the bot replying."}
+      {/* Everything the package counts — bot replies, products or documents,
+          AI Assistant questions, channels, broadcasts, imports — used and left.
+          At 90% a meter warns, with Add more for what can be raised (owner,
+          2026-10-04). */}
+      {d.entitlements?.meters?.length > 0 && <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${T.border}` }}>
+        <UsageMeters meters={d.entitlements.meters} period={d.entitlements.period}
+          onAddMore={paidAndActive && !pending && myQuote?.sliders?.length ? () => openTopUp() : null} />
+        {!paidAndActive && d.entitlements.meters.some((m) => !m.unlimited && (m.pct || 0) >= 90) && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 8 }}>
+          Choose a package to get more.
         </div>}
-      </div>}
-      {!limit && d.active && <div style={{ fontSize: 12.5, color: T.success, marginTop: 14 }}><i className="ti ti-infinity" style={{ marginRight: 5 }} />Unlimited messages on this plan</div>}
-      {/* Everything else the package counts, with what is left. Bot replies are
-          shown above, so they are not repeated here. */}
-      {d.entitlements?.meters?.length > 0 && <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${T.border}` }}>
-        <UsageMeters meters={d.entitlements.meters.filter((m) => m.key !== "messages")} period={d.entitlements.period} />
       </div>}
       <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
         <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 8 }}>{paid ? "Included in your package" : "Included in every package"}</div>
@@ -409,7 +401,7 @@ export default function Billing({ initialPlan, initialCycle, initialByok }) {
       {/* 3. the numbers, like a phone pack */}
       {planQuote?.ok && planQuote.sliders.length > 0 && <div style={{ margin: "14px 0 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>Set your numbers <span style={{ fontWeight: 400, color: T.textMuted, fontSize: 12 }}>· the price follows</span></div>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>Need more? Set your numbers <span style={{ fontWeight: 400, color: T.textMuted, fontSize: 12 }}>· the price follows</span></div>
           {Object.keys(planQuote.custom).length > 0 && <button type="button" onClick={() => setCustom({})} style={{ background: "none", border: "none", cursor: "pointer", color: T.gold, fontSize: 12.5, fontWeight: 600 }}><i className="ti ti-refresh" style={{ marginRight: 4 }} />Reset</button>}
         </div>
         {planQuote.sliders.map((s) => <NumberSlider key={s.kind} s={s} value={Number(custom[s.kind]) || 0} cost={costOf(planQuote, s.kind)}
@@ -426,7 +418,7 @@ export default function Billing({ initialPlan, initialCycle, initialByok }) {
         ? <>
           {planQuote.better && <div style={{ fontSize: 12.5, color: T.textMuted, background: T.goldBg, borderRadius: 10, padding: "10px 12px", marginBottom: 12, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <i className="ti ti-bulb" style={{ color: T.gold, fontSize: 16 }} />
-            <span style={{ flex: 1, minWidth: 180 }}><strong style={{ color: T.text }}>{planQuote.better.name}</strong> gives you more for {taka(planQuote.better.price)}{per}.</span>
+            <span style={{ flex: 1, minWidth: 180 }}><strong style={{ color: T.text }}>{planQuote.better.name}</strong> is only {taka(planQuote.better.more)} more — and gives you much more.</span>
             <Btn small onClick={() => pickPlan(planQuote.better.id)}>Switch</Btn>
           </div>}
           <Summary lines={planQuote.lines} total={planQuote.total} per={per} />
@@ -443,7 +435,7 @@ export default function Billing({ initialPlan, initialCycle, initialByok }) {
         {closeBtn}
       </div>
       <div style={{ fontSize: 12, color: T.textMuted, lineHeight: 1.65, marginBottom: 6 }}>
-        Raise any number. It applies right after payment, and you pay only for the {daysLeft} day{daysLeft === 1 ? "" : "s"} left this {d.billing_cycle === "yearly" ? "year" : "month"}. From your next renewal the new numbers are part of your package. To lower a number, use Update package when you renew.
+        Raise any number. It applies as soon as the payment is approved, and you pay only for the {daysLeft} day{daysLeft === 1 ? "" : "s"} left this {d.billing_cycle === "yearly" ? "year" : "month"}. From your next renewal the new numbers are part of your package.
       </div>
       {myQuote.sliders.map((s) => <NumberSlider key={s.kind} s={s} value={Number(custom[s.kind]) || 0} floor={Number(d.custom_limits?.[s.kind]) || 0} cost={costOf(topUpQuote, s.kind)}
         onChange={(v) => setCustom({ ...custom, [s.kind]: v })} />)}

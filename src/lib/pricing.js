@@ -8,21 +8,21 @@
 //     Standard price: the package's own byok_monthly, and half of every change
 //     below (BYOK_SHARE),
 //   · monthly or yearly (ten months' price, two free),
-//   · the package's countable allowances moved up or down with a slider —
-//     bot replies a month, products (shops), knowledge files (services) and AI
-//     Assistant questions a month. Each moves in fixed steps (50 replies, 50
-//     products, 5 files, 50 questions) and each step has a price (`plan_units`).
+//   · the package's countable allowances RAISED with a slider — bot replies a
+//     month, products (shops), knowledge files (services) and AI Assistant
+//     questions a month. Each moves in fixed steps (50 replies, 50 products,
+//     5 files, 50 questions) and each step has a price (`plan_units`).
 //     Everything else is the same in every package, so it is not priced.
 //
-// How far a slider goes: from the package below to the package above. The
-// cheapest package can go down to half its allowance (BOTTOM_FLOOR) and the
-// biggest up to double (TOP_CEILING). Raising a number adds a step's price;
-// lowering it takes off half of that (DOWN_RATE) — a smaller allowance saves
-// money, but a package taken apart piece by piece must not end up cheaper than
-// the package below it.
+// Only up, never down (owner, 2026-10-04: "there will be no option to reduce
+// anywhere"): a slider starts at the package's own number. And never close to
+// the next package: it goes at most HALF the way to the next package's number
+// (MAX_GAP_SHARE), the biggest package at most +50% (TOP_RAISE). With the
+// step prices that keeps a fully raised package at about 75–82% of the next
+// package's price for half of what it adds — upgrading stays the better deal.
 //
 // Raising in the middle of a running package (a "top-up") costs the difference
-// for the days that are left (prorate). Lowering happens only at renewal.
+// for the days that are left (prorate).
 //
 // The browser never sends a price. It sends a package id and the changes; the
 // server prices them with this file.
@@ -30,9 +30,9 @@
 export const YEARLY_MULTIPLIER = 10;
 export const CYCLE_DAYS = { monthly: 30, yearly: 365 };
 export const BYOK_SHARE = 0.5;
-export const DOWN_RATE = 0.5;
-export const BOTTOM_FLOOR = 0.5;
-export const TOP_CEILING = 2;
+export const MAX_GAP_SHARE = 0.5;
+export const TOP_RAISE = 0.5;
+export const BETTER_AT = 0.7;
 
 // Which limit (a `plans` column) each slider moves.
 export const UNIT_LIMIT = {
@@ -44,10 +44,8 @@ export const UNIT_LIMIT = {
 export const UNIT_KINDS = Object.keys(UNIT_LIMIT);
 
 // The built-in step prices, used only if the plan_units table cannot be read —
-// the same rows the 2026-10-04 migration seeded. Worked so that a package with
-// every slider pushed to the next package's numbers costs a little MORE than
-// that package (upgrading stays the better deal): Shop Basic → Shop Pro numbers
-// is ৳6,299 against ৳5,999.
+// the same rows the 2026-10-04 migration seeded. Shop Basic with every slider at
+// its top is ৳4,499 against Shop Pro's ৳5,999.
 export const UNIT_DEFAULTS = [
   { kind: "replies", name: "Bot replies a month", step: 50, price: 40, biz: "both", active: true, sort: 1 },
   { kind: "products", name: "Products", step: 50, price: 50, biz: "ecommerce", active: true, sort: 2 },
@@ -112,15 +110,14 @@ export function unitsForBiz(units, biz) {
 
 // One slider per countable allowance of this package:
 //   { kind, name, step, price, limit, base, min, max }
-// `min`/`max` are the change allowed (negative / positive), always a whole
-// number of steps. A package that does not count something (a shop's knowledge
-// files, an unlimited allowance) has no slider for it.
+// `min` is always 0 (the package's own number); `max` is the raise allowed,
+// always a whole number of steps. A package that does not count something (a
+// shop's knowledge files, an unlimited allowance) has no slider for it.
 export function slidersFor(plan, { units = UNIT_DEFAULTS, plans = [] } = {}) {
   if (!plan || !isPaid(plan)) return [];
   const biz = plan.biz && plan.biz !== "both" ? plan.biz : null;
   const ladder = ladderFor(plans, plan.biz || "both");
   const at = ladder.findIndex((p) => p.id === plan.id);
-  const below = at > 0 ? ladder[at - 1] : null;
   const above = at >= 0 && at < ladder.length - 1 ? ladder[at + 1] : null;
   const out = [];
   for (const u of unitsForBiz(units, biz)) {
@@ -128,10 +125,10 @@ export function slidersFor(plan, { units = UNIT_DEFAULTS, plans = [] } = {}) {
     const base = num(plan[limit]);
     const step = Math.round(num(u.step));
     if (!(base > 0) || !(step > 0) || !(num(u.price) >= 0)) continue;
-    const lo = below && num(below[limit]) > 0 && num(below[limit]) < base ? num(below[limit]) : base * BOTTOM_FLOOR;
-    const hi = above && num(above[limit]) > base ? num(above[limit]) : base * TOP_CEILING;
-    const min = -Math.floor((base - lo) / step) * step;
-    const max = Math.floor((hi - base) / step) * step;
+    const room = above && num(above[limit]) > base ? (num(above[limit]) - base) * MAX_GAP_SHARE : base * TOP_RAISE;
+    const max = Math.floor(room / step) * step;
+    if (!(max > 0)) continue;
+    const min = 0;
     out.push({ kind: u.kind, name: u.name || u.kind, step, price: num(u.price), limit, base, min, max });
   }
   return out;
@@ -150,19 +147,18 @@ export function cleanCustom(custom, sliders) {
     const s = byKind[kind];
     if (!s) return { ok: false, error: `This package cannot change "${kind}".` };
     if (!Number.isInteger(d) || d % s.step !== 0) return { ok: false, error: `${s.name} moves in steps of ${s.step}.` };
+    if (d < 0) return { ok: false, error: `${s.name} can only go up from the package's ${s.base}.` };
     if (d < s.min || d > s.max) return { ok: false, error: `${s.name} can go from ${s.base + s.min} to ${s.base + s.max} on this package.` };
     out[kind] = d;
   }
   return { ok: true, custom: out };
 }
 
-// What one slider's change costs for a full month at the Standard price. A
-// raise pays the step price; a cut takes off DOWN_RATE of it.
+// What one slider's raise costs for a full month at the Standard price.
 export function changeMonthly(slider, change) {
   const d = Number(change) || 0;
-  if (!slider || !d) return 0;
-  const steps = d / slider.step;
-  return steps * slider.price * (d > 0 ? 1 : DOWN_RATE);
+  if (!slider || !(d > 0)) return 0;
+  return (d / slider.step) * slider.price;
 }
 
 // All changes together for one period, Standard or own key, in whole taka.
@@ -188,8 +184,8 @@ export function limitsAfter(sliders, custom = {}) {
 // The price of a whole package purchase or renewal.
 //   → { ok:true, total, lines, custom, byok, cycle, sliders, limits, better }
 //   → { ok:false, error }
-// `better` names the next package up when this basket costs as much as it
-// does, so the screen can suggest it.
+// `better` names the next package up once this basket costs 70% of it, so the
+// screen can suggest it.
 export function quotePlan({ plan, cycle = "monthly", byok = false, custom = {}, units = UNIT_DEFAULTS, plans = [] } = {}) {
   if (!plan || plan.active === false || !isPaid(plan)) return { ok: false, error: "Invalid plan" };
   if (!validCycle(cycle)) return { ok: false, error: "Invalid billing cycle" };
@@ -203,8 +199,10 @@ export function quotePlan({ plan, cycle = "monthly", byok = false, custom = {}, 
   const ladder = ladderFor(plans, plan.biz || "both");
   const next = ladder[ladder.findIndex((p) => p.id === plan.id) + 1] || null;
   const nextPrice = next ? planPrice(next, { cycle, byok: !!byok }) : null;
-  const better = next && nextPrice !== null && Object.keys(c.custom).length && total >= nextPrice
-    ? { id: next.id, name: next.name || next.id, price: nextPrice } : null;
+  // Raised far enough that the next package is within reach: say so, with how
+  // much more it costs (BETTER_AT of its price).
+  const better = next && nextPrice !== null && Object.keys(c.custom).length && total >= nextPrice * BETTER_AT
+    ? { id: next.id, name: next.name || next.id, price: nextPrice, more: Math.max(0, nextPrice - total) } : null;
   return { ok: true, total, lines, custom: c.custom, byok: !!byok, cycle, sliders, limits: limitsAfter(sliders, c.custom), better };
 }
 

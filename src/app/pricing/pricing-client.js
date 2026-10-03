@@ -4,6 +4,7 @@ import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { PLANS, PLAN_ORDER, formatMoney, yearlySavingMonths } from "@/lib/plans.js";
 import { resolveTheme } from "@/lib/theme-pref.js";
 import { THEME_CSS } from "@/lib/landing.js";
+import PublicPlanCard from "../public-plan-card.js";
 import { COPYRIGHT, ADDRESS_SHORT } from "@/lib/company.js";
 
 // Reads the shared site palette, so pricing follows the same crimson-on-white
@@ -112,6 +113,9 @@ export default function PricingClient() {
   // the trial, and any row written before the biz column — belongs to both
   // sides and appears whichever is chosen.
   const [biz, setBiz] = useState("ecommerce");
+  // Our AI or the customer's own AI key (BYOK, half price) — the same switch as
+  // the home page (owner, 2026-10-04: both pages carry everything).
+  const [own, setOwn] = useState(false);
   // What one step of a package's own numbers costs (plan_units), live from
   // /api/plans — the same prices the Billing sliders charge.
   const [units, setUnits] = useState([]);
@@ -188,61 +192,54 @@ export default function PricingClient() {
             }}>{label}</button>
           ))}
         </div>
+        <div style={{ marginTop: 10 }}>
+          <div style={{ display: "inline-flex", background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 3, gap: 3 }}>
+            {[[false, "With our AI"], [true, "With your own AI key (BYOK)"]].map(([id, label]) => (
+              <button key={String(id)} onClick={() => setOwn(id)} style={{
+                padding: "7px 14px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: 12.5, fontWeight: 600,
+                background: own === id ? T.text : "transparent", color: own === id ? T.bg : T.muted,
+              }}>{id && <span style={{ marginRight: 5 }}>🔑</span>}{label}</button>
+            ))}
+          </div>
+        </div>
+        {own && <p style={{ fontSize: 13.5, color: T.muted, maxWidth: 620, margin: "12px auto 0", lineHeight: 1.6 }}>
+          Have your own Google Gemini or OpenAI key? Take the same package at half price. The AI cost goes straight to your key; paste it in your dashboard after buying and the bot starts.
+        </p>}
       </section>
 
       {/* Plan cards */}
       <section style={{ ...wrap, padding: "0 20px 56px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, alignItems: "stretch" }}>
-          {shown.map((p) => {
+          {shown.filter((p) => !own || Number(p.monthly) > 0).map((p) => {
             const id = p.id;
-            const price = yearly ? p.yearly : p.monthly;
-            const free = price === 0;
-            // Months saved by paying yearly, computed from this plan's own prices
-            // so it works for any admin-created package, not just the built-in ones.
-            const saving = p.monthly ? Math.round((p.monthly * 12 - p.yearly) / p.monthly) : 0;
-            // The lower price for a client who brings their own AI key, shown as
-            // an informational line (the public page has no client to check, so
-            // the standard price stays the headline). Only when the package sets
-            // a real BYOK price below the standard one.
-            const byokPrice = yearly ? p.byok_yearly : p.byok_monthly;
-            const hasByok = !free && byokPrice != null && Number(byokPrice) > 0 && Number(byokPrice) < price;
+            const free = !(Number(p.monthly) > 0);
+            const cardStyle = {
+              background: T.card, border: p.highlight ? `1.5px solid ${T.gold}` : `1px solid ${T.border}`,
+              borderRadius: 14, padding: "26px 22px", display: "flex", flexDirection: "column", position: "relative", color: T.text,
+            };
+            const badge = p.highlight ? <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)", background: T.gold, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>MOST POPULAR</div> : null;
+            const btn = {
+              display: "block", textAlign: "center", padding: "11px 0", borderRadius: 9,
+              fontWeight: 700, fontSize: 14, textDecoration: "none",
+              background: p.highlight ? T.gold : "transparent", color: p.highlight ? "#fff" : T.text,
+              border: p.highlight ? "none" : `1px solid ${T.border}`,
+            };
+            // Paid packages: the shared card (public-plan-card.js) — the same one
+            // the home page uses, with "Set your numbers" inside.
+            if (!free) return <PublicPlanCard key={id} plan={p} plans={plans} units={units.length ? units : undefined}
+              byok={own} cycle={cycle} style={cardStyle} btnStyle={btn} badge={badge} showYearlyNote
+              extra={REACH[tierOf(id)] ? <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6, padding: "8px 10px", background: T.goldBg, borderRadius: 8, lineHeight: 1.5 }}>{REACH[tierOf(id)]}</div> : null} />;
             return (
-              <div key={id} style={{
-                background: T.card, border: p.highlight ? `1.5px solid ${T.gold}` : `1px solid ${T.border}`,
-                borderRadius: 14, padding: "26px 22px", display: "flex", flexDirection: "column", position: "relative",
-              }}>
-                {p.highlight && <div style={{ position: "absolute", top: -11, left: "50%", transform: "translateX(-50%)", background: T.gold, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20, whiteSpace: "nowrap" }}>MOST POPULAR</div>}
+              <div key={id} style={cardStyle}>
                 <div style={{ fontSize: 17, fontWeight: 700 }}>{p.name}</div>
                 <div style={{ fontSize: 12.5, color: T.muted, marginTop: 4, minHeight: 34 }}>{p.tagline}</div>
                 <div style={{ margin: "14px 0 4px", display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 30, fontWeight: 800 }}>{free ? "Free" : formatMoney(price)}</span>
-                  {!free && <span style={{ fontSize: 13, color: T.muted }}>/{yearly ? "year" : "month"}</span>}
+                  <span style={{ fontSize: 30, fontWeight: 800 }}>Free</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: yearly && saving ? T.green : T.dim, minHeight: 18 }}>
-                  {free ? "No card needed" : yearly && saving ? `${saving} months free` : `or ${formatMoney(p.yearly)}/year`}
-                </div>
-                {hasByok && (
-                  <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6, lineHeight: 1.5 }}>
-                    🔑 {formatMoney(byokPrice)}/{yearly ? "year" : "month"} with your own AI key
-                    {" · "}<a href={`/dashboard?upgrade=${id}&cycle=${cycle}&byok=1`} style={{ color: T.gold, fontWeight: 600, textDecoration: "none" }}>choose this →</a>
-                  </div>
-                )}
-                {REACH[tierOf(id)] && (
-                  <div style={{ fontSize: 11.5, color: T.muted, marginTop: 10, padding: "8px 10px", background: T.goldBg, borderRadius: 8, lineHeight: 1.5 }}>
-                    {REACH[tierOf(id)]}
-                  </div>
-                )}
-
-                <a href={free ? "/dashboard?auth=signup" : `/dashboard?upgrade=${id}&cycle=${cycle}`} style={{
-                  display: "block", textAlign: "center", marginTop: 18, padding: "11px 0", borderRadius: 9,
-                  fontWeight: 700, fontSize: 14, textDecoration: "none",
-                  background: p.highlight ? T.gold : "transparent",
-                  color: p.highlight ? "#fff" : T.text,
-                  border: p.highlight ? "none" : `1px solid ${T.border}`,
-                }}>{free ? "Start free trial" : "Choose " + p.name}</a>
-
+                <div style={{ fontSize: 11.5, color: T.dim, minHeight: 18 }}>No card needed</div>
+                <a href="/dashboard?auth=signup" style={{ ...btn, marginTop: 18 }}>Start free trial</a>
                 <ul style={{ listStyle: "none", padding: 0, margin: "20px 0 0", display: "flex", flexDirection: "column", gap: 9 }}>
-                  {p.features.map((f, i) => (
+                  {(p.features || []).map((f, i) => (
                     <li key={i} style={{ fontSize: 12.8, color: T.muted, display: "flex", gap: 8, lineHeight: 1.55 }}>
                       <span style={{ color: T.green, flexShrink: 0 }}>✓</span><span>{f}</span>
                     </li>
@@ -260,14 +257,14 @@ export default function PricingClient() {
           <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "22px 22px" }}>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>🔑 On your own AI key</div>
             <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.7, margin: 0 }}>
-              Every paid plan can run on your own Google Gemini or OpenAI key, at half the price: the 🔑 price on each card. Every AI reply runs on your key and you pay the AI provider directly.
+              Every paid plan can run on your own Google Gemini or OpenAI key, at half the price — choose “With your own AI key” above the plans. Every AI reply runs on your key and you pay the AI provider directly.
               After payment, AI Engine opens in your dashboard: paste your key and choose a model. The bot starts as soon as the key is saved. The free trial runs on our AI.
             </p>
           </div>
           {shownUnits.length > 0 && <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "22px 22px" }}>
             <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Set your own numbers</div>
             <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
-              When you buy, move any of these up or down with a slider — from the plan below yours to the plan above — and the price follows. Need more in the middle of the month? Raise them and pay only for the days left. Each step down takes off half the step price. Prices per month{yearly ? "; on a yearly plan, ten months" : ""}.
+              Press “Need more? Set your numbers” on any plan and raise these with a slider — up to half the way to the next plan — and the price follows. Need more in the middle of the month? Raise them from your dashboard and pay only for the days left. Prices per month{yearly ? "; on a yearly plan, ten months" : ""}.
             </p>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>

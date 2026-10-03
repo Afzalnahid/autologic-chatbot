@@ -113,7 +113,7 @@ export const GET = withErrors(async (request) => {
       title: "Message limit reached", body: `${Number(used).toLocaleString("en-IN")} of ${Number(limit).toLocaleString("en-IN")} used — the bot has stopped until ${trial ? "tomorrow" : "next month"} or an upgrade.`,
       time: periodStart, target: "billing" });
     else if (pct >= 90) push({ key: "alert-limit-near-" + periodStart, type: "alert", level: "info", icon: "ti-gauge",
-      title: "Close to your message limit", body: `${pct}% used (${Number(used).toLocaleString("en-IN")} of ${Number(limit).toLocaleString("en-IN")}). Upgrade to keep the bot replying.`,
+      title: "Close to your message limit", body: `${pct}% used (${Number(used).toLocaleString("en-IN")} of ${Number(limit).toLocaleString("en-IN")}). ${trial ? "Choose a package" : "Use Add more in Billing"} to keep the bot replying.`,
       time: periodStart, target: "billing" });
   }
   for (const ch of channels || []) {
