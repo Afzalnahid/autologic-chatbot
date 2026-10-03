@@ -894,3 +894,44 @@ is true, and still also from `GET /api/conversations`. Either way it claims its 
 by stamping `last_run_at` before doing any work and does nothing if it ran within
 the last 15 minutes, so the two triggers never double-send. The workflow sends
 `Authorization: Bearer $CRON_SECRET` when the repository secret exists.
+
+## Blog (2026-10-04)
+
+The owner writes SEO articles with GPT and publishes them on tellmoreai.com/blog.
+Nothing reaches the site without the owner's approval.
+
+```
+ admin › Blog tab (src/app/admin/Blog.js)
+   keyword + language (English / Bangla / both) + notes → "Write draft"
+     │  POST /api/admin/blog {action:"generate"}   (maxDuration 60 s)
+     ▼
+ lib/blog-writer.js  — the owner's OWN OpenAI key (blog_settings, encrypted)
+   prompt = lib/blog.js buildPrompt + factsSheet (live prices from plans,
+            features, Meta wording rule, "do not invent", internal links)
+   → chat/completions, JSON answer → parseDraft (checks, trims, refuses short)
+     ▼
+ blog_posts (status draft — no public address)
+   owner edits title / slug / Google description / summary / Markdown / FAQ,
+   live preview with the same renderer the site uses
+     │  "Approve & publish" → save + {action:"publish"} → revalidatePath
+     ▼
+ /blog (list, ?lang=en|bn) and /blog/[slug] (status published only)
+   lib/blog-md.js: escape everything, then a few Markdown forms; links only
+   to this site or http(s); no HTML, images or scripts
+   SEO: title, description, canonical, hreflang to the other-language twin,
+   BlogPosting + FAQPage + BreadcrumbList JSON-LD, sitemap with each post's
+   real updated date
+```
+
+- "Both" writes two drafts (English, then Bangla) linked by `pair_id`; each is
+  approved on its own.
+- Unpublish takes a post down and keeps it; Discard deletes a draft that was
+  never public. Rewrite redraws a draft from its keyword.
+- The key: full-access admin + the secret admin key to save or remove it;
+  checked with OpenAI (`listModels("openai")`) before it is saved; only a mask
+  is ever sent to the browser. The model is chosen from the key's live list
+  (default `gpt-4o-mini`).
+- This is the one AI call outside `getClientAI`: it is not a bot reply and it
+  bills the owner's writing account, never the platform's or a client's key.
+- A partner's white-label address has no blog (404, noindex): the posts name
+  TellMore AI and must not be duplicated on another domain.

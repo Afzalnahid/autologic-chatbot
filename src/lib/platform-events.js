@@ -38,6 +38,8 @@ export const EVENTS = {
   plan_activated:   { severity: "info",   push: true,  email: false, icon: "✅", label: "A plan was activated" },
   // A paying client going quiet is the one worth a phone call.
   plan_expired:     { severity: "warn",   push: true,  email: false, icon: "⏳", label: "A plan expired" },
+  // A blog post going live — a record for the bell, not a reason to ring.
+  blog_published:   { severity: "info",   push: false, email: false, icon: "📝", label: "A blog post was published" },
 
   // ── something is broken for a client ────────────────────────────────────
   bot_blocked:      { severity: "warn",   push: true,  email: false, icon: "🤖", label: "A bot stopped replying" },

@@ -58,7 +58,9 @@ Google Calendar · Vercel (`tellmoreai.com`)
   only by code. Both off is allowed and means the `GEMINI_API_KEY` environment
   variable. The rules live in `src/lib/ai-providers.js` (pure, tested); the
   wiring is `src/lib/ai.js`, and every AI call goes through
-  `getClientAI(clientId)`.
+  `getClientAI(clientId)`. The one exception is the blog writer
+  (`src/lib/blog-writer.js`): it drafts articles for the owner on the owner's
+  own OpenAI key in `blog_settings`, never the platform's or a client's key.
 - Embeddings stay **768-dimensional** whoever makes them — that is the width of
   `products.embedding` and `knowledge_base.embedding`. OpenAI is asked for 768
   through its `dimensions` parameter. But a Gemini 768 and an OpenAI 768 are

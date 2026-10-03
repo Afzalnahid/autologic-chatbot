@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createAdminClient as createSb } from "@/utils/supabase/client";
 import Packages from "./Packages.js";
 import AIAdmin from "./AIAdmin.js";
+import Blog from "./Blog.js";
 import AdminBell from "./AdminBell.js";
 import Webhooks from "./Webhooks.js";
 import { useWhere } from "./where.js";
@@ -245,6 +246,7 @@ export default function AdminClient() {
 const NAV = [
   { group: "Console", items: [{ id: "overview", label: "Overview", icon: "ti-layout-dashboard" }, { id: "clients", label: "Clients", icon: "ti-users" }] },
   { group: "Money", items: [{ id: "payments", label: "Payments", icon: "ti-cash" }, { id: "packages", label: "Packages & Costs", icon: "ti-report-money" }] },
+  { group: "Content", items: [{ id: "blog", label: "Blog", icon: "ti-article" }] },
   { group: "Platform", items: [{ id: "ai", label: "AI Engine", icon: "ti-cpu", superOnly: true }, { id: "webhooks", label: "Meta webhooks", icon: "ti-plug-connected", superOnly: true }] },
   { group: "Access", items: [{ id: "admins", label: "Admins", icon: "ti-shield-check", superOnly: true }] },
 ];
@@ -283,7 +285,7 @@ export function AdminApp(props) {
   const [page, subTab, setWhere] = useWhere("overview", mayOpen);
   const go = (p, t = "") => { setWhere(p, t); if (isMobile) setNav(false); };
   const searchHits = useMemo(() => { const s = q.trim().toLowerCase(); if (!s) return []; return clients.filter((c) => [c.business_name, c.owner_email, c.phone, c.id].join(" ").toLowerCase().includes(s)).slice(0, 6); }, [q, clients]);
-  const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on TellMore AI`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], packages: ["Packages & Costs", "What each package sells for, and what each client costs you"], ai: ["AI Engine", "The platform's own API key and models"], webhooks: ["Meta webhooks", "What Meta is subscribed to send this app"], admins: ["Admins", "Who can open this console"] };
+  const titles = { overview: ["Overview", "How the platform is doing right now"], clients: ["Clients", `${clients.length} businesses on TellMore AI`], payments: ["Payments", pendingPay ? `${pendingPay} waiting for review` : "Nothing waiting for review"], packages: ["Packages & Costs", "What each package sells for, and what each client costs you"], ai: ["AI Engine", "The platform's own API key and models"], webhooks: ["Meta webhooks", "What Meta is subscribed to send this app"], admins: ["Admins", "Who can open this console"] , blog: ["Blog", "Write with GPT, approve, publish on tellmoreai.com/blog"] };
   // A page without a title entry must never take the whole console down
   // (2026-09-11: the new "webhooks" page crashed the console on open).
   const title = titles[page] || [page, ""];
@@ -353,6 +355,7 @@ export function AdminApp(props) {
           {page === "payments" && <Payments payments={payments} canEdit={canEdit} busy={busy} review={reviewPayment} openDetail={openDetail} isMobile={isMobile} />}
           {page === "packages" && <Packages token={props.token} isSuper={isSuper} tab={subTab} onTab={(t) => go("packages", t)} />}
           {page === "ai" && isSuper && <AIAdmin token={props.token} superKey={superKey} setSuperKey={setSuperKey} />}
+          {page === "blog" && <Blog token={props.token} superKey={superKey} setSuperKey={setSuperKey} />}
           {page === "webhooks" && isSuper && <Webhooks token={props.token} superKey={superKey} setSuperKey={setSuperKey} />}
           {page === "admins" && isSuper && <Admins admins={admins || []} superKey={superKey} setSuperKey={setSuperKey} setRole={setRole} removeAdmin={removeAdmin} busy={busy} />}
         </div>

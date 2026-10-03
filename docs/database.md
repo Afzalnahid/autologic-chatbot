@@ -307,6 +307,20 @@ The fixed add-ons (+100 replies, +50 products…) of 2026-10-03, replaced by
 `plan_units` the next day. Every row is `active = false`; the table is kept for
 history and read by nothing.
 
+### `blog_posts` — the blog (2026-10-04)
+`id`, `slug` (unique, the address /blog/<slug>), `lang` (`en` / `bn`), `keyword`,
+`notes`, `title`, `meta_description`, `excerpt`, `body_md` (Markdown), `faq`
+(jsonb `[{q,a}]`), `status` (`draft` / `published` / `unpublished`), `pair_id`
+(the other language's version of the same keyword), `model`, `tokens_in`,
+`tokens_out`, `created_by`, `created_at`, `updated_at`, `published_at`,
+`published_by`. The public pages read `status = 'published'` only. RLS on, no
+policies (service key only).
+
+### `blog_settings` — the blog writer's OpenAI key (one row)
+`id` (always 1), `api_key_enc` (lib/crypt.js), `key_mask`, `model`,
+`updated_by`, `updated_at`. Separate from `platform_ai` and `client_ai`; used
+only by lib/blog-writer.js. RLS on, no policies.
+
 ### `admin_users` — platform staff
 `id`, `email` (unique), `role` (`super` / `full` / `editor` / `viewer` / `pending`),
 timestamps. New signups land as `pending` until a super admin grants a role.

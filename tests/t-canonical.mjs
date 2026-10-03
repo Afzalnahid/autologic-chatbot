@@ -56,7 +56,9 @@ for (const [label, file] of [
 // content date.
 const sm = src("src", "app", "sitemap.js");
 ok("the sitemap lists every language, itself included", /languages:\s*\{[\s\S]{0,200}en:[\s\S]{0,120}bn:[\s\S]{0,140}"x-default":/.test(sm));
-ok("the sitemap no longer stamps every page with the build time", !/lastModified:/.test(sm));
+ok("the sitemap no longer stamps every page with the build time", !/lastModified:\s*(new Date|Date\.now|now\b)/.test(sm));
+// A blog post's own last-edit date is a real per-page date, which is allowed.
+ok("blog posts carry the date their words last changed", /lastModified: b\.updated_at/.test(sm));
 
 // The Bangla pages served <html lang="en">, which screen readers take at face
 // value. Set before first paint by the boot script.

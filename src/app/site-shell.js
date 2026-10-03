@@ -110,6 +110,7 @@ const CSS = `
   }
   @media (max-width: 420px) {
     .navbtn { font-size: 11.5px; padding: 7px 9px }
+    .hide-xs { display: none }
   }
 `;
 
@@ -166,6 +167,7 @@ export default function SiteShell({ eyebrow, title, lead, updated, children }) {
           </a>
 
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+            <a href="/blog" className="navbtn hide-xs">Blog</a>
             <a href="/pricing" className="navbtn">Pricing</a>
             <button id="al-mode" type="button" className="navbtn" aria-label="Switch theme">
               <i id="al-mode-ic" className="ti ti-moon" style={{ fontSize: 13 }} />
@@ -200,6 +202,7 @@ export default function SiteShell({ eyebrow, title, lead, updated, children }) {
             <a href="/" className="flink">Home</a>
             <a href="/pricing" className="flink">Pricing</a>
             <a href="/docs" className="flink">Documentation</a>
+            <a href="/blog" className="flink">Blog</a>
             <a href="/google-calendar" className="flink">Google Calendar</a>
             <a href="/privacy" className="flink">Privacy Policy</a>
             <a href="/terms" className="flink">Terms of Service</a>

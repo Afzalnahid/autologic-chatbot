@@ -6,8 +6,12 @@ import { SOLUTIONS } from "@/lib/solutions/index.js";
 import * as SOL_BN from "@/lib/solutions/bn.js";
 import { writtenSet } from "./docs/copy.js";
 import { SITE as BASE } from "@/lib/seo.js";
+import { supabase } from "@/lib/supabase.js";
 
-export default function sitemap() {
+// Re-built at most hourly; publishing a post also refreshes it (api/admin/blog).
+export const revalidate = 3600;
+
+export default async function sitemap() {
   // Only public marketing / legal pages belong here. Login-gated routes
   // (dashboard, admin, reset) and API routes are intentionally left out.
   const pages = [
@@ -21,6 +25,7 @@ export default function sitemap() {
     { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
     { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
     { path: "/docs", priority: 0.7, changeFrequency: "weekly" },
+    { path: "/blog", priority: 0.7, changeFrequency: "weekly" },
   ];
 
   // Documentation pages, but only the ones that have actually been written.
@@ -55,7 +60,16 @@ export default function sitemap() {
   // hreflang has to be RECIPROCAL: each language must name every version,
   // itself included, or Google reads the set as broken and honours none of it.
   // The same three links are now in each page's <head> (lib/seo.js).
-  return [...pages, ...solutions, ...docs].map((p) => ({
+  // Published blog posts, with the date their words last changed — a real
+  // per-page date, unlike the build time the note above warns against. A
+  // database hiccup leaves the posts out of this one build, never the sitemap.
+  let posts = [];
+  try {
+    const { data } = await supabase.from("blog_posts").select("slug,updated_at").eq("status", "published").order("published_at", { ascending: false }).limit(1000);
+    posts = (data || []).map((b) => ({ url: `${BASE}/blog/${b.slug}`, lastModified: b.updated_at, changeFrequency: "monthly", priority: 0.6 }));
+  } catch { posts = []; }
+
+  return [...[...pages, ...solutions, ...docs].map((p) => ({
     url: `${BASE}${p.path}`,
     changeFrequency: p.changeFrequency,
     priority: p.priority,
@@ -68,5 +82,5 @@ export default function sitemap() {
         },
       },
     } : {}),
-  }));
+  })), ...posts];
 }

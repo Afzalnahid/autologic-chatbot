@@ -929,6 +929,7 @@ export default async function Home({ searchParams }) {
               <div className="foot-h">{bn ? "পণ্য" : "Product"}</div>
               <a href="#features" className="foot-a">{bn ? "ফিচার" : "Features"}</a>
               <a href="/pricing" className="foot-a">{bn ? "দাম" : "Pricing"}</a>
+              {!isWhiteLabel(brand) && <a href={bn ? "/blog?lang=bn" : "/blog"} className="foot-a">{bn ? "ব্লগ" : "Blog"}</a>}
               <a href="/google-calendar" className="foot-a">Google Calendar</a>
             </div>
             {/* The solution pages, linked from every page: a reader finds the one
