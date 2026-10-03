@@ -1577,44 +1577,47 @@ function PlanEditor({ d, post, busy, isSuper, rate, setMsg }) {
       </div>;
     })}
 
-    <AddonEditor addons={d.addons || []} post={post} busy={busy} />
+    <UnitEditor units={d.units || []} post={post} busy={busy} />
   </div>;
 }
 
-// What a customer can buy on top of a package (plan_addons, lib/pricing.js):
-// more replies and AI Assistant questions for everyone, products for shops,
-// documents for services. Each has a Standard and an own-key monthly price;
-// yearly is always ten months. What an add-on GIVES is fixed by its id, so only
-// the prices and the on/off switch are edited here (owner, 2026-10-03).
-const ADDON_FOR = { both: "Everyone", ecommerce: "Shops", agency: "Services" };
-function AddonEditor({ addons, post, busy }) {
+// What one step of a package's countable numbers costs (plan_units,
+// lib/pricing.js; owner, 2026-10-04). A customer moves bot replies, products
+// (shops), knowledge files (services) and AI Assistant questions with a slider
+// in Billing, from the package below to the package above. Raising a number
+// adds the step price; lowering takes off half of it; own key pays half of
+// everything; yearly is ten months. The step size is fixed — customers' saved
+// numbers are whole steps — so only the price and the switch are edited here.
+const UNIT_FOR = { both: "Everyone", ecommerce: "Shops", agency: "Services" };
+function UnitEditor({ units, post, busy }) {
   const [vals, setVals] = useState({});
-  const v = (a, k) => (vals[a.id]?.[k] ?? a[k] ?? "");
-  const set = (a, k, x) => setVals({ ...vals, [a.id]: { ...(vals[a.id] || {}), [k]: x } });
-  if (!addons.length) return null;
+  const v = (u, k) => (vals[u.kind]?.[k] ?? u[k] ?? "");
+  const set = (u, k, x) => setVals({ ...vals, [u.kind]: { ...(vals[u.kind] || {}), [k]: x } });
+  if (!units.length) return null;
   const cell = { padding: "8px 6px", borderTop: `1px solid ${T.border}`, verticalAlign: "middle" };
   const box = { width: 84, padding: "6px 8px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.card, color: T.text, fontSize: 13 };
   return <Card style={{ marginTop: 10 }}>
-    <div style={{ fontSize: 13, fontWeight: 700 }}>Add-ons</div>
+    <div style={{ fontSize: 13, fontWeight: 700 }}>Customers' own numbers</div>
     <div style={{ fontSize: 12, color: T.textMuted, margin: "4px 0 10px", lineHeight: 1.6 }}>
-      Bought with a package or in the middle of one (charged for the days left). Prices are per month in taka; yearly is ten months. Leave the own-key price empty to charge the Standard price.
+      In Billing a customer moves each number with a slider, from the package below to the package above. Each step up adds this price a month; a step down takes off half of it. Own key pays half; yearly is ten months.
     </div>
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 12.5 }}>
         <thead><tr style={{ color: T.textMuted, fontSize: 11, textAlign: "left" }}>
-          <th style={{ padding: "0 6px 6px" }}>Add-on</th><th style={{ padding: "0 6px 6px" }}>For</th>
-          <th style={{ padding: "0 6px 6px" }}>Standard ৳/mo</th><th style={{ padding: "0 6px 6px" }}>Own key ৳/mo</th>
-          <th style={{ padding: "0 6px 6px" }}>On sale</th><th />
+          <th style={{ padding: "0 6px 6px" }}>Number</th><th style={{ padding: "0 6px 6px" }}>For</th>
+          <th style={{ padding: "0 6px 6px" }}>Step</th><th style={{ padding: "0 6px 6px" }}>৳ per step / mo</th>
+          <th style={{ padding: "0 6px 6px" }}>Own key</th><th style={{ padding: "0 6px 6px" }}>On</th><th />
         </tr></thead>
-        <tbody>{addons.map((a) => <tr key={a.id}>
-          <td style={cell}><b>{a.name}</b><div style={{ fontSize: 11, color: T.textDim }}>{a.id}</div></td>
-          <td style={cell}>{ADDON_FOR[a.biz] || a.biz}</td>
-          <td style={cell}><input id={`addon-${a.id}-monthly`} type="number" min="0" value={v(a, "monthly")} onChange={(e) => set(a, "monthly", e.target.value)} style={box} /></td>
-          <td style={cell}><input id={`addon-${a.id}-byok`} type="number" min="0" value={v(a, "byok_monthly")} onChange={(e) => set(a, "byok_monthly", e.target.value)} style={box} /></td>
-          <td style={cell}><input id={`addon-${a.id}-active`} type="checkbox" checked={v(a, "active") !== false} onChange={(e) => set(a, "active", e.target.checked)} /></td>
-          <td style={cell}><Btn small disabled={busy || !vals[a.id]} onClick={async () => {
-            const r = await post({ action: "save_addon", addon: { id: a.id, monthly: v(a, "monthly"), byok_monthly: v(a, "byok_monthly"), active: v(a, "active") !== false } });
-            if (!r?.error) setVals((s) => { const n = { ...s }; delete n[a.id]; return n; });
+        <tbody>{units.map((u) => <tr key={u.kind}>
+          <td style={cell}><b>{u.name}</b></td>
+          <td style={cell}>{UNIT_FOR[u.biz] || u.biz}</td>
+          <td style={cell}>{u.step}</td>
+          <td style={cell}><input id={`unit-${u.kind}-price`} type="number" min="0" value={v(u, "price")} onChange={(e) => set(u, "price", e.target.value)} style={box} /></td>
+          <td style={{ ...cell, color: T.textMuted }}>৳{Math.round(Number(v(u, "price")) / 2)}</td>
+          <td style={cell}><input id={`unit-${u.kind}-active`} type="checkbox" checked={v(u, "active") !== false} onChange={(e) => set(u, "active", e.target.checked)} /></td>
+          <td style={cell}><Btn small disabled={busy || !vals[u.kind]} onClick={async () => {
+            const r = await post({ action: "save_unit", unit: { kind: u.kind, price: v(u, "price"), active: v(u, "active") !== false } });
+            if (!r?.error) setVals((s) => { const n = { ...s }; delete n[u.kind]; return n; });
           }}>Save</Btn></td>
         </tr>)}</tbody>
       </table>
@@ -1726,10 +1729,10 @@ function PlanForm({ plan, onSave, onCancel, busy, trialDays }) {
         own-key discount. Not offered on the trial, which is already free. */}
     {!isTrial && <>
       <div style={{ fontSize: 12.5, fontWeight: 700, margin: "16px 0 4px" }}>Own-key price (BYOK)</div>
-      <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 8 }}>Charged only to a client running on their own AI key. Leave blank for no own-key discount.</div>
+      <div style={{ fontSize: 11.5, color: T.textDim, marginBottom: 8 }}>What a customer pays when they buy this package on their own AI key. Leave blank for the rule: half the Standard price (yearly ten months).</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
-        {num("byok_monthly", "Own-key / month (৳)", "none")}
-        {num("byok_yearly", "Own-key / year (৳)", "none")}
+        {num("byok_monthly", "Own-key / month (৳)", "half")}
+        {num("byok_yearly", "Own-key / year (৳)", "× 10")}
       </div>
     </>}
     {/* Which business may buy this. It decides what the package is allowed to

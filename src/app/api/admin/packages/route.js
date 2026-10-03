@@ -11,6 +11,7 @@ import { getPlatformAI } from "@/lib/platform-ai.js";
 import { fetchUsdBdt, rateFrom, isStale } from "@/lib/fx.js";
 import { listBillableModels } from "@/lib/model-catalog.js";
 import { clampTrialDays } from "@/lib/plans.js";
+import { byokFromStandard } from "@/lib/pricing.js";
 
 // The economics side of the admin panel: packages (what we sell), the model
 // price book (what the AI costs us), fixed platform costs, and the real usage
@@ -85,7 +86,7 @@ export async function GET(request) {
   const days = Math.min(365, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 30));
   const since = daysAgo(days);
 
-  const [plansQ, pricesMap, costsQ, usageQ, clientsQ, channelsQ, settings, paymentsQ, ownKeyQ, addonsQ] = await Promise.all([
+  const [plansQ, pricesMap, costsQ, usageQ, clientsQ, channelsQ, settings, paymentsQ, ownKeyQ, unitsQ] = await Promise.all([
     supabase.from("plans").select("*").order("sort"),
     loadPrices(),
     supabase.from("platform_costs").select("*").order("id"),
@@ -93,7 +94,7 @@ export async function GET(request) {
     // the screen is a sum of these rows, and a capped read is a cost report
     // that is quietly too low.
     pageAll((from, to) => supabase.from("usage_daily").select("*").gte("day", since).order("day", { ascending: true }).range(from, to)),
-    supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type,internal,addons,byok_plan,billing_cycle"),
+    supabase.from("clients").select("id,business_name,owner_email,plan,suspended,plan_expires_at,limit_overrides,model_chain,business_type,internal,custom_limits,byok_plan,billing_cycle"),
     supabase.from("channels").select("id,client_id,platform,page_id,name,status,msg_limit_monthly"),
     billingSettings().then(freshRate),
     // Money that actually arrived. Revenue used to be inferred from the `plan`
@@ -104,8 +105,8 @@ export async function GET(request) {
     // own-key price, and the old figure billed them the standard one.
     // Same rule as clientHasOwnKey(): permission alone is not a key.
     supabase.from("client_ai").select("client_id,api_key_enc,provider"),
-    // What can be bought on top of a package (plan_addons), for the editor.
-    supabase.from("plan_addons").select("*").order("sort"),
+    // The step prices for moving a package's numbers (plan_units), for the editor.
+    supabase.from("plan_units").select("*").order("sort"),
   ]);
   // What one dollar is worth, and whether that is the market's answer or the
   // owner's. The panel prints both so a margin can never be read off a number
@@ -246,7 +247,7 @@ export async function GET(request) {
   return NextResponse.json({
     role, days,
     plans,
-    addons: addonsQ?.data || [],
+    units: unitsQ?.data || [],
     // What the AI model boxes fall back to when neither the client nor their
     // package sets one. The panel shows it so an empty box is still readable.
     platform_model_chain: (await getPlatformAI().catch(() => ({}))).modelChain || null,
@@ -330,7 +331,7 @@ export async function POST(request) {
   const { action } = body;
 
   // Pricing and packaging are money decisions — narrower than general editing.
-  const needsOwner = ["save_plan", "delete_plan", "save_addon", "save_price", "save_platform_cost", "save_settings"];
+  const needsOwner = ["save_plan", "delete_plan", "save_unit", "save_price", "save_platform_cost", "save_settings"];
   if (needsOwner.includes(action) && !CAN_DELETE.includes(role)) {
     return NextResponse.json({ error: "Only a full-access admin can change packages or pricing." }, { status: 403 });
   }
@@ -374,6 +375,7 @@ export async function POST(request) {
   if (action === "save_plan") {
     const p = body.plan || {};
     if (!p.id) return NextResponse.json({ error: "A package needs an id." }, { status: 400 });
+    const byokMonthly = int(p.byok_monthly) ?? byokFromStandard(p.monthly);
     const row = {
       id: String(p.id).trim().toLowerCase().replace(/[^a-z0-9_-]/g, ""),
       name: String(p.name || p.id).slice(0, 60),
@@ -386,10 +388,11 @@ export async function POST(request) {
       public: p.public !== false,
       monthly: Number(p.monthly) || 0,
       yearly: Number(p.yearly) || 0,
-      // The own-key (BYOK) prices, null when blank — a package with none simply
-      // charges its standard price to an own-key client (priceForClient).
-      byok_monthly: int(p.byok_monthly),
-      byok_yearly: int(p.byok_yearly),
+      // The own-key (BYOK) prices. Blank means the owner's rule: half the
+      // Standard price, rounded down (2026-10-04) — so re-pricing a package
+      // cannot leave its own-key price behind. A number typed in still wins.
+      byok_monthly: byokMonthly,
+      byok_yearly: int(p.byok_yearly) ?? (byokMonthly ? byokMonthly * 10 : null),
       messages_per_day: int(p.messages_per_day),
       messages_per_month: int(p.messages_per_month),
       messages_per_channel: int(p.messages_per_channel),
@@ -415,19 +418,18 @@ export async function POST(request) {
     return NextResponse.json({ ok: true });
   }
 
-  // An add-on's prices and switch (plan_addons). What it adds — kind, amount,
-  // business type — is fixed by its id, so an edit can never turn "+100
-  // replies" into something a customer already paid for differently.
-  if (action === "save_addon") {
-    const a = body.addon || {};
-    if (!a.id) return NextResponse.json({ error: "Which add-on?" }, { status: 400 });
-    const monthly = int(a.monthly);
-    if (monthly === null) return NextResponse.json({ error: "An add-on needs a monthly price." }, { status: 400 });
-    const patch = { monthly, byok_monthly: int(a.byok_monthly), active: a.active !== false, updated_at: new Date().toISOString() };
-    if (a.name) patch.name = String(a.name).slice(0, 60);
-    const { data, error } = await supabase.from("plan_addons").update(patch).eq("id", String(a.id)).select("id");
+  // A step price and its switch (plan_units). The step itself (50 replies,
+  // 5 files) is fixed: customers' saved numbers are whole steps, and changing
+  // the step would make a renewal they already chose impossible to price.
+  if (action === "save_unit") {
+    const u = body.unit || {};
+    if (!u.kind) return NextResponse.json({ error: "Which number?" }, { status: 400 });
+    const price = int(u.price);
+    if (price === null || price < 0) return NextResponse.json({ error: "A step needs a price of 0 or more." }, { status: 400 });
+    const patch = { price, active: u.active !== false, updated_at: new Date().toISOString() };
+    const { data, error } = await supabase.from("plan_units").update(patch).eq("kind", String(u.kind)).select("kind");
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    if (!data?.length) return NextResponse.json({ error: "That add-on does not exist." }, { status: 404 });
+    if (!data?.length) return NextResponse.json({ error: "That number does not exist." }, { status: 404 });
     invalidatePlans();
     return NextResponse.json({ ok: true });
   }
@@ -534,7 +536,7 @@ export async function POST(request) {
     // DIFFERS from the package — an override should mean an exception, nothing
     // else. This is decided here rather than in the browser because it is the
     // rule that protects the data, not a display choice.
-    const { data: cl } = await supabase.from("clients").select("plan, limit_overrides, addons").eq("id", client_id).maybeSingle();
+    const { data: cl } = await supabase.from("clients").select("plan, limit_overrides").eq("id", client_id).maybeSingle();
     const plan = (await loadPlans())[cl?.plan] || {};
     const clean = {};
     for (const k of ["messages_per_day", "messages_per_month", "messages_per_channel", "channels",
