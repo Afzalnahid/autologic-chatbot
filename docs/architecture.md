@@ -935,3 +935,20 @@ Nothing reaches the site without the owner's approval.
   bills the owner's writing account, never the platform's or a client's key.
 - A partner's white-label address has no blog (404, noindex): the posts name
   TellMore AI and must not be duplicated on another domain.
+
+## TellMore's own Page and Instagram bot (2026-10-04)
+
+TellMore AI's Facebook Page (id 975965988929117) and Instagram (@tellmoreai) are
+connected to the internal account `19d3277d-161f-4b4f-8c68-2e0f9fda44a3`
+(business name "TellMore AI", agency type). Its knowledge is the guide in
+`docs/knowledge/tellmore-bot-guide.md`, ingested through the normal
+`ingestFile` path; its profile (app_settings → businessPrompt, questionnaire)
+restates prices and contact details. The previous profile is kept under
+`settings._backup_2026_10_04`. When prices or buying change, update both
+(lessons.md, 2026-10-04).
+
+The public pages link these profiles: footer icons (SocialIcons in
+company-line.js), the contact page, a "ask our own bot on Messenger" link in
+the home hero (m.me — a live demo of the product), and `sameAs` in the
+Organization structured data. None of it shows on a partner's white-label
+address.

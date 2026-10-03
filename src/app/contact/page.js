@@ -1,5 +1,5 @@
 import { pageMeta } from "@/lib/seo.js";
-import { COMPANY } from "@/lib/company.js";
+import { COMPANY, SOCIAL } from "@/lib/company.js";
 import SiteShell, { InfoCard } from "../site-shell.js";
 
 export const metadata = pageMeta({
@@ -34,6 +34,20 @@ export default function Contact() {
           {/* The dialler needs the number with nothing in it but digits; the
               spaced form is only for reading. */}
           <a href={`tel:${COMPANY.phoneE164}`} style={link}>{COMPANY.phone}</a>
+        </InfoCard>
+
+        <InfoCard
+          icon="ti-brand-messenger"
+          label="Messenger"
+          note="Answered right away by our own TellMore AI bot — the same one you can put on your page."
+        >
+          <a href={SOCIAL.messenger} target="_blank" rel="noopener" style={link}>Chat with us on Messenger</a>
+        </InfoCard>
+
+        <InfoCard icon="ti-brand-facebook" label="Facebook & Instagram" note="News, tips and updates.">
+          <a href={SOCIAL.facebook} target="_blank" rel="noopener" style={link}>Facebook Page</a>
+          {" · "}
+          <a href={SOCIAL.instagram} target="_blank" rel="noopener" style={link}>Instagram {SOCIAL.instagramHandle}</a>
         </InfoCard>
 
         <InfoCard icon="ti-map-pin" label="Address" note={COMPANY.country}>

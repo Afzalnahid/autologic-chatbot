@@ -10,7 +10,7 @@
 // Every public page builds its metadata here so there is one place that knows
 // the canonical host, the share pictures and the shape of the tags.
 
-import { COMPANY } from "@/lib/company.js";
+import { COMPANY, SOCIAL } from "@/lib/company.js";
 
 export const SITE = "https://www.tellmoreai.com";
 export const BRAND = "TellMore AI";
@@ -137,6 +137,9 @@ export function siteJsonLd(lang = "en") {
           name: COMPANY.legalName,
           url: COMPANY.parentUrl,
         },
+        // The brand's own profiles, so Google can tie the Facebook Page and
+        // Instagram to this site as one entity (the knowledge panel's source).
+        sameAs: [SOCIAL.facebook, SOCIAL.instagram],
       },
     ],
   };

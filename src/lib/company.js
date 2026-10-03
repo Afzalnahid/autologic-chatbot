@@ -44,6 +44,18 @@ export const COMPANY = {
   madeBy: "An Autolinium product",
 };
 
+// TellMore AI's own Facebook Page and Instagram — both answered by TellMore's
+// own bot (the internal account), so "Chat on Messenger" is a live demo of the
+// product. The page is addressed by its id, which never changes, rather than a
+// vanity name that can.
+export const SOCIAL = {
+  facebookPageId: "975965988929117",
+  facebook: "https://www.facebook.com/975965988929117",
+  messenger: "https://m.me/975965988929117",
+  instagram: "https://www.instagram.com/tellmoreai/",
+  instagramHandle: "@tellmoreai",
+};
+
 // The registered address in full, for the contact page and the legal pages.
 export const ADDRESS_LINE =
   `${COMPANY.street}, ${COMPANY.city} ${COMPANY.postalCode}, ${COMPANY.country}`;

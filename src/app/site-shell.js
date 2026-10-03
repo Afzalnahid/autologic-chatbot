@@ -3,7 +3,7 @@ import PublicFonts from "./public-fonts.js";
 import { BotMark } from "@/lib/brand.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
 import { COMPANY } from "@/lib/company.js";
-import { Copyright, FullAddress } from "./company-line.js";
+import { Copyright, FullAddress, SocialIcons } from "./company-line.js";
 
 // The frame the plain content pages sit in — contact, privacy, terms and the
 // Google Calendar disclosure.
@@ -207,6 +207,7 @@ export default function SiteShell({ eyebrow, title, lead, updated, children }) {
             <a href="/privacy" className="flink">Privacy Policy</a>
             <a href="/terms" className="flink">Terms of Service</a>
             <a href="/contact" className="flink">Contact</a>
+            <span style={{ marginLeft: -8 }}><SocialIcons size={16} color="var(--lp-soft)" gap={4} /></span>
           </div>
           <div className="lbl" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap",
             gap: 12, fontSize: 9.5, color: P.inkSoft, borderTop: `1px solid ${P.line}`, paddingTop: 18 }}>

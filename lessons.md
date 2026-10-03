@@ -1784,3 +1784,16 @@ Rule: after editing any route, load the pages and routes on the dev server with
 full URLs (`http://localhost:3000/admin`) and expect 200 / 401 — tests alone do
 not prove a route compiles. Before adding a top-level name to a long handler,
 search the file for it.
+
+## 2026-10-04 — our own Facebook Page bot was selling the old product
+TellMore's own Page and Instagram are answered by the internal account
+(`19d3277d…`, "Autologic System" until today). Its profile still said
+"AutoLogic Systems", Starter ৳1,500 / Pro ৳3,500 / Agency ৳6,000, the old
+vercel.app address, Cumilla, support@autologic.com and "English only", and its
+only knowledge document was the owner's CV. Every price change since September
+updated the site, the manual and the brochure — and never the bot customers
+actually talk to.
+Rule: when prices, packages or how buying works change, update the guide in
+`docs/knowledge/tellmore-bot-guide.md`, replace it in that account's knowledge
+base, and check its profile (Settings → bot profile). It is a public surface
+like /pricing.

@@ -8,7 +8,8 @@ import { brandForHost, isWhiteLabel, rebrand } from "@/lib/white-label.js";
 import { TECH_LOGOS } from "@/lib/tech-logos.js";
 import { pageMeta, siteJsonLd } from "@/lib/seo.js";
 import { FOOTER_LINKS, solutionHref } from "@/lib/solutions/index.js";
-import { Copyright, FullAddress } from "./company-line.js";
+import { Copyright, FullAddress, SocialIcons } from "./company-line.js";
+import { SOCIAL } from "@/lib/company.js";
 import { PLANS, PLAN_ORDER, formatMoney, planPrices } from "@/lib/plans.js";
 import { loadPlans, loadUnits } from "@/lib/plan-limits.js";
 import PublicPlanCard from "./public-plan-card.js";
@@ -640,6 +641,13 @@ export default async function Home({ searchParams }) {
               <a href="/dashboard?auth=signup" className="btn btn-main">{c.cta}</a>
               <a href="#plans" className="btn btn-ghost">{c.cta2} <i className="ti ti-arrow-right" style={{ fontSize: 15 }} /></a>
             </div>
+            {/* The product, live: our own Page is answered by our own bot. */}
+            {!wl && <a href={SOCIAL.messenger} target="_blank" rel="noopener" className="r"
+              style={{ animationDelay: ".23s", display: "inline-flex", alignItems: "center", gap: 7, marginTop: 14, fontSize: 14, fontWeight: 600, color: P.accent, textDecoration: "none" }}>
+              <i className="ti ti-brand-messenger" style={{ fontSize: 18 }} />
+              {bn ? "এখনই Messenger-এ আমাদের বটকে প্রশ্ন করে দেখুন" : "Try it now: ask our own bot on Messenger"}
+              <i className="ti ti-arrow-right" style={{ fontSize: 14 }} />
+            </a>}
             {/* What is true, where the Figma draft had star ratings and a store count. */}
             <div className="r" style={{ animationDelay: ".26s", marginTop: 24, display: "flex", gap: "8px 18px", flexWrap: "wrap" }}>
               {c.proof.map((t) => (
@@ -924,6 +932,7 @@ export default async function Home({ searchParams }) {
                 <span className="fr" style={{ fontSize: 18 }}>{brand.name}</span>
               </a>
               <p style={{ fontSize: 13.5, lineHeight: 1.65, color: "#B5ADB4", margin: "14px 0 0", maxWidth: 300 }}>{c.lead}</p>
+              {!wl && <div style={{ marginTop: 14, marginLeft: -8 }}><SocialIcons color="#D9D3D8" /></div>}
             </div>
             <div>
               <div className="foot-h">{bn ? "পণ্য" : "Product"}</div>
