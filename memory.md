@@ -171,6 +171,18 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
 - PENDING: team-inbox / sales-team feature plan sent to the owner; waiting on his 5 decisions (login per moderator,
   visibility, assignment, time metric, pricing/seats). He asked for it as a 2-page PDF (sent 2026-10-02) to have
   someone else confirm; do not build anything until that answer comes back.
+- IN PROGRESS 2026-10-03: PACKAGES = Standard or BYOK + add-ons (owner GO; decisions: add-ons at purchase AND
+  mid-period (prorated by days left), renew with the package; yearly = 10x; BYOK bought but no key → bot WAITS (no
+  platform AI); BYOK → Standard closes AI Engine (only for byok_plan clients, manual grants untouched); BYOK shown
+  everywhere). BYOK prices lowered (owner: 1,599 basis): shop 1599/3599/7099, svc 1399/2999/5999, yearly x10;
+  add-ons Std/BYOK: replies_100 149/89, replies_200 279/169, products_50 & docs_5 99/59, products_100 & docs_10
+  179/109. Done + pushed: 7e60037 (blank Channels = no cap), 179f477 (abandoned online checkouts expire, admin
+  cannot approve online rows), ca9d590 (BYOK prices everywhere), 99a6ea3 (plan_addons table, clients.byok_plan/
+  addons/billing_cycle, payment_requests.kind/byok/addons, lib/pricing.js, limitsFor adds add-ons). NEXT: stage 3
+  one applyPaidRequest() for gateway+admin (sets plan, expiry, billing_cycle, byok_plan, addons; BYOK → upsert
+  client_ai no_key + notify; Standard after BYOK → delete client_ai; kind addon → merge addons), bot/AI waits when
+  byok_plan && no key; then stage 2 UI (Billing basket + top-up, /api billing accepts byok/addons/kind, pricing
+  pages + landing show BYOK, admin add-on price editor, manual en/bn). PDF price list sent to owner (scratchpad).
 - DONE 2026-10-03: WHITE-LABEL "Tell Me" for partner ufirstltd (Minhaz Uddin's contact; 60% them / 40% us; demo
   for one e-commerce client abroad; NOT a separate SaaS). tellme.ufirstltd.com (Namecheap DNS, A → 216.198.79.1 =
   Vercel) added to the Vercel project; lib/white-label.js maps host → name ("Tell Me", no logo). Commits 2322654
