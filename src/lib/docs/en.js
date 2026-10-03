@@ -1138,13 +1138,13 @@ export const DOCS = {
 
   "ai-engine": {
     title: "AI Engine",
-    lead: "Which AI powers your bot. By default it is ours, included in your plan — and if you would rather run on your own Google Gemini key, this is where you put it.",
+    lead: "Which AI powers your bot. By default it is ours, included in your plan — and on an own-key package, this is where you put your own Google Gemini or OpenAI key.",
     time: 5,
     blocks: [
       { h: "You probably do not need this tab",
         p: [
           "Out of the box your bot runs on **TellMore AI's AI**. Nothing to set up, nothing extra to pay, it is part of your plan. Most owners never open this tab, and that is fine.",
-          "It exists for businesses that want the AI usage billed to their own account instead of ours.",
+          "It exists for businesses that want the AI usage billed to their own account instead of ours — and every package costs much less that way (see **Packages**).",
         ] },
 
       { shot: "ai-engine", cap: "An account running on its own key: the key shown masked, the main model and the fallback." },
@@ -1152,23 +1152,26 @@ export const DOCS = {
       { h: "Bringing your own key",
         p: ["Two things have to be true before you can:"],
         steps: [
-          "Your account must be **enabled** for it. That is a permission we grant — write to us and ask.",
-          "You need a **Google AI (Gemini)** API key of your own, from `aistudio.google.com` → *Get API key*.",
+          "Your package must be an **own-key** one. In **Billing**, choose any package and switch it to **Own AI key** before you pay. When the payment is confirmed, this tab opens by itself.",
+          "You need an API key of your own: **Google AI (Gemini)** from `aistudio.google.com` → *Get API key*, or **OpenAI** from `platform.openai.com` → *API keys*.",
         ] },
+
+      { note: "On an own-key package the bot **waits** until a key is saved here — it does not answer on our AI in the meantime, because the package was priced without it. Customers' messages are still saved, and you are reminded once a day.",
+        kind: "warn" },
 
       { p: ["Once enabled, the tab shows a box for the key."],
         steps: [
           "Paste your key.",
-          "Press **Check key & load models**. We test it against Google before saving anything.",
+          "Press **Check key & load models**. We test it with Google or OpenAI before saving anything.",
           "If it works, we pick a sensible main model and a fallback for you. Change them if you want to.",
           "Press **Verify & activate**.",
         ] },
 
-      { note: "The key is checked with Google **before** it is saved, so a mistyped key fails at that moment rather than quietly breaking your bot an hour later. Once saved it is encrypted, and no dashboard — yours or ours — ever shows more than a masked form of it.",
+      { note: "The key is checked with its provider **before** it is saved, so a mistyped key fails at that moment rather than quietly breaking your bot an hour later. Once saved it is encrypted, and no dashboard — yours or ours — ever shows more than a masked form of it.",
         kind: "tip" },
 
       { h: "Main model and fallback",
-        p: ["The main model answers your customers. The fallback takes over if the main one is busy or unavailable, so a momentary problem at Google does not leave a customer waiting. A higher-quality main model gives better answers and costs you more per message — the choice is yours, since it is your bill."] },
+        p: ["The main model answers your customers. The fallback takes over if the main one is busy or unavailable, so a momentary problem at the provider does not leave a customer waiting. A higher-quality main model gives better answers and costs you more per message — the choice is yours, since it is your bill."] },
 
       { h: "What happens if your key stops working",
         p: [
@@ -1180,24 +1183,27 @@ export const DOCS = {
         kind: "warn" },
 
       { h: "Going back to ours",
-        p: ["Remove the key and the tab confirms: *your bot is back on the platform's AI*. It resumes answering immediately, on your plan, at no extra cost. Nothing about your training, channels or history changes."] },
-
-      { h: "One thing always runs on our key",
         p: [
-          "Searching your own products and documents needs the text turned into numbers first — and every saved item has to be turned into numbers by **the same model**, or the search silently stops matching.",
-          "So that one step always runs on the same model for everybody, whichever key answers your customers. It is a tiny fraction of the work and it is included in your plan either way.",
+          "To run on our AI again, renew on a **Standard** package in **Billing**. That closes this tab and removes your saved key, and the bot answers on our AI, included in the plan.",
+          "On an own-key package, removing the key here does not switch you to our AI — the bot waits until a key is saved again. Nothing about your training, channels or history changes either way.",
+        ] },
+
+      { h: "Everything runs on your key",
+        p: [
+          "On your own key, **all** of the AI runs on it: replies, reading photos, voice notes, and the search that matches your products and documents. That is why the package costs so much less.",
+          "Searching your products and documents needs every item turned into numbers by the same provider. When you switch provider, we redo that for your items in the background; for a little while some may not be found until it finishes.",
         ] },
 
       { h: "If something goes wrong",
         faq: [
           { q: "The tab says my account is not enabled for this.",
-            a: "Running on your own key is a permission we grant per account. Write to us and ask for it — there is nothing you can switch on yourself." },
+            a: "Your package is a Standard one. In **Billing**, renew or change to a package with **Own AI key** — when the payment is confirmed this tab opens by itself." },
           { q: "My key was rejected.",
-            a: "Three usual causes: the key was copied with a space at one end, it is not a **Google AI (Gemini)** key, or the Google project it belongs to does not have the Gemini API enabled. Generate a fresh one at `aistudio.google.com` and paste it again." },
+            a: "Three usual causes: the key was copied with a space at one end, it is not a Google AI (Gemini) or OpenAI key, or the account it belongs to has no API access or billing set up. Make a fresh key and paste it again." },
           { q: "My bot stopped and the tab says the key is not working.",
-            a: "Almost always the free quota has run out for the day, or billing lapsed on the Google account. Check the key in Google AI Studio. Removing the key here puts you straight back on our AI while you sort it out." },
-          { q: "Can I use OpenAI, or another provider?",
-            a: "For answering customers, only Google Gemini keys are supported today. Product and document search always runs on our Gemini model regardless, so nothing breaks either way." },
+            a: "Almost always the quota has run out, or billing lapsed on your Google or OpenAI account. Fix it there and the bot resumes on its own with the next message." },
+          { q: "Can I use OpenAI?",
+            a: "Yes — a Google Gemini key or an OpenAI key. Whichever you choose runs everything: replies, photos, voice notes and product search." },
           { q: "Will this make my bot better?",
             a: "Not by itself. What the bot knows comes from **Bot Training**, not from whose key pays for it. Choose your own key when you want the usage on your own account — an untrained bot on an expensive model is still an untrained bot." },
         ] },
@@ -1206,7 +1212,7 @@ export const DOCS = {
 
   "billing": {
     title: "Billing",
-    lead: "Your plan, how much of it you have used, and how to pay for a bigger one with bKash or Nagad.",
+    lead: "Your plan, how much of it you have used, and how to buy or renew one — on our AI or your own key, with add-ons if you need more.",
     time: 4,
     blocks: [
       { h: "Your current plan",
@@ -1220,15 +1226,25 @@ export const DOCS = {
 
       { shot: "billing", cap: "The current plan with what is left this month, the plans you can move to, and your payment history." },
 
-      { h: "Changing plan",
+      { h: "Buying, renewing or changing plan",
         steps: [
-          "Press **Choose a plan** or **Upgrade your plan**.",
+          "Press **Choose a plan** or **Renew or change**.",
           "Pick a plan. The one most businesses choose is marked **Popular**, and the one you are on is marked **Current**.",
+          "Choose **Standard (our AI)** or **Own AI key**. On your own key every AI reply runs on your own Google Gemini or OpenAI key, so the plan costs much less — after payment the **AI Engine** tab opens for you to add the key.",
           "Choose **Monthly** or **Yearly**. Yearly gives you **two months free**.",
+          "Optionally add more: extra **bot replies**, **AI Assistant questions**, **products** (shops) or **documents** (services). Press **+** as many times as you need; the total underneath updates as you go.",
+        ] },
+
+      { p: ["Renewing your current plan starts with what you have now — own key or not, and the same add-ons ticked — so a renewal is one press. Add-ons renew with the plan until you untick them."] },
+
+      { h: "Add-ons in the middle of the month",
+        p: [
+          "Running low before the month is over? Press **Buy add-ons** on the current-plan card, pick what you need, and pay. You pay only for the **days left** on your plan — half a month left, half the price.",
+          "They are added as soon as the payment is confirmed, and from your next renewal they renew with your plan at the full price.",
         ] },
 
       { h: "Paying",
-        p: ["Payment is by mobile money, and it is a **Send Money** transfer — not a merchant payment."],
+        p: ["When **Pay online** appears, you can pay there by card or mobile banking and the purchase applies as soon as the payment goes through. Otherwise payment is by mobile money, as a **Send Money** transfer — not a merchant payment."],
         steps: [
           "The page shows the exact amount and the numbers you can send to. The copy icon beside a number puts it on your clipboard.",
           "Open bKash or Nagad and **Send Money** for exactly that amount.",
@@ -1256,11 +1272,15 @@ export const DOCS = {
           { q: "I entered the transaction ID wrongly.",
             a: "Submit it again with the correct one. A duplicate submission is not charged twice — matching is done against the actual transaction, not against what you typed." },
           { q: "What happens when I hit my message limit?",
-            a: "The bot stops replying until the period resets or you upgrade. Your conversations, orders and training are untouched — nothing is lost, it simply pauses." },
+            a: "The bot stops replying until the period resets, you buy more replies as an add-on, or you upgrade. Your conversations, orders and training are untouched — nothing is lost, it simply pauses." },
+          { q: "I bought an own-key plan but the bot is not replying.",
+            a: "It is waiting for your key. Open **AI Engine**, paste your Google Gemini or OpenAI key and choose a model — the bot starts with the next message." },
+          { q: "What happens to my key if I switch to a Standard plan?",
+            a: "The AI Engine tab closes and the saved key is removed; the bot runs on our AI, included in the plan." },
           { q: "Is yearly really cheaper?",
             a: "Yes — a yearly plan is twelve months for the price of ten. If you are past your trial and intend to keep using it, yearly is straightforwardly better value." },
           { q: "Can I pay with a card?",
-            a: "Not at the moment. bKash and Nagad Send Money are the supported methods." },
+            a: "When **Pay online** is shown on the payment step, yes — by card or mobile banking. Otherwise bKash and Nagad Send Money are the supported methods." },
         ] },
     ],
   },
@@ -1292,7 +1312,7 @@ export const DOCS = {
       { h: "The three sizes",
         p: [
           "Two sets of three: one for shops, one for services. They grow the same way — replies, channels, AI Assistant questions — but a shop is sized by the products it adds and a service by the knowledge documents it adds. Services cost less, because there is no catalogue for the AI to read. Each set has a lower price for a business on its own AI key.",
-          "**Every tier has every feature.** Moving up does not unlock anything — photo matching, comment automation, calendar booking, the AI Assistant and your own AI key are in all three, and in the free trial. What you are buying is **size**: how many replies the bot may send, how many channels it answers on, how big a catalogue or how many documents it can hold.",
+          "**Every tier has every feature.** Moving up does not unlock anything — photo matching, comment automation, calendar booking and the AI Assistant are in all three, and in the free trial. Every paid package can also be bought **on your own AI key**, for much less. What you are buying is **size**: how many replies the bot may send, how many channels it answers on, how big a catalogue or how many documents it can hold.",
         ] },
 
       { table: { head: ["", "Basic", "Pro", "Enterprise"], rows: [
@@ -1321,12 +1341,31 @@ export const DOCS = {
         ["Comment automation", "Yes", "Yes", "Yes"],
       ] } },
 
+      { h: "Add-ons",
+        p: ["Need a little more than your package without moving up? Add it. Add-ons can be bought with the package or in the middle of the month (you pay only for the days left), and they renew with your plan. Prices per month; on a yearly plan, ten months. **Billing** always shows the current prices."] },
+
+      { table: { head: ["Add-on", "Standard / month", "On your own AI key / month"], rows: [
+        ["+100 bot replies", "৳149", "৳89"],
+        ["+200 bot replies", "৳279", "৳169"],
+        ["+100 AI Assistant questions", "৳99", "৳59"],
+        ["+200 AI Assistant questions", "৳179", "৳109"],
+      ] } },
+
+      { biz: "ecommerce", table: { head: ["For shops", "Standard / month", "On your own AI key / month"], rows: [
+        ["+50 products", "৳99", "৳59"],
+        ["+100 products", "৳179", "৳109"],
+      ] } },
+
+      { biz: "agency", table: { head: ["For services", "Standard / month", "On your own AI key / month"], rows: [
+        ["+5 documents", "৳99", "৳59"],
+        ["+10 documents", "৳179", "৳109"],
+      ] } },
       { h: "When you reach a limit",
         p: [
           "You cannot run out of features — you already have all of them. What you can run out of is room: replies for the month, products or documents added, AI Assistant questions, website imports, broadcasts.",
-          "Products and documents are counted as you **add** them, as a **total for as long as you use the package** — the number does not start again each month. Each one added uses one, and deleting it does not give it back: every add is read and indexed by the AI, so it has already been paid for. Need more room? Move up a package, and the new, bigger total counts what you have already added.",
+          "Products and documents are counted as you **add** them, as a **total for as long as you use the package** — the number does not start again each month. Each one added uses one, and deleting it does not give it back: every add is read and indexed by the AI, so it has already been paid for. Need more room? Buy an **add-on** (below), or move up a package — the new, bigger total counts what you have already added.",
           "**Billing** shows every meter under your package — how much is used and how much is left — and so does **Profile**.",
-          "When that happens the dashboard says which limit and what it is, and nothing is deleted. Out of replies, the bot stops answering new customers until the month turns or you move up; your inbox keeps working and you can answer by hand. Out of product slots, the ones you have keep selling and the next one is refused.",
+          "When that happens the dashboard says which limit and what it is, and nothing is deleted. Out of replies, the bot stops answering new customers until the month turns, you buy more replies as an add-on, or you move up; your inbox keeps working and you can answer by hand. Out of product slots, the ones you have keep selling and the next one is refused.",
           "The tables above are the real numbers — the same ones the bot and the dashboard enforce, read from your package as the admin panel has it, not from a page written once.",
         ] },
 
@@ -1355,7 +1394,7 @@ export const DOCS = {
         ["Comment automation", "Replies to comments on your posts, and can carry the conversation into the inbox."],
         ["Broadcasts & follow-ups", "Sending one message to many people, and nudging somebody who went quiet. Both only ever reach people who wrote to you in the last 24 hours — that is Meta's rule, not ours."],
         ["Website chat widget", "The same bot, on your own website, in one line of code."],
-        ["Your own AI key", "Run on your own Google or OpenAI key and pay the AI bill yourself. Useful at high volume."],
+        ["Your own AI key", "Buy any paid package on your own Google Gemini or OpenAI key: every AI call runs on it, you pay the AI provider directly, and the package costs much less. The bot waits until the key is added in AI Engine."],
       ] } },
 
       { biz: "ecommerce", table: { head: ["For shops", "What it does"], rows: [

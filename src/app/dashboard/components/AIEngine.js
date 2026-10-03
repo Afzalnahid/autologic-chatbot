@@ -94,7 +94,8 @@ function PlatformCard() {
         </div>
       </div>
       <div style={{ fontSize: 12.5, color: T.textMuted, lineHeight: 1.7, background: T.bgAlt, borderRadius: 12, padding: "12px 14px", boxShadow: T.nmIn }}>
-        Want to run the bot on <b style={{ color: T.text }}>your own API key</b>, with your own AI billing and model choice? We can enable that for your account — just reach out to support and we'll switch this on for you.
+        Want to run the bot on <b style={{ color: T.text }}>your own Google Gemini or OpenAI key</b>, with your own AI billing and model choice? Every plan costs much less that way. In <b style={{ color: T.text }}>Billing</b>, renew or choose a plan with <b style={{ color: T.text }}>Own AI key</b> — this tab opens for your key as soon as the payment is confirmed.
+        <div style={{ marginTop: 8 }}><a href="#billing" style={{ color: T.gold, fontWeight: 600 }}>Open Billing →</a></div>
       </div>
     </Card>
   );
