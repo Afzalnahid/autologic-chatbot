@@ -13,6 +13,7 @@ import { checkPassword } from "@/lib/password-rules.js";
 import PasswordRules from "../dashboard/components/PasswordRules.js";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
 import { DEFAULT_BRAND, brandById } from "@/lib/white-label.js";
+import { adminMayApprove } from "@/lib/billing-rules.js";
 
 // The super-admin console. Same design system as the customer dashboard —
 // crimson on soft white, neumorphic depth, dark mode — arranged as a command
@@ -677,7 +678,9 @@ function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act,
 function Payments({ payments, canEdit, busy, review, openDetail, isMobile }) {
   const [confirm, setConfirm] = useState(null); // {id, decision, note}
   const [filter, setFilter] = useState("all");
-  const pending = payments.filter((p) => p.status === "pending");
+  // Only manual payments wait for a person. An online checkout still pending is in
+  // progress (or abandoned) and is confirmed by the gateway, never by a click.
+  const pending = payments.filter(adminMayApprove);
   const history = payments.filter((p) => p.status !== "pending").filter((p) => filter === "all" || p.status === filter);
   const total30 = payments.filter((p) => p.status === "approved" && Date.now() - new Date(p.reviewed_at || p.created_at).getTime() < 30 * 86400000).reduce((n, p) => n + Number(p.amount || 0), 0);
   return <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>

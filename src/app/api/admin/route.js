@@ -15,6 +15,7 @@ import { PLANS } from "@/lib/plans.js";
 const isPaidPlan = (p) => !!p && p !== "trial" && p !== "none";
 import { loadPlans } from "@/lib/plan-limits.js";
 import { startOfDayDhaka } from "@/lib/time.js";
+import { adminMayApprove } from "@/lib/billing-rules.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -129,7 +130,7 @@ export async function GET(request) {
     last_active: lastActive.has(c.id) ? new Date(lastActive.get(c.id)).toISOString() : null,
     trial_days_left: c.plan === "trial" ? daysLeft(c.trial_end) : null,
     plan_days_left: isPaidPlan(c.plan) ? daysLeft(c.plan_expires_at) : null,
-    pending_payment: payRows.some((p) => p.client_id === c.id && p.status === "pending"),
+    pending_payment: payRows.some((p) => p.client_id === c.id && adminMayApprove(p)),
   }));
 
   // Recurring revenue estimate from active paid plans (monthly price; the
@@ -175,14 +176,16 @@ export async function GET(request) {
     total_contacts: contacts.length, total_products: products.length, total_kb_files: files.length,
     connected_channels: channels.filter((ch) => ch.status === "connected").length, platform_mix: platformMix, message_platform_30d: msgPlatform,
     mrr: paid.reduce((n, c) => n + monthlyOf(c.plan), 0), revenue_30d, revenue_prev30,
-    pending_payments: payRows.filter((p) => p.status === "pending").length,
+    // Only the payments a person has to check: an online checkout in progress is
+    // the gateway's to confirm (billing-rules.js).
+    pending_payments: payRows.filter(adminMayApprove).length,
     series: { messages: series(msgs), signups: series(clients), orders: series(orders), bookings: series(bookings) },
   };
 
   // What needs a human today, most urgent first.
   const attention = [];
   const money = (n) => "\u09F3" + Number(n || 0).toLocaleString("en-IN");
-  for (const p of payRows.filter((p) => p.status === "pending")) attention.push({ kind: "payment", level: "high", client_id: p.client_id, title: "Payment waiting for review", sub: `${p.plan} · ${money(p.amount)} via ${p.method}`, at: p.created_at });
+  for (const p of payRows.filter(adminMayApprove)) attention.push({ kind: "payment", level: "high", client_id: p.client_id, title: "Payment waiting for review", sub: `${p.plan} · ${money(p.amount)} via ${p.method}`, at: p.created_at });
   for (const c of rows) {
     const who = c.business_name || c.owner_email;
     if (c.plan === "trial" && c.trial_days_left !== null && c.trial_days_left <= 2) attention.push({ kind: "trial", level: c.trial_days_left <= 0 ? "high" : "mid", client_id: c.id, title: c.trial_days_left <= 0 ? "Trial expired" : `Trial ends in ${c.trial_days_left} day${c.trial_days_left === 1 ? "" : "s"}`, sub: who, at: c.trial_end });
@@ -342,6 +345,12 @@ export async function PUT(request) {
     const { data: pr } = await supabase.from("payment_requests").select("*").eq("id", request_id).single();
     if (!pr) return NextResponse.json({ error: "request not found" }, { status: 404 });
     if (pr.status !== "pending") return NextResponse.json({ error: "already reviewed" }, { status: 409 });
+    // An online payment is confirmed only by the gateway's own validation. A row
+    // still pending here means the money was never proven to arrive, so a click
+    // must not turn it into a plan (billing-rules.js). Rejecting it is fine.
+    if (decision === "approve" && !adminMayApprove(pr)) {
+      return NextResponse.json({ error: "Online payments are confirmed by the payment gateway, not by hand. This one was never confirmed, so no money is proven to have arrived." }, { status: 409 });
+    }
 
     const { data: cl } = await supabase.from("clients").select("*").eq("id", pr.client_id).single();
 

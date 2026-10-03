@@ -7,6 +7,7 @@ import { priceForClient } from "@/lib/plans.js";
 import { clientHasOwnKey } from "@/lib/ai.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { sslEnabled, initiateSession, newTranId, baseUrl } from "@/lib/sslcommerz.js";
+import { expireAbandonedCheckouts } from "@/lib/billing-activate.js";
 
 // Start a hosted SSLCommerz checkout for a plan. Returns { url } for the browser
 // to redirect to. The plan is priced from the LIVE catalogue (same as the manual
@@ -25,7 +26,9 @@ export const POST = withErrors(async (request) => {
   if (!isPaid) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   if (!["monthly", "yearly"].includes(cycle)) return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
 
-  // One open request at a time, same rule as the manual flow.
+  // One open request at a time, same rule as the manual flow — after closing any
+  // earlier online checkout that was never completed (billing-rules.js).
+  await expireAbandonedCheckouts(client.id);
   const { data: existing } = await supabase
     .from("payment_requests").select("id").eq("client_id", client.id).eq("status", "pending").limit(1);
   if (existing?.length) {

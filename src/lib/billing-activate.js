@@ -8,6 +8,16 @@
 // the later of today and the current expiry, by 30 days (monthly) or 365 (yearly).
 import { supabase } from "@/lib/supabase.js";
 import { notifyPaymentApproved } from "@/lib/email.js";
+import { ACTIVATABLE, ONLINE_CHECKOUT_TTL_MIN } from "@/lib/billing-rules.js";
+
+// Close this client's online checkouts that were never completed (billing-rules.js),
+// so they stop blocking a new payment and stop sitting in the admin queue.
+export async function expireAbandonedCheckouts(clientId) {
+  const cutoff = new Date(Date.now() - ONLINE_CHECKOUT_TTL_MIN * 60 * 1000).toISOString();
+  await supabase.from("payment_requests")
+    .update({ status: "expired", admin_note: "online checkout not completed", reviewed_at: new Date().toISOString(), reviewed_by: "system" })
+    .eq("client_id", clientId).eq("method", "online").eq("status", "pending").lt("created_at", cutoff);
+}
 
 export async function activatePaymentRow(pr, { reviewedBy = "sslcommerz" } = {}) {
   if (!pr || !pr.id) return { ok: false, reason: "no_payment" };
@@ -17,12 +27,13 @@ export async function activatePaymentRow(pr, { reviewedBy = "sslcommerz" } = {})
     .from("clients").select("id,owner_email,plan_expires_at").eq("id", pr.client_id).single();
   if (!cl) return { ok: false, reason: "no_client" };
 
-  // Claim first. The .eq("status","pending") makes this a compare-and-set: two
-  // concurrent callers race here, and only one gets a row back.
+  // Claim first. The status filter makes this a compare-and-set: two concurrent
+  // callers race here, and only one gets a row back. "expired" is accepted too —
+  // a checkout we stopped waiting for can still be proven paid by the gateway.
   const { data: claimed } = await supabase
     .from("payment_requests")
     .update({ status: "approved", reviewed_at: new Date().toISOString(), reviewed_by: reviewedBy })
-    .eq("id", pr.id).eq("status", "pending").select();
+    .eq("id", pr.id).in("status", ACTIVATABLE).select();
   if (!claimed || !claimed.length) return { ok: true, already: true };
 
   const current = cl.plan_expires_at ? new Date(cl.plan_expires_at) : null;

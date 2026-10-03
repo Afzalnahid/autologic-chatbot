@@ -27,7 +27,19 @@ async function handle(request) {
   const tranId = params.get("tran_id");
   const valId = params.get("val_id");
 
-  if (r !== "success") return NextResponse.redirect(`${dash}&pay=${r}`, 303);
+  if (r !== "success") {
+    // The customer cancelled or the payment failed: close that checkout now
+    // rather than leaving it pending, where it would block their next attempt
+    // and wait in the admin queue. Only a still-pending ONLINE row is touched,
+    // and "expired" can still be activated if the gateway later proves payment
+    // (billing-rules.js ACTIVATABLE), so a forged cancel cannot cost anyone a plan.
+    if (tranId) {
+      await supabase.from("payment_requests")
+        .update({ status: "expired", admin_note: `gateway: ${r === "cancel" ? "cancelled" : "failed"}`, reviewed_at: new Date().toISOString(), reviewed_by: "sslcommerz" })
+        .eq("txn_id", tranId).eq("method", "online").eq("status", "pending");
+    }
+    return NextResponse.redirect(`${dash}&pay=${r}`, 303);
+  }
   if (!tranId) return NextResponse.redirect(`${dash}&pay=fail`, 303);
 
   const { data: pr } = await supabase.from("payment_requests").select("*").eq("txn_id", tranId).single();

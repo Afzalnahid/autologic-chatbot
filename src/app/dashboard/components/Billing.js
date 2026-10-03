@@ -294,7 +294,8 @@ export default function Billing({initialPlan,initialCycle}) {
             <td style={{padding:"10px 0"}}>{taka(r.amount)}</td>
             <td style={{padding:"10px 0",color:T.textMuted,fontFamily:"monospace",fontSize:11.5}}>{r.txn_id}</td>
             <td style={{padding:"10px 0",textAlign:"right"}}>
-              <Badge color={r.status==="approved"?T.success:r.status==="rejected"?T.danger:T.warn}>{r.status}</Badge>
+              {/* "expired" = an online checkout that was cancelled or never finished (billing-rules.js) */}
+              <Badge color={r.status==="approved"?T.success:r.status==="rejected"?T.danger:r.status==="expired"?T.textDim:T.warn}>{r.status==="expired"?"not completed":r.status}</Badge>
             </td>
           </tr>)}</tbody>
         </table>

@@ -14,6 +14,8 @@ import { withErrors } from "@/lib/route-errors.js";
 import { sslEnabled } from "@/lib/sslcommerz.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
+import { blocksNewPayment } from "@/lib/billing-rules.js";
+import { expireAbandonedCheckouts } from "@/lib/billing-activate.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
 
@@ -53,7 +55,8 @@ export const GET = withErrors(async (request) => {
   ]);
 
   const requests = reqQ.data || [];
-  const pending = requests.find((r) => r.status === "pending") || null;
+  // An online checkout the customer walked away from is not "under review".
+  const pending = requests.find((r) => blocksNewPayment(r)) || null;
 
   // Limits merge the client's plan with any per-client override — the same
   // source the bot enforces — so the usage bar matches reality.
@@ -117,7 +120,9 @@ export const POST = withErrors(async (request) => {
     return NextResponse.json({ error: "Enter the transaction ID from your payment receipt" }, { status: 400 });
   }
 
-  // One open request at a time keeps the admin queue clean.
+  // One open request at a time keeps the admin queue clean. Abandoned online
+  // checkouts are closed first so they cannot block this one (billing-rules.js).
+  await expireAbandonedCheckouts(client.id);
   const { data: existing } = await supabase
     .from("payment_requests").select("id").eq("client_id", client.id).eq("status", "pending").limit(1);
   if (existing?.length) {
