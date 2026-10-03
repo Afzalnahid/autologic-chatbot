@@ -4,6 +4,20 @@ Update the top two sections after every session.
 
 ---
 
+## 2026-10-04 (night) — our own Page bot fixed; social links and a Messenger demo
+
+Commit 79a4d79. The internal account 19d3277d… answers TellMore's Facebook Page
+(975965988929117) and Instagram (@tellmoreai). Its profile still sold the old
+AutoLogic product (old prices, vercel address, Cumilla, support@autologic.com,
+"English only") and its only KB file was the owner's CV. Now: business name TellMore AI,
+registered address/phone/website, new profile + FAQ + "Bangla and English" (old
+profile backed up in settings._backup_2026_10_04), the guide
+docs/knowledge/tellmore-bot-guide.md ingested via ingestFile (9 chunks, gemini-embedding-001),
+CV removed with the owner's OK (deleteFile; public URL now 400). Tested locally with
+composeReply in English and Bangla — correct prices, trial, slider, contact.
+Site: footer social icons, contact page Messenger + FB/IG, hero "ask our own bot on
+Messenger", sameAs in Organization JSON-LD. Lesson added: update this bot when prices change.
+
 ## 2026-10-04 (evening) — menu, footers, and the Blog (GPT drafts → owner approves → publish)
 
 Commits 65e5be7 (menu/footers) and 501fe05 (blog). npm test 91/91.
