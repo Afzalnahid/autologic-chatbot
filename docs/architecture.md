@@ -440,8 +440,12 @@ Outside the code, each partner address has to be allowed in three places
 - Same app → Instagram → API setup with Instagram login → Business login
   settings → OAuth redirect URIs: `https://<partner>/api/ig/callback`.
 
-Google Calendar would also need `https://<partner>/api/gcal/callback` on the
-Google OAuth client; not added, as the demo does not book meetings.
+- Google Cloud project `my-project-483713` → Google Auth Platform → Clients →
+  "Web client 1" → Authorized redirect URIs: `https://<partner>/api/gcal/callback`.
+  Saving it adds the partner's domain to the consent screen's Authorized
+  domains by itself; branding and data access stayed "verified" (checked
+  2026-10-03, and Google accepted the partner callback without
+  `redirect_uri_mismatch`).
 
 ### Scheduled work
 
