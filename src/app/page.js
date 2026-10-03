@@ -759,7 +759,7 @@ export default async function Home({ searchParams }) {
       <section id="film" style={{ background: P.paper }}>
         <div style={{ ...wrap, padding: "clamp(40px,7vw,80px) clamp(16px,4vw,26px)" }}>
           <div data-reveal="0" style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 28px" }}>
-            <Label>{bn ? "৪৭ সেকেন্ডে" : "In 47 seconds"}</Label>
+            <Label>{bn ? "২ মিনিটে" : "In two minutes"}</Label>
             <h2 className="fr" style={{ fontSize: "clamp(28px,4.2vw,42px)", lineHeight: 1.1, margin: 0 }}>
               {bn ? "পুরোটা কীভাবে কাজ করে" : "The whole thing, working"}
             </h2>
@@ -768,11 +768,14 @@ export default async function Home({ searchParams }) {
           <div data-reveal="80" style={{ position: "relative", border: `1px solid ${P.line}`, maxWidth: 980, margin: "0 auto",
             borderRadius: 20, overflow: "hidden", background: "#000", aspectRatio: "16 / 9",
             boxShadow: "var(--lp-nm)" }}>
-            {/* 3 MB and 47 seconds: a 23 KB still frame until someone presses play
-                (autoplay cost 4.2 MB and a 7.8 s largest paint, 2026-09-18). */}
+            {/* Tutorial 00, "How TellMore AI works", in the page's language (owner,
+                2026-10-04: it replaced the August film that still showed the old
+                vercel.app address). About 5 MB and two minutes, so it stays a
+                ~22 KB still frame until someone presses play (autoplay cost
+                4.2 MB and a 7.8 s largest paint, 2026-09-18). */}
             <video id="al-film" playsInline preload="none" controls
-              poster={bn ? "/film-bn-poster.jpg" : "/film-en-poster.jpg"}
-              data-src={bn ? "/film-bn.mp4" : "/film-en.mp4"}
+              poster={bn ? "/how-it-works-bn.jpg" : "/how-it-works-en.jpg"}
+              data-src={bn ? "/how-it-works-bn.mp4" : "/how-it-works-en.mp4"}
               style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
             <button id="al-film-play" type="button" aria-label={bn ? "ভিডিও চালান" : "Play the film"}
               style={{ position: "absolute", inset: 0, margin: "auto", width: 66, height: 66, borderRadius: 33,
