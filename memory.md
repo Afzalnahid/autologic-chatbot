@@ -171,6 +171,15 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
 - PENDING: team-inbox / sales-team feature plan sent to the owner; waiting on his 5 decisions (login per moderator,
   visibility, assignment, time metric, pricing/seats). He asked for it as a 2-page PDF (sent 2026-10-02) to have
   someone else confirm; do not build anything until that answer comes back.
+- DONE 2026-10-03: WHITE-LABEL "Tell Me" for partner ufirstltd (Minhaz Uddin's contact; 60% them / 40% us; demo
+  for one e-commerce client abroad; NOT a separate SaaS). tellme.ufirstltd.com (Namecheap DNS, A → 216.198.79.1 =
+  Vercel) added to the Vercel project; lib/white-label.js maps host → name ("Tell Me", no logo). Commits 2322654
+  (screens) + 89ce7db (clients.signup_brand, migration clients_signup_brand; admin "via Tell Me" badge). Both
+  READY; live home shows Tell Me 12x / TellMore 0x, noindex; sign-in shows "Tell Me". OWNER TODO: Supabase Auth →
+  URL Configuration → Redirect URLs add https://tellme.ufirstltd.com/** (else confirm/reset links go to
+  tellmoreai.com); Meta app redirect URIs only if FB/IG/WA connect is needed there. Still TellMore there: /docs,
+  pricing, legal, favicon, e-mails, payment return, Meta/Google consent screens, the demo film. Partner opens the
+  demo account and adds products themselves.
 - DONE 2026-10-02: all 20 tutorials in the new design, 80 files in Claude outputs/Tutorials (16 built 06:05→10:20,
   out/build-rebrand-oct2.log; one voice take per video per language, so the batch used ~40 TTS requests, well under
   100/day). check_voice flagged 4 lines: 09 en 01/02 (a sentence cut into the wrong line) and 11 bn 05 (dropped
