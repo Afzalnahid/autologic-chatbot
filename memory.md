@@ -4,6 +4,32 @@ Update the top two sections after every session.
 
 ---
 
+## 2026-10-04 (later) — numbers only go up, set them on the public pages, 90% warnings, admin cleanup
+
+Owner's follow-up the same day. Commits 083e01a (public + rules + warnings) and
+1748412 (admin). npm test 90/90.
+- **Rule change:** custom numbers only go UP (never below the package) and at most
+  HALF the way to the next package (`MAX_GAP_SHARE` 0.5; biggest +50% `TOP_RAISE`).
+  DOWN_RATE removed. Fully raised Basic = ৳4,499 vs Pro ৳5,999 (75–82% across tiers);
+  from 70% the quote names the next package and how much more (`better.more`).
+- **Public pages:** home + /pricing render paid packages with ONE shared card,
+  `src/app/public-plan-card.js` ("Need more? Set your numbers" → sliders; price follows;
+  Buy link `&c=replies.500,…` → buy-intent.js → Billing `initialCustom`). /pricing got the
+  our-AI / own-key switch. Icon subset now also scans public-plan-card.js.
+- **Meters:** UsageMeters warns per meter from 90% with Add more; `/api/me.near_limits`;
+  NearLimitBanner on every dashboard tab; account re-read every 5 min in the app.
+- **Admin:** clientMonthlyPrice (revenue.js) for MRR, Billed and the drawer price (own
+  key half, raised numbers, yearly/12, live packages; any provider's key); OpenAI AI-tab
+  crash fixed; "Add to the book" fixed; Overview trimmed (bot-replies tile+chart, no
+  Orders/Bookings/Live channels/Signups/Messages-by-channel); Packages: API usage +
+  Rates behind "Advanced", stale migration warning removed, profit labelled Billed − cost;
+  drawer: Copy-ID button, no page_id/chunks.
+- **Interpretation to confirm with the owner:** at renewal (Update package) the sliders
+  can go back to the package's own numbers — never below the package. "No reducing"
+  was read as "never below the package".
+- **Not verified:** real end-to-end purchase from a Buy link with raised numbers →
+  approve → limits applied; admin screens with a real admin login; phone/APK.
+
 ## 2026-10-04 — Packages: own numbers by slider, own key at half price, Buy → approval (LIVE)
 
 Owner's GO (2026-10-04). Commits 5c3908d (home page BYOK cards behind a switch),
