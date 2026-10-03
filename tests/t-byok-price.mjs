@@ -42,13 +42,14 @@ is("own key but package has no byok → standard, not 0", priceForClient({ month
 is("own key, byok accidentally 0 → standard, not 0", priceForClient({ monthly: 1500, byok_monthly: 0 }, "monthly", true), 1500);
 
 // ── the catalogue carries the agreed prices ──────────────────────────────────
-// Two price lists, one per business type (owner, 2026-09-19).
-is("shop basic byok", [PLANS.shop_basic.byokMonthly, PLANS.shop_basic.byokYearly], [1599, 15990]);
-is("shop pro byok", [PLANS.shop_pro.byokMonthly, PLANS.shop_pro.byokYearly], [3599, 35990]);
-is("shop enterprise byok", [PLANS.shop_enterprise.byokMonthly, PLANS.shop_enterprise.byokYearly], [7099, 70990]);
-is("service basic byok", [PLANS.svc_basic.byokMonthly, PLANS.svc_basic.byokYearly], [1399, 13990]);
-is("service pro byok", [PLANS.svc_pro.byokMonthly, PLANS.svc_pro.byokYearly], [2999, 29990]);
-is("service enterprise byok", [PLANS.svc_enterprise.byokMonthly, PLANS.svc_enterprise.byokYearly], [5999, 59990]);
+// Two price lists, one per business type (owner, 2026-09-19); own key is
+// half the Standard price, rounded down (owner, 2026-10-04).
+is("shop basic byok", [PLANS.shop_basic.byokMonthly, PLANS.shop_basic.byokYearly], [1349, 13490]);
+is("shop pro byok", [PLANS.shop_pro.byokMonthly, PLANS.shop_pro.byokYearly], [2999, 29990]);
+is("shop enterprise byok", [PLANS.shop_enterprise.byokMonthly, PLANS.shop_enterprise.byokYearly], [5999, 59990]);
+is("service basic byok", [PLANS.svc_basic.byokMonthly, PLANS.svc_basic.byokYearly], [1149, 11490]);
+is("service pro byok", [PLANS.svc_pro.byokMonthly, PLANS.svc_pro.byokYearly], [2499, 24990]);
+is("service enterprise byok", [PLANS.svc_enterprise.byokMonthly, PLANS.svc_enterprise.byokYearly], [4999, 49990]);
 is("every paid package has a byok price list", Object.values(PLANS).filter((p) => p.monthly > 0).every((p) => p.byokMonthly > 0 && p.byokYearly > 0), true);
 is("trial has no byok price", [PLANS.trial.byokMonthly ?? null, PLANS.trial.byokYearly ?? null], [null, null]);
 

@@ -13,7 +13,7 @@
 // has (by the customer's word) been sent, and it waits for a person, however long
 // that takes.
 
-import { mergePicks, CYCLE_DAYS } from "./pricing.js";
+import { CYCLE_DAYS } from "./pricing.js";
 
 export const ONLINE_CHECKOUT_TTL_MIN = 60;
 
@@ -54,9 +54,12 @@ export function extendedExpiry(currentExpiry, cycle, now = new Date()) {
 }
 
 // What the client row becomes. Used by lib/billing-activate.js.
+//   kind "topup" — numbers raised mid-period: the new set of changes, nothing else.
+//   kind "plan"  — a purchase or renewal: package, expiry, cycle, Standard/BYOK
+//                  and the package's changed numbers, which renew with it.
 export function clientPatchFor(pr, cl, now = new Date()) {
-  if (pr.kind === "addon") {
-    return { addons: mergePicks(cl.addons || {}, pr.addons || {}) };
+  if (pr.kind === "topup") {
+    return { custom_limits: pr.custom_limits || {} };
   }
   const cycle = pr.billing_cycle === "yearly" ? "yearly" : "monthly";
   return {
@@ -65,6 +68,13 @@ export function clientPatchFor(pr, cl, now = new Date()) {
     suspended: false,
     billing_cycle: cycle,
     byok_plan: !!pr.byok,
-    addons: pr.addons || {},
+    custom_limits: pr.custom_limits || {},
   };
+}
+
+// "replies +500 · products −50" — the customer's own numbers in one line, for
+// the admin queue and the console's bell.
+export function describeCustom(custom) {
+  const parts = Object.entries(custom || {}).filter(([, d]) => Number(d)).map(([k, d]) => `${k} ${Number(d) > 0 ? "+" : "−"}${Math.abs(Number(d))}`);
+  return parts.length ? parts.join(" · ") : "";
 }

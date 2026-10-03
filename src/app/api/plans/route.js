@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { loadPlans, loadAddons } from "@/lib/plan-limits.js";
+import { loadPlans, loadUnits } from "@/lib/plan-limits.js";
 
 // Public plan catalogue for the pricing page and the in-app upgrade tab. Reads
 // the packages an admin manages in the database (falling back to the code
@@ -30,6 +30,13 @@ export async function GET() {
       byok_monthly: p.byok_monthly ?? null,
       byok_yearly: p.byok_yearly ?? null,
       highlight: !!p.highlight,
+      // The countable allowances. The purchase screen's sliders run from one
+      // package's numbers to the next (lib/pricing.js slidersFor), so the
+      // screen needs them to draw the same range the server will check.
+      messages_per_month: p.messages_per_month ?? null,
+      max_products: p.max_products ?? null,
+      max_kb_files: p.max_kb_files ?? null,
+      max_assistant_per_month: p.max_assistant_per_month ?? null,
       features: Array.isArray(p.feature_list) && p.feature_list.length
         ? p.feature_list
         : (Array.isArray(p.features) ? p.features : []),
@@ -37,11 +44,10 @@ export async function GET() {
   // Name/colour lookup for badges (every plan, including hidden/trial).
   const meta = {};
   for (const p of Object.values(all)) meta[p.id] = { name: p.name };
-  // What can be bought on top of a package, with both monthly prices (yearly
-  // is ten months). Public like the packages; only those on sale.
-  const addons = (await loadAddons())
-    .filter((a) => a.active !== false)
-    .map((a) => ({ id: a.id, name: a.name, kind: a.kind, amount: a.amount, biz: a.biz,
-      monthly: Number(a.monthly) || 0, byok_monthly: a.byok_monthly == null ? null : Number(a.byok_monthly), sort: a.sort }));
-  return NextResponse.json({ plans: list, meta, addons }, { headers: { "Cache-Control": "public, max-age=30" } });
+  // The step prices for moving a package's numbers up or down. Public like
+  // the packages; only those in use.
+  const units = (await loadUnits())
+    .filter((u) => u.active !== false)
+    .map((u) => ({ kind: u.kind, name: u.name, step: Number(u.step) || 0, price: Number(u.price) || 0, biz: u.biz, sort: u.sort }));
+  return NextResponse.json({ plans: list, meta, units }, { headers: { "Cache-Control": "public, max-age=30" } });
 }

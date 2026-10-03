@@ -5,33 +5,34 @@
 // this file only loads the live catalogue and the client's current package.
 //
 // The browser sends:
-//   { kind: "plan",  plan, cycle, byok, addons: { id: qty } }   buy / renew a package
-//   { kind: "addon", addons: { id: qty } }                       add-ons mid-period
+//   { kind: "plan",  plan, cycle, byok, custom: { replies: 500, products: -50 } }
+//                                          buy / renew / change a package
+//   { kind: "topup", custom: { ... } }     raise numbers mid-period (the NEW set)
 // It never sends an amount.
-import { loadPlans, loadAddons } from "@/lib/plan-limits.js";
+import { loadPlans, loadUnits } from "@/lib/plan-limits.js";
 import { quotePlan, quoteTopUp, planFitsBusiness } from "@/lib/pricing.js";
 import { planActive } from "@/lib/plans.js";
 
 const bad = (error, status = 400) => ({ ok: false, error, status });
 
-// → { ok:true, row: { kind, plan, billing_cycle, amount, byok, addons }, label, quote }
+// → { ok:true, row: { kind, plan, billing_cycle, amount, byok, custom_limits }, label, quote }
 // → { ok:false, error, status }
 export async function priceBasket(client, body = {}) {
-  const [plans, addons] = await Promise.all([loadPlans(), loadAddons()]);
-  const kind = body.kind === "addon" ? "addon" : "plan";
+  const [plans, units] = await Promise.all([loadPlans(), loadUnits()]);
+  const kind = body.kind === "topup" ? "topup" : "plan";
 
-  if (kind === "addon") {
+  if (kind === "topup") {
     const plan = plans[client.plan];
     if (!plan || !(Number(plan.monthly) > 0) || !planActive(client)) {
-      return bad("Add-ons go on top of a running paid package. Choose a package first — you can add them to it.");
+      return bad("Raising your numbers works on a running paid package. Choose a package first — you can set the numbers with it.");
     }
-    const q = quoteTopUp({ client, plan, picks: body.addons || {}, addons });
+    const q = quoteTopUp({ client, plan, custom: body.custom || {}, units, plans });
     if (!q.ok) return bad(q.error);
-    if (!(q.total > 0)) return bad("Choose at least one add-on.");
+    if (!(q.total > 0)) return bad("Raise at least one number.");
     return {
       ok: true, quote: q,
-      label: `Add-ons for ${plan.name || plan.id}`,
-      row: { kind, plan: plan.id, billing_cycle: q.cycle, amount: q.total, byok: q.byok, addons: q.picks },
+      label: `More for ${plan.name || plan.id}`,
+      row: { kind, plan: plan.id, billing_cycle: q.cycle, amount: q.total, byok: q.byok, custom_limits: q.custom },
     };
   }
 
@@ -42,11 +43,11 @@ export async function priceBasket(client, body = {}) {
       ? "That package is for online shops. Choose one of the service packages."
       : "That package is for service businesses. Choose one of the shop packages.");
   }
-  const q = quotePlan({ plan, cycle: body.cycle || "monthly", byok: !!body.byok, picks: body.addons || {}, addons });
+  const q = quotePlan({ plan, cycle: body.cycle || "monthly", byok: !!body.byok, custom: body.custom || {}, units, plans });
   if (!q.ok) return bad(q.error);
   return {
     ok: true, quote: q,
-    label: `${plan.name || plan.id}${q.byok ? " (own AI key)" : ""}`,
-    row: { kind, plan: plan.id, billing_cycle: q.cycle, amount: q.total, byok: q.byok, addons: q.picks },
+    label: `${plan.name || plan.id}${q.byok ? " (own AI key)" : ""}${Object.keys(q.custom).length ? " · your numbers" : ""}`,
+    row: { kind, plan: plan.id, billing_cycle: q.cycle, amount: q.total, byok: q.byok, custom_limits: q.custom },
   };
 }

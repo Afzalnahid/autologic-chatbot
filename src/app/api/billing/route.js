@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
 import { planActive } from "@/lib/plans.js";
-import { limitsFor, loadAddons } from "@/lib/plan-limits.js";
+import { limitsFor, loadUnits } from "@/lib/plan-limits.js";
 import { clientHasOwnKey } from "@/lib/ai.js";
 import { entitlementsFor } from "@/lib/entitlements.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
@@ -16,7 +16,7 @@ import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 import { blocksNewPayment } from "@/lib/billing-rules.js";
 import { priceBasket } from "@/lib/billing-basket.js";
-import { addonsForBiz } from "@/lib/pricing.js";
+import { unitsForBiz } from "@/lib/pricing.js";
 import { expireAbandonedCheckouts } from "@/lib/billing-activate.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
@@ -45,7 +45,7 @@ export const GET = withErrors(async (request) => {
   const { client, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const [limits, month, today, reqQ, ownKey, entitlements, addonCatalogue] = await Promise.all([
+  const [limits, month, today, reqQ, ownKey, entitlements, units] = await Promise.all([
     limitsFor(client),
     usageThisMonth(client.id),
     usageToday(client.id),
@@ -54,7 +54,7 @@ export const GET = withErrors(async (request) => {
     // Features + every metered allowance with used/remaining, from the one
     // shared assembler — so the client's dashboard and the admin drawer agree.
     entitlementsFor(client),
-    loadAddons(),
+    loadUnits(),
   ]);
 
   const requests = reqQ.data || [];
@@ -80,14 +80,16 @@ export const GET = withErrors(async (request) => {
     // Engine tab, so this can change between a visit and a purchase.
     own_key: ownKey,
     // The current package as bought (lib/pricing.js): own-key or Standard, the
-    // cycle, and the add-ons that renew with it — the purchase screen starts
-    // a renewal from these, and prorates a mid-period add-on over the cycle.
+    // cycle, and the numbers the customer moved — a renewal starts from these,
+    // and a mid-period raise is priced against them.
     byok_plan: !!client.byok_plan,
     billing_cycle: client.billing_cycle || "monthly",
-    addons: client.addons || {},
-    // Add-ons this business may buy, with both prices; the screen totals the
-    // basket with the same pricing.js the server charges with.
-    addon_catalogue: addonsForBiz(addonCatalogue, client.business_type || "ecommerce"),
+    custom_limits: client.custom_limits || {},
+    // The step prices this business may use; the screen totals the basket with
+    // the same pricing.js the server charges with.
+    units: unitsForBiz(units, client.business_type || "ecommerce"),
+    // Whether the free trial has been used (it is one per account).
+    trial_used: !!client.trial_start,
     trial_end: client.trial_end,
     plan_expires_at: client.plan_expires_at,
     suspended: !!client.suspended,
@@ -132,6 +134,16 @@ export const POST = withErrors(async (request) => {
     return NextResponse.json({ error: "Enter the transaction ID from your payment receipt" }, { status: 400 });
   }
 
+  // A transaction ID pays for one purchase. The same ID again — a double tap, or
+  // a receipt reused — is refused here, before it reaches the admin queue (and
+  // a unique index on payment_requests refuses it at the database too).
+  const txnClean = String(txn_id).trim();
+  const { data: seen } = await supabase
+    .from("payment_requests").select("id").ilike("txn_id", txnClean).in("status", ["pending", "approved"]).neq("method", "online").limit(1);
+  if (seen?.length) {
+    return NextResponse.json({ error: "This transaction ID has already been used for a payment. Check the ID in your payment app." }, { status: 409 });
+  }
+
   // One open request at a time keeps the admin queue clean. Abandoned online
   // checkouts are closed first so they cannot block this one (billing-rules.js).
   await expireAbandonedCheckouts(client.id);
@@ -146,10 +158,13 @@ export const POST = withErrors(async (request) => {
     ...basket.row,
     method,
     sender_number: sender_number || null,
-    txn_id: String(txn_id).trim(),
+    txn_id: txnClean,
   }).select().single();
 
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+  if (insErr) {
+    if (insErr.code === "23505") return NextResponse.json({ error: "This transaction ID has already been used for a payment. Check the ID in your payment app." }, { status: 409 });
+    return NextResponse.json({ error: insErr.message }, { status: 500 });
+  }
 
   notifyPaymentRequest({
     business: client.business_name,

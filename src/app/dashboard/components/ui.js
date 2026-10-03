@@ -137,11 +137,11 @@ export const PLAN_META={
 // Shop packages, because business_type defaults to a shop; the live list
 // replaces this the moment it arrives and is filtered by the real type.
 export const PLAN_LIST=[
-  {id:"shop_basic",biz:"ecommerce",name:"Shop Basic",monthly:2699,yearly:26990,byok_monthly:1599,byok_yearly:15990,tagline:"One or two pages, your catalogue answering all day",
+  {id:"shop_basic",biz:"ecommerce",name:"Shop Basic",monthly:2699,yearly:26990,byok_monthly:1349,byok_yearly:13490,tagline:"One or two pages, your catalogue answering all day",
    features:["2,000 bot replies / month","Every channel: Messenger, Instagram, WhatsApp + website widget","500 products in total"]},
-  {id:"shop_pro",biz:"ecommerce",name:"Shop Pro",monthly:5999,yearly:59990,byok_monthly:3599,byok_yearly:35990,highlight:true,tagline:"Every channel, a full catalogue",
+  {id:"shop_pro",biz:"ecommerce",name:"Shop Pro",monthly:5999,yearly:59990,byok_monthly:2999,byok_yearly:29990,highlight:true,tagline:"Every channel, a full catalogue",
    features:["5,500 bot replies / month","Every channel: Messenger, Instagram, WhatsApp + website widget","1,000 products in total"]},
-  {id:"shop_enterprise",biz:"ecommerce",name:"Shop Enterprise",monthly:11999,yearly:119990,byok_monthly:7099,byok_yearly:70990,tagline:"The most of everything, and room to fit your shop",
+  {id:"shop_enterprise",biz:"ecommerce",name:"Shop Enterprise",monthly:11999,yearly:119990,byok_monthly:5999,byok_yearly:59990,tagline:"The most of everything, and room to fit your shop",
    features:["12,000 bot replies / month","Every channel: Messenger, Instagram, WhatsApp + website widget","2,500 products in total"]},
 ];
 

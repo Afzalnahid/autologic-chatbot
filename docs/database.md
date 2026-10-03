@@ -26,7 +26,8 @@ Every tenant-owned table carries `client_id uuid` referencing `clients.id`.
 | `gcal_token_expiry` | timestamptz | Refresh trigger |
 | `gcal_email`, `gcal_connected` | text / boolean | Connection state |
 | `byok_plan` | boolean, not null, default false | The current package was bought as own-key (BYOK): it is priced from the own-key list, its AI Engine is open, and the bot waits rather than using our AI when no key is saved. Backfilled true on 2026-10-03 for the one client already running on their own key. |
-| `addons` | jsonb, not null, default `{}` | Add-ons the client pays for, `{ addon_id: quantity }` (see `plan_addons`). They renew with the package. |
+| `addons` | jsonb, not null, default `{}` | **Retired 2026-10-04** (was add-ons by id; never used). Replaced by `custom_limits`. |
+| `custom_limits` | jsonb, not null, default `{}` | The customer's own numbers: a signed change from the package per kind, `{ replies: 500, products: -50, docs: 5, assistant: 100 }` (whole steps of `plan_units.step`). Set when a payment is approved; renews with the package. `limitsFor()` applies it to a paid package. Added 2026-10-04. |
 | `billing_cycle` | text | `monthly` / `yearly` of the current package; mid-period add-ons are prorated over it. Null until the first purchase under the new flow (treated as monthly). |
 | `signup_brand` | text, not null, default `tellmore` | Which address the account signed up on: `tellmore`, or a white-label partner id from `src/lib/white-label.js` (`tellme` = tellme.ufirstltd.com). Set once by `POST /api/me` (`register`) from the request's host; the admin list shows "via Tell Me". The partner's revenue share is counted on it. Added 2026-10-03; every earlier row is `tellmore`. |
 
@@ -270,43 +271,42 @@ Gateway columns: `source` (`manual` / `sslcommerz`), `gateway_status`, `val_id`,
 The older note that gateway rows use `initiated` / `failed` / `cancelled` was
 wrong: the code never wrote those.
 
-What a payment buys (added 2026-10-03, migration `package_addons_and_byok_plans`):
-- `kind` — `plan` (a package purchase or renewal) or `addon` (add-ons bought in the
-  middle of a running package).
+What a payment buys (2026-10-03, reworked 2026-10-04 by migration
+`custom_package_numbers_and_half_byok`):
+- `kind` — `plan` (a package purchase, renewal or change) or `topup` (numbers
+  raised in the middle of a running package). `addon` rows are from before
+  2026-10-04; there were none.
 - `byok` — the package was bought as own-key (BYOK).
-- `addons` — `{ addon_id: quantity }`.
+- `custom_limits` — the customer's own numbers, the full new set (see
+  `clients.custom_limits`). `addons` is retired.
 The amount is always priced on the server by `src/lib/pricing.js`.
 
 Idempotency: unique index on `val_id` (where not null) and on `txn_id` (where
-`source <> 'manual'`), so one transaction can never extend a plan twice.
+`source <> 'manual'`), so one transaction can never extend a plan twice. And
+`payment_requests_txn_once`: unique on `lower(txn_id)` for manual payments
+that are `pending` or `approved` — one bKash/Nagad transaction ID pays for one
+purchase (a rejected one may be sent again).
 
 Only one row per client may block a new payment (a manual `pending` one, or an
 online one under an hour old) — enforced in the billing API.
 
-### `plan_addons` — what can be bought on top of a package
-`id` (e.g. `replies_100`), `name`, `kind` (`replies` / `products` / `docs` /
-`assistant`),
-`amount` (how much the limit grows), `biz` (`both` / `ecommerce` / `agency`),
-`monthly`, `byok_monthly` (null = same as `monthly`), `active`, `sort`,
-`updated_at`. Yearly is always ten months. Seeded 2026-10-03:
+### `plan_units` — the price of one step of a customer's own numbers
+`kind` (primary key: `replies` / `products` / `docs` / `assistant`), `name`,
+`step` (fixed: 50 / 50 / 5 / 50), `price` (taka per step per month, Standard),
+`biz` (`both` / `ecommerce` / `agency`), `active`, `sort`, `updated_at`.
+Seeded 2026-10-04: replies ৳40, products ৳50, docs ৳50, assistant ৳50 per step.
+Rules in `src/lib/pricing.js`: a raise pays the step price, a cut takes off half
+(`DOWN_RATE`), own key pays half (`BYOK_SHARE`), yearly is ten months, and a
+slider runs from the package below to the package above (half / double at the
+ends). Only `price` and `active` are editable (admin Packages → "Customers' own
+numbers"); the step is fixed because saved numbers are whole steps.
+`UNIT_DEFAULTS` is the fallback when the table cannot be read. RLS on, no
+policies (service key only).
 
-| id | adds | for | Standard / BYOK per month |
-|---|---|---|---|
-| `replies_100` | 100 bot replies a month | both | ৳149 / ৳89 |
-| `replies_200` | 200 bot replies a month | both | ৳279 / ৳169 |
-| `products_50` | 50 products | shops | ৳99 / ৳59 |
-| `products_100` | 100 products | shops | ৳179 / ৳109 |
-| `docs_5` | 5 documents | services | ৳99 / ৳59 |
-| `docs_10` | 10 documents | services | ৳179 / ৳109 |
-| `assistant_100` | 100 AI Assistant questions a month | both | ৳99 / ৳59 |
-| `assistant_200` | 200 AI Assistant questions a month | both | ৳179 / ৳109 |
-
-(The assistant rows were added the same day by migration `plan_addons_assistant_questions`.)
-
-`limitsFor()` adds a paid client's add-ons (`clients.addons`) on top of the
-package or the override (`replies` → `messages_per_month`, `products` →
-`max_products`, `docs` → `max_kb_files`, `assistant` → `max_assistant_per_month`). `src/lib/pricing.js` `ADDON_DEFAULTS` is the fallback
-when the table cannot be read. RLS is on with no policies (service key only).
+### `plan_addons` — retired 2026-10-04
+The fixed add-ons (+100 replies, +50 products…) of 2026-10-03, replaced by
+`plan_units` the next day. Every row is `active = false`; the table is kept for
+history and read by nothing.
 
 ### `admin_users` — platform staff
 `id`, `email` (unique), `role` (`super` / `full` / `editor` / `viewer` / `pending`),

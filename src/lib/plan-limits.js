@@ -13,12 +13,12 @@ import { supabase } from "@/lib/supabase.js";
 import { PLANS, PAID_PLANS, TRIAL_DAYS, clampTrialDays } from "@/lib/plans.js";
 import { featureOn, gateMessage } from "@/lib/features.js";
 import { addVerdict, addRefusal } from "@/lib/allowance.js";
-import { ADDON_DEFAULTS, addonExtras, withExtra } from "@/lib/pricing.js";
+import { UNIT_DEFAULTS, changesByLimit, withChange } from "@/lib/pricing.js";
 
-// A limit plus an add-on's extra, but only when there IS an extra: a limit no
-// add-on touches comes back exactly as stored (a string stays a string, a
+// A limit with the client's own change applied, but only when there IS one: a
+// limit nobody changed comes back exactly as stored (a string stays a string, a
 // non-numeric value such as a model chain is never turned into a number).
-const withExtra0 = (v, extra) => (extra ? withExtra(v, extra) : v);
+const withChange0 = (v, change) => (change ? withChange(v, change) : v);
 
 const TTL = 60_000;
 let _cache = null;
@@ -70,25 +70,25 @@ export async function loadPlans({ force = false } = {}) {
 }
 
 // Drop the cache so an admin edit shows up at once instead of up to a minute later.
-export function invalidatePlans() { _cache = null; _addonCache = null; }
+export function invalidatePlans() { _cache = null; _unitCache = null; }
 
-// The add-ons a customer may buy on top of a package (plan_addons), cached like
-// the packages. Falls back to the built-in list in pricing.js if the table
-// cannot be read, so a database hiccup never takes away what someone paid for.
-let _addonCache = null;
-export async function loadAddons({ force = false } = {}) {
-  if (!force && _addonCache && Date.now() - _addonCache.at < TTL) return _addonCache.addons;
-  let addons;
+// The step prices for moving a package's numbers up or down (plan_units),
+// cached like the packages. Falls back to the built-in list in pricing.js if the
+// table cannot be read, so a database hiccup never changes what a basket costs.
+let _unitCache = null;
+export async function loadUnits({ force = false } = {}) {
+  if (!force && _unitCache && Date.now() - _unitCache.at < TTL) return _unitCache.units;
+  let units;
   try {
-    const { data, error } = await supabase.from("plan_addons").select("*").order("sort");
+    const { data, error } = await supabase.from("plan_units").select("*").order("sort");
     if (error) throw error;
-    addons = (data || []).length ? data : ADDON_DEFAULTS;
+    units = (data || []).length ? data : UNIT_DEFAULTS;
   } catch (e) {
-    console.error("[plans] add-ons falling back to the built-in list:", String(e?.message || e).slice(0, 160));
-    addons = ADDON_DEFAULTS;
+    console.error("[plans] step prices falling back to the built-in list:", String(e?.message || e).slice(0, 160));
+    units = UNIT_DEFAULTS;
   }
-  _addonCache = { addons, at: Date.now() };
-  return addons;
+  _unitCache = { units, at: Date.now() };
+  return units;
 }
 
 // Everything the runtime needs to police one client, plan + overrides merged.
@@ -96,13 +96,13 @@ export async function limitsFor(client) {
   const plans = await loadPlans();
   const plan = plans[client?.plan] || plans.trial || Object.values(plans)[0] || {};
   const ov = (client && client.limit_overrides) || {};
-  // Add-ons the customer bought (clients.addons) raise their limits on top of
-  // the package or override. Only a paid package carries them; an unlimited
-  // limit stays unlimited.
+  // The numbers the customer moved when they bought (clients.custom_limits,
+  // lib/pricing.js) change their limits, up or down, on top of the package or
+  // override. Only a paid package carries them; an unlimited limit stays
+  // unlimited.
   const paid = Number(plan.monthly || 0) > 0;
-  const extras = paid && client?.addons && Object.keys(client.addons).length
-    ? addonExtras(client.addons, await loadAddons()) : {};
-  const pick = (key) => withExtra0(Object.prototype.hasOwnProperty.call(ov, key) ? ov[key] : plan[key], extras[key]);
+  const changes = paid ? changesByLimit(client?.custom_limits || {}) : {};
+  const pick = (key) => withChange0(Object.prototype.hasOwnProperty.call(ov, key) ? ov[key] : plan[key], changes[key]);
 
   return {
     planId: plan.id || client?.plan || "trial",
@@ -132,9 +132,9 @@ export async function limitsFor(client) {
     features: { ...(plan.features || {}), ...(ov.features || {}) },
     // A client-specific chain beats the package's, which beats the platform default.
     modelChain: client?.model_chain || pick("model_chain") || null,
-    // What the bought add-ons add, by limit column, so screens can say
-    // "5,600 replies (5,500 + 100 add-on)".
-    addonExtras: extras,
+    // How the customer's own numbers differ from the package's, by limit
+    // column, so screens can say "2,500 replies (package 2,000 + 500)".
+    customChanges: changes,
   };
 }
 

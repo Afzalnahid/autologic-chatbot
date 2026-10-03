@@ -11,20 +11,24 @@
 //   kind "plan"  — a package purchase or renewal. Sets the package, extends the
 //                  expiry from the later of today and the current expiry by 30
 //                  or 365 days, and records the cycle, Standard/BYOK and the
-//                  add-ons (which renew with it).
+//                  customer's own numbers (custom_limits, which renew with it).
 //                  · BYOK → the AI Engine opens (a client_ai permission row is
 //                    created if there is none) and the owner is told to add a key.
 //                  · Standard after a BYOK package → the AI Engine closes and
 //                    the saved key is removed (owner, 2026-10-03). A permission
 //                    the super admin granted by hand (byok_plan false) is left
 //                    alone.
-//   kind "addon" — add-ons bought in the middle of a running package. They are
-//                  added to what the client already has; the expiry is unchanged.
+//   kind "topup" — numbers raised in the middle of a running package. The new
+//                  set replaces the old; the expiry is unchanged.
+//
+// Either way the owner is told at once: a push to their phone and an email,
+// and the open dashboard notices by itself (it re-reads /api/me while a payment
+// is under review — dashboard-client.js).
 import { supabase } from "@/lib/supabase.js";
 import { notifyPaymentApproved } from "@/lib/email.js";
 import { notify } from "@/lib/push.js";
 import { logEvent } from "@/lib/platform-events.js";
-import { ACTIVATABLE, ONLINE_CHECKOUT_TTL_MIN, clientPatchFor } from "@/lib/billing-rules.js";
+import { ACTIVATABLE, ONLINE_CHECKOUT_TTL_MIN, clientPatchFor, describeCustom } from "@/lib/billing-rules.js";
 
 // Close this client's online checkouts that were never completed (billing-rules.js),
 // so they stop blocking a new payment and stop sitting in the admin queue.
@@ -40,7 +44,7 @@ export async function activatePaymentRow(pr, { reviewedBy = "sslcommerz" } = {})
   if (pr.status === "approved") return { ok: true, already: true };
 
   const { data: cl } = await supabase
-    .from("clients").select("id,owner_email,business_name,plan_expires_at,addons,byok_plan").eq("id", pr.client_id).single();
+    .from("clients").select("id,owner_email,business_name,plan_expires_at,custom_limits,byok_plan").eq("id", pr.client_id).single();
   if (!cl) return { ok: false, reason: "no_client" };
 
   // Claim first. The status filter makes this a compare-and-set: two concurrent
@@ -63,7 +67,7 @@ export async function activatePaymentRow(pr, { reviewedBy = "sslcommerz" } = {})
   }
 
   // The AI Engine follows the package (only on a package payment).
-  if (pr.kind !== "addon") {
+  if (pr.kind !== "topup") {
     if (pr.byok) {
       // Open it. ignoreDuplicates: a client who already has a key keeps it.
       await supabase.from("client_ai")
@@ -77,6 +81,15 @@ export async function activatePaymentRow(pr, { reviewedBy = "sslcommerz" } = {})
       await supabase.from("client_ai").delete().eq("client_id", pr.client_id);
     }
   }
+  // A Standard package, or more numbers, is working the moment this returns.
+  // (A BYOK package was told above to add its key, which is the next step.)
+  if (pr.kind === "topup" || !pr.byok) {
+    notify(pr.client_id, {
+      title: pr.kind === "topup" ? "✅ Your new numbers are active" : "✅ Your package is active",
+      body: pr.kind === "topup" ? "Payment confirmed. Your higher limits apply now." : "Payment confirmed. Everything in your package is switched on.",
+      url: "/dashboard#billing", tag: "payment-approved",
+    }).catch(() => {});
+  }
 
   const expiry = patch.plan_expires_at || cl.plan_expires_at;
   if (cl.owner_email) notifyPaymentApproved(cl.owner_email, pr.plan, expiry).catch(() => {});
@@ -84,10 +97,11 @@ export async function activatePaymentRow(pr, { reviewedBy = "sslcommerz" } = {})
   // admin sees it was dealt with rather than approving it twice.
   logEvent({
     kind: "plan_activated",
-    title: pr.kind === "addon" ? `Add-ons added to ${pr.plan}` : `${pr.plan}${pr.byok ? " (own key)" : ""} activated`,
-    body: pr.kind === "addon"
-      ? Object.entries(pr.addons || {}).map(([id, q]) => `${id}×${q}`).join(", ")
-      : `${pr.billing_cycle === "yearly" ? "Yearly" : "Monthly"} · until ${String(expiry).slice(0, 10)}`,
+    title: pr.kind === "topup" ? `Numbers raised on ${pr.plan}` : `${pr.plan}${pr.byok ? " (own key)" : ""} activated`,
+    body: [
+      pr.kind === "topup" ? null : `${pr.billing_cycle === "yearly" ? "Yearly" : "Monthly"} · until ${String(expiry).slice(0, 10)}`,
+      describeCustom(pr.custom_limits),
+    ].filter(Boolean).join(" · "),
     clientId: pr.client_id,
     clientName: cl.business_name,
   }).catch(() => {});
