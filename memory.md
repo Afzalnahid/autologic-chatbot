@@ -4,6 +4,41 @@ Update the top two sections after every session.
 
 ---
 
+## 2026-10-04 — Packages: own numbers by slider, own key at half price, Buy → approval (LIVE)
+
+Owner's GO (2026-10-04). Commits 5c3908d (home page BYOK cards behind a switch),
+71a7316, c7f3b20, 74406a6, 8a725df, 6d623bd — Vercel READY, npm test 90/90, live checked.
+- **Own key = half the Standard price** (floor): shop 1349/2999/5999, svc 1149/2499/4999;
+  yearly ×10. DB plans updated; a blank own-key price in the admin editor saves as half.
+- **Own numbers** (replaces the 2026-10-03 fixed add-ons; `plan_addons` all inactive, kept):
+  `plan_units` replies 50/৳40, products 50/৳50 (shops), docs 5/৳50 (services), assistant
+  50/৳50. Slider from the package below to the package above (cheapest ½, biggest ×2);
+  a cut takes off half the step price; own key pays half. Basic at Pro's numbers = ৳6,299
+  (> Pro ৳5,999) and the screen suggests switching. Stored as `custom_limits` (clients +
+  payment_requests); kinds `plan` / `topup` (mid-period raise, prorated, up only).
+- **Billing** opens on My package only (Renew / Update package / Add more); packages appear
+  only behind Update. Polls every 20 s while a payment waits; shows a rejection reason.
+- **Buy → approval:** buy-intent.js keeps the Buy choice through signup + email confirm;
+  sign-in screen names it; onboarding offers "Continue to payment". No running package +
+  pending payment = ONLY PendingPayment.js (owner chose "only the review page"), with "use
+  the free trial while you wait" if unused (owner chose yes). Opens itself on approval.
+  Push + email on approve AND reject. Trial is once per account now (it could be restarted
+  by API before). One txn ID per purchase (API check + unique index payment_requests_txn_once).
+- Admin: step-price editor ("Customers' own numbers"), queue shows numbers, reused-txn
+  warning, one-tap reject reasons. Architecture diagram in docs/architecture.md.
+- **Not verified:** a real end-to-end purchase (signup from a Buy link → pay → admin approve
+  → screen opens) — needs a test account + the owner's admin login. Phone/APK not run.
+- **Broker's BD** (shop_pro, own key) renews at the new ৳2,999 (was ৳3,599).
+- **Admin bugs found (not fixed, owner's next task is the admin cleanup):**
+  (1) client drawer AI-key tab crashes for an OpenAI-key client (`AI_PROVIDERS` Google-only,
+  admin-client.js ~779-805); (2) Packages "Add to the book" always fails — provider/model sent
+  nested in `price`, server reads top level (Packages.js ~1934 vs packages/route.js ~450);
+  (3) Overview MRR uses code constants (no half price, no own numbers, yearly as monthly,
+  panel-made packages = ৳0) and its sub-line counts old plan ids (always 0·0·0);
+  (4) Packages "Billed" treats only Google keys as own-key; ignores byok_plan/custom_limits;
+  (5) drawer "Price" row shows the standard price.
+- **Next:** owner picks from the admin-cleanup suggestions; then the end-to-end purchase test.
+
 ## 2026-10-01 — t-notify made line-ending independent
 
 `tests/t-notify.mjs` failed on CRLF checkouts (core.autocrlf=true): its `"\n}\n"` cut
