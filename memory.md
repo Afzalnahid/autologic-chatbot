@@ -4,6 +4,25 @@ Update the top two sections after every session.
 
 ---
 
+## 2026-10-04 (evening) — menu, footers, and the Blog (GPT drafts → owner approves → publish)
+
+Commits 65e5be7 (menu/footers) and 501fe05 (blog). npm test 91/91.
+- Home menu: Features · How it works · Pricing · Contact (Demo removed, also from the
+  footer). Every public footer: "An Autolinium product" links autolinium.com, and the full
+  registered address (company-line.js — one component for all four footers).
+- **Blog** (owner's choices: language picked per keyword — en / bn / both; key pasted in
+  the admin Blog tab; draft only when he presses Write draft; publish immediately on
+  approve; no cover images). Admin › Content › Blog (Blog.js) → /api/admin/blog →
+  lib/blog-writer.js (owner's own OpenAI key in blog_settings, encrypted; default model
+  gpt-4o-mini; maxDuration 60) with lib/blog.js (prompt + facts sheet from live prices,
+  Meta wording rule, "do not invent"; parseDraft) → blog_posts (draft) → edit with live
+  preview → Approve & publish → /blog, /blog/[slug] (published only; lib/blog-md.js safe
+  renderer; canonical, hreflang twin, BlogPosting/FAQ/Breadcrumb JSON-LD; sitemap with
+  real updated dates). No blog on the white-label address.
+- **Waiting on the owner:** paste his OpenAI key in Admin › Blog (with the secret admin
+  key) and write the first draft. A real GPT draft has NOT been generated yet (no key
+  here); the flow was checked with a mocked API and a temporary published row (deleted).
+
 ## 2026-10-04 (later) — numbers only go up, set them on the public pages, 90% warnings, admin cleanup
 
 Owner's follow-up the same day. Commits 083e01a (public + rules + warnings) and
