@@ -557,7 +557,43 @@ repeating it. `trialTextMismatch()` also checks the owner's own prose — the
 tagline and the pricing bullets — for a "N day" that no longer matches, because
 changing the box does not change what a customer reads on the pricing page.
 
-### The own-key (BYOK) price list
+### Buying a package: Standard or own-key (BYOK), plus add-ons (2026-10-03)
+
+This replaces the "price by whether a key is saved" rule described in the next
+section. That rule still drives today's billing screen until the new purchase
+screen ships.
+
+- **What a customer buys.** A purchase is a *basket*, priced on the server by
+  `src/lib/pricing.js` (pure, `tests/t-pricing.mjs`):
+  - a package, as Standard (our AI) or BYOK (their own key; every AI call runs on
+    it, so the package costs ~41% less);
+  - monthly or yearly (ten months);
+  - add-ons from `plan_addons` (more replies, more products for shops, more
+    documents for services), each with a quantity.
+
+  Add-ons can also be bought mid-period; they are prorated by the days left
+  (`quoteTopUp`). The payment row stores `kind` / `byok` / `addons`.
+- **Confirmation.** When a payment is confirmed, `activatePaymentRow`
+  (`src/lib/billing-activate.js`) is the single place that applies it. Both the
+  gateway and the admin's "Approve" call it, and it claims the row atomically.
+  The pure part (`clientPatchFor`) lives in `billing-rules.js`.
+  - A package payment sets `plan`, `plan_expires_at`, `billing_cycle`,
+    `byok_plan` and `addons` (add-ons renew with the package).
+  - BYOK opens the AI Engine: a `client_ai` row with `status: "no_key"`, created
+    only if none exists, plus a push notification telling the owner to add a key.
+  - A Standard package after a BYOK one deletes the `client_ai` row, which closes
+    the AI Engine and removes the key. A permission the super admin granted by
+    hand (`byok_plan` false) is left alone.
+  - An add-on payment merges into `clients.addons` and changes nothing else.
+- **BYOK with no key: the bot waits.** It never falls back to our AI.
+  - `botAllowed` returns `byok_no_key`. The customer is told nothing, and the
+    owner gets the once-a-day email and push, which link AI Engine.
+  - `getClientAI` returns a "waiting" AI whose every call refuses with
+    `BYOK_NO_KEY_MESSAGE`. This guards the assistant, imports and photo drafts.
+- **Limits.** `limitsFor()` adds a paid client's add-ons to `messages_per_month`,
+  `max_products` and `max_kb_files`. Unlimited stays unlimited.
+
+### The own-key (BYOK) price list (the older rule)
 
 A client who brings their own AI key covers their own AI cost, so every paid
 package carries a second, lower price for them: `byok_monthly` / `byok_yearly`

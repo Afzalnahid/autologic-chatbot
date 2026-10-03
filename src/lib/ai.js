@@ -85,7 +85,8 @@ const memo = new Map();
 export async function getClientAI(clientId, feature = "other", pageId = "") {
   const id = String(clientId || "");
   const hit = memo.get(id);
-  if (hit && Date.now() - hit.at < 60_000) return build(id, hit.cfg, hit.platformChain, hit.platformApiKey, feature, pageId, hit.platformProvider);
+  if (hit && Date.now() - hit.at < 60_000) return hit.waiting ? waitingForKey(id) : build(id, hit.cfg, hit.platformChain, hit.platformApiKey, feature, pageId, hit.platformProvider);
+  let waiting = false;
   let cfg = null;
   let platformChain = null;
   // The platform's own key, as set in the admin panel; null means "use the
@@ -114,7 +115,10 @@ export async function getClientAI(clientId, feature = "other", pageId = "") {
     // model is a dropdown, not a deploy.
     if (!cfg) {
       const { data: c } = await supabase.from("clients")
-        .select("plan,model_chain,limit_overrides").eq("id", clientId).maybeSingle();
+        .select("plan,model_chain,limit_overrides,byok_plan").eq("id", clientId).maybeSingle();
+      // An own-key (BYOK) package with no key saved yet: nothing runs on the
+      // platform key — it was priced without our AI (owner, 2026-10-03).
+      if (c?.byok_plan) waiting = true;
       if (c) platformChain = (await limitsFor(c)).modelChain || null;
       // Nothing set for this client or their package → whatever the admin panel
       // picked as the platform default.
@@ -125,8 +129,27 @@ export async function getClientAI(clientId, feature = "other", pageId = "") {
     // reply; it surfaces as "failing" the first time the key is used.
     console.error("[ai] config load:", String(e.message || "").slice(0, 160));
   }
-  memo.set(id, { cfg, platformChain, platformApiKey, platformProvider, at: Date.now() });
+  memo.set(id, { cfg, platformChain, platformApiKey, platformProvider, waiting, at: Date.now() });
+  if (waiting) return waitingForKey(id);
   return build(id, cfg, platformChain, platformApiKey, feature, pageId, platformProvider);
+}
+
+// The AI for an own-key (BYOK) client who has not saved a key yet: every call
+// refuses with a sentence the owner can act on, and none falls back to the
+// platform key. The bot does not get this far (botAllowed waits first); this
+// guards everything else that uses AI — the assistant, imports, photo drafts.
+export const BYOK_NO_KEY_MESSAGE = "Your package runs on your own AI key. Add your key in AI Engine to use this.";
+function waitingForKey(clientId) {
+  const refuse = async () => {
+    const e = new Error(BYOK_NO_KEY_MESSAGE);
+    e.code = "byok_no_key";
+    console.log(`[ai] client ${clientId} is on an own-key package with no key saved — not using the platform key`);
+    throw e;
+  };
+  return {
+    provider: "none", aiProvider: null, embedModel: null, ownKey: true, waiting: true,
+    chat: refuse, visionUrl: refuse, visionB64: refuse, transcribeUrl: refuse, transcribeB64: refuse, embed: refuse,
+  };
 }
 
 // Does this client run on their OWN AI key right now? The same test getClientAI

@@ -323,7 +323,14 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
       title: "No active plan",
       body: "There is no active plan on your account, so your bot is not replying to customers.",
     },
+    byok_no_key: {
+      title: "Add your AI key to start the bot",
+      body: "Your package runs on your own AI key, and no key has been added yet, so your bot is waiting. Open AI Engine, paste your Google Gemini or OpenAI key and choose a model — it starts replying straight away.",
+      cta: { label: "Open AI Engine", href: "https://www.tellmoreai.com/dashboard#ai" },
+      waiting: true,
+    },
   }[reason] || { title: "Your bot has stopped replying", body: "Your bot is currently unable to reply to customers." };
+  const cta = detail.cta || { label: "Upgrade now", href: "https://www.tellmoreai.com/dashboard#billing" };
 
   return send({
     to: clientEmail,
@@ -333,10 +340,10 @@ export async function notifyBotBlocked(clientEmail, { business, reason, used, li
       `${detail.body}
        <br/><br/>
        <strong style="color:#7B1C3E">Customers messaging you right now are not getting answers.</strong>
-       They are not told why — your bot simply stays silent, so nothing tells a customer that a subscription has lapsed.
-       Every message they send is still saved, and it will be waiting in your inbox the moment you renew.
+       They are not told why — your bot simply stays silent${detail.waiting ? "" : ", so nothing tells a customer that a subscription has lapsed"}.
+       Every message they send is still saved, and it will be waiting in your inbox${detail.waiting ? "" : " the moment you renew"}.
        <br/><br/>
-       <a href="https://www.tellmoreai.com/dashboard#billing" style="display:inline-block;background:#7B1C3E;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">Upgrade now</a>
+       <a href="${cta.href}" style="display:inline-block;background:#7B1C3E;color:#ffffff;padding:11px 22px;border-radius:8px;font-weight:700;text-decoration:none">${cta.label}</a>
        <br/><br/>
        <span style="font-size:12px;color:#8b9cbd">You will get this reminder at most once a day.</span>`
     ),

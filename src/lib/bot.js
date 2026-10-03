@@ -8,7 +8,7 @@ import { sendTypingOn, sendResponses, waSendResponses, waSendText, waMarkReadTyp
 import { searchKnowledge } from "@/lib/knowledge.js";
 import { getValidAccessToken, checkAvailability, createEvent } from "@/lib/gcal.js";
 import { currentTimeLine, todayDhakaISO, startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
-import { getClientAI, platformChat } from "@/lib/ai.js";
+import { getClientAI, platformChat, clientHasOwnKey } from "@/lib/ai.js";
 import { notify } from "@/lib/push.js";
 import { extractHandoff, wantsHuman } from "@/lib/handoff.js";
 import { isAutomatedEcho } from "@/lib/echo-rules.js";
@@ -78,6 +78,14 @@ export async function botAllowed(channel, senderId) {
   const allow = await messageAllowance(client);
   const limits = allow.limits || (await limitsFor(client));
   if (!allow.active) return { allowed: false, reason: allow.reason, client };
+
+  // An own-key (BYOK) package runs only on the customer's own key, and it was
+  // priced without our AI in it. Until the key is saved the bot waits, rather
+  // than answering on the platform key (owner, 2026-10-03). The customer's
+  // message is still saved, and the owner is told once a day what to do.
+  if (client.byok_plan && !(await clientHasOwnKey(client.id))) {
+    return { allowed: false, reason: "byok_no_key", client };
+  }
 
   if (allow.limit !== null && allow.limit !== undefined) {
     const since = allow.period === "day" ? startOfDayDhaka() : startOfMonthDhaka();
@@ -153,9 +161,10 @@ async function handleUnavailable(channel, senderId, block, platform) {
       title: "⚠️ Your bot has stopped replying",
       body: block.reason === "trial_expired" ? "Your free trial has ended — choose a plan to keep answering."
         : block.reason === "plan_expired" ? "Your plan has expired — renew to keep answering."
+        : block.reason === "byok_no_key" ? "Your package runs on your own AI key. Add it in AI Engine to start answering."
         : String(block.reason || "").startsWith("quota") ? "You have reached your message limit — upgrade for more."
         : "You do not have an active plan.",
-      url: "/dashboard#billing", tag: "bot-blocked",
+      url: block.reason === "byok_no_key" ? "/dashboard#ai" : "/dashboard#billing", tag: "bot-blocked",
     }).catch(() => {});
     await sb().from("clients").update({ bot_blocked_notified_at: now.toISOString() }).eq("id", client.id);
   } catch (e) { console.error("blocked notify:", e.message); }

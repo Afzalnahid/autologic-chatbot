@@ -4,7 +4,7 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
-import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentApproved, notifyPaymentRejected } from "@/lib/email.js";
+import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentRejected } from "@/lib/email.js";
 import { logEvent } from "@/lib/platform-events.js";
 import { PLANS } from "@/lib/plans.js";
 
@@ -16,6 +16,7 @@ const isPaidPlan = (p) => !!p && p !== "trial" && p !== "none";
 import { loadPlans } from "@/lib/plan-limits.js";
 import { startOfDayDhaka } from "@/lib/time.js";
 import { adminMayApprove } from "@/lib/billing-rules.js";
+import { activatePaymentRow } from "@/lib/billing-activate.js";
 
 const SUPER_ADMIN = "nahidafzal97@gmail.com";
 
@@ -355,34 +356,15 @@ export async function PUT(request) {
     const { data: cl } = await supabase.from("clients").select("*").eq("id", pr.client_id).single();
 
     if (decision === "approve") {
-      // Extend from the current expiry when the plan is still running, otherwise from today.
-      const current = cl?.plan_expires_at ? new Date(cl.plan_expires_at) : null;
-      const base = current && current > new Date() ? current : new Date();
-      base.setDate(base.getDate() + (pr.billing_cycle === "yearly" ? 365 : 30));
-
-      const { error: upErr } = await supabase.from("clients")
-        .update({ plan: pr.plan, plan_expires_at: base.toISOString(), suspended: false })
-        .eq("id", pr.client_id);
-      if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
-
-      await supabase.from("payment_requests")
-        .update({ status: "approved", reviewed_at: new Date().toISOString(), reviewed_by: email })
-        .eq("id", request_id);
-
-      if (cl?.owner_email) {
-        notifyPaymentApproved(cl.owner_email, pr.plan, base.toISOString()).catch(() => {});
-      }
-      // The money landed. Recorded so the console's bell shows the outcome next
-      // to the request that asked for it, and a second admin sees it was dealt
-      // with rather than approving it twice.
-      logEvent({
-        kind: "plan_activated",
-        title: `${pr.plan} activated`,
-        body: `${pr.billing_cycle === "yearly" ? "Yearly" : "Monthly"} · until ${base.toISOString().slice(0, 10)}`,
-        clientId: pr.client_id,
-        clientName: cl?.business_name,
-      }).catch(() => {});
-      return NextResponse.json({ ok: true, plan_expires_at: base.toISOString() });
+      // The same function the payment gateway uses (lib/billing-activate.js):
+      // it claims the row atomically (two admins clicking at once cannot extend
+      // a plan twice), applies what the payment bought — package, cycle,
+      // Standard/BYOK, add-ons — opens or closes the AI Engine to match, and
+      // tells the owner and the console.
+      const a = await activatePaymentRow(pr, { reviewedBy: email });
+      if (!a.ok) return NextResponse.json({ error: "The payment was marked approved but the account could not be updated. Check the client and set the plan by hand." }, { status: 500 });
+      if (a.already) return NextResponse.json({ error: "already reviewed" }, { status: 409 });
+      return NextResponse.json({ ok: true, plan_expires_at: a.plan_expires_at });
     }
 
     await supabase.from("payment_requests")

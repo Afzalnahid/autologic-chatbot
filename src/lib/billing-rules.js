@@ -1,5 +1,5 @@
 // Which payment rows still count as "under review". Pure, so tests/t-billing-rules.mjs
-// can check it.
+// can check it. Its one import, pricing.js, is pure too.
 //
 // An online (SSLCommerz) checkout writes a pending row BEFORE the customer reaches
 // the gateway. If they close the tab, cancel, or the card fails, nothing ever
@@ -12,6 +12,8 @@
 // treated as abandoned. A manual bKash/Nagad/Rocket row is different: the money
 // has (by the customer's word) been sent, and it waits for a person, however long
 // that takes.
+
+import { mergePicks, CYCLE_DAYS } from "./pricing.js";
 
 export const ONLINE_CHECKOUT_TTL_MIN = 60;
 
@@ -41,4 +43,28 @@ export const ACTIVATABLE = ["pending", "expired"];
 // confirmed by the gateway's own validation, never by a click.
 export function adminMayApprove(row) {
   return row?.status === "pending" && !isOnline(row);
+}
+
+// The new expiry for a package payment. Used by lib/billing-activate.js.
+export function extendedExpiry(currentExpiry, cycle, now = new Date()) {
+  const current = currentExpiry ? new Date(currentExpiry) : null;
+  const base = current && current > now ? new Date(current) : new Date(now);
+  base.setDate(base.getDate() + (cycle === "yearly" ? CYCLE_DAYS.yearly : CYCLE_DAYS.monthly));
+  return base;
+}
+
+// What the client row becomes. Used by lib/billing-activate.js.
+export function clientPatchFor(pr, cl, now = new Date()) {
+  if (pr.kind === "addon") {
+    return { addons: mergePicks(cl.addons || {}, pr.addons || {}) };
+  }
+  const cycle = pr.billing_cycle === "yearly" ? "yearly" : "monthly";
+  return {
+    plan: pr.plan,
+    plan_expires_at: extendedExpiry(cl.plan_expires_at, cycle, now).toISOString(),
+    suspended: false,
+    billing_cycle: cycle,
+    byok_plan: !!pr.byok,
+    addons: pr.addons || {},
+  };
 }
