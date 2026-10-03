@@ -179,8 +179,8 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
   owner's instruction: Supabase Redirect URLs += https://tellme.ufirstltd.com/**; Meta FB Login for Business
   redirect URIs += /api/fb/callback and /api/wa/callback; Instagram business login redirect += /api/ig/callback
   (all verified saved). Instagram app renamed "AutoLogic - IG" → "Tellmore AI - IG" via Meta's "Sync app name"
-  (Meta adds the " - IG" suffix; the main app's display name is "Tellmore AI", lowercase m — owner may want
-  "TellMore AI", which is App settings → Basic → Display name). Not done: Google Calendar redirect (not needed for the demo). Not tested end to end: a
+  (Meta adds the " - IG" suffix). Then, on the owner's OK, main app Display name "Tellmore AI" → "TellMore AI"
+  and synced again: Instagram app is now "TellMore AI - IG". Meta showed no required actions afterwards. Not done: Google Calendar redirect (not needed for the demo). Not tested end to end: a
   real signup / channel connect on the partner address (needs the partner's own login). Still TellMore there: /docs,
   pricing, legal, favicon, e-mails, payment return, Meta/Google consent screens, the demo film. Partner opens the
   demo account and adds products themselves.
