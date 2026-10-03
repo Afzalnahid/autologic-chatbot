@@ -914,7 +914,8 @@ function DashboardApp({ onLaunchReady }) {
     // simply selects nothing. Only the shape is checked here.
     const up=params.get("upgrade");
     if(up&&/^[a-z0-9_-]{2,40}$/i.test(up)){
-      setUpgradeIntent({plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly"});
+      // byok=1: they chose the own-AI-key price on the pricing page.
+      setUpgradeIntent({plan:up,cycle:params.get("cycle")==="yearly"?"yearly":"monthly",byok:params.get("byok")==="1"});
       setPageRaw("billing");
       window.history.replaceState({page:"billing",level:1},"","#billing");
       return;
@@ -1174,7 +1175,7 @@ function DashboardApp({ onLaunchReady }) {
             {page==="inventory"&&(isAgency?<KnowledgeBase/>:<Inventory products={products} refresh={load} intent={invIntent} onIntentDone={()=>setInvIntent(null)}/>)}
             {page==="orders"&&(isAgency?<Bookings calConnected={!!me?.client?.gcal_connected} clientId={me?.client?.id}/>:<Orders orders={orders} refresh={load} focus={focus?.tab==="orders"?focus:null} onGo={goTo}/>)}
             {page==="channels"&&<Channels onConnect={()=>{connectFromApp.current=true;setStage("connect");}} justConnected={justConnected} onDismissConnected={()=>setJustConnected(null)}/>}
-            {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle}/>}
+            {page==="billing"&&<Billing initialPlan={upgradeIntent.plan} initialCycle={upgradeIntent.cycle} initialByok={upgradeIntent.byok}/>}
             {page==="profile"&&<Profile/>}
             {page==="settings"&&<Settings settings={settings} setSettings={setSettings}/>}
             {page==="ai"&&<AIEngine/>}

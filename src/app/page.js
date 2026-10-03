@@ -809,6 +809,14 @@ export default async function Home({ searchParams }) {
                       <span className="fr" style={{ fontSize: 36 }}>{formatMoney(p.monthly)}</span>
                       <span style={{ fontSize: 13, opacity: .75 }}>{bn ? "/মাস" : "/mo"}</span>
                     </div>
+                    {/* The own-key price, on every card (owner, 2026-10-03). */}
+                    {Number(p.byok_monthly) > 0 && (
+                      <a href={`/dashboard?upgrade=${encodeURIComponent(p.id)}&cycle=monthly&byok=1`}
+                        style={{ display: "block", fontSize: 12.5, opacity: .85, margin: "0 0 6px", color: "inherit", textDecoration: "none" }}>
+                        <i className="ti ti-key" style={{ marginRight: 4 }} />
+                        {bn ? `নিজের AI কী দিয়ে ${formatMoney(p.byok_monthly)}/মাস` : `${formatMoney(p.byok_monthly)}/mo with your own AI key`}
+                      </a>
+                    )}
                     <div style={{ fontSize: 13, opacity: .8, minHeight: 38, lineHeight: 1.5 }}>{p.tagline}</div>
                     <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 22px", display: "grid", gap: 9 }}>
                       {(p.feature_list || []).map((f) => (

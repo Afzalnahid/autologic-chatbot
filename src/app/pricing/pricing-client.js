@@ -51,7 +51,6 @@ const COMPARE = [
   { label: "Voice message understanding", trial: true, basic: true, pro: true, enterprise: true },
   { label: "Comment automation", trial: true, basic: true, pro: true, enterprise: true },
   { label: "AI Assistant in your dashboard", trial: true, basic: true, pro: true, enterprise: true },
-  { label: "Use your own AI key (lower price)", trial: true, basic: true, pro: true, enterprise: true },
   { label: "Priority support", trial: false, basic: false, pro: false, enterprise: true },
 
   { only: "ecommerce", label: "Product catalogue & orders", trial: true, basic: true, pro: true, enterprise: true },
@@ -113,6 +112,9 @@ export default function PricingClient() {
   // the trial, and any row written before the biz column — belongs to both
   // sides and appears whichever is chosen.
   const [biz, setBiz] = useState("ecommerce");
+  // What can be bought on top of a package (plan_addons), live from /api/plans.
+  const [addons, setAddons] = useState([]);
+  const shownAddons = addons.filter((a) => a.biz === "both" || a.biz === biz).sort((a, b) => (a.sort || 0) - (b.sort || 0));
   const shown = plans.filter((p) => !p.biz || p.biz === "both" || p.biz === biz);
   const wrap = { maxWidth: 1120, margin: "0 auto", padding: "0 20px" };
   const yearly = cycle === "yearly";
@@ -130,6 +132,7 @@ export default function PricingClient() {
     // here without a deploy. Falls back to the code catalogue on any error.
     fetch("/api/plans").then((r) => r.json()).then((d) => {
       if (Array.isArray(d?.plans) && d.plans.length) setPlans(d.plans);
+      if (Array.isArray(d?.addons)) setAddons(d.addons);
     }).catch(() => {});
   }, []);
 
@@ -220,6 +223,7 @@ export default function PricingClient() {
                 {hasByok && (
                   <div style={{ fontSize: 11.5, color: T.muted, marginTop: 6, lineHeight: 1.5 }}>
                     🔑 {formatMoney(byokPrice)}/{yearly ? "year" : "month"} with your own AI key
+                    {" · "}<a href={`/dashboard?upgrade=${id}&cycle=${cycle}&byok=1`} style={{ color: T.gold, fontWeight: 600, textDecoration: "none" }}>choose this →</a>
                   </div>
                 )}
                 {REACH[tierOf(id)] && (
@@ -249,6 +253,41 @@ export default function PricingClient() {
         </div>
       </section>
 
+      {/* Own AI key, and add-ons (owner, 2026-10-03). */}
+      <section style={{ ...wrap, padding: "0 20px 48px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: 16 }}>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "22px 22px" }}>
+            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>🔑 On your own AI key</div>
+            <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.7, margin: 0 }}>
+              Every paid plan can run on your own Google Gemini or OpenAI key. Every AI reply runs on your key and you pay the AI provider directly, so the plan costs much less: the 🔑 price on each card.
+              After payment, AI Engine opens in your dashboard: paste your key and choose a model. The bot starts as soon as the key is saved. The free trial runs on our AI.
+            </p>
+          </div>
+          {shownAddons.length > 0 && <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: "22px 22px" }}>
+            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4 }}>Need a little more?</div>
+            <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, margin: "0 0 12px" }}>
+              Add these to any paid plan when you buy it, or in the middle of the month: you pay only for the days left. Prices per month{yearly ? "; on a yearly plan, ten months" : ""}.
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead><tr style={{ color: T.muted, fontSize: 11.5, textAlign: "left" }}>
+                  <th style={{ padding: "0 0 8px", fontWeight: 500 }}>Add-on</th>
+                  <th style={{ padding: "0 0 8px", fontWeight: 500, textAlign: "right" }}>Standard</th>
+                  <th style={{ padding: "0 0 8px", fontWeight: 500, textAlign: "right" }}>🔑 Own key</th>
+                </tr></thead>
+                <tbody>{shownAddons.map((a) => {
+                  const k = yearly ? 10 : 1;
+                  return <tr key={a.id} style={{ borderTop: `1px solid ${T.border}` }}>
+                    <td style={{ padding: "8px 0" }}>{a.name}</td>
+                    <td style={{ padding: "8px 0", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(a.monthly * k)}</td>
+                    <td style={{ padding: "8px 0", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney((a.byok_monthly ?? a.monthly) * k)}</td>
+                  </tr>;
+                })}</tbody>
+              </table>
+            </div>
+          </div>}
+        </div>
+      </section>
       {/* Comparison */}
       <section style={{ ...wrap, padding: "0 20px 56px" }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6, textAlign: "center" }}>Compare plans</h2>

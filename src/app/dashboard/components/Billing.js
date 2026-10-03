@@ -61,7 +61,7 @@ function Summary({ lines, total, note }) {
   </div>;
 }
 
-export default function Billing({initialPlan,initialCycle}) {
+export default function Billing({initialPlan,initialCycle,initialByok}) {
   const [d,setD]=useState(null);
   const [loading,setLoading]=useState(true);
   // "plans" (the cards), "pay" (buy or renew a package), "addons" (add-ons on a running package)
@@ -99,9 +99,11 @@ export default function Billing({initialPlan,initialCycle}) {
       if(d?.meta) setPlanMeta({...PLAN_META,...d.meta});
     }).catch(()=>{});
   },[]);
-  // A renewal starts from the package as it is today: own key or not, and the
-  // add-ons that renew with it.
-  useEffect(()=>{ if(d){ setByok(!!d.byok_plan); } },[d?.byok_plan]);
+  // A renewal starts from the package as it is today: own key or not. A link
+  // from the pricing page's own-key price (?byok=1) starts on own key instead.
+  // Once, on the first load — a reload after paying must not undo a choice.
+  const [seeded,setSeeded]=useState(false);
+  useEffect(()=>{ if(d&&!seeded){ setByok(initialByok?true:!!d.byok_plan); setSeeded(true); } },[d,seeded,initialByok]);
 
   const copy=async(t,id)=>{
     try{await navigator.clipboard.writeText(t);setCopied(id);setTimeout(()=>setCopied(""),1500);}catch{}

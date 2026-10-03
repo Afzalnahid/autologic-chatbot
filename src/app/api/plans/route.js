@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { loadPlans } from "@/lib/plan-limits.js";
+import { loadPlans, loadAddons } from "@/lib/plan-limits.js";
 
 // Public plan catalogue for the pricing page and the in-app upgrade tab. Reads
 // the packages an admin manages in the database (falling back to the code
@@ -37,5 +37,11 @@ export async function GET() {
   // Name/colour lookup for badges (every plan, including hidden/trial).
   const meta = {};
   for (const p of Object.values(all)) meta[p.id] = { name: p.name };
-  return NextResponse.json({ plans: list, meta }, { headers: { "Cache-Control": "public, max-age=30" } });
+  // What can be bought on top of a package, with both monthly prices (yearly
+  // is ten months). Public like the packages; only those on sale.
+  const addons = (await loadAddons())
+    .filter((a) => a.active !== false)
+    .map((a) => ({ id: a.id, name: a.name, kind: a.kind, amount: a.amount, biz: a.biz,
+      monthly: Number(a.monthly) || 0, byok_monthly: a.byok_monthly == null ? null : Number(a.byok_monthly), sort: a.sort }));
+  return NextResponse.json({ plans: list, meta, addons }, { headers: { "Cache-Control": "public, max-age=30" } });
 }
