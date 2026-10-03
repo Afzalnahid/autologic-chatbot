@@ -590,6 +590,11 @@ saved" rule in the next section.
   opens the sliders, the card's price follows, and Buy carries the numbers as
   `&c=replies.500,products.100` → buy-intent.js → Billing's `initialCustom`.
   Both pages have the our-AI / own-key switch.
+- **What a client pays** (admin): `clientMonthlyPrice` in `src/lib/revenue.js`
+  prices each client with `quotePlan` — own key at half, their raised numbers,
+  a yearly package over twelve months — for the Overview MRR, the Packages
+  "Billed" figure and the price in the client drawer. An own key of any provider
+  counts.
 - **90% warnings.** Every meter (UsageMeters.js) warns from 90% with Add more;
   `/api/me` lists `near_limits` and every dashboard tab shows NearLimitBanner.
 

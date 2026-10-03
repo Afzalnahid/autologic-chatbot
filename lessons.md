@@ -1772,3 +1772,15 @@ Rule: when the manual states a behaviour, pin it with a test, or check the
 code before writing the sentence. One rule lives in ONE place, the way
 `RECEIVING` in lib/channels.js and `countsAsSale` in lib/order-status.js now
 are, never as a literal copied into each screen.
+
+## 2026-10-04 — one redeclared name took every page down (caught before push)
+Adding `const catalogue` to `api/admin/route.js` clashed with a `catalogue`
+already declared further down. `npm test` passed (the suites read source, they
+do not compile routes), and in `next dev` the failed compile turned EVERY page
+into a 500 — home and /pricing included. And in Git Bash, `curl "localhost:3000$u"`
+with `u=/admin` sends `C:/Program Files/Git/admin`: a leading `/` in an argument
+is rewritten as a Windows path, so the first check read as "everything broken".
+Rule: after editing any route, load the pages and routes on the dev server with
+full URLs (`http://localhost:3000/admin`) and expect 200 / 401 — tests alone do
+not prove a route compiles. Before adding a top-level name to a long handler,
+search the file for it.

@@ -24,8 +24,18 @@ const SUPER_ADMIN = "nahidafzal97@gmail.com";
 // read off the screen instead of guessed at.
 async function subscriptionOf(client, payments, used) {
   if (!client) return null;
-  const { limitsFor, quotaWindowStart } = await import("@/lib/plan-limits.js");
+  const { limitsFor, quotaWindowStart, loadPlans, loadUnits } = await import("@/lib/plan-limits.js");
   const limits = await limitsFor(client);
+  // What this client really pays: own key, their raised numbers, the cycle
+  // (revenue.js) — the drawer used to show the package's standard price.
+  const [catalogue, units] = await Promise.all([loadPlans(), loadUnits()]);
+  const { clientMonthlyPrice } = await import("@/lib/revenue.js");
+  const { quotePlan } = await import("@/lib/pricing.js");
+  const planRow = catalogue[client.plan] || null;
+  const cycle = client.billing_cycle === "yearly" ? "yearly" : "monthly";
+  const paysQuote = planRow && Number(planRow.monthly) > 0
+    ? quotePlan({ plan: planRow, cycle, byok: !!client.byok_plan && Number(planRow.byok_monthly) > 0, custom: client.custom_limits || {}, units, plans: Object.values(catalogue) })
+    : null;
   const isTrial = client.plan === "trial";
 
   // Broadcasts and website imports, over the plan's window (trial → the trial,
@@ -62,6 +72,9 @@ async function subscriptionOf(client, payments, used) {
     plan: client.plan,
     plan_name: limits.planName,
     monthly: limits.monthly, yearly: limits.yearly,
+    // What they pay per period as bought, and its monthly equivalent.
+    pays: paysQuote?.ok ? { total: paysQuote.total, cycle, own_key: !!client.byok_plan, custom: paysQuote.custom,
+      monthly: Math.round(clientMonthlyPrice(client, planRow, { plans: Object.values(catalogue), units })) } : null,
     is_trial: isTrial,
     suspended: !!client.suspended,
     started_at: isTrial ? client.trial_start : (paid.length ? paid[paid.length - 1].created_at : null),

@@ -59,7 +59,7 @@ const me = read("src", "app", "api", "me", "route.js");
 ok("sign-up reads the host it came in on", /const brand = brandForHost\(request\.headers\.get\("host"\)\)/.test(me));
 ok("sign-up stores signup_brand", /signup_brand: brand\.id/.test(me));
 const adminApi = read("src", "app", "api", "admin", "route.js");
-ok("admin list loads signup_brand", /,signup_brand"\)/.test(adminApi));
+ok("admin list loads signup_brand", /,signup_brand[,"]/.test(adminApi));
 const admin = read("src", "app", "admin", "admin-client.js");
 ok("admin rows show where the account came from", (admin.match(/<ViaBadge c=\{c\} \/>/g) || []).length === 2);
 

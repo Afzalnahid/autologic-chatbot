@@ -141,6 +141,7 @@ export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   const [tabOwn, setTabOwn] = useState("money");
+  const [advanced, setAdvanced] = useState(false);
   const isMobile = useIsMobile();
 
   const load = useCallback(async () => {
@@ -193,26 +194,34 @@ export default function Packages({ token, isSuper, tab: tabProp, onTab }) {
   const profit = received - aiCostBdt - fixedBdt;
   const margin = received > 0 ? (profit / received) * 100 : NaN;
 
+  // Everyday tabs first; the developer-level ones (tokens, model ids, the
+  // dollar rate, the price book) sit behind "Advanced" (owner, 2026-10-04).
   const TABS = [
     { id: "money", label: "Money", icon: "ti-report-money" },
-    { id: "usage", label: "API usage", icon: "ti-chart-donut" },
-    { id: "clients", label: "Per client", icon: "ti-users" },
     { id: "packages", label: "Packages", icon: "ti-box" },
-    { id: "rates", label: "Rates & costs", icon: "ti-adjustments" },
+    { id: "clients", label: "Per client", icon: "ti-users" },
+    { id: "usage", label: "API usage", icon: "ti-chart-donut", advanced: true },
+    { id: "rates", label: "Rates & costs", icon: "ti-adjustments", advanced: true },
   ];
   // A tab id out of the address bar is not to be trusted — an unknown one would
   // render nothing at all and read as a broken page, so it falls back.
   const tab = TABS.some((x) => x.id === tabProp) ? tabProp : (onTab ? "money" : tabOwn);
   const setTab = onTab || setTabOwn;
+  const showAdv = advanced || TABS.some((x) => x.advanced && x.id === tab);
 
   return <div style={{ maxWidth: 1000 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: "1 1 300px", minWidth: 0 }}>
-        {TABS.map((x) => <button key={x.id} onClick={() => setTab(x.id)}
+        {TABS.filter((x) => !x.advanced || showAdv).map((x) => <button key={x.id} onClick={() => setTab(x.id)}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 11, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
             border: `1px solid ${tab === x.id ? "transparent" : T.border}`, background: tab === x.id ? T.accGrad || T.gold : T.card, color: tab === x.id ? T.onGold : T.textMuted }}>
           <i className={`ti ${x.icon}`} />{x.label}
         </button>)}
+        <button onClick={() => { if (showAdv && TABS.some((x) => x.advanced && x.id === tab)) setTab("money"); setAdvanced(!showAdv); }}
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 11px", borderRadius: 11, cursor: "pointer", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit",
+            border: `1px dashed ${T.border}`, background: "transparent", color: T.textDim }}>
+          <i className={showAdv ? "ti ti-chevron-left" : "ti ti-code"} />{showAdv ? "Hide advanced" : "Advanced"}
+        </button>
       </div>
       <Select value={String(days)} onChange={(v) => setDays(Number(v))}
         options={[{ value: "7", label: "Last 7 days" }, { value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }]} />
@@ -1330,7 +1339,7 @@ function PerClient({ d, rate, post, busy, isMobile }) {
             <div style={{ fontSize: 14, fontWeight: 600, color: T.warn }}>{bdt(costBdt)}</div>
           </div>
           <div style={{ textAlign: "right", minWidth: 78 }}>
-            <div style={{ fontSize: 10.5, color: T.textDim, textTransform: "uppercase", letterSpacing: .6 }}>Profit</div>
+            <div style={{ fontSize: 10.5, color: T.textDim, textTransform: "uppercase", letterSpacing: .6 }} title="What this client is billed in the window (own key, own numbers and cycle included) minus their AI cost. The Money tab counts money actually received.">Billed − cost</div>
             <div style={{ fontSize: 14, fontWeight: 700, color: profit >= 0 ? T.success : T.danger }}>{bdt(profit)}</div>
           </div>
           <i className={`ti ti-chevron-${isOpen ? "up" : "down"}`} style={{ color: T.textDim, fontSize: 16 }} />
@@ -1546,19 +1555,6 @@ function PlanEditor({ d, post, busy, isSuper, rate, setMsg }) {
         const r = await post({ action: "save_plan", plan: p });
         if (!r?.error) setEditing(null);
       }} />}
-
-    {/* This panel reads the plans table DIRECTLY — no fallback to the code
-        catalogue, unlike loadPlans(). So until the migration runs it shows the
-        packages that are actually there, which is right, but leaves the owner
-        looking at the old ladder wondering where the new one went. Say it. */}
-    {(d.plans || []).length > 0 && !(d.plans || []).some((p) => p.biz) &&
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: `color-mix(in srgb, ${T.warn} 10%, transparent)`,
-        border: `1px solid color-mix(in srgb, ${T.warn} 30%, transparent)`, borderRadius: 10, padding: "9px 11px", fontSize: 12, lineHeight: 1.6, color: T.textMuted }}>
-        <i className="ti ti-database-import" style={{ fontSize: 15, color: T.warn, flexShrink: 0, marginTop: 1 }} />
-        <span>These are the packages before the split by business type — no package here has one yet.
-          The seven new ones live in <b style={{ color: T.text }}>docs/sql/2026-08-31-plans-biz.sql</b>; run it in
-          Supabase → SQL Editor and this list becomes Shops and Services. Safe to run twice.</span>
-      </div>}
 
     {[...BIZ_GROUPS, RETIRED].map(([bizId, heading, hint]) => {
       // Retired takes precedence over business type: an inactive shop package
@@ -1909,7 +1905,7 @@ function ModelPrices({ d, post, busy }) {
       <div style={{ fontSize: 14, fontWeight: 700, flex: "1 1 200px" }}>Models on your key</div>
       <Btn small disabled={busy || loading} onClick={load}>
         <i className={`ti ti-${loading ? "loader-2" : "list-search"}`} style={{ marginRight: 5 }} />
-        {loading ? "Asking Google…" : models ? "Check again" : "Show what my key can use"}
+        {loading ? "Asking the provider…" : models ? "Check again" : "Show what my key can use"}
       </Btn>
     </div>
     <div style={{ fontSize: 12, color: T.textMuted, margin: "3px 0 0" }}>
@@ -1931,7 +1927,7 @@ function ModelPrices({ d, post, busy }) {
                 <span style={{ display: "block", fontSize: 11, color: T.textDim }}>{m.name}</span>
               </span>
               <Badge color={T.textDim}>{m.kind}</Badge>
-              <Btn small disabled={busy} onClick={() => post({ action: "save_price", price: { provider: "google", model: m.id, input_per_1m: 0, output_per_1m: 0 } })}>
+              <Btn small disabled={busy} onClick={async () => { const r = await post({ action: "save_price", provider: m.provider || "google", model: m.id, input_per_1m: 0, output_per_1m: 0 }); if (r && !r.error) load(); }}>
                 Add to the book
               </Btn>
             </div>)}

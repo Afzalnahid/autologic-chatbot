@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(here, "..");
-const { clientRevenue, receivedRevenue, revenueSummary, NO_REVENUE } =
+const { clientRevenue, receivedRevenue, revenueSummary, NO_REVENUE, clientMonthlyPrice } =
   await import(pathToFileURL(join(ROOT, "src", "lib", "revenue.js")).href + "?v=" + Date.now());
 
 let pass = 0, fail = 0;
@@ -113,6 +113,20 @@ const STARTER = { id: "shop_starter", monthly: 1500, byok_monthly: 1000 };
   ok("a row comes back per client", s.rows.length === 5 && s.rows[0].client_id === "a");
   // The old number, for contrast: 3500 + 3500 + 1500 = 8500.
   ok("and it is far below the old plan-column figure", s.billed < 8500 * 0.6);
+}
+
+// What a client pays a month as they bought it (2026-10-04): own key at half,
+// raised numbers, a yearly package over twelve months.
+{
+  const sB = { id: "shop_basic", biz: "ecommerce", active: true, monthly: 2699, yearly: 26990, byok_monthly: 1349, byok_yearly: 13490, messages_per_month: 2000, max_products: 500, max_assistant_per_month: 100 };
+  const sP = { id: "shop_pro", biz: "ecommerce", active: true, monthly: 5999, yearly: 59990, byok_monthly: 2999, byok_yearly: 29990, messages_per_month: 5500, max_products: 1000, max_assistant_per_month: 400 };
+  const L = [sB, sP];
+  ok("standard monthly is the package price", clientMonthlyPrice({ plan: "shop_basic" }, sB, { plans: L }) === 2699);
+  ok("bought on own key is half", clientMonthlyPrice({ plan: "shop_basic", byok_plan: true }, sB, { plans: L }) === 1349);
+  ok("raised numbers are counted", clientMonthlyPrice({ plan: "shop_basic", custom_limits: { replies: 500 } }, sB, { plans: L }) === 3099);
+  ok("yearly is spread over twelve months", near(clientMonthlyPrice({ plan: "shop_basic", billing_cycle: "yearly" }, sB, { plans: L }), 26990 / 12));
+  ok("a saved key on a hand-opened account still counts as own key", clientMonthlyPrice({ plan: "shop_basic" }, sB, { plans: L, ownKey: true }) === 1349);
+  ok("billed revenue uses it", near(clientRevenue({ plan: "shop_basic", byok_plan: true, custom_limits: { replies: 500 } }, sB, { ...W, plans: L }).bdt, 1549));
 }
 
 console.log(fail === 0 ? `${pass} passed, 0 failed` : `${pass} passed, ${fail} FAILED`);

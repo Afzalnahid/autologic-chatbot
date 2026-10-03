@@ -371,26 +371,18 @@ function Overview({ o, clients, attention, activity, openDetail, go, isMobile, c
   const top = [...clients].sort((a, b) => b.messages_7d - a.messages_7d).slice(0, 6);
   const planItems = [...new Set([...(o.plan_mix ? Object.keys(o.plan_mix) : []), "trial", "none"])].map((p) => ({ name: planName(p), count: o.plan_mix?.[p] || 0 })).filter((x) => x.count);
   const platItems = Object.entries(o.platform_mix || {}).map(([k, v]) => ({ name: (PLAT[k] || PLAT.unknown).label, count: v })).sort((a, b) => b.count - a.count);
-  const msgPlat = Object.entries(o.message_platform_30d || {}).map(([k, v]) => ({ name: (PLAT[k] || PLAT.unknown).label, count: v })).sort((a, b) => b.count - a.count);
   const two = { display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 };
-  const three = { display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 14 };
   const high = attention.filter((a) => a.level === "high").length;
   return <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
       <KStat icon="ti-users" label="Clients" value={fmtNum(o.total_clients)} trend={pct(o.new_clients_7d, o.new_clients_prev7)} sub={`${o.new_clients_7d} new this week · ${o.paid_clients} paying`} />
-      <KStat icon="ti-coin-taka" label="MRR" value={taka(o.mrr)} color={T.success} sub={`${o.starter} starter · ${o.pro} pro · ${o.agency} agency`} />
+      <KStat icon="ti-coin-taka" label="MRR" value={taka(o.mrr)} color={T.success} sub={`${o.paid_clients} paying · ${o.paid_own_key || 0} on own key · ${o.paid_yearly || 0} yearly`} />
       <KStat icon="ti-cash" label="Revenue 30d" value={taka(o.revenue_30d)} color={T.success} trend={pct(o.revenue_30d, o.revenue_prev30)} sub="approved payments" />
-      <KStat icon="ti-messages" label="Messages 7d" value={fmtNum(o.messages_7d)} trend={pct(o.messages_7d, o.messages_prev7)} sub={`${fmtNum(o.messages_today)} today · ${fmtNum(o.customer_messages_7d)} from customers`} />
-      <KStat icon="ti-shopping-bag" label="Orders 7d" value={fmtNum(o.orders_7d)} color={T.gold} trend={pct(o.orders_7d, o.orders_prev7)} sub={`${fmtNum(o.total_orders)} all time`} />
-      <KStat icon="ti-calendar-event" label="Bookings 7d" value={fmtNum(o.bookings_7d)} color={T.purple} trend={pct(o.bookings_7d, o.bookings_prev7)} sub={`${fmtNum(o.total_bookings)} all time`} />
-      <KStat icon="ti-plug-connected" label="Live channels" value={o.connected_channels} color={T.live} sub={Object.entries(o.platform_mix || {}).map(([k, v]) => `${v} ${(PLAT[k] || PLAT.unknown).label}`).join(" · ") || "none yet"} />
+      <KStat icon="ti-messages" label="Bot replies 7d" value={fmtNum(o.messages_7d)} trend={pct(o.messages_7d, o.messages_prev7)} sub={`${fmtNum(o.messages_today)} today · ${fmtNum(o.customer_messages_7d)} customer messages`} />
       <KStat icon="ti-alert-triangle" label="Attention" value={attention.length} color={high ? T.danger : T.warn} sub={high ? `${high} urgent` : "nothing urgent"} />
     </div>
 
-    <div style={two}>
-      <Card><SectionTitle icon="ti-chart-line" right={<span style={{ fontSize: 11.5, color: T.textDim }}>last 14 days</span>}>Messages</SectionTitle><Spark data={s("messages")} keys={["v"]} colors={[T.gold]} labels={lbl("messages")} height={110} /></Card>
-      <Card><SectionTitle icon="ti-user-plus" right={<span style={{ fontSize: 11.5, color: T.textDim }}>last 14 days</span>}>Signups</SectionTitle><Spark data={s("signups")} keys={["v"]} colors={[T.success]} labels={lbl("signups")} height={110} /></Card>
-    </div>
+    <Card><SectionTitle icon="ti-chart-line" right={<span style={{ fontSize: 11.5, color: T.textDim }}>last 14 days</span>}>Bot replies</SectionTitle><Spark data={s("messages")} keys={["v"]} colors={[T.gold]} labels={lbl("messages")} height={110} /></Card>
 
     <div style={two}>
       <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -415,10 +407,9 @@ function Overview({ o, clients, attention, activity, openDetail, go, isMobile, c
       </Card>
     </div>
 
-    <div style={three}>
+    <div style={two}>
       <Card><SectionTitle icon="ti-chart-pie">Plan mix</SectionTitle><BarList items={planItems} color={T.gold} empty="No clients yet." /></Card>
-      <Card><SectionTitle icon="ti-plug-connected">Connected channels</SectionTitle><BarList items={platItems} color={T.live} empty="No channels connected yet." /></Card>
-      <Card><SectionTitle icon="ti-message-2">Messages by channel · 30d</SectionTitle><BarList items={msgPlat} color={T.purple} empty="No messages in the last 30 days." /></Card>
+      <Card><SectionTitle icon="ti-plug-connected" right={<span style={{ fontSize: 11.5, color: T.textDim }}>{o.connected_channels} live</span>}>Connected channels</SectionTitle><BarList items={platItems} color={T.live} empty="No channels connected yet." /></Card>
     </div>
 
     <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -527,7 +518,8 @@ function Subscription({ s, isMobile }) {
     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 4 : 22 }}>
       <div>
         <Row k="Package" v={s.plan_name || s.plan} />
-        <Row k="Price" v={s.monthly ? `${money(s.monthly)} / month` : "Free"} />
+        <Row k="Price" v={s.pays ? `${money(s.pays.total)} / ${s.pays.cycle === "yearly" ? "year" : "month"}${s.pays.own_key ? " · own key" : ""}` : s.monthly ? `${money(s.monthly)} / month` : "Free"} />
+        {s.pays && describeCustom(s.pays.custom) && <Row k="Own numbers" v={describeCustom(s.pays.custom)} />}
         <Row k="Started" v={s.started_at ? shortDate(s.started_at) : "—"} />
         <Row k={late ? "Expired" : "Renews"}
           v={s.expires_at ? `${shortDate(s.expires_at)}${s.days_left !== null ? ` · ${s.days_left}d` : ""}` : "no end date"}
@@ -623,7 +615,7 @@ function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act,
               <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 12, color: T.textMuted, flexWrap: "wrap" }}><span><b style={{ color: T.text }}>{fmtNum(m.customer || 0)}</b> from customers</span><span><b style={{ color: T.text }}>{fmtNum(m.bot || 0)}</b> from bot</span><span><b style={{ color: T.text }}>{fmtNum(m.agent || 0)}</b> from agent</span>{Object.entries(m.by_platform || {}).map(([k, v]) => <span key={k}><b style={{ color: T.text }}>{fmtNum(v)}</b> {(PLAT[k] || PLAT.unknown).label}</span>)}</div></Card>
             <Card style={{ marginBottom: 14 }}><SectionTitle icon="ti-building-store">Business</SectionTitle>
               <Row k="Owner email" v={c.owner_email} /><Row k="Phone" v={c.phone} /><Row k="Address" v={c.address} /><Row k="Website" v={c.website} /><Row k="Bot name" v={detail.settings?.botName} /><Row k="Bot trained" v={detail.settings?.hasPrompt ? "Yes — business profile saved" : "No — bot uses defaults"} />
-              {c.gcal_connected && <Row k="Calendar" v={c.gcal_email} />}<Row k="Trial" v={c.trial_end ? `${shortDate(c.trial_start)} → ${shortDate(c.trial_end)}` : "—"} /><Row k="Plan expires" v={c.plan_expires_at ? shortDate(c.plan_expires_at) : "—"} /><Row k="Client ID" v={<span style={{ fontFamily: "monospace", fontSize: 11.5 }}>{c.id}</span>} />
+              {c.gcal_connected && <Row k="Calendar" v={c.gcal_email} />}<Row k="Trial" v={c.trial_end ? `${shortDate(c.trial_start)} → ${shortDate(c.trial_end)}` : "—"} /><Row k="Plan expires" v={c.plan_expires_at ? shortDate(c.plan_expires_at) : "—"} /><Row k="Client ID" v={<button type="button" title={c.id} onClick={() => { try { navigator.clipboard.writeText(c.id); } catch {} }} style={{ background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: "2px 9px", fontSize: 11.5, color: T.textMuted, cursor: "pointer" }}><i className="ti ti-copy" style={{ marginRight: 4 }} />Copy</button>} />
             </Card>
             {/* What this subscription IS, before anything that changes it.
                 The card used to be four buttons and a delete box: you could
@@ -660,9 +652,9 @@ function ClientDrawer({ detail, loading, onClose, canEdit, canDelete, busy, act,
               </div>}
             </Card>}
           </>}
-          {tab === "channels" && <Card>{detail.channels?.length ? detail.channels.map((ch, i) => { const p = PLAT[ch.platform] || PLAT.unknown; return <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}><span style={{ width: 38, height: 38, borderRadius: 12, background: `${p.color}1f`, color: p.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 19 }}><i className={`ti ${p.icon}`} /></span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{p.label}</span><span style={{ display: "block", fontSize: 11.5, color: T.textDim, fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis" }}>{ch.page_id || "—"}</span></span><Badge color={ch.status === "connected" ? T.success : T.textDim}>{ch.status}</Badge><span style={{ fontSize: 11.5, color: T.textDim, whiteSpace: "nowrap" }}>{shortDate(ch.connected_at)}</span></div>; }) : <Empty icon="ti-plug-x" text="No channels connected." />}</Card>}
+          {tab === "channels" && <Card>{detail.channels?.length ? detail.channels.map((ch, i) => { const p = PLAT[ch.platform] || PLAT.unknown; return <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}><span style={{ width: 38, height: 38, borderRadius: 12, background: `${p.color}1f`, color: p.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 19 }}><i className={`ti ${p.icon}`} /></span><span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 13.5, fontWeight: 600 }}>{p.label}</span>{ch.name && <span style={{ display: "block", fontSize: 11.5, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis" }}>{ch.name}</span>}</span><Badge color={ch.status === "connected" ? T.success : T.textDim}>{ch.status}</Badge><span style={{ fontSize: 11.5, color: T.textDim, whiteSpace: "nowrap" }}>{shortDate(ch.connected_at)}</span></div>; }) : <Empty icon="ti-plug-x" text="No channels connected." />}</Card>}
           {tab === "catalogue" && <Card>{detail.products?.length ? detail.products.map((p, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span><span style={{ color: T.textMuted, flexShrink: 0 }}>{p.price ? taka(p.price) : ""}{p.code ? ` · ${p.code}` : ""}</span></div>) : <Empty icon="ti-package" text="No products yet." />}</Card>}
-          {tab === "knowledge" && <Card>{detail.files?.length ? detail.files.map((f, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><i className="ti ti-file-text" style={{ marginRight: 6, color: T.gold }} />{f.file_name}</span><span style={{ color: T.textMuted, flexShrink: 0, fontSize: 12 }}>{f.chunks} chunks · {shortDate(f.created_at)}</span></div>) : <Empty icon="ti-database" text="No documents uploaded." />}</Card>}
+          {tab === "knowledge" && <Card>{detail.files?.length ? detail.files.map((f, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><i className="ti ti-file-text" style={{ marginRight: 6, color: T.gold }} />{f.file_name}</span><span style={{ color: T.textMuted, flexShrink: 0, fontSize: 12 }}>{shortDate(f.created_at)}</span></div>) : <Empty icon="ti-database" text="No documents uploaded." />}</Card>}
           {tab === "orders" && <Card>{detail.orders?.length ? detail.orders.map((o, i) => <div key={i} style={{ padding: "9px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={{ fontWeight: 600 }}>{o.customer_name || "—"} <span style={{ color: T.textDim, fontWeight: 400, fontFamily: "monospace", fontSize: 11.5 }}>#{o.order_code}</span></span><Badge color={o.status === "Pending" ? T.warn : T.success}>{o.status}</Badge></div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>{o.total_price ? `${taka(o.total_price)} · ` : ""}{shortDate(o.created_at)}</div></div>) : <Empty icon="ti-shopping-bag" text="No orders yet." />}</Card>}
           {tab === "bookings" && <Card>{detail.bookings?.length ? detail.bookings.map((b, i) => <div key={i} style={{ padding: "9px 0", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span style={{ fontWeight: 600 }}>{b.customer_name || "—"}</span><Badge color={b.status === "Confirmed" ? T.success : T.textDim}>{b.status}</Badge></div><div style={{ color: T.textMuted, fontSize: 12, marginTop: 2 }}>{b.service_want} · {b.meeting_date} {b.meeting_time}</div></div>) : <Empty icon="ti-calendar-event" text="No bookings yet." />}</Card>}
           {tab === "ai" && isSuper && <AITab ai={detail.ai || null} clientId={c.id} superKey={superKey} setSuperKey={setSuperKey} allow={allowAiKey} revoke={revokeAiKey} busy={busy === c.id + "aikey"} />}
@@ -705,7 +697,7 @@ function Payments({ payments, canEdit, busy, review, openDetail, isMobile }) {
         {pending.length === 0 ? <Empty icon="ti-mood-smile" text="No payments waiting." /> : pending.map((p) => { const mine = confirm?.id === p.id; return <div key={p.id} style={{ padding: "14px 16px", borderRadius: 16, background: T.bgAlt, boxShadow: T.nmIn }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
             <div style={{ minWidth: 200, flex: "1 1 240px" }}><div style={{ fontSize: 14.5, fontWeight: 700, cursor: "pointer" }} onClick={() => openDetail(p.client_id)}>{p.business_name} <i className="ti ti-external-link" style={{ fontSize: 12, color: T.textDim }} /></div><div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 2 }}>{p.owner_email}</div><div style={{ fontSize: 12, color: T.textDim, marginTop: 6 }}>{new Date(p.created_at).toLocaleString("en-GB")} · {ago(p.created_at)}</div></div>
-            <div style={{ minWidth: 200 }}><div style={{ fontSize: 22, fontWeight: 700, color: T.gold, letterSpacing: "-.02em" }}>{taka(p.amount)}</div><div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 2 }}>{(p.kind === "topup" || p.kind === "addon") && <Badge color={T.info}>More numbers</Badge>} <Badge color={planColor(p.plan)}>{planName(p.plan)}</Badge>{p.byok && <Badge color={T.textMuted}>Own AI key</Badge>} <span style={{ marginLeft: 6 }}>{p.billing_cycle} · {p.method}</span></div>{describeCustom(p.custom_limits) && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>Own numbers: {describeCustom(p.custom_limits)}</div>}{dupTxn(p) && <div style={{ fontSize: 12, color: T.danger, marginTop: 4 }}><i className="ti ti-alert-triangle" style={{ marginRight: 4 }} />This transaction ID was used before ({dupTxn(p)})</div>}<div style={{ fontSize: 12.5, marginTop: 6 }}><span style={{ color: T.textMuted }}>Txn </span><span style={{ fontFamily: "monospace", fontWeight: 600 }}>{p.txn_id}</span></div>{p.sender_number && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>From {p.sender_number}</div>}</div>
+            <div style={{ minWidth: 200 }}><div style={{ fontSize: 22, fontWeight: 700, color: T.gold, letterSpacing: "-.02em" }}>{taka(p.amount)}</div><div style={{ fontSize: 12.5, color: T.textMuted, marginTop: 2 }}>{p.kind === "topup" && <Badge color={T.info}>More numbers</Badge>} <Badge color={planColor(p.plan)}>{planName(p.plan)}</Badge>{p.byok && <Badge color={T.textMuted}>Own AI key</Badge>} <span style={{ marginLeft: 6 }}>{p.billing_cycle} · {p.method}</span></div>{describeCustom(p.custom_limits) && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>Own numbers: {describeCustom(p.custom_limits)}</div>}{dupTxn(p) && <div style={{ fontSize: 12, color: T.danger, marginTop: 4 }}><i className="ti ti-alert-triangle" style={{ marginRight: 4 }} />This transaction ID was used before ({dupTxn(p)})</div>}<div style={{ fontSize: 12.5, marginTop: 6 }}><span style={{ color: T.textMuted }}>Txn </span><span style={{ fontFamily: "monospace", fontWeight: 600 }}>{p.txn_id}</span></div>{p.sender_number && <div style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>From {p.sender_number}</div>}</div>
           </div>
           {canEdit && (!mine ? <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
             <Btn small onClick={() => setConfirm({ id: p.id, decision: "approve", note: "" })} style={{ background: T.success, color: "#fff" }}><i className="ti ti-check" style={{ marginRight: 5 }} />Approve & activate</Btn>
@@ -776,9 +768,14 @@ function Admins({ admins, superKey, setSuperKey, setRole, removeAdmin, busy }) {
 // broken key never falls back to the platform key. Product-search embeddings
 // are the one exception (always the platform's Gemini key — the catalogue's
 // vector space).
+// Both providers a client may bring (CLAUDE.md: one provider runs everything).
+// An unknown one still draws — it must never take the tab down with it, as an
+// OpenAI key did while this list held Google alone.
 const AI_PROVIDERS = {
-  google: { label: "Google AI Studio", icon: "ti-brand-google", color: "#4285F4" },
+  google: { label: "Google AI Studio (Gemini)", icon: "ti-brand-google", color: "#4285F4" },
+  openai: { label: "OpenAI", icon: "ti-brand-openai", color: "#10A37F" },
 };
+const providerOf = (id) => AI_PROVIDERS[id] || { label: id ? String(id) : "Their own key", icon: "ti-key", color: "#7B1C3E" };
 
 function AITab({ ai, clientId, superKey, setSuperKey, allow, revoke, busy }) {
   const [msg, setMsg] = useState(null);        // {ok, text}
@@ -786,7 +783,7 @@ function AITab({ ai, clientId, superKey, setSuperKey, allow, revoke, busy }) {
   const locked = !superKey;
   const permitted = !!ai;
   const hasKey = !!(ai && ai.key_mask && ai.status !== "no_key");
-  const P = hasKey ? AI_PROVIDERS[ai.provider] : null;
+  const P = hasKey ? providerOf(ai.provider) : null;
 
   const doAllow = async () => {
     const r = await allow(clientId);
@@ -864,10 +861,10 @@ function AITab({ ai, clientId, superKey, setSuperKey, allow, revoke, busy }) {
     {/* How the separation works — so a support question never needs the code */}
     <Card>
       <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: .8 }}>How it works</div>
-      {[["ti-key", "You grant permission here; the client pastes their own Google AI (Gemini) key in their dashboard."],
-        ["ti-messages", "Chat, photo matching, voice, bot training, auto-tags AND product-search embeddings then run — and bill — on their own key."],
+      {[["ti-key", "You grant permission here — or it opens by itself when they buy an own-key package; the client pastes their own Google Gemini or OpenAI key in their dashboard."],
+        ["ti-messages", "Chat, photo matching, voice, bot training, auto-tags AND product-search embeddings then run — and bill — on their own key, whichever provider it is."],
         ["ti-scissors", "Hard separation: if their key hits its limit or breaks, their bot pauses politely. It NEVER uses your platform key."],
-        ["ti-database", "Every vector is the gemini-embedding-001 model, so a client's own Gemini key indexes in the same space — nothing lands on the platform."]].map(([ic, t]) =>
+        ["ti-database", "Every search vector records the model that made it; on a change of provider the client's catalogue is re-indexed in the background, never mixed."]].map(([ic, t]) =>
         <div key={ic} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "7px 0", borderTop: `1px solid ${T.border}`, fontSize: 12.5, lineHeight: 1.55 }}>
           <i className={`ti ${ic}`} style={{ color: T.gold, width: 18, marginTop: 2 }} /><span style={{ flex: 1 }}>{t}</span>
         </div>)}

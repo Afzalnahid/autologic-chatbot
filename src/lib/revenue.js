@@ -18,6 +18,8 @@
 // is unit-tested (tests/t-revenue.mjs) and the same rules can be read by any
 // screen that needs them.
 
+import { quotePlan } from "./pricing.js";
+
 const ms = (v) => { const t = Date.parse(v); return Number.isFinite(t) ? t : null; };
 const DAY = 86400000;
 
@@ -32,6 +34,23 @@ export const NO_REVENUE = {
   free: "Package price is zero",
 };
 
+// What one client pays a month for their package as they bought it
+// (2026-10-04): own key (half price) or not, their own raised numbers, and a
+// yearly package spread over twelve months. Priced with lib/pricing.js — the
+// same code that charged them — so the admin's figures and the customer's
+// invoice cannot drift apart. `ownKey` (a saved key, any provider) still counts
+// for an account the super admin opened to its own key by hand. `plans` (all
+// packages) and `units` (step prices) are what the raised numbers are priced
+// against; without them only the package's own price is counted.
+export function clientMonthlyPrice(client = {}, plan = null, { ownKey = false, plans = [], units } = {}) {
+  if (!plan || !(Number(plan.monthly) > 0)) return 0;
+  const byok = (!!client.byok_plan || !!ownKey) && Number(plan.byok_monthly) > 0;
+  const cycle = client.billing_cycle === "yearly" ? "yearly" : "monthly";
+  const q = quotePlan({ plan, cycle, byok, custom: client.custom_limits || {}, units: units || undefined, plans });
+  const total = q.ok ? q.total : (byok ? Number(plan.byok_monthly) : Number(plan.monthly)) * (cycle === "yearly" ? 10 : 1);
+  return cycle === "yearly" ? total / 12 : total;
+}
+
 // One client's BILLED revenue over [from, to].
 //
 // `plan` is the row from the plans table (or null). `ownKey` true when the
@@ -42,7 +61,7 @@ export const NO_REVENUE = {
 // Days are counted, not assumed: a package that expires on the 19th earns for
 // the days up to the 19th and nothing after. A month is treated as 30 days,
 // which is the convention the rest of the panel uses.
-export function clientRevenue(client = {}, plan = null, { from, to, ownKey = false } = {}) {
+export function clientRevenue(client = {}, plan = null, { from, to, ownKey = false, plans, units } = {}) {
   const startMs = ms(from), endMs = ms(to);
   if (startMs === null || endMs === null || endMs <= startMs) return zero("no_plan");
 
@@ -55,7 +74,7 @@ export function clientRevenue(client = {}, plan = null, { from, to, ownKey = fal
   if (!plan) return zero("no_plan");
 
   // The price this client is actually charged.
-  const monthly = ownKey && Number(plan.byok_monthly) > 0 ? Number(plan.byok_monthly) : Number(plan.monthly) || 0;
+  const monthly = clientMonthlyPrice(client, plan, { ownKey, plans: plans || [plan], units });
   if (monthly <= 0) return zero("free");
 
   // The part of the window the package was live for. No start date is stored,
@@ -72,7 +91,7 @@ export function clientRevenue(client = {}, plan = null, { from, to, ownKey = fal
     days,
     windowDays: whole,
     monthly,
-    ownKey: !!(ownKey && Number(plan.byok_monthly) > 0),
+    ownKey: !!((ownKey || client.byok_plan) && Number(plan.byok_monthly) > 0),
     // True when the package ran out part-way through, so the panel can say why
     // this client is worth less than a full window of their price.
     partial: days < whole - 0.01,

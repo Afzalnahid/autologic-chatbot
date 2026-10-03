@@ -6,14 +6,14 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase.js";
 import { notifyNewAdminSignup, notifyAdminApproved, notifyPaymentRejected } from "@/lib/email.js";
 import { logEvent } from "@/lib/platform-events.js";
-import { PLANS } from "@/lib/plans.js";
 
 // Paid means "not the free trial and not nothing". Both places below used to
 // test a list of three ids written here, so a client on any package created
 // since — including the six that replaced those three — counted as unpaid:
 // no days left on their plan, and missing from the MRR and paid-client totals.
 const isPaidPlan = (p) => !!p && p !== "trial" && p !== "none";
-import { loadPlans } from "@/lib/plan-limits.js";
+import { loadPlans, loadUnits } from "@/lib/plan-limits.js";
+import { clientMonthlyPrice } from "@/lib/revenue.js";
 import { startOfDayDhaka } from "@/lib/time.js";
 import { adminMayApprove } from "@/lib/billing-rules.js";
 import { activatePaymentRow } from "@/lib/billing-activate.js";
@@ -81,7 +81,7 @@ export async function GET(request) {
   }
 
   const [clientsQ, msgsQ, ordersQ, bookingsQ, channelsQ, filesQ, productsQ, contactsQ, payQ] = await Promise.all([
-    supabase.from("clients").select("id,owner_email,business_name,business_type,plan,trial_end,plan_expires_at,suspended,created_at,gcal_connected,logo_url,phone,address,website,signup_brand"),
+    supabase.from("clients").select("id,owner_email,business_name,business_type,plan,trial_end,plan_expires_at,suspended,created_at,gcal_connected,logo_url,phone,address,website,signup_brand,byok_plan,custom_limits,billing_cycle,internal"),
     supabase.from("message_buffer").select("client_id,created_at,role,platform"),
     supabase.from("orders").select("client_id,created_at,total_price,status,customer_name,order_code"),
     supabase.from("bookings").select("client_id,created_at,status,customer_name,meeting_date"),
@@ -135,10 +135,15 @@ export async function GET(request) {
     pending_payment: payRows.some((p) => p.client_id === c.id && adminMayApprove(p)),
   }));
 
-  // Recurring revenue estimate from active paid plans (monthly price; the
-  // catalogue is the single source of truth). Revenue = approved payments.
-  const monthlyOf = (plan) => Number(PLANS[plan]?.monthly || 0);
-  const paid = rows.filter((c) => isPaidPlan(c.plan) && !c.suspended && (c.plan_days_left === null || c.plan_days_left > 0));
+  // Recurring revenue: what each running paid client actually pays a month —
+  // the live packages (not the code catalogue, which knew nothing of a package
+  // made in the panel), own key at half price, their raised numbers, and a
+  // yearly package spread over twelve months (revenue.js clientMonthlyPrice).
+  // The owner's own internal account is left out. Revenue = approved payments.
+  const [pkgs, units] = await Promise.all([loadPlans(), loadUnits()]);
+  const ladder = Object.values(pkgs);
+  const monthlyOf = (c) => clientMonthlyPrice(c, pkgs[c.plan] || null, { plans: ladder, units });
+  const paid = rows.filter((c) => isPaidPlan(c.plan) && !c.suspended && !c.internal && (c.plan_days_left === null || c.plan_days_left > 0));
   const approved = payRows.filter((p) => p.status === "approved");
   const sum = (arr) => arr.reduce((n, p) => n + Number(p.amount || 0), 0);
   const revenue_30d = sum(approved.filter((p) => new Date(p.reviewed_at || p.created_at).getTime() > d30));
@@ -164,8 +169,8 @@ export async function GET(request) {
     total_clients: clients.length,
     new_clients_7d: after(clients, d7).length, new_clients_prev7: between(clients, d14, d7).length, new_clients_30d: after(clients, d30).length,
     plan_mix: planMix,
-    trial: planMix.trial || 0, starter: planMix.starter || 0, pro: planMix.pro || 0, agency: planMix.agency || 0, none: planMix.none || 0,
-    paid_clients: paid.length, suspended: rows.filter((c) => c.suspended).length,
+    trial: planMix.trial || 0, none: planMix.none || 0,
+    paid_clients: paid.length, paid_own_key: paid.filter((c) => c.byok_plan).length, paid_yearly: paid.filter((c) => c.billing_cycle === "yearly").length, suspended: rows.filter((c) => c.suspended).length,
     ecommerce: clients.filter((c) => c.business_type !== "agency").length, agencies: clients.filter((c) => c.business_type === "agency").length,
     // Totals mirror the per-client figure above: bot replies only, never a
     // hand-typed (agent) reply. customer_messages_7d stays as the separate,
@@ -177,11 +182,13 @@ export async function GET(request) {
     total_bookings: bookings.length, bookings_7d: after(bookings, d7).length, bookings_prev7: between(bookings, d14, d7).length,
     total_contacts: contacts.length, total_products: products.length, total_kb_files: files.length,
     connected_channels: channels.filter((ch) => ch.status === "connected").length, platform_mix: platformMix, message_platform_30d: msgPlatform,
-    mrr: paid.reduce((n, c) => n + monthlyOf(c.plan), 0), revenue_30d, revenue_prev30,
+    mrr: Math.round(paid.reduce((n, c) => n + monthlyOf(c), 0)), revenue_30d, revenue_prev30,
     // Only the payments a person has to check: an online checkout in progress is
     // the gateway's to confirm (billing-rules.js).
     pending_payments: payRows.filter(adminMayApprove).length,
-    series: { messages: series(msgs), signups: series(clients), orders: series(orders), bookings: series(bookings) },
+    // Bot replies, the same count as the Messages tile (it used to chart every
+    // message, customers' included, under the same title).
+    series: { messages: series(botMsgs), signups: series(clients), orders: series(orders), bookings: series(bookings) },
   };
 
   // What needs a human today, most urgent first.

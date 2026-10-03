@@ -159,8 +159,9 @@ export async function GET(request) {
 
   // Who actually runs on their own AI key. Permission without a saved key is
   // still the platform's key and the standard price (clientHasOwnKey's rule).
+  // Any provider: an OpenAI key is as much the client's own as a Gemini one.
   const ownKeyIds = new Set((ownKeyQ.data || [])
-    .filter((r) => r.api_key_enc && r.provider === "google").map((r) => r.client_id));
+    .filter((r) => r.api_key_enc).map((r) => r.client_id));
 
   // The window every figure on this screen is measured over. Revenue is now
   // counted over the same one, day by day, instead of being assumed from the
@@ -177,7 +178,8 @@ export async function GET(request) {
     // actually live, at the price they actually pay. It used to be
     // monthly/30*days for anybody with a plan name, which counted an expired
     // package, a suspended account and the owner's own company.
-    const rev = clientRevenue(c, p, { from: windowFrom, to: windowTo, ownKey: ownKeyIds.has(c.id) });
+    // Own key, the client's raised numbers and the cycle all count (revenue.js).
+    const rev = clientRevenue(c, p, { from: windowFrom, to: windowTo, ownKey: ownKeyIds.has(c.id), plans, units: unitsQ?.data?.length ? unitsQ.data : undefined });
     const revenueBdt = rev.bdt;
     return {
       client_id: c.id,
@@ -354,7 +356,9 @@ export async function POST(request) {
       const priced = new Set(Object.keys(prices).map((k) => k.slice(k.indexOf("/") + 1)));
       return NextResponse.json({
         ok: true,
-        models: models.map((m) => ({ ...m, priced: priced.has(m.id) })),
+        // Each model says which provider it belongs to, so "Add to the book"
+        // files it under the right one.
+        models: models.map((m) => ({ ...m, provider: m.provider || pai.provider || "google", priced: priced.has(m.id) })),
       }, { headers: { "Cache-Control": "no-store" } });
     } catch (e) {
       return NextResponse.json({ error: `Could not read the model list: ${String(e.message || e).slice(0, 200)}` }, { status: 400 });
