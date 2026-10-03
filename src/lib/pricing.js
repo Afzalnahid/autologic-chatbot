@@ -48,6 +48,15 @@ export function addonsForBiz(addons, biz) {
     .sort((a, b) => (Number(a.sort) || 0) - (Number(b.sort) || 0));
 }
 
+// May a business of this type buy this package? A shop's package sells a
+// catalogue a service has no use for, and the other way round. "both" (the
+// trial) and a package with no type fit everyone.
+export function planFitsBusiness(plan, businessType) {
+  const biz = plan?.biz;
+  if (!biz || biz === "both") return true;
+  return biz === (businessType || "ecommerce");
+}
+
 // Does this package have an own-key price at all?
 export function hasByokPrice(plan) {
   return num(plan?.byok_monthly) > 0;

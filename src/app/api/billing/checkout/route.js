@@ -2,29 +2,27 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
-import { loadPlans } from "@/lib/plan-limits.js";
-import { priceForClient } from "@/lib/plans.js";
-import { clientHasOwnKey } from "@/lib/ai.js";
 import { withErrors } from "@/lib/route-errors.js";
 import { sslEnabled, initiateSession, newTranId, baseUrl } from "@/lib/sslcommerz.js";
 import { expireAbandonedCheckouts } from "@/lib/billing-activate.js";
+import { priceBasket } from "@/lib/billing-basket.js";
 
-// Start a hosted SSLCommerz checkout for a plan. Returns { url } for the browser
-// to redirect to. The plan is priced from the LIVE catalogue (same as the manual
-// flow), a pending payment_requests row is created keyed by our tran_id, and the
-// gateway echoes that tran_id back to /api/billing/callback and /ipn.
+// Start a hosted SSLCommerz checkout. Returns { url } for the browser to redirect
+// to. What is bought — a package (Standard or own-key, monthly or yearly, with
+// add-ons) or add-ons mid-period — is priced on the server exactly as the manual
+// flow prices it (lib/billing-basket.js). A pending payment_requests row is
+// created keyed by our tran_id, and the gateway echoes that tran_id back to
+// /api/billing/callback and /ipn.
 export const POST = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!sslEnabled()) return NextResponse.json({ error: "Online payment is not available right now." }, { status: 400 });
 
-  const { plan, cycle = "monthly" } = await request.json().catch(() => ({}));
-
-  const catalogue = await loadPlans();
-  const chosen = catalogue[plan];
-  const isPaid = chosen && chosen.active !== false && Number(chosen.monthly) > 0;
-  if (!isPaid) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-  if (!["monthly", "yearly"].includes(cycle)) return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
+  const body = await request.json().catch(() => ({}));
+  const basket = await priceBasket(client, body);
+  if (!basket.ok) return NextResponse.json({ error: basket.error }, { status: basket.status || 400 });
+  const { amount, billing_cycle: cycle } = basket.row;
+  if (!(amount > 0)) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
 
   // One open request at a time, same rule as the manual flow — after closing any
   // earlier online checkout that was never completed (billing-rules.js).
@@ -35,20 +33,14 @@ export const POST = withErrors(async (request) => {
     return NextResponse.json({ error: "You already have a payment under review. We'll confirm it shortly." }, { status: 409 });
   }
 
-  // A client on their own AI key pays the lower BYOK price where a package sets
-  // one (same rule as the manual flow), priced server-side from the live key.
-  const ownKey = await clientHasOwnKey(client.id);
-  const amount = priceForClient(chosen, cycle, ownKey);
-  if (!(amount > 0)) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
   const tranId = newTranId(client.id);
-
   const { data: pr, error: insErr } = await supabase.from("payment_requests").insert({
-    client_id: client.id, plan, billing_cycle: cycle, amount, method: "online", txn_id: tranId,
+    client_id: client.id, ...basket.row, method: "online", txn_id: tranId,
   }).select().single();
   if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
 
   const r = await initiateSession({
-    tranId, amount, planName: chosen.name || plan, cycle, origin: baseUrl(request),
+    tranId, amount, planName: basket.label, cycle, origin: baseUrl(request),
     customer: { clientId: client.id, name: client.business_name, email, phone: client.phone, address: client.address },
   });
 

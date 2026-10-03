@@ -4,8 +4,8 @@ export const fetchCache = "force-no-store";
 import { NextResponse } from "next/server";
 import { requireClient } from "@/lib/auth.js";
 import { supabase } from "@/lib/supabase.js";
-import { planActive, priceForClient } from "@/lib/plans.js";
-import { loadPlans, limitsFor } from "@/lib/plan-limits.js";
+import { planActive } from "@/lib/plans.js";
+import { limitsFor, loadAddons } from "@/lib/plan-limits.js";
 import { clientHasOwnKey } from "@/lib/ai.js";
 import { entitlementsFor } from "@/lib/entitlements.js";
 import { notifyPaymentRequest } from "@/lib/email.js";
@@ -15,6 +15,8 @@ import { sslEnabled } from "@/lib/sslcommerz.js";
 import { startOfDayDhaka, startOfMonthDhaka } from "@/lib/time.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 import { blocksNewPayment } from "@/lib/billing-rules.js";
+import { priceBasket } from "@/lib/billing-basket.js";
+import { addonsForBiz } from "@/lib/pricing.js";
 import { expireAbandonedCheckouts } from "@/lib/billing-activate.js";
 
 const NO_CACHE = { headers: { "Cache-Control": "no-store, no-cache, must-revalidate", Pragma: "no-cache" } };
@@ -43,7 +45,7 @@ export const GET = withErrors(async (request) => {
   const { client, error } = await requireClient(request);
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const [limits, month, today, reqQ, ownKey, entitlements] = await Promise.all([
+  const [limits, month, today, reqQ, ownKey, entitlements, addonCatalogue] = await Promise.all([
     limitsFor(client),
     usageThisMonth(client.id),
     usageToday(client.id),
@@ -52,6 +54,7 @@ export const GET = withErrors(async (request) => {
     // Features + every metered allowance with used/remaining, from the one
     // shared assembler — so the client's dashboard and the admin drawer agree.
     entitlementsFor(client),
+    loadAddons(),
   ]);
 
   const requests = reqQ.data || [];
@@ -76,6 +79,15 @@ export const GET = withErrors(async (request) => {
     // that sets one; when false, the standard price. The key is added in the AI
     // Engine tab, so this can change between a visit and a purchase.
     own_key: ownKey,
+    // The current package as bought (lib/pricing.js): own-key or Standard, the
+    // cycle, and the add-ons that renew with it — the purchase screen starts
+    // a renewal from these, and prorates a mid-period add-on over the cycle.
+    byok_plan: !!client.byok_plan,
+    billing_cycle: client.billing_cycle || "monthly",
+    addons: client.addons || {},
+    // Add-ons this business may buy, with both prices; the screen totals the
+    // basket with the same pricing.js the server charges with.
+    addon_catalogue: addonsForBiz(addonCatalogue, client.business_type || "ecommerce"),
     trial_end: client.trial_end,
     plan_expires_at: client.plan_expires_at,
     suspended: !!client.suspended,
@@ -105,16 +117,16 @@ export const POST = withErrors(async (request) => {
   if (error || !client) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { plan, cycle = "monthly", method, sender_number, txn_id } = body;
+  const { method, sender_number, txn_id } = body;
 
-  // Validate and price the plan against the LIVE catalogue (the plans table),
-  // so a package the admin created is purchasable — and priced correctly —
-  // without a code change.
-  const catalogue = await loadPlans();
-  const chosen = catalogue[plan];
-  const isPaid = chosen && chosen.active !== false && Number(chosen.monthly) > 0;
-  if (!isPaid) return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-  if (!["monthly", "yearly"].includes(cycle)) return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
+  // What is being bought — a package (Standard or own-key, monthly or yearly,
+  // with add-ons) or add-ons mid-period — priced on the server against the live
+  // catalogue (lib/billing-basket.js → lib/pricing.js). The browser never sends
+  // an amount.
+  const basket = await priceBasket(client, body);
+  if (!basket.ok) return NextResponse.json({ error: basket.error }, { status: basket.status || 400 });
+  const { amount } = basket.row;
+  const cycle = basket.row.billing_cycle;
   if (!method) return NextResponse.json({ error: "Select a payment method" }, { status: 400 });
   if (!txn_id || String(txn_id).trim().length < 4) {
     return NextResponse.json({ error: "Enter the transaction ID from your payment receipt" }, { status: 400 });
@@ -129,16 +141,9 @@ export const POST = withErrors(async (request) => {
     return NextResponse.json({ error: "You already have a payment under review. We'll confirm it shortly." }, { status: 409 });
   }
 
-  // A client on their own AI key pays the lower BYOK price on any package that
-  // sets one; everyone else pays the standard price. Priced server-side from the
-  // live key status, so the amount cannot be forged from the client.
-  const ownKey = await clientHasOwnKey(client.id);
-  const amount = priceForClient(chosen, cycle, ownKey);
   const { data, error: insErr } = await supabase.from("payment_requests").insert({
     client_id: client.id,
-    plan,
-    billing_cycle: cycle,
-    amount,
+    ...basket.row,
     method,
     sender_number: sender_number || null,
     txn_id: String(txn_id).trim(),
@@ -149,7 +154,7 @@ export const POST = withErrors(async (request) => {
   notifyPaymentRequest({
     business: client.business_name,
     email,
-    plan: chosen.name || plan,
+    plan: basket.label,
     cycle,
     amount,
     method,
@@ -158,7 +163,7 @@ export const POST = withErrors(async (request) => {
   // …and on the console's bell, where the decision is actually made.
   logEvent({
     kind: "payment_request",
-    title: `${amount} for ${chosen.name || plan}`,
+    title: `${amount} for ${basket.label}`,
     body: `${method} · ${String(txn_id).trim()} · ${cycle}`,
     clientId: client.id,
     clientName: client.business_name,
