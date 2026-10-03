@@ -12,6 +12,7 @@ import { isValidEmail } from "@/lib/valid-email.js";
 import { checkPassword } from "@/lib/password-rules.js";
 import PasswordRules from "../dashboard/components/PasswordRules.js";
 import { T, Theme, Motion, useTheme, ThemeToggle, Card, Btn, Badge, Segmented, Select, Inp, KStat, Spark, BarList, OnboardFrame, useIsMobile, taka, shortDate, fmtNum, PLAN_META } from "../dashboard/components/ui.js";
+import { DEFAULT_BRAND, brandById } from "@/lib/white-label.js";
 
 // The super-admin console. Same design system as the customer dashboard —
 // crimson on soft white, neumorphic depth, dark mode — arranged as a command
@@ -53,6 +54,12 @@ function Avatar({ c, size = 38 }) {
   return <div style={{ width: size, height: size, borderRadius: size * 0.32, background: c?.logo_url ? T.bgAlt : T.accGrad, color: T.onGold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.36, fontWeight: 700, flexShrink: 0, overflow: "hidden", boxShadow: T.nmSm }}>
     {c?.logo_url ? <img src={c.logo_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initialsOf(c?.business_name || c?.owner_email)}
   </div>;
+}
+// "via Tell Me": the account signed up on a white-label partner's address
+// (lib/white-label.js), so the partner's revenue share applies to it.
+function ViaBadge({ c }) {
+  if (!c?.signup_brand || c.signup_brand === DEFAULT_BRAND.id) return null;
+  return <Badge color={T.info}>via {brandById(c.signup_brand).name}</Badge>;
 }
 function ChannelDots({ channels }) {
   if (!channels?.length) return <span style={{ fontSize: 11.5, color: T.textDim }}>No channel</span>;
@@ -429,7 +436,7 @@ function ClientTable({ rows, openDetail, isMobile, compact, catalogue = [] }) {
     {rows.map((c) => <button key={c.id} onClick={() => openDetail(c.id)} className="ui-btn ob-row" style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", borderRadius: 16, background: T.card, boxShadow: T.nmSm, border: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit", color: T.text, width: "100%" }}>
       <Avatar c={c} size={40} />
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.business_name || "—"}</span>{c.suspended && <i className="ti ti-player-pause" style={{ color: T.danger, fontSize: 13 }} />}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}><span style={{ fontSize: 13.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.business_name || "—"}</span><ViaBadge c={c} />{c.suspended && <i className="ti ti-player-pause" style={{ color: T.danger, fontSize: 13 }} />}</span>
         <span style={{ display: "block", fontSize: 11.5, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.owner_email}</span>
         <span style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5, flexWrap: "wrap" }}><PlanPill c={c} /><ChannelDots channels={c.channels} /><span style={{ fontSize: 11, color: T.textDim }}>{fmtNum(c.messages_7d)} msgs · 7d</span></span>
         <span style={{ display: "flex", marginTop: 5 }}><FeatureChips features={featOf(c.plan)} biz={c.business_type} max={5} /></span>
@@ -442,7 +449,7 @@ function ClientTable({ rows, openDetail, isMobile, compact, catalogue = [] }) {
   return <div style={{ overflowX: "auto" }}><table style={{ width: "100%", minWidth: 760, borderCollapse: "collapse" }}>
     <thead><tr style={{ borderBottom: `1px solid ${T.border}` }}>{["Business", "Plan", ...(compact ? [] : ["Features"]), "Channels", "Msgs 7d", compact ? "Today" : "Orders / Bookings", "Last active", ""].map((h, i) => <th key={i} style={th}>{h}</th>)}</tr></thead>
     <tbody>{rows.map((c) => { const t = pct(c.messages_7d, c.messages_prev7); return <tr key={c.id} className="ui-row" onClick={() => openDetail(c.id)} style={{ borderBottom: `1px solid ${T.border}`, cursor: "pointer" }}>
-      <td style={td}><div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}><Avatar c={c} size={36} /><div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>{c.business_name || "—"}<Badge color={c.business_type === "agency" ? T.purple : T.gold}>{c.business_type === "agency" ? "Agency" : "Shop"}</Badge>{c.suspended && <Badge color={T.danger}>Suspended</Badge>}{c.pending_payment && <Badge color={T.warn}>Payment</Badge>}</div><div style={{ fontSize: 11.5, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>{c.owner_email}</div></div></div></td>
+      <td style={td}><div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}><Avatar c={c} size={36} /><div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>{c.business_name || "—"}<Badge color={c.business_type === "agency" ? T.purple : T.gold}>{c.business_type === "agency" ? "Agency" : "Shop"}</Badge><ViaBadge c={c} />{c.suspended && <Badge color={T.danger}>Suspended</Badge>}{c.pending_payment && <Badge color={T.warn}>Payment</Badge>}</div><div style={{ fontSize: 11.5, color: T.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>{c.owner_email}</div></div></div></td>
       <td style={td}><PlanPill c={c} /></td>
       {!compact && <td style={td}><FeatureChips features={featOf(c.plan)} biz={c.business_type} max={6} /></td>}
       <td style={td}><ChannelDots channels={c.channels} /></td>

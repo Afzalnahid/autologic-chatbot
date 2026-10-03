@@ -52,5 +52,16 @@ ok("sidebar shows our mark only when the brand has one", /brand\.logo \? <BotMar
 const ui = read("src", "app", "dashboard", "components", "ui.js");
 ok("onboarding frame prints the brand name", /\{brand\.name\}\s*<\/div>/.test(ui));
 
+// Which door an account came in by is recorded, for the partner's share.
+ok("brandById finds the partner", W.brandById("tellme").name === "Tell Me");
+ok("brandById falls back to ours", W.brandById("tellmore").id === "tellmore" && W.brandById(undefined).id === "tellmore");
+const me = read("src", "app", "api", "me", "route.js");
+ok("sign-up reads the host it came in on", /const brand = brandForHost\(request\.headers\.get\("host"\)\)/.test(me));
+ok("sign-up stores signup_brand", /signup_brand: brand\.id/.test(me));
+const adminApi = read("src", "app", "api", "admin", "route.js");
+ok("admin list loads signup_brand", /,signup_brand"\)/.test(adminApi));
+const admin = read("src", "app", "admin", "admin-client.js");
+ok("admin rows show where the account came from", (admin.match(/<ViaBadge c=\{c\} \/>/g) || []).length === 2);
+
 console.log(`white-label: ${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

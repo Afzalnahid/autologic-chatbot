@@ -9,6 +9,7 @@ import { startOfDayDhaka } from "@/lib/time.js";
 import { trialDays, limitsFor } from "@/lib/plan-limits.js";
 import { countBillableMessages } from "@/lib/message-usage.js";
 import { inboxLocked, lockedSince } from "@/lib/inbox-lock.js";
+import { brandForHost, isWhiteLabel } from "@/lib/white-label.js";
 
 export const GET = withErrors(async (request) => {
   const { client, email, error } = await requireClient(request);
@@ -70,8 +71,11 @@ export const POST = withErrors(async (request) => {
   if (body.action === "register") {
     if (client) return NextResponse.json({ ok: true, client_id: client.id });
     const businessName = body.business_name || "My Business";
+    // Which door they came in by: ours, or a white-label partner's address
+    // (lib/white-label.js). It is what the partner's revenue share is counted on.
+    const brand = brandForHost(request.headers.get("host"));
     const { data, error: e } = await supabase.from("clients")
-      .insert({ business_name: businessName, owner_email: email, plan: "none" })
+      .insert({ business_name: businessName, owner_email: email, plan: "none", signup_brand: brand.id })
       .select().single();
     if (e) return NextResponse.json({ error: e.message }, { status: 500 });
     // The platform owner asked to be told when a business arrives (2026-09-24).
@@ -79,7 +83,7 @@ export const POST = withErrors(async (request) => {
     logEvent({
       kind: "client_signup",
       title: "A new business signed up",
-      body: email,
+      body: isWhiteLabel(brand) ? `${email} · via ${brand.name}` : email,
       clientId: data.id,
       clientName: businessName,
     }).catch(() => {});

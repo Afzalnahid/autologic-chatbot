@@ -25,6 +25,7 @@ Every tenant-owned table carries `client_id uuid` referencing `clients.id`.
 | `gcal_access_token`, `gcal_refresh_token` | text | Google Calendar OAuth |
 | `gcal_token_expiry` | timestamptz | Refresh trigger |
 | `gcal_email`, `gcal_connected` | text / boolean | Connection state |
+| `signup_brand` | text, not null, default `tellmore` | Which address the account signed up on: `tellmore`, or a white-label partner id from `src/lib/white-label.js` (`tellme` = tellme.ufirstltd.com). Set once by `POST /api/me` (`register`) from the request's host; the admin list shows "via Tell Me". The partner's revenue share is counted on it. Added 2026-10-03; every earlier row is `tellmore`. |
 
 #### Expiry reminders
 

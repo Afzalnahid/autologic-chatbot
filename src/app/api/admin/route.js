@@ -78,7 +78,7 @@ export async function GET(request) {
   }
 
   const [clientsQ, msgsQ, ordersQ, bookingsQ, channelsQ, filesQ, productsQ, contactsQ, payQ] = await Promise.all([
-    supabase.from("clients").select("id,owner_email,business_name,business_type,plan,trial_end,plan_expires_at,suspended,created_at,gcal_connected,logo_url,phone,address,website"),
+    supabase.from("clients").select("id,owner_email,business_name,business_type,plan,trial_end,plan_expires_at,suspended,created_at,gcal_connected,logo_url,phone,address,website,signup_brand"),
     supabase.from("message_buffer").select("client_id,created_at,role,platform"),
     supabase.from("orders").select("client_id,created_at,total_price,status,customer_name,order_code"),
     supabase.from("bookings").select("client_id,created_at,status,customer_name,meeting_date"),

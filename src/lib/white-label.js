@@ -34,6 +34,11 @@ export function brandForHost(host) {
   return WHITE_LABELS[cleanHost(host)] || DEFAULT_BRAND;
 }
 
+// clients.signup_brand stores the id; the admin panel turns it back into a name.
+export function brandById(id) {
+  return Object.values(WHITE_LABELS).find((b) => b.id === id) || DEFAULT_BRAND;
+}
+
 export function isWhiteLabel(brand) {
   return !!brand && brand.id !== DEFAULT_BRAND.id;
 }
