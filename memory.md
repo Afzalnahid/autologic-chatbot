@@ -171,7 +171,18 @@ out/build-batch2.log. Next session: check that log, rebuild any FAILED ids, spot
 - PENDING: team-inbox / sales-team feature plan sent to the owner; waiting on his 5 decisions (login per moderator,
   visibility, assignment, time metric, pricing/seats). He asked for it as a 2-page PDF (sent 2026-10-02) to have
   someone else confirm; do not build anything until that answer comes back.
-- IN PROGRESS 2026-10-03: PACKAGES = Standard or BYOK + add-ons (owner GO; decisions: add-ons at purchase AND
+- DONE + LIVE 2026-10-04: PACKAGES = Standard or BYOK + add-ons (all stages shipped, Vercel READY). Commits:
+  548449c (activation: one activatePaymentRow for gateway+admin, BYOK opens AI Engine, Standard-after-BYOK closes
+  it, add-on payments merge, bot+getClientAI wait when byok_plan && no key), 18afa81 (assistant_100/200 add-ons,
+  Std 99/179, BYOK 59/109), 467a685 (Billing basket UI + top-up, lib/billing-basket.js, both pay routes),
+  78285dd (admin add-on price editor, queue shows own-key/add-ons), c91e1de (home + /pricing show own-key price
+  everywhere + add-on table; ?byok=1 deep link; trial no longer claims BYOK), dc68354 (manual en/bn + AI Engine
+  empty state points to Billing). Tests 90/90. Verified on a local harness (mocked /api/billing; not committed)
+  and live /api/plans (8 add-ons). NOT verified end to end: a real paid BYOK purchase → approval → AI Engine opens
+  → key → bot replies (needs a real payment or an admin approving a test request). Known left over: /pricing
+  COMPARE "Channels 1/2/All 3" row is wrong (no channel cap) but locked by t-packages-uniform; admin MRR uses code
+  constant price; package-cost report ignores OpenAI BYOK clients.
+- (history) 2026-10-03: PACKAGES = Standard or BYOK + add-ons (owner GO; decisions: add-ons at purchase AND
   mid-period (prorated by days left), renew with the package; yearly = 10x; BYOK bought but no key → bot WAITS (no
   platform AI); BYOK → Standard closes AI Engine (only for byok_plan clients, manual grants untouched); BYOK shown
   everywhere). BYOK prices lowered (owner: 1,599 basis): shop 1599/3599/7099, svc 1399/2999/5999, yearly x10;
