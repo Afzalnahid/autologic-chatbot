@@ -33,8 +33,8 @@ ok("a bad cycle has no price", P.planPrice(shopPro, { cycle: "weekly" }) === nul
 // Which add-ons a business sees.
 const shopAddons = P.addonsForBiz(A, "ecommerce").map((a) => a.id);
 const svcAddons = P.addonsForBiz(A, "agency").map((a) => a.id);
-ok("a shop sees replies and products", shopAddons.join() === "replies_100,replies_200,products_50,products_100");
-ok("a service sees replies and documents", svcAddons.join() === "replies_100,replies_200,docs_5,docs_10");
+ok("a shop sees replies, products and assistant questions", shopAddons.join() === "replies_100,replies_200,products_50,products_100,assistant_100,assistant_200");
+ok("a service sees replies, documents and assistant questions", svcAddons.join() === "replies_100,replies_200,docs_5,docs_10,assistant_100,assistant_200");
 ok("an inactive add-on is not offered", !P.addonsForBiz([{ ...A[0], active: false }], "ecommerce").length);
 
 // Add-on prices.
@@ -86,6 +86,8 @@ const ex = P.addonExtras({ replies_100: 2, replies_200: 1, products_50: 1, docs_
 ok("replies add up", ex.messages_per_month === 400);
 ok("products add up", ex.max_products === 50);
 ok("documents add up", ex.max_kb_files === 10);
+ok("assistant questions add up", P.addonExtras({ assistant_100: 1, assistant_200: 2 }, A).max_assistant_per_month === 500);
+ok("assistant questions cost the same as products", P.addonPrice(A.find((a) => a.id === "assistant_100")) === 99 && P.addonPrice(A.find((a) => a.id === "assistant_200"), { byok: true }) === 109);
 ok("a limit grows by its extra", P.withExtra(5500, 100) === 5600);
 ok("unlimited stays unlimited", P.withExtra(null, 100) === null);
 

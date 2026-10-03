@@ -8,7 +8,8 @@
 //     on their key, so the package costs less),
 //   · monthly or yearly,
 //   · optional add-ons from the `plan_addons` table: more bot replies, more
-//     products (shops) or more documents (services), each with a quantity.
+//     AI Assistant questions, more products (shops) or more documents
+//     (services), each with a quantity.
 //
 // Yearly is ten months' price for the package (two free), and the same rule
 // applies to add-ons. An add-on bought in the middle of a running package costs
@@ -22,7 +23,7 @@ export const CYCLE_DAYS = { monthly: 30, yearly: 365 };
 export const MAX_ADDON_QTY = 10;
 
 // Which limit each kind of add-on raises (column names of a `plans` row).
-export const ADDON_LIMIT = { replies: "messages_per_month", products: "max_products", docs: "max_kb_files" };
+export const ADDON_LIMIT = { replies: "messages_per_month", products: "max_products", docs: "max_kb_files", assistant: "max_assistant_per_month" };
 
 // The built-in add-on list, used only if the plan_addons table cannot be read —
 // the same rows the 2026-10-03 migration seeded.
@@ -33,6 +34,8 @@ export const ADDON_DEFAULTS = [
   { id: "products_100", name: "+100 products", kind: "products", amount: 100, biz: "ecommerce", monthly: 179, byok_monthly: 109, active: true, sort: 4 },
   { id: "docs_5", name: "+5 documents", kind: "docs", amount: 5, biz: "agency", monthly: 99, byok_monthly: 59, active: true, sort: 5 },
   { id: "docs_10", name: "+10 documents", kind: "docs", amount: 10, biz: "agency", monthly: 179, byok_monthly: 109, active: true, sort: 6 },
+  { id: "assistant_100", name: "+100 AI Assistant questions", kind: "assistant", amount: 100, biz: "both", monthly: 99, byok_monthly: 59, active: true, sort: 7 },
+  { id: "assistant_200", name: "+200 AI Assistant questions", kind: "assistant", amount: 200, biz: "both", monthly: 179, byok_monthly: 109, active: true, sort: 8 },
 ];
 
 const num = (v) => (v === null || v === undefined || v === "" ? null : Number(v));

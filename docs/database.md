@@ -284,7 +284,8 @@ Only one row per client may block a new payment (a manual `pending` one, or an
 online one under an hour old) — enforced in the billing API.
 
 ### `plan_addons` — what can be bought on top of a package
-`id` (e.g. `replies_100`), `name`, `kind` (`replies` / `products` / `docs`),
+`id` (e.g. `replies_100`), `name`, `kind` (`replies` / `products` / `docs` /
+`assistant`),
 `amount` (how much the limit grows), `biz` (`both` / `ecommerce` / `agency`),
 `monthly`, `byok_monthly` (null = same as `monthly`), `active`, `sort`,
 `updated_at`. Yearly is always ten months. Seeded 2026-10-03:
@@ -297,9 +298,14 @@ online one under an hour old) — enforced in the billing API.
 | `products_100` | 100 products | shops | ৳179 / ৳109 |
 | `docs_5` | 5 documents | services | ৳99 / ৳59 |
 | `docs_10` | 10 documents | services | ৳179 / ৳109 |
+| `assistant_100` | 100 AI Assistant questions a month | both | ৳99 / ৳59 |
+| `assistant_200` | 200 AI Assistant questions a month | both | ৳179 / ৳109 |
+
+(The assistant rows were added the same day by migration `plan_addons_assistant_questions`.)
 
 `limitsFor()` adds a paid client's add-ons (`clients.addons`) on top of the
-package or the override. `src/lib/pricing.js` `ADDON_DEFAULTS` is the fallback
+package or the override (`replies` → `messages_per_month`, `products` →
+`max_products`, `docs` → `max_kb_files`, `assistant` → `max_assistant_per_month`). `src/lib/pricing.js` `ADDON_DEFAULTS` is the fallback
 when the table cannot be read. RLS is on with no policies (service key only).
 
 ### `admin_users` — platform staff
